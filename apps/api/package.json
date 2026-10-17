@@ -1,0 +1,43 @@
+{
+  "name": "@app/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "build": "node scripts/build.mjs",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file-if-exists=.env src/cli.ts migrate",
+    "db:seed": "tsx --env-file-if-exists=.env src/cli.ts seed",
+    "db:lint": "squawk --config=.squawk.toml drizzle/*.sql",
+    "openapi": "tsx scripts/openapi.ts"
+  },
+  "dependencies": {
+    "@app/shared": "workspace:*",
+    "@hono/node-server": "2.1.4",
+    "@hono/zod-openapi": "1.6.3",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.13",
+    "jose": "6.2.12",
+    "pg": "8.23.1",
+    "pino": "10.4.0",
+    "uuid": "14.0.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.2.0",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11",
+    "esbuild": "0.28.2",
+    "squawk-cli": "2.68.0",
+    "testcontainers": "12.2.0",
+    "tsx": "4.23.15",
+    "vitest": "5.0.4",
+    "yaml": "2.9.1"
+  }
+}

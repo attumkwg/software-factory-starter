@@ -1,0 +1,50 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #1f2328;
+  background: #fff;
+}
+.container {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #d0d7de;
+  padding-bottom: 0.5rem;
+}
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+.list {
+  list-style: none;
+  padding: 0;
+}
+.list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eaeef2;
+}
+.link {
+  background: none;
+  border: none;
+  color: #0969da;
+  cursor: pointer;
+  padding: 0;
+}
+.done {
+  text-decoration: line-through;
+  color: #6e7781;
+}
+.note {
+  color: #6e7781;
+}
+input {
+  padding: 0.25rem 0.5rem;
+}

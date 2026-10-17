@@ -1,0 +1,6 @@
+# squawk: Postgres の移行の「本番を止める書き方」を CI で止める。
+# 例外を足すときは、理由を書いて人がレビューする(.claude/skills/db-migration)。
+pg_version = "17.0"
+# drizzle の移行は1つのトランザクションで流れる
+assume_in_transaction = true
+excluded_rules = []

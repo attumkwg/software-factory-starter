@@ -1,0 +1,64 @@
+# 手元で丸ごと動かす: docker compose up --build → http://localhost:3000
+# 種データ(2社)で、開発用ログインが使える。ここにある値はすべて手元専用で、秘密ではない。
+name: software-factory-starter
+
+x-app: &app
+  image: software-factory-starter/api:local
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      # 接続ユーザー(app_owner = 表の持ち主 / app = アプリ用・RLS がかかる)を作る
+      - ./apps/api/db/init:/docker-entrypoint-initdb.d:ro
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command: ["dist/cli.js", "migrate"]
+    environment:
+      MIGRATION_DATABASE_URL: postgres://app_owner:app_owner@db:5432/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    <<: *app
+    command: ["dist/cli.js", "seed"]
+    environment:
+      APP_ENV: local
+      MIGRATION_DATABASE_URL: postgres://app_owner:app_owner@db:5432/app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: *app
+    environment:
+      APP_ENV: local
+      AUTH_MODE: dev
+      DATABASE_URL: postgres://app:app@db:5432/app
+      SESSION_SECRET: local-dev-only-session-secret-not-used-anywhere
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:
