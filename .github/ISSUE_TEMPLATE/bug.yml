@@ -5,6 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
+        💡 **手で埋めるより楽な方法**: Claude Code で `/report-bug` と打つと、1問ずつ聞かれて答えるだけでこの Issue ができます(docs/playbook.md)。
+
         ⚠️ **他社のデータが見えた**疑いなら、この Issue ではなく `docs/runbooks/tenant-data-leak.md` の手順で、すぐ責任者に連絡する。
         個人情報・秘密の値をここに貼らない(requestId で十分)。
   - type: textarea

@@ -186,15 +186,20 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ## ✅ CI で回るもの
 
+お金がかかりうるもの(AWS・Claude の API)は、**いまは手動だけ**にしてあります。有効にする手順と費用は [docs/guides/automation.md](docs/guides/automation.md)。
+
 | ワークフロー | いつ | AWS / キーが無いとき |
 |---|---|---|
-| `ci.yml` | PR・main | 全部動く(AWS 不要) |
-| `terraform.yml` | infra を変えた PR | fmt・validate・tflint・Trivy は動く。plan は飛ばす |
-| `preview.yml` | PR の open / sync / close | 飛ばす(notice を出す) |
-| `cleanup-previews.yml` | 毎晩 3:00 | 飛ばす |
-| `deploy.yml` | main への push | 飛ばす |
-| `claude.yml` | `@claude` | 飛ばす(notice を出す) |
-| `labeler.yml` | PR | 動く(危険度のラベル) |
+| `ci.yml` | 自動: PR・main | 全部動く(AWS 不要) |
+| `terraform.yml` | 自動: infra を変えた PR | fmt・validate・tflint・Trivy |
+| `labeler.yml` | 自動: PR | 危険度のラベル |
+| `terraform-plan.yml` | 手動 | 飛ばす(notice を出す) |
+| `preview.yml` | 手動(PR の番号を入れる) | 飛ばす(notice を出す) |
+| `cleanup-previews.yml` | 手動 | 飛ばす |
+| `deploy.yml` | 手動 | 飛ばす |
+| `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
+
+日々の進め方は [docs/playbook.md](docs/playbook.md)、Slack から頼む形にしたいときは [docs/guides/slack.md](docs/guides/slack.md)。
 
 ---
 

@@ -7,13 +7,17 @@
 # AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
 name: Deploy
 
+# いまは手動だけ(Actions → Deploy → Run workflow)。自動にするときは push のコメントを外す。
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
   workflow_dispatch:
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、main にマージするたびに stg へ出す(ECR の保存・移行のタスク・ECS の入れ替えに少額の AWS 費用)。
+  # stg と prod の環境そのものの月額は docs/getting-started.md の ④。
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - "docs/**"
+  #     - "**/*.md"
 
 permissions:
   contents: read

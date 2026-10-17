@@ -5,6 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
+        💡 **手で埋めるより楽な方法**: Claude Code で `/new-feature` と打つと、1問ずつ聞かれて答えるだけでこの Issue ができます(docs/playbook.md)。
+
         **受け入れ条件が無い Issue は AI に渡さない**(工程②振り分け → ③仕様 で埋める)。
         大きいときは親 Issue にして、1つの PR で終わる大きさの子 Issue に割る。
   - type: textarea
