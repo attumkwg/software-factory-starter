@@ -1,0 +1,39 @@
+name: 不具合
+description: 再現の手順と、直ったと言える条件つきで
+labels: ["kind:bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **他社のデータが見えた**疑いなら、この Issue ではなく `docs/runbooks/tenant-data-leak.md` の手順で、すぐ責任者に連絡する。
+        個人情報・秘密の値をここに貼らない(requestId で十分)。
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現の手順
+      value: |
+        1. … としてログイン(ロール: )
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待した動き / 実際の動き
+    validations:
+      required: true
+  - type: input
+    id: request-id
+    attributes:
+      label: requestId(分かれば)
+      description: 画面のエラーか、応答の x-request-id ヘッダー
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件(直ったと言える条件)
+      description: 直す PR には、これを再現するテストを必ず付ける
+      value: |
+        - [ ] … のとき … になる
+        - [ ] 再現するテストが足されている
+    validations:
+      required: true

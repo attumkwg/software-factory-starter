@@ -7,7 +7,10 @@ import pg from "pg";
  * 移行を流す。接続は「表の持ち主」(MIGRATION_DATABASE_URL)で、アプリの接続ユーザーとは別。
  * 本番では ECS の1回きりのタスクとして、新しいイメージを出す前に流す(deploy.yml)。
  */
-export async function runMigrations(databaseUrl: string, migrationsFolder?: string): Promise<void> {
+export async function runMigrations(
+  databaseUrl: string | undefined,
+  migrationsFolder?: string,
+): Promise<void> {
   const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
   try {
     await migrate(drizzle({ client: pool }), {

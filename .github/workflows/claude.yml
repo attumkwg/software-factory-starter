@@ -1,0 +1,72 @@
+# 背景エージェント(ハーネスの第2層): Issue や PR で「@claude」と書くと、Claude Code が動いて
+# 実装して PR を出す・レビューに答える。
+#
+# 守り(security.md 0.3):
+# - 起動できるのはリポジトリの持ち主と組織のメンバーだけ。外の人が書いた Issue の文章は「データ」で、
+#   そのまま AI に渡すと中の指示に従ってしまう(プロンプトインジェクション)。
+# - AI の PR は CI・CODEOWNERS・ブランチ保護を通る。自分で頼んだ AI の PR を自分で承認しない。
+# - API キー(ANTHROPIC_API_KEY)が無ければ、失敗せずに飛ばす。
+name: Claude
+
+on:
+  # 起動できる人を OWNER / MEMBER に絞っている(下の if)
+  issue_comment: # zizmor: ignore[dangerous-triggers]
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    if: >-
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
+          contains(fromJSON('["OWNER","MEMBER"]'), github.event.comment.author_association)) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
+          contains(fromJSON('["OWNER","MEMBER"]'), github.event.comment.author_association)) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') &&
+          contains(fromJSON('["OWNER","MEMBER"]'), github.event.review.author_association)) ||
+        (github.event_name == 'issues' &&
+          (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) &&
+          contains(fromJSON('["OWNER","MEMBER"]'), github.event.issue.author_association))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    env:
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - name: API キーが無ければ飛ばす
+        if: env.HAS_KEY != 'true'
+        run: echo "::notice::ANTHROPIC_API_KEY が無いので Claude を動かしませんでした(README の「本人がやる設定」)"
+      # Claude が実装をブランチに push するので、資格情報は残す
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_KEY == 'true'
+        with:
+          fetch-depth: 0 # zizmor: ignore[artipacked]
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: env.HAS_KEY == 'true'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: env.HAS_KEY == 'true'
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - if: env.HAS_KEY == 'true'
+        run: pnpm install --frozen-lockfile
+      - uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967 # v1.0.252
+        if: env.HAS_KEY == 'true'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # CLAUDE.md・.claude/skills・.claude/settings.json(フック)をそのまま使う。
+          # CI が落ちたら直すのは2回まで(CLAUDE.md)。それ以上は PR に状況を書いて人に渡す。
+          claude_args: >-
+            --max-turns 60
+            --allowedTools "Bash(pnpm:*),Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Edit,Write,Read,Glob,Grep"

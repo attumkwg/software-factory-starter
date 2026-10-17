@@ -1,0 +1,201 @@
+# PR の検査(工程⑤)。AWS も API キーも要らない。全部が緑でないとマージできない(ブランチ保護で必須に)。
+# 速い検査(Biome・型・単体)を最初に返し、重いもの(結合・E2E・イメージ)は並べて流す。
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # 道具の版はここで固定(Renovate が上げる)
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+  SEMGREP_IMAGE: semgrep/semgrep:1.181.0
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12
+  ZIZMOR_IMAGE: ghcr.io/zizmorcore/zizmor:1.31.1
+
+jobs:
+  fast:
+    name: Biome・型・単体
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Biome(整形と lint)
+        run: pnpm lint
+      - name: 型
+        run: pnpm typecheck
+      - name: 単体(権限の表の網羅 ① を含む)
+        run: pnpm test
+
+  integration:
+    name: 結合(Postgres・RLS・2社・権限の表 ②)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Testcontainers で結合テスト
+        run: pnpm test:integration
+
+  migrations:
+    name: 移行の検査(squawk)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @app/api db:lint
+
+  e2e:
+    name: E2E(docker compose+Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 手元と同じ形で起動(DB・移行・種データ・API+画面)
+        run: |
+          docker compose up --build -d
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:3000/readyz && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - run: pnpm --filter @app/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - name: スクショ・動画・レポート(PR に貼る証拠)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+      - name: 失敗したらログ
+        if: failure()
+        run: docker compose logs
+
+  gitleaks:
+    name: 秘密情報(gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: 全履歴を検査
+        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --verbose
+
+  semgrep:
+    name: コードの検査(Semgrep CE+自社ルール)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 自社ルールのテスト(当たるべき所に当たるか)
+        run: docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep --test --config .semgrep/rules.yml .semgrep/rules.ts
+      - name: 検査(自社ルール+公開のルール)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE"
+          semgrep scan --metrics=off --error --exclude .semgrep
+          --config .semgrep/rules.yml
+          --config p/typescript
+          --config p/nodejsscan
+          --config p/secrets
+
+  trivy-fs:
+    name: 依存と設定(Trivy fs / config)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 依存の脆弱性・秘密・設定(Dockerfile・compose)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE"
+          fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+          --skip-dirs infra .
+      - name: インフラ定義(Terraform)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE"
+          config --severity HIGH,CRITICAL --exit-code 1 infra/terraform
+
+  image:
+    name: イメージのビルドと検査(Trivy image)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          tags: app:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Trivy でイメージを検査
+        run: >-
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE"
+          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 app:ci
+
+  workflows:
+    name: ワークフローの検査(actionlint・zizmor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: actionlint(書き方の誤り)
+        run: docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMAGE"
+      - name: zizmor(危ない書き方: 権限・資格情報・危ないトリガー)
+        run: docker run --rm -v "$PWD:/repo" -w /repo "$ZIZMOR_IMAGE" --offline --min-severity medium .github/workflows

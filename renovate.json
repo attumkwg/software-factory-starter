@@ -1,0 +1,49 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests",
+    ":semanticCommitsDisabled"
+  ],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["before 9am on monday"],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "rangeStrategy": "pin",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "description": "開発用の依存の小さい更新はまとめて1本(危険度: 低)",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev dependencies (minor/patch)",
+      "addLabels": ["risk:low"]
+    },
+    {
+      "description": "本番で動く依存は1つずつ(危険度: 中)",
+      "matchDepTypes": ["dependencies"],
+      "addLabels": ["risk:medium"]
+    },
+    {
+      "description": "大きい版の更新・インフラ・CI は人が2人で見る(危険度: 高)",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["risk:high"]
+    },
+    {
+      "matchManagers": ["github-actions", "terraform", "dockerfile", "docker-compose"],
+      "addLabels": ["risk:high"]
+    },
+    {
+      "description": "Terraform の AWS プロバイダーはまとめて",
+      "matchManagers": ["terraform"],
+      "matchPackageNames": ["hashicorp/aws"],
+      "groupName": "terraform aws provider"
+    }
+  ],
+  "vulnerabilityAlerts": { "labels": ["security"], "minimumReleaseAge": null }
+}

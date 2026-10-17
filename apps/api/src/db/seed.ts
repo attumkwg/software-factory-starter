@@ -68,7 +68,7 @@ export const SEED: SeedTenant[] = [
 ];
 
 /** 何度流しても同じ結果になる(すでにあれば飛ばす)。接続は表の持ち主でもよい(FORCE RLS なので文脈は要る)。 */
-export async function seed(databaseUrl: string): Promise<void> {
+export async function seed(databaseUrl: string | undefined): Promise<void> {
   const { db, pool } = createDb(databaseUrl);
   try {
     for (const t of SEED) {

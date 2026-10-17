@@ -13,7 +13,8 @@ export type RootDb = NodePgDatabase<typeof schema>;
 /** テナントの文脈つきのトランザクション。ルートとリポジトリはこれだけを使う。 */
 export type TenantTx = Parameters<Parameters<RootDb["transaction"]>[0]>[0];
 
-export function createDb(databaseUrl: string): { db: RootDb; pool: pg.Pool } {
+/** databaseUrl が無ければ node-postgres が PG* の環境変数を読む。 */
+export function createDb(databaseUrl: string | undefined): { db: RootDb; pool: pg.Pool } {
   const pool = new pg.Pool({
     connectionString: databaseUrl,
     max: 10,

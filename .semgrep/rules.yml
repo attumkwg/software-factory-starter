@@ -1,0 +1,71 @@
+# 自社専用の検査ルール(security.md 1.2 の③)。見つかった穴は「テスト+ルール」にして二度と出さない。
+# 手元: docker run --rm -v "$PWD:/src" semgrep/semgrep semgrep scan --config .semgrep --error
+rules:
+  - id: tenant-scoped-db-only
+    message: >-
+      ルートとリポジトリは、テナントの文脈つきのトランザクション(c.var.tx / scopeOf(c))だけを使う。
+      接続プール(RootDb・pg)を直接使うと RLS の文脈が無く、他社の行に触れうる。
+      ADR 0001 / apps/api/CLAUDE.md
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include:
+        - "/apps/api/src/routes/"
+        - "/apps/api/src/repositories/"
+    pattern-either:
+      # pg と db/client(接続プール)を読み込むこと自体を止める(型だけの import type はよい)
+      - pattern-regex: (?m)^import\s+(?!type\s)[^;]*?from\s+["'](pg|(\.\.?/)+db/client(\.ts)?)["']
+      - pattern: createDb(...)
+      - pattern: withTenant(...)
+      - pattern: new Pool(...)
+
+  - id: no-raw-sql
+    message: sql.raw は SQL インジェクションの元。drizzle のクエリか sql`...` の埋め込み(パラメータになる)を使う。
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/"]
+    pattern: sql.raw(...)
+
+  - id: no-whole-object-logging
+    message: >-
+      ログにオブジェクトを丸ごと渡さない(個人情報・秘密が混ざる)。
+      必要な項目だけを logger.info({ userId: user.id }, "...") の形で。
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/"]
+    patterns:
+      - pattern-either:
+          - pattern: $LOG.$LEVEL($OBJ)
+          - pattern: $LOG.$LEVEL($OBJ, $MSG)
+      - metavariable-regex:
+          metavariable: $LOG
+          regex: (?i)^(logger|log|deps\.logger|this\.logger|c\.var\.logger)$
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(trace|debug|info|warn|error|fatal)$
+      # 名前(変数)や属性をそのまま渡したものだけを止める。{ ... } と文字列はよい。
+      - metavariable-regex:
+          metavariable: $OBJ
+          regex: ^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$
+      - metavariable-regex:
+          metavariable: $OBJ
+          regex: ^(?!(err|error|e|message|msg)$)
+
+  - id: tenant-from-request
+    message: >-
+      テナントをリクエストの値(ヘッダー・URL・本文)から決めない。テナントはセッションから
+      (c.var.actor.tenantId / scopeOf(c))。security.md 4.3 の 1
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/api/src/"]
+    patterns:
+      - pattern-either:
+          - pattern: const $T = $C.req.$M(...)
+          - pattern: const $T = $C.req.$M(...).$F
+          - pattern: const { $T } = $C.req.$M(...)
+      - metavariable-regex:
+          metavariable: $T
+          regex: (?i)tenant

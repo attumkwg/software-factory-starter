@@ -56,7 +56,7 @@ export function createTestApp(appUrl: string) {
   const config = loadConfig({
     APP_ENV: "test",
     DATABASE_URL: appUrl,
-    SESSION_SECRET: "integration-test-secret-0123456789abcdef",
+    SESSION_SECRET: "test-only-".padEnd(40, "x"),
   });
   const lifecycle = { shuttingDown: false };
   const app = createApp({ config, db, logger: createLogger({ level: "silent" }), lifecycle });
