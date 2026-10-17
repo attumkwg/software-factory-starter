@@ -1,0 +1,84 @@
+import { CreateProjectSchema, IdSchema, ProjectSchema } from "@app/shared";
+import { createRoute, z } from "@hono/zod-openapi";
+import { notFound } from "../errors.ts";
+import {
+  createProject,
+  deleteProject,
+  getProject,
+  listProjects,
+} from "../repositories/projects.ts";
+import { scopeOf } from "../repositories/scope.ts";
+import { authErrors, badRequestError, createRouter, json, notFoundError } from "./common.ts";
+
+// 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
+const ProjectParams = z.object({ projectId: IdSchema });
+
+export const projectRoutes = createRouter()
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/projects",
+      tags: ["projects"],
+      summary: "自分の組織のプロジェクト一覧",
+      responses: {
+        200: json(z.object({ projects: z.array(ProjectSchema) }), "一覧"),
+        ...authErrors,
+      },
+    }),
+    async (c) => c.json({ projects: await listProjects(scopeOf(c)) }, 200),
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/projects",
+      tags: ["projects"],
+      summary: "プロジェクトを作る",
+      request: { body: { content: { "application/json": { schema: CreateProjectSchema } } } },
+      responses: {
+        201: json(ProjectSchema, "作った"),
+        ...badRequestError,
+        ...authErrors,
+      },
+    }),
+    async (c) => c.json(await createProject(scopeOf(c), c.req.valid("json")), 201),
+  )
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/projects/{projectId}",
+      tags: ["projects"],
+      summary: "プロジェクトを1件",
+      request: { params: ProjectParams },
+      responses: {
+        200: json(ProjectSchema, "見つかった"),
+        ...badRequestError,
+        ...authErrors,
+        ...notFoundError,
+      },
+    }),
+    async (c) => {
+      const project = await getProject(scopeOf(c), c.req.valid("param").projectId);
+      if (!project) throw notFound();
+      return c.json(project, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "delete",
+      path: "/projects/{projectId}",
+      tags: ["projects"],
+      summary: "プロジェクトを消す(中のタスクも消える)",
+      request: { params: ProjectParams },
+      responses: {
+        204: { description: "消した" },
+        ...badRequestError,
+        ...authErrors,
+        ...notFoundError,
+      },
+    }),
+    async (c) => {
+      const deleted = await deleteProject(scopeOf(c), c.req.valid("param").projectId);
+      if (!deleted) throw notFound();
+      return c.body(null, 204);
+    },
+  );

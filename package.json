@@ -1,0 +1,30 @@
+{
+  "name": "software-factory-starter",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "pnpm --filter @app/web test:e2e",
+    "test:all": "pnpm test && pnpm test:integration",
+    "lint": "biome ci .",
+    "format": "biome check --write .",
+    "check": "biome ci . && turbo run typecheck test",
+    "db:migrate": "pnpm --filter @app/api db:migrate",
+    "db:seed": "pnpm --filter @app/api db:seed",
+    "db:generate": "pnpm --filter @app/api db:generate",
+    "openapi": "pnpm --filter @app/api openapi"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "turbo": "2.11.7",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,149 @@
+# インフラ定義の検査。fmt・validate・tflint・Trivy は AWS 無しで必ず回る。
+# AWS の変数があるときだけ、plan を PR にコメントする(「何が消えるか」を人が見る)。apply は人がする。
+name: Terraform
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: 1.16.6
+  TFLINT_VERSION: v0.64.0
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  static:
+    name: fmt・validate・tflint・Trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: fmt
+        run: terraform fmt -check -recursive -diff infra/terraform
+      - name: validate(状態につながずに)
+        run: |
+          for dir in infra/terraform/envs/stg infra/terraform/envs/prod infra/terraform/envs/preview/base infra/terraform/envs/preview/pr; do
+            echo "::group::$dir"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+      - name: tflint
+        working-directory: infra/terraform
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          tflint --init --config "$PWD/.tflint.hcl"
+          tflint --recursive --config "$PWD/.tflint.hcl" --format compact
+      - name: Trivy(設定の検査)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE"
+          config --severity HIGH,CRITICAL --exit-code 1 infra/terraform
+
+  plan:
+    name: plan (${{ matrix.env }})
+    needs: static
+    # フォークの PR では動かさない(OIDC の役割を外の人に使わせない)
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: stg
+            role_var: AWS_STG_PLAN_ROLE_ARN
+            tfvars_var: TF_VARS_STG
+          - env: prod
+            role_var: AWS_PROD_PLAN_ROLE_ARN
+            tfvars_var: TF_VARS_PROD
+    env:
+      ROLE_ARN: ${{ vars[matrix.role_var] }}
+      STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+    steps:
+      - name: AWS が未設定ならスキップ
+        if: env.ROLE_ARN == '' || env.STATE_BUCKET == ''
+        run: echo "::notice::${{ matrix.role_var }} か TF_STATE_BUCKET が無いので plan を飛ばしました(README の「本人がやる設定」)"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.ROLE_ARN != '' && env.STATE_BUCKET != ''
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        if: env.ROLE_ARN != '' && env.STATE_BUCKET != ''
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        if: env.ROLE_ARN != '' && env.STATE_BUCKET != ''
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - name: plan
+        id: plan
+        if: env.ROLE_ARN != '' && env.STATE_BUCKET != ''
+        working-directory: infra/terraform/envs/${{ matrix.env }}
+        env:
+          TFVARS: ${{ vars[matrix.tfvars_var] }}
+        run: |
+          printf '%s\n' "$TFVARS" > ci.auto.tfvars
+          terraform init -input=false \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="key=${{ matrix.env }}/terraform.tfstate" \
+            -backend-config="region=ap-northeast-1" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="encrypt=true"
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode -out=tfplan > plan.txt 2>&1
+          code=$?
+          set -e
+          cat plan.txt
+          if [ "$code" -eq 1 ]; then exit 1; fi
+      - name: plan を PR にコメント
+        if: env.ROLE_ARN != '' && env.STATE_BUCKET != '' && steps.plan.outcome == 'success'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require("node:fs");
+            const env = "${{ matrix.env }}";
+            const text = fs.readFileSync(`infra/terraform/envs/${env}/plan.txt`, "utf8");
+            const summary = (text.match(/Plan: .*|No changes\..*/) ?? ["(要約なし)"])[0];
+            const destroys = (text.match(/will be destroyed|must be replaced/g) ?? []).length;
+            const marker = `<!-- terraform-plan:${env} -->`;
+            const body = [
+              marker,
+              `### 🏗 Terraform plan: \`${env}\``,
+              `**${summary}**${destroys ? `\n\n⚠️ 消える・作り直すリソースが ${destroys} 件あります。人が確認してください。` : ""}`,
+              "<details><summary>plan の全文</summary>\n\n```\n" + text.slice(-60000) + "\n```\n</details>",
+            ].join("\n");
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const mine = comments.find((c) => c.body?.startsWith(marker));
+            if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });

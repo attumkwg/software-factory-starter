@@ -1,0 +1,54 @@
+name: 機能の追加・変更
+description: 受け入れ条件つきで、AI にも人にも渡せる Issue
+labels: ["kind:feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **受け入れ条件が無い Issue は AI に渡さない**(工程②振り分け → ③仕様 で埋める)。
+        大きいときは親 Issue にして、1つの PR で終わる大きさの子 Issue に割る。
+  - type: textarea
+    id: why
+    attributes:
+      label: なぜ作るか
+      description: 誰の・どんな困りごとか
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      description: 「誰が(ロール)・何をすると・どうなる」で書く。ここがそのままテストになる
+      value: |
+        - [ ] admin が … すると …
+        - [ ] viewer が … しようとすると 403
+        - [ ] 他社の人からは見えない(404)
+    validations:
+      required: true
+  - type: textarea
+    id: authz
+    attributes:
+      label: 権限(足す API と、ロールごとの答え)
+      description: docs/authz/matrix.yaml に足す行の案。API を足さないなら「なし」
+      placeholder: "GET /api/... admin:200 member:200 viewer:200 other_tenant:404 anonymous:401"
+    validations:
+      required: true
+  - type: textarea
+    id: abuse
+    attributes:
+      label: 悪用のされ方
+      description: 認証・権限・お金・ファイル・個人データに触るなら必須(STRIDE で1行ずつ)
+  - type: dropdown
+    id: risk
+    attributes:
+      label: 危険度の見込み
+      options:
+        - 低(文言・ドキュメント・テスト)
+        - 中(ふつうの機能・不具合の修正)
+        - 高(認証・認可・DB の移行・インフラ・CI)
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: やらないこと

@@ -1,0 +1,48 @@
+# 変えたパスで危険度のラベルを自動で付ける(AI の自己申告に頼らない)。
+# 複数付いたら一番高いものが、その PR の危険度。
+# 危険度「高」のパスは CODEOWNERS と同じにそろえる。
+
+"risk:high":
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/api/src/auth/**
+          - apps/api/src/authz/**
+          - apps/api/src/db/**
+          - apps/api/drizzle/**
+          - apps/api/db/**
+          - apps/api/Dockerfile
+          - docs/authz/**
+          - infra/**
+          - .github/**
+          - .claude/settings.json
+          - .claude/hooks/**
+          - .semgrep/**
+          - .gitleaksignore
+          - renovate.json
+
+"risk:medium":
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/**
+          - packages/**
+          - pnpm-lock.yaml
+          - package.json
+
+# 変えたファイルが「全部」ドキュメントかテストのときだけ
+"risk:low":
+  - changed-files:
+      # 1つの glob(中かっこで束ねた)が、変えた全ファイルに当たる = 全部がドキュメントかテスト
+      - any-glob-to-all-files:
+          - "{docs/**/*.md,.claude/skills/**,*.md,**/CLAUDE.md,**/test/**,**/e2e/**,**/*.test.ts}"
+
+"area:api":
+  - changed-files:
+      - any-glob-to-any-file: apps/api/**
+
+"area:web":
+  - changed-files:
+      - any-glob-to-any-file: apps/web/**
+
+"area:infra":
+  - changed-files:
+      - any-glob-to-any-file: infra/**

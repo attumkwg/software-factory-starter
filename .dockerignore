@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.turbo
+**/playwright-report
+**/test-results
+.git
+.github
+.claude
+.devcontainer
+infra
+docs
+**/*.md
+**/.env
+**/.env.*

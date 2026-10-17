@@ -1,0 +1,15 @@
+packages:
+  - apps/*
+  - packages/*
+
+# 依存のインストール時にスクリプトを動かしてよいものだけを明示する(サプライチェーン対策)
+onlyBuiltDependencies:
+  - esbuild
+
+# 公開から日が浅い版は入れない(乗っ取られた版を掴まないため。分単位)
+minimumReleaseAge: 4320
+
+ignoredBuiltDependencies:
+  - cpu-features
+  - protobufjs
+  - ssh2

@@ -1,0 +1,137 @@
+# 出荷(工程⑦)。main → stg は自動、prod は GitHub の environment「prod」の承認のあと。
+#   1. イメージを1回だけ作って stg の ECR へ(prod も同じイメージを引く。作り直さない)
+#   2. 移行を1回きりのタスクで流す(表の持ち主で)
+#   3. ECS のサービスを新しいタスク定義で更新 → ECS の blue/green が切り替え、
+#      アラーム(5xx)が鳴れば自動で戻す
+#   4. 外から疎通を確かめる
+# AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-1
+  PROJECT: ${{ vars.PROJECT || 'sfs' }}
+
+jobs:
+  stg:
+    name: stg に出す
+    if: vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.ECR_REPOSITORY_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: stg
+      url: ${{ vars.STG_URL }}
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    env:
+      CLUSTER: ${{ vars.PROJECT || 'sfs' }}-stg
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_STG_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: イメージを作って ECR へ
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+      - id: image
+        run: echo "image=${{ vars.ECR_REPOSITORY_URL }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+      - name: 移行
+        run: .github/scripts/run-migration.sh "$CLUSTER" "$CLUSTER-migrate" "$CLUSTER" "${{ steps.image.outputs.image }}"
+      - name: いまのタスク定義を取る
+        run: |
+          aws ecs describe-task-definition --task-definition "$CLUSTER" \
+            --query taskDefinition > task-definition.json
+      - id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ steps.image.outputs.image }}
+      - name: blue/green で出す(アラームが鳴れば自動で戻る)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.CLUSTER }}
+          service: ${{ env.CLUSTER }}
+          wait-for-service-stability: true
+          wait-for-minutes: 30
+      - name: 疎通(スモークテスト)
+        if: vars.STG_URL != ''
+        run: curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "${{ vars.STG_URL }}/readyz"
+
+  prod:
+    name: prod に出す(承認のあと)
+    needs: stg
+    if: vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    # 承認する人は、リポジトリの設定 → Environments → prod の「Required reviewers」で決める
+    environment:
+      name: prod
+      url: ${{ vars.PROD_URL }}
+    env:
+      CLUSTER: ${{ vars.PROJECT || 'sfs' }}-prod
+      IMAGE: ${{ needs.stg.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PROD_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 移行
+        run: .github/scripts/run-migration.sh "$CLUSTER" "$CLUSTER-migrate" "$CLUSTER" "$IMAGE"
+      - name: いまのタスク定義を取る
+        run: |
+          aws ecs describe-task-definition --task-definition "$CLUSTER" \
+            --query taskDefinition > task-definition.json
+      - id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ env.IMAGE }}
+      - name: blue/green で出す(アラームが鳴れば自動で戻る)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.CLUSTER }}
+          service: ${{ env.CLUSTER }}
+          wait-for-service-stability: true
+          wait-for-minutes: 45
+      - name: 疎通(スモークテスト)
+        if: vars.PROD_URL != ''
+        run: curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "${{ vars.PROD_URL }}/readyz"

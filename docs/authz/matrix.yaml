@@ -1,0 +1,76 @@
+# 権限の表(人がレビューする)
+#
+# 「誰が・どの API を・叩いたら・どうなるべきか」の答え。このファイルの変更は危険度「高」(2人で見る)。
+# コードの中身より、この1行を見るほうが速く確実に「誰に何を許したか」が分かる。
+#
+# CI で2つのことを確かめる(apps/api/test):
+#   ① OpenAPI の全 API がこの表にあるか               … authz-coverage.test.ts(DB 不要)
+#   ② 表の全行を、各ロール+他社+未ログインで実際に叩く … authz-matrix.int.test.ts(Postgres)
+#
+# 書き方:
+#   route      … `メソッド パス`(OpenAPI と同じ形)
+#   permission … src/authz/policy.ts の権限の名前(public = ログイン不要)。食い違うとテストが落ちる
+#   expect     … 返るべき HTTP ステータス
+#     admin / member / viewer … 自社のその役割の人
+#     other_tenant            … 別の組織の admin(一番強い人)。**他社の物は必ず 404**(存在を漏らさない)
+#     anonymous               … ログインしていない
+#   body       … 送る本文(書き込みの API だけ)
+#   only_in    … その認証の方式のときだけある API(②では叩かない。単体テストで確かめる)
+#
+# パスの {projectId} / {taskId} は、テストが毎回作る「自社のプロジェクトとタスク」に置き換わる。
+
+routes:
+  - route: POST /api/auth/dev-login
+    permission: public
+    note: 開発環境(local / test / preview)だけにある
+    body: { email: "{adminEmail}" }
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 200 }
+
+  - route: POST /api/auth/cognito
+    permission: public
+    only_in: cognito
+    body: { idToken: "not-a-jwt" }
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: POST /api/auth/logout
+    permission: public
+    expect: { admin: 204, member: 204, viewer: 204, anonymous: 204 }
+
+  - route: GET /api/me
+    permission: me:read
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 401 }
+
+  - route: GET /api/projects
+    permission: project:read
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 401 }
+
+  - route: POST /api/projects
+    permission: project:create
+    body: { name: "表から作ったプロジェクト" }
+    expect: { admin: 201, member: 201, viewer: 403, anonymous: 401 }
+
+  - route: GET /api/projects/{projectId}
+    permission: project:read
+    expect: { admin: 200, member: 200, viewer: 200, other_tenant: 404, anonymous: 401 }
+
+  - route: DELETE /api/projects/{projectId}
+    permission: project:delete
+    expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: GET /api/projects/{projectId}/tasks
+    permission: task:read
+    expect: { admin: 200, member: 200, viewer: 200, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/projects/{projectId}/tasks
+    permission: task:write
+    body: { title: "表から足したタスク" }
+    expect: { admin: 201, member: 201, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: PATCH /api/tasks/{taskId}
+    permission: task:write
+    body: { done: true }
+    expect: { admin: 200, member: 200, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: DELETE /api/tasks/{taskId}
+    permission: task:write
+    expect: { admin: 204, member: 204, viewer: 403, other_tenant: 404, anonymous: 401 }
