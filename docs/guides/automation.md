@@ -18,6 +18,8 @@
 | `security-fuzz.yml` | Schemathesis で全 API に変な入力(ロールごと) | 手動 | 分数だけ(相手はジョブの中の compose) | ここに日付を入れてください |
 | `zap-api-scan.yml` | ZAP の認証つき API スキャン(stg) | 手動 | 分数+stg が少し動く分 | ここに日付を入れてください |
 
+コードレビューを自動にする選択肢(`@claude`・Anthropic 公式の Code Review・外部のサービス)は [code-review.md](code-review.md)。
+
 ## 有効にするやり方
 
 1. ファイルを開き、`# 有効にする日: ここに日付を入れてください(YYYY-MM-DD)` に日付を書く。
