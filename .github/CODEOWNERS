@@ -26,4 +26,5 @@
 /.claude/settings.json              @attumkwg
 /.claude/hooks/                     @attumkwg
 /.semgrep/                          @attumkwg
+/.gitleaksignore                    @attumkwg
 /renovate.json                      @attumkwg

@@ -17,6 +17,7 @@
           - .claude/settings.json
           - .claude/hooks/**
           - .semgrep/**
+          - .gitleaksignore
           - renovate.json
 
 "risk:medium":
