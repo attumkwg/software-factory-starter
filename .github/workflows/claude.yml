@@ -8,21 +8,34 @@
 # - API キー(ANTHROPIC_API_KEY)が無ければ、失敗せずに飛ばす。
 name: Claude
 
+#
+# いまは手動だけ(Actions → Claude → Run workflow で、頼むことを書く。例: 「Issue #12 を実装して PR を出して」)。
+# 手動で動かせるのは、このリポジトリに書き込める人だけ。
 on:
-  # 起動できる人を OWNER / MEMBER に絞っている(下の if)
-  issue_comment: # zizmor: ignore[dangerous-triggers]
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
-  pull_request_review:
-    types: [submitted]
-  issues:
-    types: [opened, assigned]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 頼むこと(Issue の番号を入れると、それを読んで動く)
+        required: true
+        type: string
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると「@claude」と書くたびに Claude の API(使った分だけ課金)と Actions の分数を使う。
+  # 目安: 小さな Issue 1件で数十円〜数百円(長く動くほど増える)。
+  # # 起動できる人を OWNER / MEMBER に絞っている(下の if)
+  # issue_comment: # zizmor: ignore[dangerous-triggers]
+  #   types: [created]
+  # pull_request_review_comment:
+  #   types: [created]
+  # pull_request_review:
+  #   types: [submitted]
+  # issues:
+  #   types: [opened, assigned]
 
 jobs:
   claude:
     if: >-
       (
+        github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
           contains(fromJSON('["OWNER","MEMBER"]'), github.event.comment.author_association)) ||
         (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
@@ -65,6 +78,8 @@ jobs:
         if: env.HAS_KEY == 'true'
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 手動のときだけ中身が入る(@claude で動くときは空で、コメントを読む)
+          prompt: ${{ inputs.prompt }}
           # CLAUDE.md・.claude/skills・.claude/settings.json(フック)をそのまま使う。
           # CI が落ちたら直すのは2回まで(CLAUDE.md)。それ以上は PR に状況を書いて人に渡す。
           claude_args: >-

@@ -2,10 +2,13 @@
 # 状態のファイル(preview/pr-<番号>.tfstate)が残っていて、PR が閉じていれば destroy する。
 name: Cleanup previews
 
+# いまは手動だけ。自動にするときは schedule のコメントを外す(docs/guides/automation.md)。
 on:
-  schedule:
-    - cron: "0 18 * * *" # 日本時間 3:00
   workflow_dispatch:
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎晩 Actions の数分と、AWS の API 呼び出し(ほぼ無料)を使う。プレビューを自動で立てるなら一緒に有効にする。
+  # schedule:
+  #   - cron: "0 18 * * *" # 日本時間 3:00
 
 permissions:
   contents: read
