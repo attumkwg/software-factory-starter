@@ -197,5 +197,5 @@ jobs:
           persist-credentials: false
       - name: actionlint(書き方の誤り)
         run: docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMAGE"
-      - name: zizmor(危ない書き方: 権限・資格情報・危ないトリガー)
+      - name: "zizmor(危ない書き方: 権限・資格情報・危ないトリガー)"
         run: docker run --rm -v "$PWD:/repo" -w /repo "$ZIZMOR_IMAGE" --offline --min-severity medium .github/workflows
