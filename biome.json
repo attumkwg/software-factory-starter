@@ -12,7 +12,8 @@
       "!**/drizzle/meta",
       "!**/playwright-report",
       "!**/test-results",
-      "!.semgrep"
+      "!.semgrep",
+      "!docs/db"
     ]
   },
   "formatter": {

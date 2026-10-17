@@ -12,6 +12,7 @@
 
 - Closes #
 - 仕様: `docs/specs/`
+- [ ] ルール・言葉・状態・表が変わったら、ドメインの資料も直した(`docs/domain/`・`docs/db/` は `pnpm docs:db`)。迷ったら `/update-domain-docs`
 
 ## ⚠️ 危険度
 

@@ -1,0 +1,490 @@
+{
+  "name": "app",
+  "tables": [
+    {
+      "name": "public.projects",
+      "type": "BASE TABLE",
+      "comment": "プロジェクト。タスクのまとまり。docs/domain/projects",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "nullable": false,
+          "comment": "作った人(同じ組織の users)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "projects_pkey",
+          "def": "CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id)",
+          "table": "public.projects",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "projects_tenant_id_id_key",
+          "def": "CREATE UNIQUE INDEX projects_tenant_id_id_key ON public.projects USING btree (tenant_id, id)",
+          "table": "public.projects",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "projects_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.projects",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "projects_tenant_id_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, id)",
+          "table": "public.projects",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "projects_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)",
+          "table": "public.projects",
+          "referenced_table": "public.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "projects_created_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES users(tenant_id, id)",
+          "table": "public.projects",
+          "referenced_table": "public.users",
+          "columns": [
+            "tenant_id",
+            "created_by"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.tasks",
+      "type": "BASE TABLE",
+      "comment": "タスク。プロジェクトの中のやること。docs/domain/tasks",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "done",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "完了したか"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "tasks_pkey",
+          "def": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)",
+          "table": "public.tasks",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "tasks_tenant_id_project_id_idx",
+          "def": "CREATE INDEX tasks_tenant_id_project_id_idx ON public.tasks USING btree (tenant_id, project_id)",
+          "table": "public.tasks",
+          "columns": [
+            "tenant_id",
+            "project_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "tasks_project_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, project_id) REFERENCES projects(tenant_id, id) ON DELETE CASCADE",
+          "table": "public.tasks",
+          "referenced_table": "public.projects",
+          "columns": [
+            "tenant_id",
+            "project_id"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "tasks_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.tasks",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "tasks_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)",
+          "table": "public.tasks",
+          "referenced_table": "public.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.tenants",
+      "type": "BASE TABLE",
+      "comment": "組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations",
+      "columns": [
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "tenants_pkey",
+          "def": "CREATE UNIQUE INDEX tenants_pkey ON public.tenants USING btree (tenant_id)",
+          "table": "public.tenants",
+          "columns": [
+            "tenant_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "tenants_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (tenant_id)",
+          "table": "public.tenants",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.users",
+      "type": "BASE TABLE",
+      "comment": "組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "external_id",
+          "type": "text",
+          "nullable": true,
+          "comment": "認証の製品(Cognito)側の ID(sub)"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "role",
+          "type": "role",
+          "nullable": false,
+          "comment": "admin / member / viewer"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "users_pkey",
+          "def": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)",
+          "table": "public.users",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "users_tenant_id_id_key",
+          "def": "CREATE UNIQUE INDEX users_tenant_id_id_key ON public.users USING btree (tenant_id, id)",
+          "table": "public.users",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "users_email_key",
+          "def": "CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)",
+          "table": "public.users",
+          "columns": [
+            "email"
+          ]
+        },
+        {
+          "name": "users_external_id_key",
+          "def": "CREATE UNIQUE INDEX users_external_id_key ON public.users USING btree (external_id)",
+          "table": "public.users",
+          "columns": [
+            "external_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "users_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)",
+          "table": "public.users",
+          "referenced_table": "public.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "users_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "users_tenant_id_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, id)",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "table": "public.projects",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+    },
+    {
+      "table": "public.projects",
+      "columns": [
+        "tenant_id",
+        "created_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES users(tenant_id, id)"
+    },
+    {
+      "table": "public.tasks",
+      "columns": [
+        "tenant_id",
+        "project_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.projects",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, project_id) REFERENCES projects(tenant_id, id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.tasks",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+    },
+    {
+      "table": "public.users",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+    }
+  ],
+  "functions": [
+    {
+      "name": "public.app_current_tenant",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_find_user_by_email",
+      "return_type": "record",
+      "arguments": "p_email text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_find_user_by_external_id",
+      "return_type": "record",
+      "arguments": "p_external_id text",
+      "type": "FUNCTION"
+    }
+  ],
+  "enums": [
+    {
+      "name": "public.role",
+      "values": [
+        "admin",
+        "member",
+        "viewer"
+      ]
+    }
+  ],
+  "driver": {
+    "name": "postgres",
+    "database_version": "PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+    "meta": {
+      "current_schema": "public",
+      "search_paths": [
+        "app_owner",
+        "public"
+      ],
+      "dict": {
+        "Functions": "Stored procedures and functions"
+      }
+    }
+  }
+}

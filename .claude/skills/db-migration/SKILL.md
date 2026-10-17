@@ -38,6 +38,7 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
 5. 大きい表の索引は `CREATE INDEX CONCURRENTLY`(その移行はトランザクションの外で流す必要がある。人に相談)。
 6. `pnpm --filter @app/api db:lint`(squawk)を通す。例外が要るなら `.squawk.toml` に理由つきで足し、PR で説明する。
 7. `pnpm test:integration` で、空の DB から全部の移行が通ることを確かめる。
+8. 表の説明書を作り直す: `docker compose up -d` のあと `pnpm docs:db`(`docs/db/` が変わる)。新しい表なら `.tbls.yml` に1行の説明を足し、`docs/domain/<領域>/` のエンティティも直す(`/update-domain-docs`)。
 
 ## PR に書くこと
 
