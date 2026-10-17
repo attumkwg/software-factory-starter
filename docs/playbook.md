@@ -36,6 +36,7 @@
 | DB を変える | `.claude/skills/db-migration`(段階に分ける・RLS・squawk) |
 | 書いたら | フックが自動で整形(`.claude/hooks/format.mjs`) |
 | 終える前 | フックが型と影響範囲のテストを回す(2回落ちたら人へ) |
+| PR を見る | `/review-pr <番号>`(判断の単位・判断してほしい所・チェック) |
 
 ### ⑦ レビュー: 危険度で人の出番を変える
 
@@ -47,7 +48,14 @@
 | 中 | ふつうの機能・不具合の修正 | 1人 | 「人に判断してほしい所」と、受け入れ条件どおりか |
 | 高 | 認証・認可・権限の表・移行・infra・CI | 2人 | 権限の表の差分・移行の段階・Terraform の plan |
 
-危険度「高」では、手で `/security-review` も回す(手順は [security.md](security.md))。
+レビューの進め方(PMF 前は手で):
+
+1. レビューする人が Claude Code で **`/review-pr <PR番号>`**。差分を「判断の単位」に分け、影響の大きい順に並べ、**人に判断してほしい所**(権限の表・移行・Terraform・認証認可・テナント分離)を冒頭に出し、危険度ごとのチェック(テスト・権限の表・N+1・ログの個人情報・テナント)の結果をコメント案にする。
+2. 人は冒頭の「判断してほしい所」から見る。コメント案を直して、OK なら Claude が `gh` で PR に書く。
+3. 危険度「高」では、手で `/security-review` も回す(手順は [security.md](security.md))。細かい不具合探しは `/code-review <PR番号>`。
+4. 承認するのは人(AI は承認しない)。
+
+PR が増えて手で回すのが追いつかなくなったら、自動のレビュー(`@claude` か Anthropic 公式の Code Review)を検討する。選択肢の比較は [guides/code-review.md](guides/code-review.md)。
 
 ## 毎週やること(30分)
 
