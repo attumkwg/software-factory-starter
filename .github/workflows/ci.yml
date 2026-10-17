@@ -137,12 +137,15 @@ jobs:
         with:
           persist-credentials: false
       - name: 自社ルールのテスト(当たるべき所に当たるか)
-        run: docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep --test --config .semgrep/rules.yml .semgrep/rules.ts
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep --test --config .semgrep/rules.yml .semgrep/rules.ts
+          docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep --test .semgrep/design
       - name: 検査(自社ルール+公開のルール)
         run: >-
           docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE"
           semgrep scan --metrics=off --error --exclude .semgrep
           --config .semgrep/rules.yml
+          --config .semgrep/design/design.yml
           --config p/typescript
           --config p/nodejsscan
           --config p/secrets

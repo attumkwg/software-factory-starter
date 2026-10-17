@@ -1,3 +1,4 @@
+import { Button, Card, Heading, Muted, Page, Stack, TextField } from "@app/ui";
 import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
 
@@ -20,28 +21,32 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => Promise<void> }) {
   }
 
   return (
-    <main className="container">
-      <h1>ログイン</h1>
-      <p className="note">開発用ログイン(local / preview だけ)。パスワードはありません。</p>
-      <form onSubmit={submit} className="row">
-        <label>
-          メールアドレス
-          <input
-            name="email"
-            list="dev-users"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
-          />
-        </label>
-        <datalist id="dev-users">
-          {DEV_USERS.map((u) => (
-            <option key={u} value={u} />
-          ))}
-        </datalist>
-        <button type="submit">ログイン</button>
-      </form>
-      {error && <p role="alert">{error}</p>}
-    </main>
+    <Page>
+      <main>
+        <Card>
+          <form onSubmit={submit}>
+            <Stack gap={4}>
+              <Heading level={1}>ログイン</Heading>
+              <Muted>開発用ログイン(local / preview だけ)。パスワードはありません。</Muted>
+              <TextField
+                label="メールアドレス"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                autoComplete="username"
+                description={`種データ: ${DEV_USERS.join(" / ")}`}
+                isInvalid={error !== null}
+                errorMessage={error ?? undefined}
+              />
+              <div>
+                <Button type="submit" variant="primary">
+                  ログイン
+                </Button>
+              </div>
+            </Stack>
+          </form>
+        </Card>
+      </main>
+    </Page>
   );
 }

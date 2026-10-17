@@ -1,0 +1,33 @@
+# デザインシステムの決まり(docs/design-system.md)。画面は packages/ui の部品とトークンだけで作る。
+# 手元: docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep semgrep --test .semgrep/design
+rules:
+  - id: no-raw-color-in-web
+    message: >-
+      画面(apps/web)に生の色(#fff・rgb()・hsl()など)を書かない。色は packages/ui/src/tokens.css の
+      変数(var(--color-*))を、部品(@app/ui)を通して使う。新しい色が要るなら、トークンを足す(人が決める)。
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include: ["/apps/web/src/"]
+    pattern-regex: (#[0-9a-fA-F]{3,8}\b|\b(rgb|rgba|hsl|hsla|oklch|oklab)\()
+
+  - id: no-inline-style-in-web
+    message: >-
+      画面(apps/web)で style={...} を直接書かない。見た目は @app/ui の部品と、その props(variant・gap など)で決める。
+      足りなければ packages/ui に部品か props を足す。
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include: ["/apps/web/src/"]
+    pattern-regex: \bstyle=\{
+
+  - id: no-css-file-in-web
+    message: >-
+      画面(apps/web)に自前の CSS を持たない。見た目は packages/ui(styles.css と tokens.css)に集める。
+      読み込んでよいのは main.tsx の "@app/ui/styles.css" だけ。
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include: ["/apps/web/src/"]
+    # "@app/ui/styles.css" は除く(相対パスの .css だけを止める)
+    pattern-regex: import\s+["']\.{1,2}/[^"']+\.css["']

@@ -1,7 +1,25 @@
 import type { Me, Project, Task } from "@app/shared";
+import {
+  Button,
+  Checkbox,
+  Heading,
+  Inline,
+  List,
+  Muted,
+  Select,
+  Stack,
+  TextField,
+  useToast,
+} from "@app/ui";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "../api.ts";
 import { canWrite } from "../permissions.ts";
+
+const FILTERS = [
+  { id: "all", label: "すべて" },
+  { id: "open", label: "未完了" },
+  { id: "done", label: "完了" },
+];
 
 export function TasksPage({
   me,
@@ -14,7 +32,9 @@ export function TasksPage({
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
+  const [filter, setFilter] = useState("all");
   const writable = canWrite(me.role);
+  const toast = useToast();
 
   const reload = useCallback(
     async () => setTasks((await api.listTasks(project.id)).tasks),
@@ -30,55 +50,72 @@ export function TasksPage({
     await api.createTask(project.id, { title });
     setTitle("");
     await reload();
+    toast.show("タスクを足しました");
   }
 
+  const shown = tasks.filter((t) => filter === "all" || (filter === "done" ? t.done : !t.done));
+
   return (
-    <main>
-      <button type="button" className="link" onClick={onBack}>
-        ← プロジェクト一覧
-      </button>
-      <h1>{project.name}</h1>
-      {writable && (
-        <form onSubmit={add} className="row">
-          <input
-            aria-label="新しいタスク"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="やること"
-          />
-          <button type="submit">足す</button>
-        </form>
-      )}
-      <ul className="list" aria-label="タスク一覧">
-        {tasks.map((t) => (
-          <li key={t.id}>
-            <label className={t.done ? "done" : undefined}>
-              <input
-                type="checkbox"
-                checked={t.done}
-                disabled={!writable}
-                onChange={async () => {
-                  await api.updateTask(t.id, { done: !t.done });
-                  await reload();
-                }}
+    <Stack gap={4}>
+      <div>
+        <Button variant="ghost" onPress={onBack}>
+          ← プロジェクト一覧
+        </Button>
+      </div>
+      <Heading level={1}>{project.name}</Heading>
+      <Inline gap={4}>
+        {writable && (
+          <form onSubmit={add}>
+            <Inline gap={2}>
+              <TextField
+                label="新しいタスク"
+                value={title}
+                onChange={setTitle}
+                placeholder="やること"
               />
-              {t.title}
-            </label>
-            {writable && (
-              <button
-                type="button"
-                aria-label={`${t.title} を消す`}
-                onClick={async () => {
-                  await api.deleteTask(t.id);
-                  await reload();
-                }}
-              >
-                消す
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </main>
+              <Button type="submit" variant="primary">
+                足す
+              </Button>
+            </Inline>
+          </form>
+        )}
+        <Select label="表示" options={FILTERS} value={filter} onChange={setFilter} />
+      </Inline>
+      {shown.length === 0 ? (
+        <Muted>タスクはありません</Muted>
+      ) : (
+        <List label="タスク一覧">
+          {shown.map((t) => (
+            <li key={t.id}>
+              <Inline justify="between" align="center">
+                <Checkbox
+                  isSelected={t.done}
+                  isDisabled={!writable}
+                  onChange={async (done) => {
+                    await api.updateTask(t.id, { done });
+                    await reload();
+                  }}
+                >
+                  {t.title}
+                </Checkbox>
+                {writable && (
+                  <Button
+                    size="sm"
+                    aria-label={`${t.title} を消す`}
+                    onPress={async () => {
+                      await api.deleteTask(t.id);
+                      await reload();
+                      toast.show("タスクを消しました");
+                    }}
+                  >
+                    消す
+                  </Button>
+                )}
+              </Inline>
+            </li>
+          ))}
+        </List>
+      )}
+    </Stack>
   );
 }

@@ -1,0 +1,7 @@
+// .semgrep/design/design.yml のテスト(CSS)。注釈のために // を使っている(本物の CSS ではない)
+.title {
+  // ruleid: no-raw-color-in-web
+  color: #1f2328;
+  // ok: no-raw-color-in-web
+  background: var(--color-bg);
+}
