@@ -1,0 +1,27 @@
+# DB の表の説明書(docs/db/)を、動いている DB から作る。手動で回す: pnpm docs:db
+# 先に docker compose up -d(DB と移行)を済ませておく。CI には入れていない。
+# 中身(どの表が何か)の正は docs/domain/。ここには短い説明と、そこへの道しるべだけを書く。
+dsn: postgres://app_owner:app_owner@db:5432/app?sslmode=disable
+docPath: docs/db
+format:
+  adjust: true
+er:
+  format: svg
+exclude:
+  - drizzle.__drizzle_migrations
+comments:
+  - table: public.tenants
+    tableComment: 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations
+  - table: public.users
+    tableComment: 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations
+    columnComments:
+      external_id: 認証の製品(Cognito)側の ID(sub)
+      role: admin / member / viewer
+  - table: public.projects
+    tableComment: プロジェクト。タスクのまとまり。docs/domain/projects
+    columnComments:
+      created_by: 作った人(同じ組織の users)
+  - table: public.tasks
+    tableComment: タスク。プロジェクトの中のやること。docs/domain/tasks
+    columnComments:
+      done: 完了したか
