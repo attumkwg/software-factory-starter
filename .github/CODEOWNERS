@@ -28,3 +28,6 @@
 /.semgrep/                          @attumkwg
 /.gitleaksignore                    @attumkwg
 /renovate.json                      @attumkwg
+
+# ── 見た目の決まり(ブランドの判断。人が決める) ──
+/packages/ui/src/tokens.css         @attumkwg

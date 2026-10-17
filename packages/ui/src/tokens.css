@@ -1,0 +1,68 @@
+/*
+ * 見た目の決まり(デザイントークン)。色・余白・文字・角丸はここにだけ書く。
+ * 画面(apps/web)と部品は、生の色コードではなく、この変数だけを使う(Semgrep で止める)。
+ * 色の組み合わせは、文字と背景のコントラスト 4.5:1 以上(WCAG AA)を守る。E2E の axe が確かめる。
+ * このファイルの変更はブランドの判断なので、人が決める(docs/design-system.md)。
+ */
+:root {
+  /* 色: 役割で名前を付ける(青・赤ではなく「主」「危険」) */
+  --color-bg: #ffffff;
+  --color-surface: #f6f8fa;
+  --color-border: #d0d7de;
+  --color-text: #1f2328;
+  --color-text-muted: #59636e;
+  --color-primary: #0b5cad;
+  --color-primary-hover: #094a8c;
+  --color-on-primary: #ffffff;
+  --color-danger: #b42318;
+  --color-danger-hover: #912018;
+  --color-on-danger: #ffffff;
+  --color-success: #1a7f37;
+  --color-warning: #8a5a00;
+  --color-info: #0b5cad;
+  --color-focus: #0b5cad;
+  --color-overlay: rgb(31 35 40 / 50%);
+
+  /* 余白(4 の倍数) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* 文字 */
+  --font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-weight-bold: 600;
+  --line-height: 1.6;
+
+  /* 角丸・影 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-full: 999px;
+  --shadow-md: 0 8px 24px rgb(31 35 40 / 15%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0d1117;
+    --color-surface: #161b22;
+    --color-border: #3d444d;
+    --color-text: #e6edf3;
+    --color-text-muted: #9198a1;
+    --color-primary: #4493f8;
+    --color-primary-hover: #6ca4f8;
+    --color-on-primary: #0d1117;
+    --color-danger: #f47067;
+    --color-danger-hover: #ff938a;
+    --color-on-danger: #0d1117;
+    --color-success: #3fb950;
+    --color-warning: #d29922;
+    --color-info: #4493f8;
+    --color-focus: #4493f8;
+  }
+}

@@ -9,9 +9,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+COPY packages/ui/package.json packages/ui/
 RUN pnpm install --frozen-lockfile
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
+COPY packages/ui packages/ui
 COPY apps/api apps/api
 COPY apps/web apps/web
 RUN pnpm --filter @app/api build && pnpm --filter @app/web build

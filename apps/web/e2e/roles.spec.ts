@@ -3,7 +3,7 @@ import { loginAs } from "./helpers.ts";
 
 test("閲覧者には書き込みのボタンが出ず、API に直接送っても 403", async ({ page }) => {
   await loginAs(page, "viewer@acme.test");
-  await expect(page.getByTestId("role")).toHaveText("viewer");
+  await expect(page.getByTestId("role")).toHaveAttribute("data-role", "viewer");
   await expect(page.getByRole("button", { name: "作る" })).toHaveCount(0);
 
   // 画面で隠すだけでなく、API でも止まっていること(守りは API 側)
