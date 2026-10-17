@@ -9,6 +9,16 @@ export const json = <T extends z.ZodType>(schema: T, description: string) => ({
   description,
 });
 
+/**
+ * 必須の JSON の本文。**本文は必ずこれで書く**。
+ * required を付けないと、本文が無い・content-type が違うリクエストが検証を素通りする
+ * (Schemathesis が見つけた 500。test/integration/input-validation.int.test.ts)。
+ */
+export const jsonBody = <T extends z.ZodType>(schema: T) => ({
+  content: { "application/json": { schema } },
+  required: true,
+});
+
 const error = (description: string) => json(ErrorSchema, description);
 
 /** ログインが要る API に付ける共通の失敗。 */
@@ -18,6 +28,11 @@ export const authErrors = {
 } as const;
 export const notFoundError = { 404: error("無い(他社の物も 404)") } as const;
 export const badRequestError = { 400: error("入力が正しくない") } as const;
+/** 本文(jsonBody)がある API に付ける失敗。本文が JSON でなければ 415。 */
+export const bodyErrors = {
+  400: error("入力が正しくない・本文が無い"),
+  415: error("本文が JSON ではない"),
+} as const;
 
 /** ルートを作る入口。入力の検証に失敗したら共通の形で 400 を返す。 */
 export function createRouter() {

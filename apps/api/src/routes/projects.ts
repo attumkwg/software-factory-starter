@@ -8,7 +8,15 @@ import {
   listProjects,
 } from "../repositories/projects.ts";
 import { scopeOf } from "../repositories/scope.ts";
-import { authErrors, badRequestError, createRouter, json, notFoundError } from "./common.ts";
+import {
+  authErrors,
+  badRequestError,
+  bodyErrors,
+  createRouter,
+  json,
+  jsonBody,
+  notFoundError,
+} from "./common.ts";
 
 // 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
 const ProjectParams = z.object({ projectId: IdSchema });
@@ -33,10 +41,10 @@ export const projectRoutes = createRouter()
       path: "/projects",
       tags: ["projects"],
       summary: "プロジェクトを作る",
-      request: { body: { content: { "application/json": { schema: CreateProjectSchema } } } },
+      request: { body: jsonBody(CreateProjectSchema) },
       responses: {
         201: json(ProjectSchema, "作った"),
-        ...badRequestError,
+        ...bodyErrors,
         ...authErrors,
       },
     }),

@@ -1,5 +1,7 @@
 # docs の地図
 
+> はじめての人は **[getting-started.md](getting-started.md)**(使い始めの手引き)から。
+
 > docs には2種類ある。**「いまの正」は常に今の姿に直す。「記録」は書いた時のまま残す**(直さずに、新しいものを足す)。
 
 ## いまの正(今の姿。変わったら同じ PR で直す)
@@ -11,6 +13,8 @@
 | [design-system.md](design-system.md) | 部品の一覧と使い方 | 部品を足す・変えるとき | 中 |
 | [db/](db/) | 表の説明書(tbls で作る。手で直さない) | 移行を足したあと `pnpm docs:db` | 低 |
 | [playbook.md](playbook.md) | 開発の進め方・毎週やること・分担 | 進め方を変えたとき(週の振り返りで決める) | 低 |
+| [security.md](security.md) | 何を確かめていて、何を確かめていないか・深い診断の段取り | 検査を足す・変えたとき | 中 |
+| [getting-started.md](getting-started.md) | 使い始めの手引き(手元 → 置き換え → GitHub → AWS → Slack → 運用) | 手順や費用が変わったとき | 低 |
 | [guides/](guides/) | 自動で動くもの・Slack など、仕組みの使い方 | 仕組みを変えたとき | 低 |
 
 ## 記録(書いた時のまま。古くなっても直さない)

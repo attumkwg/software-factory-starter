@@ -33,3 +33,8 @@ output "execution_role_arn" {
 output "task_role_arn" {
   value = aws_iam_role.task.arn
 }
+
+output "alb_arn" {
+  description = "WAF を付ける先"
+  value       = aws_lb.this.arn
+}

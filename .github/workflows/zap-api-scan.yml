@@ -1,0 +1,86 @@
+# ZAP の認証つき API スキャン(攻撃型)を stg に向けて流す。OpenAPI の全 API を、ログインした状態で叩く。
+# PR のプレビューでは受け身のスキャン(ZAP ベースライン)だけ。こちらは stg に負荷と変なデータを入れるので、夜に流す想定。
+#
+# ログインの仕方: stg の Cognito の「スキャン用のアプリクライアント」(infra/terraform/envs/stg/cognito.tf)で
+# スキャン用の利用者としてログイン → ID トークンを API に渡して Cookie をもらう → その Cookie で ZAP が叩く。
+#
+# 要るもの:
+#   変数  STG_URL(https://app.stg.example.com)・COGNITO_SCAN_CLIENT_ID(stg の Terraform の出力)
+#   秘密  ZAP_SCAN_USERNAME・ZAP_SCAN_PASSWORD(stg の Cognito に作ったスキャン用の利用者。本物の人のものは使わない)
+# 無ければ、失敗せずに飛ばす。
+#
+# いまは手動だけ(Actions → ZAP API scan → Run workflow)。
+name: ZAP API scan
+
+on:
+  workflow_dispatch:
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎晩 stg に数千〜数万のリクエストが行く(Fargate と Aurora が少し動く分の費用)。Actions は 20〜40分。
+  # schedule:
+  #   - cron: "0 17 * * *" # 日本時間 2:00
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: ZAP(認証つき・stg)
+    if: vars.STG_URL != '' && vars.COGNITO_SCAN_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      HAS_SECRET: ${{ secrets.ZAP_SCAN_USERNAME != '' && secrets.ZAP_SCAN_PASSWORD != '' }}
+      TARGET: ${{ vars.STG_URL }}
+    steps:
+      - name: 秘密が無ければ飛ばす
+        if: env.HAS_SECRET != 'true'
+        run: echo "::notice::ZAP_SCAN_USERNAME / ZAP_SCAN_PASSWORD が無いので飛ばしました(docs/security.md)"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_SECRET == 'true'
+        with:
+          persist-credentials: false
+      - name: スキャン用の利用者でログインして Cookie をもらう
+        id: login
+        if: env.HAS_SECRET == 'true'
+        env:
+          USERNAME: ${{ secrets.ZAP_SCAN_USERNAME }}
+          PASSWORD: ${{ secrets.ZAP_SCAN_PASSWORD }}
+          CLIENT_ID: ${{ vars.COGNITO_SCAN_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          # InitiateAuth は AWS の資格情報が要らない(アプリクライアントの ID だけ)
+          id_token=$(aws cognito-idp initiate-auth --no-sign-request --region ap-northeast-1 \
+            --auth-flow USER_PASSWORD_AUTH --client-id "$CLIENT_ID" \
+            --auth-parameters "USERNAME=$USERNAME,PASSWORD=$PASSWORD" \
+            --query 'AuthenticationResult.IdToken' --output text)
+          echo "::add-mask::$id_token"
+          cookie=$(curl -fsS -D - -o /dev/null -X POST "$TARGET/api/auth/cognito" \
+            -H "content-type: application/json" -H "origin: $TARGET" \
+            --data "{\"idToken\":\"$id_token\"}" | tr -d '\r' | sed -n 's/^set-cookie: \([^;]*\).*/\1/Ip' | head -1)
+          echo "::add-mask::$cookie"
+          echo "cookie=$cookie" >> "$GITHUB_OUTPUT"
+      - name: ZAP の API スキャン
+        if: env.HAS_SECRET == 'true'
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
+        with:
+          target: ${{ env.TARGET }}/api/openapi.json
+          format: openapi
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-api-report
+          # すべてのリクエストに Cookie と Origin を付ける(ZAP の置き換えの設定)
+          cmd_options: >-
+            -z "-config replacer.full_list(0).description=session
+            -config replacer.full_list(0).enabled=true
+            -config replacer.full_list(0).matchtype=REQ_HEADER
+            -config replacer.full_list(0).matchstr=Cookie
+            -config replacer.full_list(0).regex=false
+            -config replacer.full_list(0).replacement=${{ steps.login.outputs.cookie }}
+            -config replacer.full_list(1).description=origin
+            -config replacer.full_list(1).enabled=true
+            -config replacer.full_list(1).matchtype=REQ_HEADER
+            -config replacer.full_list(1).matchstr=Origin
+            -config replacer.full_list(1).regex=false
+            -config replacer.full_list(1).replacement=${{ env.TARGET }}"

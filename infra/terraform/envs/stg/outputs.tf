@@ -30,3 +30,8 @@ output "github_role_arns" {
 output "url" {
   value = "https://${var.app_domain}"
 }
+
+output "cognito_scan_client_id" {
+  description = "GitHub の変数 COGNITO_SCAN_CLIENT_ID に(ZAP の認証つきスキャン用)"
+  value       = aws_cognito_user_pool_client.scanner.id
+}

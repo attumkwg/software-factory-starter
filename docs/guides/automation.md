@@ -15,6 +15,8 @@
 | `cleanup-previews.yml` | 閉じた PR の環境を毎晩消す | 手動 | ほぼ0(preview と一緒に有効に) | ここに日付を入れてください |
 | `deploy.yml` | main → stg、承認 → prod | 手動 | AWS の stg・prod の月額(getting-started の ④) | ここに日付を入れてください |
 | `claude.yml` | `@claude` で実装・レビュー | 手動 | Claude の API(使った分)+分数 | ここに日付を入れてください |
+| `security-fuzz.yml` | Schemathesis で全 API に変な入力(ロールごと) | 手動 | 分数だけ(相手はジョブの中の compose) | ここに日付を入れてください |
+| `zap-api-scan.yml` | ZAP の認証つき API スキャン(stg) | 手動 | 分数+stg が少し動く分 | ここに日付を入れてください |
 
 ## 有効にするやり方
 

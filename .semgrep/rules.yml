@@ -69,3 +69,15 @@ rules:
       - metavariable-regex:
           metavariable: $T
           regex: (?i)tenant
+
+  - id: request-body-must-use-jsonbody
+    message: >-
+      API の本文は routes/common.ts の jsonBody(schema) で書く(本文が必須になる)。
+      body: { content: ... } と直接書くと、本文が無いリクエストが検証を素通りし、空のまま処理が進む
+      (Schemathesis が見つけた 500。test/integration/input-validation.int.test.ts)。
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/api/src/"]
+      exclude: ["/apps/api/src/routes/common.ts"]
+    pattern-regex: '\bbody:\s*\{\s*content:'

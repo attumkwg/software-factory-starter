@@ -21,7 +21,8 @@
     "db:seed": "pnpm --filter @app/api db:seed",
     "db:generate": "pnpm --filter @app/api db:generate",
     "openapi": "pnpm --filter @app/api openapi",
-    "docs:db": "node scripts/docs-db.mjs"
+    "docs:db": "node scripts/docs-db.mjs",
+    "security:fuzz": "node scripts/security-fuzz.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

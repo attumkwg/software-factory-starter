@@ -25,3 +25,6 @@ crash.log
 .claude/settings.local.json
 
 .DS_Store
+
+# 手元の検査の結果(security:fuzz など)
+reports/
