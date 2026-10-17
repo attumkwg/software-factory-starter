@@ -4,7 +4,15 @@ import { notFound } from "../errors.ts";
 import { getProject } from "../repositories/projects.ts";
 import { scopeOf } from "../repositories/scope.ts";
 import { createTask, deleteTask, listTasks, updateTask } from "../repositories/tasks.ts";
-import { authErrors, badRequestError, createRouter, json, notFoundError } from "./common.ts";
+import {
+  authErrors,
+  badRequestError,
+  bodyErrors,
+  createRouter,
+  json,
+  jsonBody,
+  notFoundError,
+} from "./common.ts";
 
 const ProjectParams = z.object({ projectId: IdSchema });
 const TaskParams = z.object({ taskId: IdSchema });
@@ -39,11 +47,11 @@ export const taskRoutes = createRouter()
       summary: "タスクを足す",
       request: {
         params: ProjectParams,
-        body: { content: { "application/json": { schema: CreateTaskSchema } } },
+        body: jsonBody(CreateTaskSchema),
       },
       responses: {
         201: json(TaskSchema, "作った"),
-        ...badRequestError,
+        ...bodyErrors,
         ...authErrors,
         ...notFoundError,
       },
@@ -63,11 +71,11 @@ export const taskRoutes = createRouter()
       summary: "タスクを直す(題名・完了)",
       request: {
         params: TaskParams,
-        body: { content: { "application/json": { schema: UpdateTaskSchema } } },
+        body: jsonBody(UpdateTaskSchema),
       },
       responses: {
         200: json(TaskSchema, "直した"),
-        ...badRequestError,
+        ...bodyErrors,
         ...authErrors,
         ...notFoundError,
       },

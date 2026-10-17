@@ -3,7 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { RootDb } from "../db/client.ts";
 import { ApiError } from "../errors.ts";
 import type { Logger } from "../logger.ts";
-import { badRequestError, createRouter, json } from "../routes/common.ts";
+import { bodyErrors, createRouter, json, jsonBody } from "../routes/common.ts";
 import { findLogin } from "./lookup.ts";
 import { type CognitoSettings, CognitoVerifier, type LoginIdentity } from "./providers.ts";
 import { clearSession, type SessionConfig, writeSession } from "./session.ts";
@@ -53,8 +53,8 @@ export function authRoutes(deps: Deps) {
         path: "/auth/dev-login",
         tags: ["auth"],
         summary: "【開発環境だけ】メールアドレスだけでログイン",
-        request: { body: { content: { "application/json": { schema: DevLoginSchema } } } },
-        responses: { 200: LoggedIn, ...badRequestError, 401: json(z.any(), "いない") },
+        request: { body: jsonBody(DevLoginSchema) },
+        responses: { 200: LoggedIn, ...bodyErrors, 401: json(z.any(), "いない") },
       }),
       async (c) => {
         await login({ kind: "email", email: c.req.valid("json").email }, c);
@@ -70,11 +70,9 @@ export function authRoutes(deps: Deps) {
         tags: ["auth"],
         summary: "Cognito の ID トークンでログイン",
         request: {
-          body: {
-            content: { "application/json": { schema: z.object({ idToken: z.string().min(1) }) } },
-          },
+          body: jsonBody(z.object({ idToken: z.string().min(1) })),
         },
-        responses: { 200: LoggedIn, ...badRequestError, 401: json(z.any(), "検証できない") },
+        responses: { 200: LoggedIn, ...bodyErrors, 401: json(z.any(), "検証できない") },
       }),
       async (c) => {
         const identity = await verifier.verify(c.req.valid("json").idToken);

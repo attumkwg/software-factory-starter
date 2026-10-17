@@ -13,6 +13,7 @@ declare const user: { id: string; email: string };
 declare const err: Error;
 declare const c: { req: { header: (n: string) => string; param: (n: string) => string } };
 declare const sql: { raw: (s: string) => unknown };
+declare const jsonBody: (schema: unknown) => unknown;
 
 export function examples(input: string) {
   // ruleid: tenant-scoped-db-only
@@ -38,5 +39,10 @@ export function examples(input: string) {
   const tenantId = c.req.header("x-tenant-id");
   // ok: tenant-from-request
   const projectId = c.req.param("projectId");
-  return [pool, tenantId, projectId] as [Pool, string, string, TenantTx?];
+  // ruleid: request-body-must-use-jsonbody
+  const route = { request: { body: { content: { "application/json": { schema: {} } } } } };
+  // ok: request-body-must-use-jsonbody
+  const route2 = { request: { body: jsonBody({}) } };
+
+  return [pool, tenantId, projectId, route, route2] as [Pool, string, string, unknown, unknown, TenantTx?];
 }

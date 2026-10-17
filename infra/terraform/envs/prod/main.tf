@@ -121,3 +121,18 @@ resource "aws_route53_record" "app" {
     evaluate_target_health = true
   }
 }
+
+# ── 見張り(WAF・GuardDuty・Security Hub) ─────────────────────────────────────────
+
+module "waf" {
+  source  = "../../modules/waf"
+  name    = local.name
+  alb_arn = module.app.alb_arn
+  # 入れたばかりは数えるだけ。誤検知が無いのを確かめてから block に
+  mode = "count"
+}
+
+module "security_baseline" {
+  source = "../../modules/security-baseline"
+  name   = local.name
+}

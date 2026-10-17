@@ -47,7 +47,7 @@
 | 中 | ふつうの機能・不具合の修正 | 1人 | 「人に判断してほしい所」と、受け入れ条件どおりか |
 | 高 | 認証・認可・権限の表・移行・infra・CI | 2人 | 権限の表の差分・移行の段階・Terraform の plan |
 
-危険度「高」では、手で `/security-review` も回す(`docs/security.md` は後の PR で足す)。
+危険度「高」では、手で `/security-review` も回す(手順は [security.md](security.md))。
 
 ## 毎週やること(30分)
 

@@ -47,3 +47,20 @@ resource "aws_cognito_user_pool_client" "web" {
     access_token = "minutes"
   }
 }
+
+# ZAP の認証つきスキャン(.github/workflows/zap-api-scan.yml)だけが使う、スキャン用のアプリクライアント。
+# パスワードでのログイン(USER_PASSWORD_AUTH)を許すのはこれだけ。stg にだけ作る(prod には作らない)。
+# スキャン用の利用者は、人がコンソールで作る(本物の人のアカウントは使わない)。
+resource "aws_cognito_user_pool_client" "scanner" {
+  name                          = "${local.name}-zap-scanner"
+  user_pool_id                  = aws_cognito_user_pool.this.id
+  generate_secret               = false
+  explicit_auth_flows           = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  prevent_user_existence_errors = "ENABLED"
+  id_token_validity             = 15
+  access_token_validity         = 15
+  token_validity_units {
+    id_token     = "minutes"
+    access_token = "minutes"
+  }
+}

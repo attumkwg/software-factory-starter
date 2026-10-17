@@ -9,6 +9,8 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 - ✅ CI は **AWS も API キーも無しで緑**。AWS・Claude を使うジョブは、変数が無ければ失敗せずに飛ぶ。
 - ⛔ AWS へのデプロイはしていない。Terraform は `fmt` と `validate` まで(apply は下の「本人がやる設定」のあと)。
 
+📘 **はじめての人は [docs/getting-started.md](docs/getting-started.md)(使い始めの手引き)から**。docs 全体の地図は [docs/README.md](docs/README.md)。
+
 ---
 
 ## 🗺 全体の地図
@@ -181,6 +183,11 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 移行 | squawk | `ci.yml` の migrations |
 | ワークフロー | actionlint・zizmor | `ci.yml` の workflows |
 | 動いている画面 | ZAP ベースライン | `preview.yml` |
+| 全 API に変な入力(ロールごと) | Schemathesis | `pnpm security:fuzz`・`security-fuzz.yml` |
+| ログインした状態の API | ZAP API スキャン | `zap-api-scan.yml`(stg) |
+| AWS の中 | WAF・GuardDuty・Security Hub | `infra/terraform/modules/waf`・`security-baseline` |
+
+何を確かめていて何を確かめていないかの一覧と、深い診断の段取りは [docs/security.md](docs/security.md)。
 
 ---
 
@@ -198,6 +205,8 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `cleanup-previews.yml` | 手動 | 飛ばす |
 | `deploy.yml` | 手動 | 飛ばす |
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
+| `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
+| `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
 
 日々の進め方は [docs/playbook.md](docs/playbook.md)、Slack から頼む形にしたいときは [docs/guides/slack.md](docs/guides/slack.md)。
 
