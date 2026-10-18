@@ -57,6 +57,7 @@ data "aws_iam_policy_document" "deploy" {
     resources = [
       module.app.execution_role_arn, module.app.task_role_arn,
       module.web.execution_role_arn, module.web.task_role_arn,
+      module.mail.execution_role_arn, module.mail.task_role_arn,
     ]
   }
 }

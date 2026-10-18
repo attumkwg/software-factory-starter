@@ -42,13 +42,14 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
 ├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし。docker-compose.cognito.yml・テストで使う)
+├─ docker/postfix/              メールの中継(Postfix)。本番は ECS(送り待ちは EFS)→ SES、手元は Mailpit
 ├─ docs/
 │  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
-│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・aurora・preview-env・github-oidc
+│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
 ├─ .github/
 │  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
@@ -268,6 +269,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `PREVIEW_ECR_REPOSITORY` / `PREVIEW_WEB_ECR_REPOSITORY` / `PREVIEW_DOMAIN` | preview/base の出力(API / 画面)/ `example.com` | preview |
 | `AWS_STG_DEPLOY_ROLE_ARN` / `AWS_PROD_DEPLOY_ROLE_ARN` | `<project>-<env>-deploy` | deploy |
 | `ECR_REPOSITORY_URL` / `WEB_ECR_REPOSITORY_URL` | stg の出力(API / 画面) | deploy |
+| `MAIL_ECR_REPOSITORY_URL` | stg の出力 `mail_ecr_repository_url`(メールの中継) | deploy-mail-relay |
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
 
@@ -282,7 +284,8 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 ## 📏 わざとやっていないこと(次の一歩)
 
 - **ログインの画面を自作する**(次の PR): いまは Cognito の画面(Managed Login)で、デザインシステムと見た目がそろわない。画面だけを自作し、パスワード・MFA・確認コードは Cognito のまま(ADR 0007 の「次にやること」)。
-- **メール**(次の次の PR): アプリは SMTP でしか送らない。本番は Postfix → SES、手元は Mailpit。送るのはアウトボックス経由(必ず届く)。Cognito の確認メールも SES へ。
+- **偽物の Cognito と本物の契約テスト**: 同じテストを偽物(PR ごと)と stg の本物(週1回)に流し、ずれに気づく。ログインの画面を自作する PR で一緒に作る。
+- **メールの受け取らない設定・まとめ送り・HTML のメール**(spec 0002 の「やらないこと」)。
 - **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: いまは署名つき Cookie。強制ログアウトが要るなら DB か Valkey に。

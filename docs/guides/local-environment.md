@@ -14,7 +14,7 @@
 | Secrets Manager | compose の環境変数(手元専用の値) | 同上 | 秘密の取り出しの権限(IAM) |
 | CloudWatch Logs | 標準出力の JSON | `docker compose logs api` | Logs Insights での探し方 |
 | Cognito | ふだんは**開発用ログイン**(メールだけ)。流れを確かめるときは**偽物の Cognito**(`packages/fake-cognito`) | `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` | 本物の画面(Managed Login)・MFA・確認メール。stg で人が確かめる([runbooks/cognito-login.md](../runbooks/cognito-login.md)) |
-| SES(メール) | Mailpit(届いたメールをブラウザで見る)。**次の PR で入れる** | — | 迷惑メールの判定・SPF / DKIM |
+| SES(メール) | 本番と同じ Postfix が、SES の代わりに Mailpit へ渡す(http://localhost:8025) | `docker compose up` | 迷惑メールの判定・DKIM / SPF・サンドボックス・送信の上限 |
 | S3・SQS・ElastiCache(入れるとき) | MinIO・ElasticMQ・Valkey のコンテナ | 入れるときに足す | 権限(IAM)・暗号化(KMS) |
 
 ## 手元では再現できないもの

@@ -41,6 +41,14 @@ resource "aws_cognito_user_pool" "this" {
     allow_admin_create_user_only = false
   }
 
+  # 確認コード・パスワードの再設定のメールは、アプリと同じドメインから SES で直接送る(Postfix は通さない)。
+  # 既定の Cognito のメール(1日50通まで・no-reply@verificationemail.com)は使わない
+  email_configuration {
+    email_sending_account = "DEVELOPER"
+    source_arn            = module.ses.identity_arn
+    from_email_address    = "Tasks <no-reply@${var.app_domain}>"
+  }
+
   account_recovery_setting {
     recovery_mechanism {
       name     = "verified_email"

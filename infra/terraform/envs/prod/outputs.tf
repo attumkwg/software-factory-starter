@@ -29,3 +29,7 @@ output "github_role_arns" {
 output "url" {
   value = "https://${var.app_domain}"
 }
+
+output "ecs_mail_service" {
+  value = module.mail.service_name
+}
