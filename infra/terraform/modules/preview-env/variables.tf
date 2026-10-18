@@ -1,9 +1,9 @@
 variable "pr_number" {
-  description = "PR の番号(ALB のルールの優先度にも使う)"
+  description = "PR の番号(ALB のルールの優先度にも使う。×2 と ×2+1)"
   type        = number
   validation {
-    condition     = var.pr_number >= 1 && var.pr_number <= 50000
-    error_message = "ALB のルールの優先度に使うので 1〜50000"
+    condition     = var.pr_number >= 1 && var.pr_number <= 24999
+    error_message = "ALB のルールの優先度(上限 50000)に ×2+1 で使うので 1〜24999"
   }
 }
 
@@ -13,7 +13,12 @@ variable "domain" {
 }
 
 variable "image" {
-  description = "この PR のイメージ(ECR)"
+  description = "この PR の API のイメージ(ECR)"
+  type        = string
+}
+
+variable "web_image" {
+  description = "この PR の画面(SSR)のイメージ(ECR)"
   type        = string
 }
 

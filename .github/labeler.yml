@@ -11,6 +11,8 @@
           - apps/api/drizzle/**
           - apps/api/db/**
           - apps/api/Dockerfile
+          - apps/web/Dockerfile
+          - docker/**
           - docs/authz/**
           - infra/**
           - .github/**

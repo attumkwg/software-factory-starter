@@ -9,7 +9,7 @@ module "github_oidc" {
 
   roles = {
     "${local.name}-deploy" = {
-      description = "deploy.yml: push image, run migration, update ECS service"
+      description = "deploy.yml: push images, run migration, update ECS services (api, web)"
       subjects    = ["environment:${local.env}"]
       policy_json = data.aws_iam_policy_document.deploy.json
     }
@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "deploy" {
       "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CompleteLayerUpload",
       "ecr:InitiateLayerUpload", "ecr:PutImage", "ecr:UploadLayerPart", "ecr:DescribeImages",
     ]
-    resources = [aws_ecr_repository.api.arn]
+    resources = [for r in aws_ecr_repository.this : r.arn]
   }
   statement {
     sid       = "EcrKms"
@@ -52,9 +52,12 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["*"]
   }
   statement {
-    sid       = "PassTaskRoles"
-    actions   = ["iam:PassRole"]
-    resources = [module.app.execution_role_arn, module.app.task_role_arn]
+    sid     = "PassTaskRoles"
+    actions = ["iam:PassRole"]
+    resources = [
+      module.app.execution_role_arn, module.app.task_role_arn,
+      module.web.execution_role_arn, module.web.task_role_arn,
+    ]
   }
 }
 

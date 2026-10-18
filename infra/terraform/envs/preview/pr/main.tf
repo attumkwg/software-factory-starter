@@ -1,6 +1,6 @@
 # PR ごとのプレビュー環境。preview.yml が PR ごとに別の状態のキーで apply / destroy する:
 #   terraform init -backend-config="key=preview/pr-<番号>.tfstate" ...
-#   terraform apply -var pr_number=<番号> -var image=<ECR のイメージ> -var domain=<domain>
+#   terraform apply -var pr_number=<番号> -var image=<API のイメージ> -var web_image=<画面のイメージ> -var domain=<domain>
 # 共有の土台(envs/preview/base)は名前で引く(状態どうしをつながない)。
 
 data "aws_ecs_cluster" "preview" {
@@ -50,6 +50,7 @@ module "preview" {
   pr_number                 = var.pr_number
   domain                    = var.domain
   image                     = var.image
+  web_image                 = var.web_image
   cluster_arn               = data.aws_ecs_cluster.preview.arn
   listener_arn              = data.aws_lb_listener.https.arn
   vpc_id                    = data.aws_vpc.preview.id

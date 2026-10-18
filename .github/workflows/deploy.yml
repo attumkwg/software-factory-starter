@@ -1,9 +1,10 @@
 # 出荷(工程⑦)。main → stg は自動、prod は GitHub の environment「prod」の承認のあと。
-#   1. イメージを1回だけ作って stg の ECR へ(prod も同じイメージを引く。作り直さない)
+#   1. イメージ(API と画面の2つ)を1回だけ作って stg の ECR へ(prod も同じイメージを引く。作り直さない)
 #   2. 移行を1回きりのタスクで流す(表の持ち主で)
-#   3. ECS のサービスを新しいタスク定義で更新 → ECS の blue/green が切り替え、
-#      アラーム(5xx)が鳴れば自動で戻す
-#   4. 外から疎通を確かめる
+#   3. API → 画面の順に、ECS のサービスを新しいタスク定義で更新 → ECS の blue/green が切り替え、
+#      アラーム(5xx)が鳴れば自動で戻す。API が先なのは、新しい画面が新しい API を前提にできるように
+#      (API は古い画面からも呼ばれるので、項目は足すだけ・消さない。packages/shared の決まり)
+#   4. 外から疎通を確かめる(画面の /readyz と、ALB の向こうの API)
 # AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
 name: Deploy
 
@@ -33,7 +34,7 @@ env:
 jobs:
   stg:
     name: stg に出す
-    if: vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.ECR_REPOSITORY_URL != ''
+    if: vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.ECR_REPOSITORY_URL != '' && vars.WEB_ECR_REPOSITORY_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -44,6 +45,7 @@ jobs:
       url: ${{ vars.STG_URL }}
     outputs:
       image: ${{ steps.image.outputs.image }}
+      web_image: ${{ steps.image.outputs.web_image }}
     env:
       CLUSTER: ${{ vars.PROJECT || 'sfs' }}-stg
     steps:
@@ -56,7 +58,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: イメージを作って ECR へ
+      - name: API のイメージを作って ECR へ
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -66,21 +68,35 @@ jobs:
           tags: ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}
           sbom: true
           provenance: mode=max
+      - name: 画面(SSR)のイメージを作って ECR へ
+        id: build_web
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ vars.WEB_ECR_REPOSITORY_URL }}:${{ github.sha }}
+          sbom: true
+          provenance: mode=max
       - id: image
-        run: echo "image=${{ vars.ECR_REPOSITORY_URL }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "image=${{ vars.ECR_REPOSITORY_URL }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "web_image=${{ vars.WEB_ECR_REPOSITORY_URL }}@${{ steps.build_web.outputs.digest }}" >> "$GITHUB_OUTPUT"
       - name: 移行
         run: .github/scripts/run-migration.sh "$CLUSTER" "$CLUSTER-migrate" "$CLUSTER" "${{ steps.image.outputs.image }}"
-      - name: いまのタスク定義を取る
+      - name: いまのタスク定義を取る(API と画面)
         run: |
           aws ecs describe-task-definition --task-definition "$CLUSTER" \
             --query taskDefinition > task-definition.json
+          aws ecs describe-task-definition --task-definition "$CLUSTER-web" \
+            --query taskDefinition > web-task-definition.json
       - id: render
         uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
         with:
           task-definition: task-definition.json
           container-name: api
           image: ${{ steps.image.outputs.image }}
-      - name: blue/green で出す(アラームが鳴れば自動で戻る)
+      - name: API を blue/green で出す(アラームが鳴れば自動で戻る)
         uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
         with:
           task-definition: ${{ steps.render.outputs.task-definition }}
@@ -88,9 +104,28 @@ jobs:
           service: ${{ env.CLUSTER }}
           wait-for-service-stability: true
           wait-for-minutes: 30
-      - name: 疎通(スモークテスト)
+      - id: render_web
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition: web-task-definition.json
+          container-name: web
+          image: ${{ steps.image.outputs.web_image }}
+      - name: 画面(SSR)を blue/green で出す(アラームが鳴れば自動で戻る)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.render_web.outputs.task-definition }}
+          cluster: ${{ env.CLUSTER }}
+          service: ${{ env.CLUSTER }}-web
+          wait-for-service-stability: true
+          wait-for-minutes: 30
+      - name: 疎通(スモークテスト。画面と、ALB の向こうの API)
         if: vars.STG_URL != ''
-        run: curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "${{ vars.STG_URL }}/readyz"
+        env:
+          URL: ${{ vars.STG_URL }}
+        run: |
+          curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "$URL/readyz"
+          # ログイン前なので 401 なら API まで届いている
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/me")" = "401"
 
   prod:
     name: prod に出す(承認のあと)
@@ -108,6 +143,7 @@ jobs:
     env:
       CLUSTER: ${{ vars.PROJECT || 'sfs' }}-prod
       IMAGE: ${{ needs.stg.outputs.image }}
+      WEB_IMAGE: ${{ needs.stg.outputs.web_image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -118,17 +154,19 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: 移行
         run: .github/scripts/run-migration.sh "$CLUSTER" "$CLUSTER-migrate" "$CLUSTER" "$IMAGE"
-      - name: いまのタスク定義を取る
+      - name: いまのタスク定義を取る(API と画面)
         run: |
           aws ecs describe-task-definition --task-definition "$CLUSTER" \
             --query taskDefinition > task-definition.json
+          aws ecs describe-task-definition --task-definition "$CLUSTER-web" \
+            --query taskDefinition > web-task-definition.json
       - id: render
         uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
         with:
           task-definition: task-definition.json
           container-name: api
           image: ${{ env.IMAGE }}
-      - name: blue/green で出す(アラームが鳴れば自動で戻る)
+      - name: API を blue/green で出す(アラームが鳴れば自動で戻る)
         uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
         with:
           task-definition: ${{ steps.render.outputs.task-definition }}
@@ -136,6 +174,25 @@ jobs:
           service: ${{ env.CLUSTER }}
           wait-for-service-stability: true
           wait-for-minutes: 45
-      - name: 疎通(スモークテスト)
+      - id: render_web
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition: web-task-definition.json
+          container-name: web
+          image: ${{ env.WEB_IMAGE }}
+      - name: 画面(SSR)を blue/green で出す(アラームが鳴れば自動で戻る)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.render_web.outputs.task-definition }}
+          cluster: ${{ env.CLUSTER }}
+          service: ${{ env.CLUSTER }}-web
+          wait-for-service-stability: true
+          wait-for-minutes: 45
+      - name: 疎通(スモークテスト。画面と、ALB の向こうの API)
         if: vars.PROD_URL != ''
-        run: curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "${{ vars.PROD_URL }}/readyz"
+        env:
+          URL: ${{ vars.PROD_URL }}
+        run: |
+          curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "$URL/readyz"
+          # ログイン前なので 401 なら API まで届いている
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/me")" = "401"

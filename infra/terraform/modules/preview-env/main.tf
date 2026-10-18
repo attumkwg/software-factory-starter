@@ -1,12 +1,15 @@
-# PR ごとのプレビュー環境(1つの PR = ECS のサービス1つ+共有 ALB のルール1つ)。
+# PR ごとのプレビュー環境(1つの PR = ECS のサービス1つ+共有 ALB のルール2つ)。
 #
 #   https://pr-<番号>.preview.<domain>  →  共有の ALB(envs/preview/base)
-#     → ホスト名のルール → この PR のターゲットグループ → この PR の ECS タスク
+#     → ホスト名+/api/* のルール → API(3000)
+#     → ホスト名だけのルール     → 画面の SSR(3001)
+#   本番の「/api/* は API、それ以外は画面」と同じ振り分け。
 #
-# タスクの中身(1タスクに3つのコンテナ):
+# タスクの中身(1タスクに4つのコンテナ):
 #   db    … Postgres(コンテナ。種データだけ・本番の個人データは使わない)
 #   setup … 接続ユーザーを作る → 移行 → 種データ(終わったら止まる)
-#   api   … アプリ(開発用ログインが有効。APP_ENV=preview)
+#   api   … API(開発用ログインが有効。APP_ENV=preview)
+#   web   … 画面の SSR。同じタスクなので API は http://localhost:3000
 # タスクが止まれば DB も消える(PR を閉じたら destroy、毎晩取り残しを掃除)。
 
 data "aws_region" "current" {}
@@ -16,9 +19,18 @@ locals {
   host = "pr-${var.pr_number}.preview.${var.domain}"
 }
 
+locals {
+  # コンテナ → ポート。ルールの優先度は PR 番号×2(API)と ×2+1(画面)で、PR ごとにかぶらない
+  targets = {
+    api = { port = 3000, priority = var.pr_number * 2, paths = ["/api/*"] }
+    web = { port = 3001, priority = var.pr_number * 2 + 1, paths = null }
+  }
+}
+
 resource "aws_lb_target_group" "this" {
-  name                 = local.name
-  port                 = 3000
+  for_each             = local.targets
+  name                 = "${local.name}-${each.key}"
+  port                 = each.value.port
   protocol             = "HTTP"
   target_type          = "ip"
   vpc_id               = var.vpc_id
@@ -32,16 +44,24 @@ resource "aws_lb_target_group" "this" {
 }
 
 resource "aws_lb_listener_rule" "this" {
+  for_each     = local.targets
   listener_arn = var.listener_arn
-  # PR 番号をそのまま優先度に(PR ごとにかぶらない)
-  priority = var.pr_number
+  priority     = each.value.priority
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.this.arn
+    target_group_arn = aws_lb_target_group.this[each.key].arn
   }
   condition {
     host_header {
       values = [local.host]
+    }
+  }
+  dynamic "condition" {
+    for_each = each.value.paths == null ? [] : [each.value.paths]
+    content {
+      path_pattern {
+        values = condition.value
+      }
     }
   }
 }
@@ -79,7 +99,7 @@ resource "aws_ecs_task_definition" "this" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 512
-  memory                   = 1024
+  memory                   = 2048
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = var.task_role_arn
   container_definitions = jsonencode([
@@ -129,6 +149,20 @@ resource "aws_ecs_task_definition" "this" {
       stopTimeout      = 30
       logConfiguration = local.logs
     },
+    {
+      name         = "web"
+      image        = var.web_image
+      essential    = true
+      portMappings = [{ containerPort = 3001, protocol = "tcp" }]
+      environment = [
+        { name = "PORT", value = "3001" },
+        { name = "API_INTERNAL_URL", value = "http://localhost:3000" },
+        { name = "LOG_LEVEL", value = "debug" },
+      ]
+      dependsOn        = [{ containerName = "setup", condition = "SUCCESS" }]
+      stopTimeout      = 30
+      logConfiguration = local.logs
+    },
   ])
 }
 
@@ -147,10 +181,13 @@ resource "aws_ecs_service" "this" {
     security_groups  = [var.service_security_group_id]
     assign_public_ip = false
   }
-  load_balancer {
-    target_group_arn = aws_lb_target_group.this.arn
-    container_name   = "api"
-    container_port   = 3000
+  dynamic "load_balancer" {
+    for_each = local.targets
+    content {
+      target_group_arn = aws_lb_target_group.this[load_balancer.key].arn
+      container_name   = load_balancer.key
+      container_port   = load_balancer.value.port
+    }
   }
   # 片付けで探せるように
   tags = {

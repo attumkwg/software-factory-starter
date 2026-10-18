@@ -6,13 +6,13 @@
 
 - `pnpm install` / `pnpm dev`(API 3000 + 画面 5173。先に `docker compose up -d db && pnpm db:migrate && pnpm db:seed`)
 - `pnpm lint`(Biome)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:integration`(Docker が要る)
-- `pnpm test:e2e`(`docker compose up --build -d` のあとで)
+- `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 
 ## 地図
 
 - `apps/api` … Hono の API。ルールは `apps/api/CLAUDE.md`
-- `apps/web` … React の画面。ルールは `apps/web/CLAUDE.md`
+- `apps/web` … TanStack Start の画面(SSR。API とは別のサービス)。ルールは `apps/web/CLAUDE.md`
 - `packages/shared` … 画面と API の契約(Zod)。項目は足すだけ・消さない
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/adr` 設計判断 / `docs/runbooks` 手順
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)

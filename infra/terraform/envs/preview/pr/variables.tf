@@ -8,7 +8,12 @@ variable "pr_number" {
 }
 
 variable "image" {
-  description = "この PR のイメージ(<ECR>:pr-<番号>-<sha>)"
+  description = "この PR の API のイメージ(<ECR>:pr-<番号>-<sha>)"
+  type        = string
+}
+
+variable "web_image" {
+  description = "この PR の画面のイメージ(<ECR>:pr-<番号>-<sha>)"
   type        = string
 }
 

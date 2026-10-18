@@ -87,6 +87,28 @@ module "app" {
   secrets_kms_key_arns = [aws_kms_key.app.arn, module.aurora.kms_key_arn]
 }
 
+# 画面(SSR)。ALB・クラスターは module.app と共有。/api/* 以外がここに来る
+module "web" {
+  source                        = "../../modules/web-service"
+  name                          = "${local.name}-web"
+  image                         = "${var.web_image_repository_url}:${var.initial_image_tag}"
+  desired_count                 = 2
+  log_retention_days            = 90
+  bake_time_minutes             = 10
+  alarm_topic_arns              = var.alarm_topic_arns
+  cluster_arn                   = module.app.cluster_arn
+  vpc_id                        = module.network.vpc_id
+  private_subnet_ids            = module.network.private_subnet_ids
+  listener_arn                  = module.app.https_listener_arn
+  alb_security_group_id         = module.app.alb_security_group_id
+  alb_arn_suffix                = module.app.alb_arn_suffix
+  api_security_group_id         = module.app.service_security_group_id
+  service_connect_namespace_arn = module.app.service_connect_namespace_arn
+  environment = {
+    APP_ENV = local.env
+  }
+}
+
 resource "aws_acm_certificate" "app" {
   domain_name       = var.app_domain
   validation_method = "DNS"

@@ -41,6 +41,11 @@ variable "image_repository_url" {
   type        = string
 }
 
+variable "web_image_repository_url" {
+  description = "stg の画面の ECR(stg の出力 web_ecr_repository_url)"
+  type        = string
+}
+
 variable "initial_image_tag" {
   description = "最初に作るときのイメージのタグ(以後は deploy.yml が更新)"
   type        = string

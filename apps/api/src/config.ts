@@ -21,8 +21,6 @@ const EnvSchema = z
     COGNITO_REGION: z.string().optional(),
     COGNITO_USER_POOL_ID: z.string().optional(),
     COGNITO_CLIENT_ID: z.string().optional(),
-    // 指定すると、ビルド済みの画面(apps/web/dist)を同じオリジンで配る
-    WEB_DIST_DIR: z.string().optional(),
     // ECS の stopTimeout(既定30秒)より短く
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
   })
@@ -77,7 +75,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       secureCookie: e.APP_ENV !== "local" && e.APP_ENV !== "test",
     },
     exposeOpenApi: e.APP_ENV !== "prod",
-    webDistDir: e.WEB_DIST_DIR,
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
   };
 }

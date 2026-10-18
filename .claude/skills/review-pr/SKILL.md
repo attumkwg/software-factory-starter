@@ -31,7 +31,7 @@ gh pr view <番号> --comments   # Terraform の plan のコメント・プレ�
 |---|---|
 | 新しい API「タスクに期限」 | ルート・リポジトリ・`policy.ts`・`matrix.yaml`・テスト・`packages/shared` |
 | 表に列を足す移行 | `schema.ts`・`drizzle/*.sql`・`docs/db/` |
-| 画面の変更 | `apps/web/src/pages/*`・E2E |
+| 画面の変更 | `apps/web/src/routes/*`(URL と loader)・`apps/web/src/pages/*`・E2E |
 | ついでの整理 | 名前の変更・整形だけ |
 
 並べる順: ① 取り返しがつかない(移行・削除・権限・テナント分離・認証・infra)→ ② 振る舞いが変わる → ③ 見た目・文言 → ④ 整理だけ。

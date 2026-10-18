@@ -4,6 +4,7 @@ import {
   Checkbox,
   Heading,
   Inline,
+  Link,
   List,
   Muted,
   Select,
@@ -11,38 +12,42 @@ import {
   TextField,
   useToast,
 } from "@app/ui";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
 import { canWrite } from "../permissions.ts";
 
-const FILTERS = [
+export const TASK_FILTERS = [
   { id: "all", label: "すべて" },
   { id: "open", label: "未完了" },
   { id: "done", label: "完了" },
-];
+] as const;
+export type TaskFilter = (typeof TASK_FILTERS)[number]["id"];
 
+/** URL の ?filter= を読む。知らない値は「すべて」に。 */
+export function toTaskFilter(value: unknown): TaskFilter {
+  return TASK_FILTERS.find((f) => f.id === value)?.id ?? "all";
+}
+
+// データは route(routes/_app/projects/$projectId.tsx)の loader が SSR で読む。変えたら invalidate で読み直す。
 export function TasksPage({
   me,
   project,
-  onBack,
+  tasks,
+  filter,
+  onFilterChange,
 }: {
   me: Me;
   project: Project;
-  onBack: () => void;
+  tasks: Task[];
+  filter: TaskFilter;
+  onFilterChange: (filter: TaskFilter) => void;
 }) {
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
-  const [filter, setFilter] = useState("all");
   const writable = canWrite(me.role);
   const toast = useToast();
-
-  const reload = useCallback(
-    async () => setTasks((await api.listTasks(project.id)).tasks),
-    [project.id],
-  );
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const router = useRouter();
+  const reload = () => router.invalidate();
 
   async function add(e: FormEvent) {
     e.preventDefault();
@@ -58,9 +63,9 @@ export function TasksPage({
   return (
     <Stack gap={4}>
       <div>
-        <Button variant="ghost" onPress={onBack}>
+        <Link href="/" variant="back">
           ← プロジェクト一覧
-        </Button>
+        </Link>
       </div>
       <Heading level={1}>{project.name}</Heading>
       <Inline gap={4}>
@@ -79,7 +84,12 @@ export function TasksPage({
             </Inline>
           </form>
         )}
-        <Select label="表示" options={FILTERS} value={filter} onChange={setFilter} />
+        <Select
+          label="表示"
+          options={[...TASK_FILTERS]}
+          value={filter}
+          onChange={(value) => onFilterChange(toTaskFilter(value))}
+        />
       </Inline>
       {shown.length === 0 ? (
         <Muted>タスクはありません</Muted>

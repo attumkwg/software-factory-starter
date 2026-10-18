@@ -1,4 +1,5 @@
-# 手元で丸ごと動かす: docker compose up --build → http://localhost:3000
+# 手元で丸ごと動かす: docker compose up --build → http://localhost:8080
+# 本番と同じ形: alb(ALB の代わり)が /api/* を api へ、それ以外を web(SSR)へ振り分ける。
 # 種データ(2社)で、開発用ログインが使える。ここにある値はすべて手元専用で、秘密ではない。
 name: software-factory-starter
 
@@ -54,11 +55,34 @@ services:
       DATABASE_URL: postgres://app:app@db:5432/app
       SESSION_SECRET: local-dev-only-session-secret-not-used-anywhere
       LOG_LEVEL: info
-    ports:
-      - "3000:3000"
     depends_on:
       seed:
         condition: service_completed_successfully
+
+  web:
+    image: software-factory-starter/web:local
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      # SSR から API を読む先(ECS では Service Connect の http://api:3000)
+      API_INTERNAL_URL: http://api:3000
+      LOG_LEVEL: info
+    depends_on:
+      api:
+        condition: service_healthy
+
+  alb:
+    image: caddy:2.11.7-alpine
+    volumes:
+      - ./docker/alb.Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
 
 volumes:
   db-data:

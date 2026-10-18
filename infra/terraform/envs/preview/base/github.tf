@@ -9,7 +9,7 @@ module "github_oidc" {
 
   roles = {
     "preview-github" = {
-      description = "preview.yml / cleanup-previews.yml: build image and apply/destroy per-PR env"
+      description = "preview.yml / cleanup-previews.yml: build images and apply/destroy per-PR env"
       # PR のジョブと、毎晩の掃除(main の schedule)から
       subjects    = ["pull_request", "ref:refs/heads/main"]
       policy_json = data.aws_iam_policy_document.preview.json
@@ -29,7 +29,7 @@ data "aws_iam_policy_document" "preview" {
       "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CompleteLayerUpload",
       "ecr:InitiateLayerUpload", "ecr:PutImage", "ecr:UploadLayerPart", "ecr:DescribeImages",
     ]
-    resources = [aws_ecr_repository.api.arn]
+    resources = [for r in aws_ecr_repository.this : r.arn]
   }
   statement {
     sid       = "Kms"

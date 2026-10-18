@@ -20,8 +20,10 @@ resource "aws_kms_key" "app" {
   enable_key_rotation = true
 }
 
-resource "aws_ecr_repository" "api" {
-  name                 = "${var.project}/api"
+# API と画面(SSR)の2つ。どちらも stg で作り、prod は同じイメージを引く
+resource "aws_ecr_repository" "this" {
+  for_each             = toset(["api", "web"])
+  name                 = "${var.project}/${each.key}"
   image_tag_mutability = "IMMUTABLE"
   image_scanning_configuration {
     scan_on_push = true
@@ -32,8 +34,9 @@ resource "aws_ecr_repository" "api" {
   }
 }
 
-resource "aws_ecr_lifecycle_policy" "api" {
-  repository = aws_ecr_repository.api.name
+resource "aws_ecr_lifecycle_policy" "this" {
+  for_each   = aws_ecr_repository.this
+  repository = each.value.name
   policy = jsonencode({
     rules = [{
       rulePriority = 1
@@ -45,9 +48,9 @@ resource "aws_ecr_lifecycle_policy" "api" {
 }
 
 # prod のアカウントから同じイメージを引けるように
-resource "aws_ecr_repository_policy" "api" {
-  count      = length(var.image_pull_account_ids) > 0 ? 1 : 0
-  repository = aws_ecr_repository.api.name
+resource "aws_ecr_repository_policy" "this" {
+  for_each   = length(var.image_pull_account_ids) > 0 ? aws_ecr_repository.this : {}
+  repository = each.value.name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -57,6 +60,22 @@ resource "aws_ecr_repository_policy" "api" {
       Action    = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability"]
     }]
   })
+}
+
+# 画面のイメージを足したときに、API の置き場を作り直さない(名前が変わっただけ)
+moved {
+  from = aws_ecr_repository.api
+  to   = aws_ecr_repository.this["api"]
+}
+
+moved {
+  from = aws_ecr_lifecycle_policy.api
+  to   = aws_ecr_lifecycle_policy.this["api"]
+}
+
+moved {
+  from = aws_ecr_repository_policy.api[0]
+  to   = aws_ecr_repository_policy.this["api"]
 }
 
 # ── 秘密 ─────────────────────────────────────────────────────────────────────
@@ -97,7 +116,7 @@ module "app" {
   vpc_cidr           = module.network.vpc_cidr
   public_subnet_ids  = module.network.public_subnet_ids
   private_subnet_ids = module.network.private_subnet_ids
-  image              = "${aws_ecr_repository.api.repository_url}:${var.initial_image_tag}"
+  image              = "${aws_ecr_repository.this["api"].repository_url}:${var.initial_image_tag}"
   certificate_arn    = aws_acm_certificate_validation.app.certificate_arn
   desired_count      = 1
   # stg はすぐ消せるように
@@ -125,6 +144,25 @@ module "app" {
     PGPASSWORD = "${module.aurora.master_user_secret_arn}:password::"
   }
   secrets_kms_key_arns = [aws_kms_key.app.arn, module.aurora.kms_key_arn]
+}
+
+# 画面(SSR)。ALB・クラスターは module.app と共有。/api/* 以外がここに来る
+module "web" {
+  source                        = "../../modules/web-service"
+  name                          = "${local.name}-web"
+  image                         = "${aws_ecr_repository.this["web"].repository_url}:${var.initial_image_tag}"
+  desired_count                 = 1
+  cluster_arn                   = module.app.cluster_arn
+  vpc_id                        = module.network.vpc_id
+  private_subnet_ids            = module.network.private_subnet_ids
+  listener_arn                  = module.app.https_listener_arn
+  alb_security_group_id         = module.app.alb_security_group_id
+  alb_arn_suffix                = module.app.alb_arn_suffix
+  api_security_group_id         = module.app.service_security_group_id
+  service_connect_namespace_arn = module.app.service_connect_namespace_arn
+  environment = {
+    APP_ENV = local.env
+  }
 }
 
 # ── DNS と証明書 ───────────────────────────────────────────────────────────────

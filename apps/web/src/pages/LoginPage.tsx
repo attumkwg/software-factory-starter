@@ -1,11 +1,13 @@
 import { Button, Card, Heading, Muted, Page, Stack, TextField } from "@app/ui";
+import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
 
 // 開発環境(local / preview)だけの簡易ログイン。本番は Cognito のホスト UI に飛ばす(差し替え口は API 側)。
 const DEV_USERS = ["admin@acme.test", "member@acme.test", "viewer@acme.test", "admin@globex.test"];
 
-export function LoginPage({ onLoggedIn }: { onLoggedIn: () => Promise<void> }) {
+export function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState(DEV_USERS[0] ?? "");
   const [error, setError] = useState<string | null>(null);
 
@@ -14,10 +16,12 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => Promise<void> }) {
     setError(null);
     try {
       await api.devLogin(email);
-      await onLoggedIn();
     } catch {
       setError("ログインできませんでした");
+      return;
     }
+    router.clearCache();
+    await router.navigate({ to: "/" });
   }
 
   return (
