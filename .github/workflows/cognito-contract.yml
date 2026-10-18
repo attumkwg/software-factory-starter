@@ -10,10 +10,13 @@
 # stg に apply したら、手でも流す(Actions → Cognito contract → Run workflow)。
 name: Cognito contract
 
+# いまは手動だけ(Actions → Cognito contract → Run workflow)。自動にするときは schedule のコメントを外す。
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * 1" # 日本時間 月曜 9:00
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎週月曜に stg の本物の Cognito へ契約テストを流す(Actions の数分+Cognito の利用者が数人)。
+  # schedule:
+  #   - cron: "0 0 * * 1" # 日本時間 月曜 9:00
 
 permissions:
   contents: read

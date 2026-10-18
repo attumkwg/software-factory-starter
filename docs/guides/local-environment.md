@@ -13,7 +13,7 @@
 | Aurora PostgreSQL | postgres:17 のコンテナ | 同上(テストは Testcontainers) | 本物の切り替え(フェイルオーバー)。手元はコンテナの再起動で代える |
 | Secrets Manager | compose の環境変数(手元専用の値) | 同上 | 秘密の取り出しの権限(IAM) |
 | CloudWatch Logs | 標準出力の JSON | `docker compose logs api` | Logs Insights での探し方 |
-| Cognito | ふだんは**開発用ログイン**(メールだけ)。登録・ログイン・二段階認証・再設定を確かめるときは**偽物の Cognito**(`packages/fake-cognito`)。確認コードのメールは Postfix → Mailpit | `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` | SES から届くか・迷惑メールの判定。偽物とのずれは**契約テスト**が週1回、stg の本物で確かめる |
+| Cognito | ふだんは**開発用ログイン**(メールだけ)。登録・ログイン・二段階認証・再設定を確かめるときは**偽物の Cognito**(`packages/fake-cognito`)。確認コードのメールは Postfix → Mailpit | `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` | SES から届くか・迷惑メールの判定。偽物とのずれは**契約テスト**を stg の本物に流して確かめる(いまは手動。有効にすると週1回) |
 | SES(メール) | 本番と同じ Postfix が、SES の代わりに Mailpit へ渡す(http://localhost:8025) | `docker compose up` | 迷惑メールの判定・DKIM / SPF・サンドボックス・送信の上限 |
 | S3・SQS・ElastiCache(入れるとき) | MinIO・ElasticMQ・Valkey のコンテナ | 入れるときに足す | 権限(IAM)・暗号化(KMS) |
 
@@ -40,7 +40,7 @@ IAM の権限・VPC やセキュリティグループの通信・KMS・WAF・Clo
 | どこに | いつ | 回し方 |
 |---|---|---|
 | 偽物 | PR ごと(CI の単体) | `pnpm test` |
-| stg の本物 | 週1回(月曜 9:00)・Cognito の設定を変えて apply したとき | Actions → **Cognito contract**(`cognito-contract.yml`)。落ちたら Issue が立つ |
+| stg の本物 | Cognito の設定を変えて apply したとき(いまは手動。有効にすると週1回 月曜 9:00。[automation.md](automation.md)) | Actions → **Cognito contract**(`cognito-contract.yml`)。落ちたら Issue が立つ |
 | 手元から stg の本物 | 気になったとき | `COGNITO_CONTRACT_TARGET=real COGNITO_USER_POOL_ID=… COGNITO_CLIENT_ID=… pnpm --filter @app/fake-cognito test:contract`(stg の資格情報で) |
 
 **本物で落ちたとき**: どのテストが落ちたかを見て、本物の振る舞いに合わせて偽物(`src/fake.ts`)を直す → 偽物でも同じテストが通ることを確かめる → アプリ(`apps/api/src/auth`)がその振る舞いに頼っていれば、アプリも直す。**テストを本物に合わせて書き換えるのは、本物の振る舞いが正しいと確かめてから**。
