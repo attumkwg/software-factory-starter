@@ -122,7 +122,7 @@ resource "aws_chatbot_slack_channel_configuration" "this" {
   iam_role_arn       = aws_iam_role.chatbot[0].arn
   slack_team_id      = var.slack_team_id
   slack_channel_id   = var.slack_channel_id
-  sns_topic_arns     = [aws_sns_topic.this.arn]
+  sns_topic_arns     = concat([aws_sns_topic.this.arn], var.extra_topic_arns)
   logging_level      = "ERROR"
   # Slack から打てる操作の上限。指定しないと AdministratorAccess になるので、必ず絞る
   guardrail_policy_arns = ["arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"]

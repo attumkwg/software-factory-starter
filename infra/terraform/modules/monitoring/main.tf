@@ -11,6 +11,7 @@
 #   DB が上限に張りつく      Aurora の ACUUtilization / CPUUtilization      15分続けて 90% / 80% 超
 #   DB の切り替え・障害       RDS のイベント(failover / failure / 保守)      その都度
 #   メールの評判             SES の Reputation.BounceRate / ComplaintRate   5% / 0.1% 以上(SES が止めるのは 10% / 0.5%)
+#   証明書の期限             ACM の DaysToExpiry                           残り30日を切る(自動の更新が失敗している)
 #
 # アプリの 5xx は ecs-service / web-service のアラーム(デプロイの自動の戻しにも使う)。
 # 鳴った知らせだけでなく、戻った知らせ(OK)も同じ所へ流す。
@@ -289,3 +290,24 @@ resource "aws_cloudwatch_metric_alarm" "ses_complaint" {
   alarm_actions       = local.actions
   ok_actions          = local.actions
 }
+
+# ── 証明書の期限 ─────────────────────────────────────────────────────────────────
+# ACM は DNS の確認で自動で更新する(期限の60日前から)。残り30日を切ったら、更新が失敗している
+# (確認の DNS レコードが消えた等)。外形監視は証明書の中身を見ないので、ここで見る。
+
+resource "aws_cloudwatch_metric_alarm" "cert_expiry" {
+  alarm_name          = "${var.name}-cert-expiry"
+  alarm_description   = "証明書の期限まで30日を切った(自動の更新が失敗している)。docs/runbooks/alarms.md#cert-expiry"
+  namespace           = "AWS/CertificateManager"
+  metric_name         = "DaysToExpiry"
+  dimensions          = { CertificateArn = var.certificate_arn }
+  statistic           = "Minimum"
+  period              = 86400
+  evaluation_periods  = 1
+  threshold           = 30
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.actions
+  ok_actions          = local.actions
+}
+

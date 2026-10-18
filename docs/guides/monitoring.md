@@ -3,15 +3,16 @@
 > **PMF の前から置いておく、最小の見張り。** 当番(夜中に起こされる人)はまだ置かない。鳴ったら Slack の `#alerts-prod` に流れ、気づいた人が [runbooks/alarms.md](../runbooks/alarms.md) を見て動く。
 > 決めた理由は [ADR 0010](../adr/0010-alerts-to-slack.md)(知らせの道)と [ADR 0011](../adr/0011-sentry-from-logs.md)(Sentry)。
 >
-> **2つの見張りの分担**: アラーム(1〜4)は「**全体として**おかしい」(落ちた・遅い・DB・費用)。Sentry(5)は「**この1件が**なぜ失敗したか」(スタック・どの版から・どのリクエスト)。
+> **見張りの分担**: アラーム(1〜4)は「**全体として**おかしい」(落ちた・遅い・DB・費用)。外形監視(表の `uptime`)は「**外から**開けるか」。Sentry(5)は「**この1件が**なぜ失敗したか」(どの API・誰・どの版・スタック)。
 
 ## 1. 知らせの道
 
 ```
 CloudWatch のアラーム ─┐
 Security Hub(重い見つけ物)─┤
-RDS のイベント ─┼→ SNS(<名前>-alerts。KMS で暗号化)─┬→ Slack(AWS の公式の連携)
-AWS Budgets(費用)─┘                                  └→ メール(任意)
+RDS のイベント ─┼→ SNS(<名前>-alerts。東京。KMS で暗号化)─────┬→ Slack(AWS の公式の連携)
+AWS Budgets(費用)─┘                                          │
+外形監視(Route 53)→ SNS(<名前>-uptime-alerts。バージニア)───┘→ メール(任意)
 ```
 
 - 環境ごとに1つ(`modules/alerts`)。stg と prod で **チャンネルを分ける**(`#alerts-stg` / `#alerts-prod`)。stg は見なくてよい日もあるが、prod は必ず見る。
@@ -33,6 +34,8 @@ AWS Budgets(費用)─┘                                  └→ メール(任�
 | `ses-bounce-rate` / `ses-complaint-rate` | メールの評判が落ちている | 5% / 0.1%(SES が止めるのは 10% / 0.5%) | monitoring |
 | `<名前>-monthly`(Budgets) | 費用が月の上限の 80% / 月末の見込みが 100% 超 | その都度 | alerts |
 | (Security Hub) | GuardDuty・設定の点検の HIGH / CRITICAL | その都度 | security-baseline |
+| `uptime-{web,api}` | **外から**開けない(東京・シンガポール・オレゴンから30秒ごとに `/readyz` と `/api/auth/options`) | ほとんどの地点から2分続けて | uptime(アラームはバージニア) |
+| `cert-expiry` | 証明書の期限まで30日を切った(自動の更新の失敗) | 1日1回見る | monitoring |
 
 **数字(しきい値)は最初の目安**。鳴りすぎたら上げる・鳴らなくて困ったら下げる。変えたら、この表も直す。
 
@@ -54,6 +57,7 @@ AWS Budgets(費用)─┘                                  └→ メール(任�
 | SNS・Slack 連携・RDS のイベント | ほぼ0円 |
 | Budgets | 2つまで無料 |
 | 落ちたタスクの記録(ログ) | ほぼ0円(落ちたときだけ書く) |
+| 外形監視(Route 53 のヘルスチェック 2つ・HTTPS) | 約450円 |
 
 Container Insights(タスクの数・CPU・メモリ)は前から有効(1環境 月 数百円〜)。
 
@@ -69,12 +73,18 @@ API・画面のサーバー: logger.error / fatal ─┬→ 標準出力(CloudWa
 
 | 送る | 送らない |
 |---|---|
-| 失敗の種類・文(値を伏せたもの)・スタック・`requestId`・`tenantId`・`traceId`・API の `code`・環境・版(git の SHA) | リクエストの本文・Cookie・ヘッダー・URL の `?` 以降・利用者(メールアドレスなど)・パンくず・ローカル変数・ログのほかの項目 |
+| 失敗の種類・文(値を伏せたもの)・スタック | リクエストの本文(お客さんのデータ) |
+| **どの API か**(`route`。例 `POST /api/projects/:projectId/tasks`。ID を入れる前の形) | URL の `?` 以降・path の中の ID |
+| **誰か**(users の ID だけ。Sentry が「何人が困ったか」を数える) | メールアドレス・名前・IP |
+| `requestId`・`tenantId`・`traceId`・API の `code`・環境・版(git の SHA) | Cookie・ヘッダー |
+| **そのリクエストのログを開くリンク**(Contexts の logs。Logs Insights・前後15分) | パンくず・ローカル変数・ログのほかの項目 |
 
 - **値の落とし方**(`packages/error-reporting/src/scrub.ts`): ログの1行から決めた項目だけを拾い、失敗の文からメールアドレス・`key=value` の値・引用符の中・6桁以上の数字・URL の `?` 以降を伏せる。Sentry は外の会社なので、自分の AWS の中のログより一段きつく絞る。Sentry の自動の仕組み(v11 は既定でヘッダー・Cookie・本文・利用者を集める)は全部切ってある。
 - **送る数の上限**: 1つのプロセスで1分に30件・同じ失敗は3件まで(DB の再起動で同じ失敗が大量に出ても、Sentry の無料の枠を使い切らない)。ログには全部残る。
 - **送らないもの**: 4xx(利用者の側)・409(warn)。画面のサーバーが「API に届かない」はログだけ(API 側の Sentry とアラームで分かる。二重に数えない)。
 - **版**: deploy.yml がタスク定義に `SENTRY_RELEASE`(git の SHA)を入れる。Sentry で「この版から増えた」が分かる。
+- **ログへのリンク**: Terraform が `LOGS_INSIGHTS_REGION` と `LOGS_INSIGHTS_GROUPS`(API と画面のサーバーのロググループ)を入れる。ブラウザの失敗には付かない(requestId が無い)。
+- **来たときの調べ方**: [runbooks/sentry.md](../runbooks/sentry.md)(Sentry の画面 → ログ → 会社と人 → 直す)。
 
 ### 使い始める(人が1回だけ)
 
@@ -93,7 +103,7 @@ API・画面のサーバー: logger.error / fatal ─┬→ 標準出力(CloudWa
 |---|---|---|
 | Sentry の新しい種類の失敗を Slack へ | 使い始めて量が分かってから | Sentry の画面の「Alerts」で設定する(コードは要らない) |
 | Sentry のソースマップのアップロード | 要るようになったら | API と画面のサーバーはソースマップつきで動くのでスタックは読める。ブラウザは圧縮された位置のまま |
-| 外からの死活の確認(Route 53 のヘルスチェック・Synthetics) | PMF 後 | 内側のアラームで「落ちた」は分かる。DNS・証明書の外れは ACM の自動更新に任せている |
+| 本物のブラウザで画面の流れを外から確かめる(CloudWatch Synthetics) | PMF 後 | いまの外形監視は「届くか」だけ。ログインの流れまで見るなら。1環境 月 1,500〜3,000円 |
 | アウトボックスの溜まり(送れずに残る件数) | PMF 後 | いまは [runbooks/mail-not-delivered.md](../runbooks/mail-not-delivered.md) の SQL で見る |
 | 費用の急な増え方(Cost Anomaly Detection) | PMF 後 | Budgets で月の上限は見ている |
 | 当番(PagerDuty など・夜中に鳴らす) | 有料の顧客が付いてから | PMF 前は Slack で十分 |

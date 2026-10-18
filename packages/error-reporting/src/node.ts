@@ -1,7 +1,9 @@
 import { Writable } from "node:stream";
 import * as Sentry from "@sentry/node";
+import { type LogsLinkOptions, logsInsightsUrl } from "./logs-link.ts";
 import { pickReportLine, type ReportLine } from "./scrub.ts";
 
+export { type LogsLinkOptions, logsLinkFrom } from "./logs-link.ts";
 export { pickReportLine, type ReportLine, scrubMessage } from "./scrub.ts";
 
 // サーバー(API・画面のサーバー)の失敗を Sentry に送る。
@@ -47,6 +49,8 @@ export type ErrorReporterOptions = {
   maxPerMinute?: number;
   /** 同じ失敗(種類+文)を1分に送る上限 */
   maxSamePerMinute?: number;
+  /** あれば、Sentry の1件に「このリクエストのログを開く」リンクを付ける */
+  logsLink?: LogsLinkOptions | undefined;
   /** テスト用: 送り先を差し替える */
   transport?: Sentry.NodeOptions["transport"];
 };
@@ -72,7 +76,7 @@ export function createErrorReporter(opts: ErrorReporterOptions): ErrorReporter |
     const line = pickReportLine(raw);
     if (!line) return;
     if (!limit(`${line.err?.type}|${line.err?.message ?? line.message}`)) return;
-    Sentry.captureEvent(toEvent(line));
+    Sentry.captureEvent(toEvent(line, opts.logsLink));
   }
 
   const stream = new Writable({
@@ -95,16 +99,33 @@ export function createErrorReporter(opts: ErrorReporterOptions): ErrorReporter |
   };
 }
 
-function toEvent(line: ReportLine): Sentry.Event {
+function toEvent(line: ReportLine, logsLink: LogsLinkOptions | undefined): Sentry.Event {
   const tags: Record<string, string> = {};
-  for (const key of ["service", "requestId", "tenantId", "traceId", "code"] as const) {
+  for (const key of ["service", "requestId", "tenantId", "traceId", "code", "route"] as const) {
     const v = line[key];
     if (v) tags[key] = v;
   }
   if (line.err?.code) tags.errCode = line.err.code;
+  // 調べ方は docs/runbooks/sentry.md
+  const contexts: Sentry.Event["contexts"] =
+    logsLink && line.requestId
+      ? {
+          logs: {
+            "Logs Insights(このリクエストの全部の行)": logsInsightsUrl(
+              logsLink,
+              line.requestId,
+              new Date(),
+            ),
+            logGroups: logsLink.logGroups.join(", "),
+          },
+        }
+      : undefined;
   return {
     level: line.level,
     tags,
+    // users の ID だけ(メールアドレス・IP は送らない)。Sentry が「何人が困ったか」を数える
+    ...(line.userId ? { user: { id: line.userId } } : {}),
+    ...(contexts ? { contexts } : {}),
     ...(line.err
       ? {
           exception: {

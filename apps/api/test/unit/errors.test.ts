@@ -137,6 +137,40 @@ describe("DB の接続が切れてもプロセスは落ちない", () => {
   });
 });
 
+describe("どの API で失敗したかをログ(と Sentry)に残す", () => {
+  it("5xx のログに、ID を入れる前の道すじが入る", async () => {
+    const lines: Record<string, unknown>[] = [];
+    const destination = new Writable({
+      write(chunk, _enc, cb) {
+        lines.push(JSON.parse(chunk.toString()));
+        cb();
+      },
+    });
+    const config = loadConfig({
+      APP_ENV: "test",
+      DATABASE_URL: "postgres://unused",
+      SESSION_SECRET: "x".repeat(32),
+    });
+    // DB の代わりに空の物を渡すので、ログインの途中で想定外の失敗(500)になる
+    const app = createApp({
+      config,
+      db: {} as RootDb,
+      logger: createLogger({ level: "info", destination }),
+    });
+    const res = await app.request("/api/auth/dev-login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "taro@example.com" }),
+    });
+    expect(res.status).toBe(500);
+    const failed = lines.find((l) => l.message === "失敗しました");
+    expect(failed).toMatchObject({ code: "internal", route: "POST /api/auth/dev-login" });
+    expect(lines.find((l) => l.message === "request")).toMatchObject({
+      route: "POST /api/auth/dev-login",
+    });
+  });
+});
+
 describe("本文の失敗は決まった code で返す", () => {
   function app() {
     const config = loadConfig({

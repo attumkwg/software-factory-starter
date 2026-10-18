@@ -34,6 +34,7 @@ describe("サーバーの失敗を Sentry に送る", () => {
       environment: "test",
       service: "api",
       transport,
+      logsLink: { region: "ap-northeast-1", logGroups: ["/ecs/sfs-prod", "/ecs/sfs-prod-web"] },
     });
     reporter?.stream.write(
       `${JSON.stringify({
@@ -42,7 +43,9 @@ describe("サーバーの失敗を Sentry に送る", () => {
         service: "api",
         requestId: "req-12345678",
         tenantId: "tenant-a",
+        userId: "user-1",
         code: "internal",
+        route: "POST /api/projects/:projectId/tasks",
         method: "POST",
         body: { title: "極秘" },
         err: {
@@ -64,13 +67,23 @@ describe("サーバーの失敗を Sentry に送る", () => {
       level: "error",
       environment: "test",
       server_name: "api",
-      tags: { requestId: "req-12345678", tenantId: "tenant-a", code: "internal", service: "api" },
+      tags: {
+        requestId: "req-12345678",
+        tenantId: "tenant-a",
+        code: "internal",
+        service: "api",
+        route: "POST /api/projects/:projectId/tasks",
+      },
+      // users の ID だけ(メールアドレス・IP は送らない)
+      user: { id: "user-1" },
       exception: { values: [{ type: "TypeError" }] },
     });
-    // 自動の仕組みは切ってある(リクエスト・パンくず・利用者)
+    expect(Object.keys(event.user as object)).toEqual(["id"]);
+    // このリクエストのログを開くリンク
+    expect(JSON.stringify(event.contexts)).toContain("logs-insights");
+    // 自動の仕組みは切ってある(リクエスト・パンくず)
     expect(event.request).toBeUndefined();
     expect(event.breadcrumbs ?? []).toEqual([]);
-    expect(event.user).toBeUndefined();
   });
 
   it("同じ失敗が大量に出ても、1分に送る数を絞る", async () => {

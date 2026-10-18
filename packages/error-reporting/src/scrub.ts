@@ -39,6 +39,7 @@ export function scrubMessage(message: string, maxLength = 500): string {
 }
 
 /** ログの1行のうち、Sentry に送ってよい項目(これ以外は送らない)。 */
+// 足すときは、値(利用者が入れた物・個人の情報)にならない物だけ。ID・決まった文字列・道すじの形まで。
 export type ReportLine = {
   level: "error" | "fatal";
   /** ログの文(コードに書いた固定の文。値は入らない決まり) */
@@ -46,9 +47,13 @@ export type ReportLine = {
   service: string | undefined;
   requestId: string | undefined;
   tenantId: string | undefined;
+  /** users の ID(メールアドレスではない)。Sentry が「何人が困ったか」を数える */
+  userId: string | undefined;
   traceId: string | undefined;
   /** API の失敗の種類(internal・service_unavailable など) */
   code: string | undefined;
+  /** どの API か(例 "POST /api/projects/:projectId/tasks"。ID を入れる前の形なので値は入らない) */
+  route: string | undefined;
   err:
     | { type: string; message: string; stack: string | undefined; code: string | undefined }
     | undefined;
@@ -69,8 +74,10 @@ export function pickReportLine(line: Record<string, unknown>): ReportLine | null
     service: str(line.service, 40),
     requestId: str(line.requestId, 64),
     tenantId: str(line.tenantId, 64),
+    userId: str(line.userId, 64),
     traceId: str(line.traceId, 64),
     code: str(line.code, 64),
+    route: str(line.route, 200),
     err: rawErr
       ? {
           type: str(rawErr.type, 100) ?? "Error",

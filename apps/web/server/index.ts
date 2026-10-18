@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { createErrorReporter } from "@app/error-reporting";
+import { createErrorReporter, logsLinkFrom } from "@app/error-reporting";
 import { serve } from "@hono/node-server";
 import { pino } from "pino";
 import ssr from "#ssr";
@@ -11,6 +11,7 @@ import { createWebApp } from "./app.ts";
 //   API_INTERNAL_URL … SSR から API を読む先(ECS では Service Connect の http://api:3000)
 //   LOG_LEVEL / SHUTDOWN_TIMEOUT_MS … API と同じ
 //   SENTRY_DSN / SENTRY_RELEASE / APP_ENV … 失敗を Sentry に送る(無ければ送らない)。ブラウザにも同じ DSN を渡す
+//   LOGS_INSIGHTS_REGION / LOGS_INSIGHTS_GROUPS … Sentry の1件にログを開くリンクを付ける
 
 const port = Number(process.env.PORT ?? 3001);
 const shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 25_000);
@@ -23,6 +24,7 @@ const reporter = createErrorReporter({
   environment: process.env.APP_ENV ?? "local",
   service: "web",
   release: process.env.SENTRY_RELEASE,
+  logsLink: logsLinkFrom(process.env.LOGS_INSIGHTS_REGION, process.env.LOGS_INSIGHTS_GROUPS),
 });
 // SSR の中(src/start.ts)の失敗も、同じ入口から送る
 setReportError(reporter?.report);

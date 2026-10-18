@@ -116,3 +116,26 @@ Aurora の CPU が高い。Performance Insights の「上位の SQL」から。�
 
 - GuardDuty の見つけ物(漏れた鍵の利用・不審な通信)なら **事故として扱う**: 鍵を止める → 何が触られたかを CloudTrail で見る。他社のデータに触れた疑いがあれば [tenant-data-leak.md](tenant-data-leak.md)。
 - 設定の点検(公開のバケット・暗号化していないもの)なら、Terraform で直して apply。わざとそうしているなら、Security Hub で「抑制」にして理由を書く。
+
+## uptime
+
+**{web,api}-uptime(外形監視)**
+
+外(東京・シンガポール・オレゴン)から開けない。**中のアラームが鳴っていないなら、AWS の中は元気で、手前が壊れている**。
+
+| 一緒に鳴っている | よくある原因 | どうするか |
+|---|---|---|
+| [running-tasks](#running-tasks)・[elb-5xx](#elb-5xx) | 中が落ちている | そちらを先に |
+| 何も鳴っていない | DNS(Route 53 のレコード・ドメインの更新切れ)・証明書・WAF の誤ブロック・ALB のセキュリティグループ | `dig <ドメイン>`・`curl -v https://<ドメイン>/readyz` を手元から。WAF のコンソールで、止めた記録(Sampled requests)を見る |
+| `api` だけ | ALB の `/api/*` の振り分け・API のサービスだけ止まっている | ALB のリスナーのルール・API のサービスのイベント |
+
+- アラームと Route 53 の数字はバージニア(us-east-1)にある(Route 53 の決まり)。CloudWatch のコンソールでリージョンを切り替えて見る。
+- 地点ごとの結果: Route 53 のコンソール → ヘルスチェック → 「Health checkers」。
+
+## cert-expiry
+
+証明書(ACM)の期限まで30日を切った。ACM は期限の60日前から DNS で確認して自動で更新するので、**ここまで来たら更新が失敗している**。
+
+- ACM のコンソールで証明書の「更新の状態」を見る。多いのは、確認用の CNAME レコード(Terraform の `cert_validation`)が消えた・ドメインのネームサーバーが変わった。
+- `terraform plan` で `aws_route53_record.cert_validation` を作り直す差分が出れば apply。
+

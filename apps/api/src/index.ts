@@ -15,6 +15,7 @@ const reporter = createErrorReporter({
   environment: config.appEnv,
   service: "api",
   release: config.sentry.release,
+  logsLink: config.sentry.logsLink,
 });
 const logger = createLogger({ level: config.logLevel, reporter });
 const { db, pool } = createDb(config.databaseUrl, {

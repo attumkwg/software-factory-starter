@@ -20,7 +20,9 @@
 
 ## 決めたこと
 
-**B**。`packages/error-reporting` が pino の出口を1つ増やし、error 以上の行から決めた項目(種類・値を伏せた文・スタック・requestId・tenantId・traceId・code)だけを拾って送る。
+**B**。`packages/error-reporting` が pino の出口を1つ増やし、error 以上の行から決めた項目(種類・値を伏せた文・スタック・requestId・tenantId・traceId・code・どの API か・users の ID)だけを拾って送る。
+
+- Sentry の画面だけで原因まで分からなくてよい。そのかわり **Sentry の1件に、そのリクエストのログ(Logs Insights)を開くリンクを付ける**。調べ方は runbooks/sentry.md。
 
 - Sentry の自動の仕組みは全部切る(`dataCollection` をすべて false・既定の計装を使わない)。
 - 失敗の文からは、メールアドレス・`key=value` の値・引用符の中・長い数字・URL の `?` 以降を伏せる。
@@ -31,5 +33,5 @@
 ## 結果として起きること
 
 - 良くなること: 失敗を残す書き方は1つ(`logger.error({ err }, "…")`)のまま。Sentry に何が行くかは `scrub.ts` を読めば分かり、テストが確かめる。SDK を上げても送る中身は増えない。
-- 我慢すること: Sentry の画面で「どの URL・どの本文で」は見えない。requestId で Logs Insights を引く。トレース(どこで時間がかかったか)も送らない(OpenTelemetry は PMF 後)。
+- 我慢すること: Sentry の画面で「どの本文で」は見えない。リンクから Logs Insights を開く(AWS のコンソールに入れる人だけが見られる)。トレース(どこで時間がかかったか)も送らない(OpenTelemetry は PMF 後)。
 - 見直す合図: 「requestId からログを引く」手間が週に何度も出るようになったら、送る項目を足す(足すときは scrub.ts とテストを一緒に)。Sentry の無料の枠を超えるようになったら、上限か送る level を見直す。

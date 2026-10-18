@@ -6,7 +6,12 @@ locals {
   env  = "stg"
   name = "${var.project}-${local.env}"
   # 失敗を Sentry に送る(docs/guides/monitoring.md)。DSN が無ければ送らない
-  sentry_environment = var.sentry_dsn == null ? {} : { SENTRY_DSN = var.sentry_dsn }
+  # Sentry の1件から、そのリクエストのログを開くリンクも付ける(API と画面のサーバーのロググループ)
+  sentry_environment = var.sentry_dsn == null ? {} : {
+    SENTRY_DSN           = var.sentry_dsn
+    LOGS_INSIGHTS_REGION = var.region
+    LOGS_INSIGHTS_GROUPS = "/ecs/${local.name},/ecs/${local.name}-web"
+  }
 }
 
 module "network" {
@@ -261,6 +266,7 @@ module "alerts" {
   slack_channel_id   = var.slack_channel_id
   email_addresses    = var.alert_emails
   monthly_budget_usd = var.monthly_budget_usd
+  extra_topic_arns   = [module.uptime.topic_arn]
 }
 
 module "monitoring" {
@@ -280,4 +286,17 @@ module "monitoring" {
     web = module.web.target_group_arn_suffixes
   }
   db_cluster_identifier = module.aurora.cluster_identifier
+  certificate_arn       = aws_acm_certificate_validation.app.certificate_arn
+}
+
+# 外形監視(外から開けるか)。Route 53 の決まりで、アラームはバージニアに置く
+module "uptime" {
+  source          = "../../modules/uptime"
+  name            = local.name
+  domain          = var.app_domain
+  email_addresses = var.alert_emails
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
 }

@@ -1,3 +1,4 @@
+import { logsLinkFrom } from "@app/error-reporting";
 import { z } from "zod";
 
 // 環境の名前。開発用ログインを使ってよいのは local / test / preview だけ(本物の利用者がいない所)。
@@ -41,6 +42,10 @@ const EnvSchema = z
     SENTRY_DSN: z.url().optional(),
     // どの版の失敗か(Sentry で「この版から増えた」が分かる)。deploy.yml がイメージの digest を入れる
     SENTRY_RELEASE: z.string().max(200).optional(),
+    // Sentry の1件に「このリクエストのログを開く」リンクを付ける(Terraform が入れる)
+    LOGS_INSIGHTS_REGION: z.string().optional(),
+    // 探すロググループ(カンマ区切り。API と画面のサーバー)
+    LOGS_INSIGHTS_GROUPS: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.AUTH_MODE === "dev" && !DEV_LOGIN_ALLOWED.has(env.APP_ENV)) {
@@ -142,6 +147,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     mail: { smtpUrl: e.MAIL_SMTP_URL ?? null, from: e.MAIL_FROM },
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
-    sentry: { dsn: e.SENTRY_DSN, release: e.SENTRY_RELEASE },
+    sentry: {
+      dsn: e.SENTRY_DSN,
+      release: e.SENTRY_RELEASE,
+      logsLink: logsLinkFrom(e.LOGS_INSIGHTS_REGION, e.LOGS_INSIGHTS_GROUPS),
+    },
   };
 }

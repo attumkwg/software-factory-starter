@@ -31,3 +31,9 @@ variable "monthly_budget_usd" {
   type        = number
   default     = null
 }
+
+variable "extra_topic_arns" {
+  description = "Slack に一緒に流す、ほかのリージョンの SNS(外形監視はバージニアにしか置けない。modules/uptime)"
+  type        = list(string)
+  default     = []
+}

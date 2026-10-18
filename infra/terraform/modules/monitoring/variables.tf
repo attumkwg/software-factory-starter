@@ -53,3 +53,8 @@ variable "response_time_p95_seconds" {
   type        = number
   default     = 2
 }
+
+variable "certificate_arn" {
+  description = "画面と API の証明書(ACM)。期限が近づいたら鳴らす"
+  type        = string
+}
