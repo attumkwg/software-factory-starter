@@ -1,5 +1,5 @@
 # PR ごとのプレビュー環境(工程⑤の後半: 本物に近い環境で確かめる)。
-#   開く・push → イメージを ECR へ → Terraform で ECS サービス+共有 ALB のルール
+#   開く・push → イメージ(API と画面)を ECR へ → Terraform で ECS サービス+共有 ALB のルール(/api/* と それ以外)
 #              → Playwright の E2E と ZAP のベースライン → PR に URL と結果をコメント
 #   閉じる     → destroy
 #
@@ -65,10 +65,11 @@ jobs:
           REPO: ${{ github.repository }}
           ROLE: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
           ECR: ${{ vars.PREVIEW_ECR_REPOSITORY }}
+          WEB_ECR: ${{ vars.PREVIEW_WEB_ECR_REPOSITORY }}
           DOMAIN: ${{ vars.PREVIEW_DOMAIN }}
           BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
-          if [ -z "$ROLE" ] || [ -z "$ECR" ] || [ -z "$DOMAIN" ] || [ -z "$BUCKET" ]; then
+          if [ -z "$ROLE" ] || [ -z "$ECR" ] || [ -z "$WEB_ECR" ] || [ -z "$DOMAIN" ] || [ -z "$BUCKET" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::notice::プレビュー用の AWS の変数が無いので飛ばしました(docs/getting-started.md の ④)"
             exit 0
@@ -105,7 +106,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: イメージを作って ECR へ
+      - name: API のイメージを作って ECR へ
         id: image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -113,8 +114,18 @@ jobs:
           file: apps/api/Dockerfile
           push: true
           tags: ${{ vars.PREVIEW_ECR_REPOSITORY }}:pr-${{ env.PR_NUMBER }}-${{ needs.gate.outputs.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: 画面(SSR)のイメージを作って ECR へ
+        id: web_image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ vars.PREVIEW_WEB_ECR_REPOSITORY }}:pr-${{ env.PR_NUMBER }}-${{ needs.gate.outputs.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: ${{ env.TF_VERSION }}
@@ -132,7 +143,8 @@ jobs:
           terraform apply -input=false -auto-approve \
             -var "pr_number=${PR_NUMBER}" \
             -var "domain=${{ vars.PREVIEW_DOMAIN }}" \
-            -var "image=${{ vars.PREVIEW_ECR_REPOSITORY }}@${{ steps.image.outputs.digest }}"
+            -var "image=${{ vars.PREVIEW_ECR_REPOSITORY }}@${{ steps.image.outputs.digest }}" \
+            -var "web_image=${{ vars.PREVIEW_WEB_ECR_REPOSITORY }}@${{ steps.web_image.outputs.digest }}"
           echo "url=$(terraform output -raw url)" >> "$GITHUB_OUTPUT"
       - name: 起動を待つ
         run: |
@@ -259,5 +271,5 @@ jobs:
           terraform destroy -input=false -auto-approve \
             -var "pr_number=${PR_NUMBER}" \
             -var "domain=${{ vars.PREVIEW_DOMAIN }}" \
-            -var "image=unused"
+            -var "image=unused" -var "web_image=unused"
           aws s3 rm "s3://${{ vars.TF_STATE_BUCKET }}/preview/pr-${PR_NUMBER}.tfstate"

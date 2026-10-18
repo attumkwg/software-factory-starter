@@ -38,3 +38,25 @@ output "alb_arn" {
   description = "WAF を付ける先"
   value       = aws_lb.this.arn
 }
+
+# ── 画面のサービス(modules/web-service)と共有するもの ──
+
+output "cluster_arn" {
+  value = aws_ecs_cluster.this.arn
+}
+
+output "https_listener_arn" {
+  value = aws_lb_listener.https.arn
+}
+
+output "alb_security_group_id" {
+  value = aws_security_group.alb.id
+}
+
+output "alb_arn_suffix" {
+  value = aws_lb.this.arn_suffix
+}
+
+output "service_connect_namespace_arn" {
+  value = aws_service_discovery_http_namespace.this.arn
+}

@@ -14,4 +14,10 @@ test("他社のプロジェクトは一覧に出ず、ID を直接指定して�
     acmeProjectId,
   );
   expect(status).toBe(404);
+
+  // 画面の URL で開いても「見つかりません」(SSR が Cookie を API に渡し、API が他社のものを返さない)
+  const res = await page.goto(`/projects/${acmeProjectId}`);
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
+  await expect(page.getByText("Acme の立ち上げ")).toHaveCount(0);
 });

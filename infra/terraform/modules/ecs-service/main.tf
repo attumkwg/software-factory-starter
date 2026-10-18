@@ -1,4 +1,8 @@
-# ECS Fargate のサービス+公開 ALB+blue/green(ECS の組み込み。2025-07〜)。
+# API の ECS Fargate のサービス+公開 ALB+blue/green(ECS の組み込み。2025-07〜)。
+# ALB とクラスターは画面のサービス(modules/web-service)と共有する:
+#   /api/*  → このモジュールの API(優先度 10)
+#   それ以外 → web-service の画面(SSR。優先度 20)
+# 画面の SSR は API を Service Connect(http://api:3000)で呼ぶ。名前空間もここで作る。
 #
 # デプロイの流れ(deploy.yml):
 #   新しいタスク定義を登録 → サービスを更新 → ECS が green を立てて ALB を切り替え
@@ -24,6 +28,15 @@ resource "aws_ecs_cluster" "this" {
     name  = "containerInsights"
     value = "enhanced"
   }
+  service_connect_defaults {
+    namespace = aws_service_discovery_http_namespace.this.arn
+  }
+}
+
+# サービスどうしが名前で呼び合う場所(画面の SSR → http://api:3000)。VPC の外からは見えない
+resource "aws_service_discovery_http_namespace" "this" {
+  name        = var.name
+  description = "${var.name}: web (SSR) -> api"
 }
 
 resource "aws_kms_key" "logs" {
@@ -259,7 +272,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# blue/green で ECS が重みを書き換える「本番のルール」
+# blue/green で ECS が重みを書き換える「本番のルール」。API は /api/* だけ(それ以外は画面のサービス)
 resource "aws_lb_listener_rule" "production" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 10
@@ -278,7 +291,7 @@ resource "aws_lb_listener_rule" "production" {
   }
   condition {
     path_pattern {
-      values = ["/*"]
+      values = ["/api/*"]
     }
   }
   lifecycle {
@@ -291,18 +304,35 @@ resource "aws_lb_listener_rule" "production" {
 resource "aws_cloudwatch_metric_alarm" "target_5xx" {
   alarm_name          = "${var.name}-target-5xx"
   alarm_description   = "API の 5xx が増えた。デプロイ中なら自動で戻る"
-  namespace           = "AWS/ApplicationELB"
-  metric_name         = "HTTPCode_Target_5XX_Count"
-  statistic           = "Sum"
-  period              = 60
   evaluation_periods  = 2
   threshold           = var.alarm_5xx_threshold
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  dimensions = {
-    LoadBalancer = aws_lb.this.arn_suffix
+  alarm_actions       = var.alarm_topic_arns
+
+  # ALB は画面と共有なので、API のターゲットグループ(blue と green)の分だけを足す
+  metric_query {
+    id          = "total"
+    expression  = "FILL(blue, 0) + FILL(green, 0)"
+    label       = "API 5xx"
+    return_data = true
   }
-  alarm_actions = var.alarm_topic_arns
+  dynamic "metric_query" {
+    for_each = aws_lb_target_group.this
+    content {
+      id = metric_query.key
+      metric {
+        namespace   = "AWS/ApplicationELB"
+        metric_name = "HTTPCode_Target_5XX_Count"
+        stat        = "Sum"
+        period      = 60
+        dimensions = {
+          LoadBalancer = aws_lb.this.arn_suffix
+          TargetGroup  = metric_query.value.arn_suffix
+        }
+      }
+    }
+  }
 }
 
 # ── タスク定義とサービス ─────────────────────────────────────────────────────────
@@ -324,9 +354,10 @@ resource "aws_ecs_task_definition" "app" {
     image                  = var.image
     essential              = true
     readonlyRootFilesystem = true
-    portMappings           = [{ containerPort = var.container_port, protocol = "tcp" }]
-    environment            = [for k, v in local.base_environment : { name = k, value = v }]
-    secrets                = [for k, arn in var.secrets : { name = k, valueFrom = arn }]
+    # name は Service Connect が使う(画面の SSR から http://api:3000 で届く)
+    portMappings = [{ name = "http", containerPort = var.container_port, protocol = "tcp", appProtocol = "http" }]
+    environment  = [for k, v in local.base_environment : { name = k, value = v }]
+    secrets      = [for k, arn in var.secrets : { name = k, valueFrom = arn }]
     # SIGTERM を受けてから止まるまでの猶予(アプリは SHUTDOWN_TIMEOUT_MS=25秒で打ち切る)
     stopTimeout = 30
     healthCheck = {
@@ -408,6 +439,20 @@ resource "aws_ecs_service" "this" {
     alarm_names = [aws_cloudwatch_metric_alarm.target_5xx.alarm_name]
     enable      = true
     rollback    = true
+  }
+
+  # 画面の SSR から http://api:3000 で呼べるようにする
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_http_namespace.this.arn
+    service {
+      port_name      = "http"
+      discovery_name = "api"
+      client_alias {
+        port     = var.container_port
+        dns_name = "api"
+      }
+    }
   }
 
   load_balancer {

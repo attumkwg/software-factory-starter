@@ -35,8 +35,11 @@ jobs:
       - name: 手元と同じ形で起動
         run: |
           docker compose up --build -d
+          # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
           for _ in $(seq 1 60); do
-            curl -fsS http://localhost:3000/readyz && exit 0
+            if curl -fsS http://localhost:8080/readyz && [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
+              exit 0
+            fi
             sleep 2
           done
           docker compose logs

@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # リポジトリのルートを文脈にして作る: docker build -f apps/api/Dockerfile .
-# 1つのイメージで API・移行(cli.js migrate)・画面の配信をまかなう。本番もプレビューも同じイメージ。
+# 1つのイメージで API と移行(cli.js migrate)をまかなう。本番もプレビューも同じイメージ。
+# 画面は別のイメージ(apps/web/Dockerfile)。
 
 FROM node:24-trixie-slim AS build
 WORKDIR /repo
@@ -10,13 +11,12 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 COPY packages/ui/package.json packages/ui/
-RUN pnpm install --frozen-lockfile
+# API と、API が使うパッケージの依存だけを入れる
+RUN pnpm install --frozen-lockfile --filter "@app/api..."
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
-COPY packages/ui packages/ui
 COPY apps/api apps/api
-COPY apps/web apps/web
-RUN pnpm --filter @app/api build && pnpm --filter @app/web build
+RUN pnpm --filter @app/api build
 
 # 実行用: シェルもパッケージ管理も無い distroless(攻撃面と Trivy の指摘を減らす)。root では動かさない。
 FROM gcr.io/distroless/nodejs24-debian13:nonroot
@@ -32,7 +32,6 @@ COPY --from=build /repo/apps/api/dist ./dist
 COPY --from=build /repo/apps/api/drizzle ./drizzle
 # 使い捨ての DB(プレビュー)で接続ユーザーを作る SQL(cli.js init-roles)
 COPY --from=build /repo/apps/api/db/init ./db/init
-COPY --from=build /repo/apps/web/dist ./web
 USER nonroot
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \

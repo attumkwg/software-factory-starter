@@ -1,6 +1,11 @@
 output "ecr_repository_url" {
-  description = "GitHub の変数 ECR_REPOSITORY_URL に"
-  value       = aws_ecr_repository.api.repository_url
+  description = "GitHub の変数 ECR_REPOSITORY_URL に(API)"
+  value       = aws_ecr_repository.this["api"].repository_url
+}
+
+output "web_ecr_repository_url" {
+  description = "GitHub の変数 WEB_ECR_REPOSITORY_URL に(画面)"
+  value       = aws_ecr_repository.this["web"].repository_url
 }
 
 output "ecs_cluster" {
@@ -9,6 +14,10 @@ output "ecs_cluster" {
 
 output "ecs_service" {
   value = module.app.service_name
+}
+
+output "ecs_web_service" {
+  value = module.web.service_name
 }
 
 output "migrate_task_definition" {

@@ -1,4 +1,3 @@
-import { serveStatic } from "@hono/node-server/serve-static";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
 import { csrf } from "hono/csrf";
@@ -84,14 +83,7 @@ export function createApp(deps: AppDeps) {
     });
   }
 
-  // ビルド済みの画面を同じオリジンで配る(Cookie を SameSite=Lax のまま使えるように)
-  if (config.webDistDir) {
-    const root = config.webDistDir;
-    const spaFallback = serveStatic({ root, path: "index.html" });
-    app.use("/*", serveStatic({ root }));
-    // 画面の中のパスは index.html を返す。/api/ の無いパスは画面ではなく 404
-    app.get("*", (c, next) => (c.req.path.startsWith("/api/") ? next() : spaFallback(c, next)));
-  }
+  // 画面は配らない。画面は別のサービス(apps/web の SSR)で、ALB が /api/* だけをここへ振り分ける。
 
   app.notFound((c) =>
     c.json(

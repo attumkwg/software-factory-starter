@@ -19,6 +19,7 @@ body {
 /* キーボードで動かす人のための、はっきりした枠 */
 .ui-focus-ring[data-focus-visible],
 .ui-button[data-focus-visible],
+.ui-link[data-focus-visible],
 .ui-input[data-focused],
 .ui-select__button[data-focus-visible] {
   outline: 2px solid var(--color-focus);
@@ -73,6 +74,21 @@ body {
 }
 .ui-button--sm {
   padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+/* ── リンク(ページの移動) ── */
+.ui-link {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.ui-link[data-hovered] {
+  text-decoration: underline;
+}
+.ui-link--back {
   font-size: var(--font-size-sm);
 }
 

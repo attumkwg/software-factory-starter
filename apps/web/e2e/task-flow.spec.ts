@@ -7,9 +7,10 @@ test("メンバーはプロジェクトを作り、タスクを足して完了�
 
   await page.getByLabel("新しいプロジェクトの名前").fill(projectName);
   await page.getByRole("button", { name: "作る" }).click();
-  await page.getByRole("button", { name: projectName }).click();
+  await page.getByRole("link", { name: projectName }).click();
 
   await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
+  await expect(page).toHaveURL(/\/projects\/[\da-f-]+$/);
   await expectAccessible(page);
   await page.getByLabel("新しいタスク").fill("見積もりを出す");
   await page.getByRole("button", { name: "足す" }).click();
@@ -20,8 +21,8 @@ test("メンバーはプロジェクトを作り、タスクを足して完了�
   await page.getByText("見積もりを出す", { exact: true }).click();
   await expect(task).toBeChecked();
 
-  // 読み直しても残っている(DB に保存されている)
+  // 読み直しても同じ画面で、残っている(URL で画面が決まり、SSR が DB から読む)
   await page.reload();
-  await page.getByRole("button", { name: projectName }).click();
+  await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "見積もりを出す" })).toBeChecked();
 });

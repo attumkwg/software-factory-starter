@@ -1,6 +1,6 @@
 // OpenAPI から全 API に「変な入力」を自動で送る(Schemathesis)。ロールごとにログインして叩く。
 //   pnpm security:fuzz
-// 相手は手元の docker compose(http://localhost:3000)だけ。種データが書き換わる・消えるので、
+// 相手は手元の docker compose(ログインは ALB の代わりの http://localhost:8080、叩くのは中の api:3000)だけ。種データが書き換わる・消えるので、
 // 終わったら docker compose down -v && docker compose up -d で作り直す。
 //
 // 見つけるもの: 500(サーバーの失敗)・OpenAPI と違う応答・受け付けてはいけない入力を受け付けた、など。
@@ -11,7 +11,7 @@ import { mkdirSync } from "node:fs";
 
 const SCHEMATHESIS_IMAGE = "schemathesis/schemathesis:v4.30.1";
 const NETWORK = "software-factory-starter_default";
-const HOST_URL = "http://localhost:3000";
+const HOST_URL = "http://localhost:8080";
 const IN_NETWORK_URL = "http://api:3000";
 const MAX_EXAMPLES = process.env.FUZZ_MAX_EXAMPLES ?? "25";
 

@@ -20,6 +20,8 @@
 # ── 危険度「高」: インフラ ──
 /infra/                             @attumkwg
 /apps/api/Dockerfile                @attumkwg
+/apps/web/Dockerfile                @attumkwg
+/docker/                            @attumkwg
 
 # ── 危険度「高」: CI・ハーネス・このファイル(AI に変えさせない所) ──
 /.github/                           @attumkwg

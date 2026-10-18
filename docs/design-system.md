@@ -9,6 +9,7 @@
 | 部品 | 使う所 | 気をつけること |
 |---|---|---|
 | `Button` | 押す操作 | `variant`: primary(1画面に1つ)/ secondary / danger(戻せない)/ ghost(文字だけ) |
+| `Link` | ページの移動 | 本物の `<a href>`(新しいタブで開ける・SSR でも辿れる)。保存や削除には使わず `Button` |
 | `TextField` | 1行の入力 | `label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage` |
 | `Select` | 選択肢から1つ | 選択肢は `{ id, label }` の配列 |
 | `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク) |
@@ -19,7 +20,7 @@
 | `Badge` | ロール・状態の札 | 色だけで意味を伝えない(必ず文字) |
 | `Page` / `Stack` / `Inline` / `Card` / `Heading` / `Muted` | 並べる・囲む・見出し | 間は `gap`(余白のトークン)。見出しは文書の構造に合わせて `level` |
 
-使い方の例は `apps/web/src/pages/` を見る。
+使い方の例は `apps/web/src/pages/` を見る。`Link` は `apps/web/src/routes/__root.tsx` の `LinkRouterProvider` でルーターにつないである。
 
 ## 使い方の決まり
 

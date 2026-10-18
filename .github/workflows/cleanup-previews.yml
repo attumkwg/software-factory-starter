@@ -70,7 +70,7 @@ jobs:
               -backend-config="use_lockfile=true" \
               -backend-config="encrypt=true"
             terraform -chdir="$TF_DIR" destroy -input=false -auto-approve \
-              -var "pr_number=$pr" -var "domain=$DOMAIN" -var "image=unused"
+              -var "pr_number=$pr" -var "domain=$DOMAIN" -var "image=unused" -var "web_image=unused"
             aws s3 rm "s3://$BUCKET/preview/pr-$pr.tfstate"
             echo "::endgroup::"
           done

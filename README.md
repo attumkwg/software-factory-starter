@@ -5,7 +5,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 題材は小さな **マルチテナントの TODO アプリ**(組織 → プロジェクト → タスク。ロールは admin / member / viewer)。
 中身より「ライン」(検査・権限の表・テナント分離・プレビュー環境・危険度で分けたレビュー・AI のハーネス)を見るための物です。
 
-- ✅ 手元で動く: `docker compose up --build` で API+画面+DB、`pnpm test` で単体、`pnpm test:integration` で本物の Postgres を使った結合テスト、`pnpm test:e2e` で画面の E2E。
+- ✅ 手元で動く: `docker compose up --build` で API+画面(SSR)+DB+ALB の代わり、`pnpm test` で単体、`pnpm test:integration` で本物の Postgres を使った結合テスト、`pnpm test:e2e` で画面の E2E。
 - ✅ CI は **AWS も API キーも無しで緑**。AWS・Claude を使うジョブは、変数が無ければ失敗せずに飛ぶ。
 - ⛔ AWS へのデプロイはしていない。Terraform は `fmt` と `validate` まで(apply は下の「本人がやる設定」のあと)。
 
@@ -31,16 +31,22 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  │  ├─ db/init/               手元・テスト用の接続ユーザーの作成
 │  │  ├─ test/unit/             DB 無しのテスト(権限の表の網羅 ① を含む)
 │  │  ├─ test/integration/      Testcontainers の Postgres(RLS・2社・権限の表 ②)
-│  │  └─ Dockerfile             distroless・root で動かさない・API が画面も配る
-│  └─ web/                      React+Vite(ログイン → プロジェクト → タスク)と Playwright の E2E
+│  │  └─ Dockerfile             distroless・root で動かさない(API と移行だけ。画面は配らない)
+│  └─ web/                      TanStack Start の SSR(ログイン → プロジェクト → タスク)と Playwright の E2E
+│     ├─ src/routes/            画面と URL(ファイルの置き場所が URL になる)。loader が SSR でデータを読む
+│     ├─ src/pages/             画面の中身(@app/ui の部品だけ)
+│     ├─ src/api.ts             API の呼び出し(ブラウザからは /api、SSR からは API_INTERNAL_URL)
+│     ├─ server/                本番の Node サーバー(静的ファイル・/readyz・SSR への受け渡し)
+│     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
+├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
 ├─ docs/
 │  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
-│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS)
+│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR と別サービス)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない)
 ├─ infra/terraform/
-│  ├─ modules/                  network・ecs-service(blue/green)・aurora・preview-env・github-oidc
+│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・aurora・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
 ├─ .github/
 │  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
@@ -52,7 +58,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 ├─ .semgrep/                    自社専用の検査ルールとそのテスト
 ├─ .devcontainer/               人も AI も同じ開発環境
 ├─ CLAUDE.md                    全体のルール(apps/api・apps/web にも短いものがある)
-├─ docker-compose.yml           手元で丸ごと動かす
+├─ docker-compose.yml           手元で丸ごと動かす(docker/alb.Caddyfile が ALB の代わり)
 └─ renovate.json                依存の更新(危険度のラベルつき)
 ```
 
@@ -78,7 +84,7 @@ DB を使う結合テスト(Docker が要る。Testcontainers が Postgres を�
 pnpm test:integration
 ```
 
-丸ごと起動(DB → 移行 → 種データ → API+画面)。http://localhost:3000 を開き、`admin@acme.test` などでログイン:
+丸ごと起動(DB → 移行 → 種データ → API → 画面の SSR → ALB の代わり)。http://localhost:8080 を開き、`admin@acme.test` などでログイン:
 
 ```bash
 docker compose up --build
@@ -90,7 +96,7 @@ docker compose up --build
 pnpm test:e2e
 ```
 
-開発するとき(API は 3000、画面は 5173 で自動で読み直す):
+開発するとき(API は 3000、画面は 5173。画面は SSR のまま自動で読み直し、/api は API へ中継する):
 
 ```bash
 docker compose up -d db
@@ -257,9 +263,9 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `AWS_STG_PLAN_ROLE_ARN` / `AWS_PROD_PLAN_ROLE_ARN` | `<project>-<env>-plan` | terraform(plan) |
 | `TF_VARS_STG` / `TF_VARS_PROD` | `*.auto.tfvars` の中身(秘密は入れない) | terraform(plan) |
 | `AWS_PREVIEW_ROLE_ARN` | `preview-github` | preview・cleanup |
-| `PREVIEW_ECR_REPOSITORY` / `PREVIEW_DOMAIN` | preview/base の出力 / `example.com` | preview |
+| `PREVIEW_ECR_REPOSITORY` / `PREVIEW_WEB_ECR_REPOSITORY` / `PREVIEW_DOMAIN` | preview/base の出力(API / 画面)/ `example.com` | preview |
 | `AWS_STG_DEPLOY_ROLE_ARN` / `AWS_PROD_DEPLOY_ROLE_ARN` | `<project>-<env>-deploy` | deploy |
-| `ECR_REPOSITORY_URL` | stg の出力 | deploy |
+| `ECR_REPOSITORY_URL` / `WEB_ECR_REPOSITORY_URL` | stg の出力(API / 画面) | deploy |
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
 
@@ -280,6 +286,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
 - **WAF**: ALB / CloudFront の前に。
+- **画面の CSP(Content-Security-Policy)**: SSR が埋め込むスクリプトに nonce を付ける形が要る。いまは他の守りのヘッダー(`X-Frame-Options`・`nosniff` など)だけ。
 
 ## ⚠️ この雛形の注意
 

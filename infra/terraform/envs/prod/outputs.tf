@@ -6,6 +6,10 @@ output "ecs_service" {
   value = module.app.service_name
 }
 
+output "ecs_web_service" {
+  value = module.web.service_name
+}
+
 output "migrate_task_definition" {
   value = module.app.migrate_task_definition_family
 }

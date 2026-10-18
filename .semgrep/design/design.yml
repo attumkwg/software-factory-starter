@@ -24,7 +24,7 @@ rules:
   - id: no-css-file-in-web
     message: >-
       画面(apps/web)に自前の CSS を持たない。見た目は packages/ui(styles.css と tokens.css)に集める。
-      読み込んでよいのは main.tsx の "@app/ui/styles.css" だけ。
+      読み込んでよいのは src/routes/__root.tsx の "@app/ui/styles.css" だけ。
     severity: ERROR
     languages: [generic]
     paths:

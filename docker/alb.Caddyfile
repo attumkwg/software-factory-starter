@@ -1,0 +1,16 @@
+# 手元(docker compose)で ALB の代わりをする。本番の ALB のルールと同じ振り分け:
+#   /api/* → API のサービス / それ以外 → 画面のサービス(SSR)
+# 同じオリジン(http://localhost:8080)になるので、Cookie は本番と同じく SameSite=Lax のまま使える。
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+	handle {
+		reverse_proxy web:3001
+	}
+}

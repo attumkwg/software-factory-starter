@@ -68,8 +68,10 @@ resource "aws_cloudwatch_log_group" "preview" {
   kms_key_id        = aws_kms_key.preview.arn
 }
 
-resource "aws_ecr_repository" "api" {
-  name                 = "${var.project}/api-preview"
+# API と画面(SSR)の2つ
+resource "aws_ecr_repository" "this" {
+  for_each             = toset(["api", "web"])
+  name                 = "${var.project}/${each.key}-preview"
   image_tag_mutability = "IMMUTABLE"
   force_delete         = true
   image_scanning_configuration {
@@ -81,8 +83,9 @@ resource "aws_ecr_repository" "api" {
   }
 }
 
-resource "aws_ecr_lifecycle_policy" "api" {
-  repository = aws_ecr_repository.api.name
+resource "aws_ecr_lifecycle_policy" "this" {
+  for_each   = aws_ecr_repository.this
+  repository = each.value.name
   policy = jsonencode({
     rules = [{
       rulePriority = 1
@@ -91,6 +94,21 @@ resource "aws_ecr_lifecycle_policy" "api" {
       action       = { type = "expire" }
     }]
   })
+}
+
+moved {
+  from = aws_ecr_repository.api
+  to   = aws_ecr_repository.this["api"]
+}
+
+moved {
+  from = aws_ecr_lifecycle_policy.api
+  to   = aws_ecr_lifecycle_policy.this["api"]
+}
+
+# PR のタスクの中のポート: API 3000 / 画面(SSR)3001。ALB はホスト名+パスでどちらかへ
+locals {
+  task_ports = toset(["3000", "3001"])
 }
 
 # ── 共有の ALB ───────────────────────────────────────────────────────────────
@@ -113,11 +131,12 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_to_services" {
+  for_each                     = local.task_ports
   security_group_id            = aws_security_group.alb.id
   referenced_security_group_id = aws_security_group.service.id
   ip_protocol                  = "tcp"
-  from_port                    = 3000
-  to_port                      = 3000
+  from_port                    = tonumber(each.value)
+  to_port                      = tonumber(each.value)
   description                  = "To preview tasks"
 }
 
@@ -128,12 +147,23 @@ resource "aws_security_group" "service" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "service_from_alb" {
+  for_each                     = local.task_ports
   security_group_id            = aws_security_group.service.id
   referenced_security_group_id = aws_security_group.alb.id
   ip_protocol                  = "tcp"
-  from_port                    = 3000
-  to_port                      = 3000
+  from_port                    = tonumber(each.value)
+  to_port                      = tonumber(each.value)
   description                  = "From ALB"
+}
+
+moved {
+  from = aws_vpc_security_group_egress_rule.alb_to_services
+  to   = aws_vpc_security_group_egress_rule.alb_to_services["3000"]
+}
+
+moved {
+  from = aws_vpc_security_group_ingress_rule.service_from_alb
+  to   = aws_vpc_security_group_ingress_rule.service_from_alb["3000"]
 }
 
 #trivy:ignore:AVD-AWS-0104 ECR とイメージの取得に NAT 経由で出る

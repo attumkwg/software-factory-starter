@@ -10,7 +10,7 @@ module "github_oidc" {
 
   roles = {
     "${local.name}-deploy" = {
-      description = "deploy.yml (prod, after approval): run migration, update ECS service"
+      description = "deploy.yml (prod, after approval): run migration, update ECS services (api, web)"
       subjects    = ["environment:${local.env}"]
       policy_json = data.aws_iam_policy_document.deploy.json
     }
@@ -35,9 +35,12 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["*"]
   }
   statement {
-    sid       = "PassTaskRoles"
-    actions   = ["iam:PassRole"]
-    resources = [module.app.execution_role_arn, module.app.task_role_arn]
+    sid     = "PassTaskRoles"
+    actions = ["iam:PassRole"]
+    resources = [
+      module.app.execution_role_arn, module.app.task_role_arn,
+      module.web.execution_role_arn, module.web.task_role_arn,
+    ]
   }
 }
 

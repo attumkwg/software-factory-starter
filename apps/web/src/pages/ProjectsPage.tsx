@@ -4,25 +4,25 @@ import {
   ConfirmDialog,
   Heading,
   Inline,
+  Link,
   Stack,
   Table,
   type TableColumn,
   TextField,
   useToast,
 } from "@app/ui";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
+import { formatDate } from "../format.ts";
 import { canDeleteProject, canWrite } from "../permissions.ts";
 
-export function ProjectsPage({ me, onOpen }: { me: Me; onOpen: (p: Project) => void }) {
-  const [projects, setProjects] = useState<Project[]>([]);
+// 一覧のデータは route(routes/_app/index.tsx)の loader が SSR で読む。変えたら invalidate で読み直す。
+export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) {
   const [name, setName] = useState("");
   const toast = useToast();
-
-  const reload = useCallback(async () => setProjects((await api.listProjects()).projects), []);
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const router = useRouter();
+  const reload = () => router.invalidate();
 
   async function create(e: FormEvent) {
     e.preventDefault();
@@ -38,16 +38,12 @@ export function ProjectsPage({ me, onOpen }: { me: Me; onOpen: (p: Project) => v
       id: "name",
       header: "名前",
       isRowHeader: true,
-      cell: (p) => (
-        <Button variant="ghost" onPress={() => onOpen(p)}>
-          {p.name}
-        </Button>
-      ),
+      cell: (p) => <Link href={`/projects/${p.id}`}>{p.name}</Link>,
     },
     {
       id: "createdAt",
       header: "作った日",
-      cell: (p) => new Date(p.createdAt).toLocaleDateString("ja-JP"),
+      cell: (p) => formatDate(p.createdAt),
     },
   ];
   if (canDeleteProject(me.role)) {
