@@ -37,6 +37,10 @@ const EnvSchema = z
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
     // アウトボックスの送り出しを、この API のプロセスで回すか(ADR 0006)。別のサービスに分けたら off に
     OUTBOX_RELAY: z.enum(["on", "off"]).default("on"),
+    // 失敗を Sentry に送る先(docs/guides/monitoring.md)。無ければ送らない
+    SENTRY_DSN: z.url().optional(),
+    // どの版の失敗か(Sentry で「この版から増えた」が分かる)。deploy.yml がイメージの digest を入れる
+    SENTRY_RELEASE: z.string().max(200).optional(),
   })
   .superRefine((env, ctx) => {
     if (env.AUTH_MODE === "dev" && !DEV_LOGIN_ALLOWED.has(env.APP_ENV)) {
@@ -61,6 +65,14 @@ const EnvSchema = z
           message: `${env.APP_ENV} では画面の URL(APP_URL。メールのリンクに使う)が要ります`,
         });
       }
+    }
+    // 手元では偽物の受け口(http)を使ってよい
+    if (env.SENTRY_DSN && !LOCAL_ONLY.has(env.APP_ENV) && !env.SENTRY_DSN.startsWith("https://")) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["SENTRY_DSN"],
+        message: "SENTRY_DSN は https:// にしてください",
+      });
     }
     if (env.AUTH_MODE !== "cognito") return;
     if (!(env.COGNITO_REGION && env.COGNITO_USER_POOL_ID && env.COGNITO_CLIENT_ID)) {
@@ -130,5 +142,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     mail: { smtpUrl: e.MAIL_SMTP_URL ?? null, from: e.MAIL_FROM },
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
+    sentry: { dsn: e.SENTRY_DSN, release: e.SENTRY_RELEASE },
   };
 }

@@ -17,6 +17,7 @@
     "openapi": "tsx scripts/openapi.ts"
   },
   "dependencies": {
+    "@app/error-reporting": "workspace:*",
     "@app/shared": "workspace:*",
     "@hono/node-server": "2.1.4",
     "@hono/zod-openapi": "1.6.3",

@@ -7,3 +7,4 @@ image_pull_account_ids = ["<prod のアカウント ID>"]
 slack_team_id      = "<T で始まるワークスペースの ID>"
 slack_channel_id   = "<C で始まる #alerts-stg の ID>"
 monthly_budget_usd = 250
+sentry_dsn         = "<Sentry の DSN。stg と prod で同じプロジェクトでよい(environment で分かれる)>"

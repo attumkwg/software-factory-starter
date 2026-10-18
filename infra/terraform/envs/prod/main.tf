@@ -5,6 +5,8 @@
 locals {
   env  = "prod"
   name = "${var.project}-${local.env}"
+  # 失敗を Sentry に送る(docs/guides/monitoring.md)。DSN が無ければ送らない
+  sentry_environment = var.sentry_dsn == null ? {} : { SENTRY_DSN = var.sentry_dsn }
 }
 
 module "network" {
@@ -64,7 +66,7 @@ module "app" {
   bake_time_minutes  = 10
   alarm_topic_arns   = [module.alerts.topic_arn]
 
-  environment = {
+  environment = merge({
     APP_ENV              = local.env
     AUTH_MODE            = "cognito"
     COGNITO_REGION       = var.region
@@ -74,7 +76,7 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }
+  }, local.sentry_environment)
   secrets = {
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
@@ -108,9 +110,10 @@ module "web" {
   alb_arn_suffix                = module.app.alb_arn_suffix
   api_security_group_id         = module.app.service_security_group_id
   service_connect_namespace_arn = module.app.service_connect_namespace_arn
-  environment = {
+  # 画面のサーバーとブラウザの失敗も同じ Sentry へ(DSN は秘密ではない。ブラウザに渡る)
+  environment = merge({
     APP_ENV = local.env
-  }
+  }, local.sentry_environment)
 }
 
 resource "aws_acm_certificate" "app" {

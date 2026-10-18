@@ -52,6 +52,15 @@ describe("設定", () => {
     expect(() => loadConfig({ ...base, ...noUrl, APP_ENV })).toThrow(/APP_URL/);
   });
 
+  it("Sentry の送り先は、手元とテスト以外では https だけ・無ければ送らない", () => {
+    const dsn = "http://public@localhost:9999/1";
+    expect(() => loadConfig({ ...base, ...cognito, APP_ENV: "prod", SENTRY_DSN: dsn })).toThrow(
+      /SENTRY_DSN/,
+    );
+    expect(loadConfig({ ...base, APP_ENV: "local", SENTRY_DSN: dsn }).sentry.dsn).toBe(dsn);
+    expect(loadConfig({ ...base, APP_ENV: "local" }).sentry.dsn).toBeUndefined();
+  });
+
   it("手元では、メールの送り先が無ければ送らずに記録だけ", () => {
     const local = loadConfig({ ...base, APP_ENV: "local" });
     expect(local.mail.smtpUrl).toBeNull();

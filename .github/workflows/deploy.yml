@@ -96,6 +96,8 @@ jobs:
           task-definition: task-definition.json
           container-name: api
           image: ${{ steps.image.outputs.image }}
+          # Sentry で「この版から増えた」が分かるように(docs/guides/monitoring.md)
+          environment-variables: SENTRY_RELEASE=${{ github.sha }}
       - name: API を blue/green で出す(アラームが鳴れば自動で戻る)
         uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
         with:
@@ -110,6 +112,8 @@ jobs:
           task-definition: web-task-definition.json
           container-name: web
           image: ${{ steps.image.outputs.web_image }}
+          # Sentry で「この版から増えた」が分かるように(docs/guides/monitoring.md)
+          environment-variables: SENTRY_RELEASE=${{ github.sha }}
       - name: 画面(SSR)を blue/green で出す(アラームが鳴れば自動で戻る)
         uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
         with:
@@ -166,6 +170,8 @@ jobs:
           task-definition: task-definition.json
           container-name: api
           image: ${{ env.IMAGE }}
+          # Sentry で「この版から増えた」が分かるように(docs/guides/monitoring.md)
+          environment-variables: SENTRY_RELEASE=${{ github.sha }}
       - name: API を blue/green で出す(アラームが鳴れば自動で戻る)
         uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
         with:
@@ -180,6 +186,8 @@ jobs:
           task-definition: web-task-definition.json
           container-name: web
           image: ${{ env.WEB_IMAGE }}
+          # Sentry で「この版から増えた」が分かるように(docs/guides/monitoring.md)
+          environment-variables: SENTRY_RELEASE=${{ github.sha }}
       - name: 画面(SSR)を blue/green で出す(アラームが鳴れば自動で戻る)
         uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
         with:
