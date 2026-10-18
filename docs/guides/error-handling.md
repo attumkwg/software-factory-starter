@@ -65,8 +65,15 @@ API の失敗は必ず `{ error: { code, message, requestId } }` の形で返す
 | SSR の想定外の失敗の中身をブラウザへ送らない | `apps/web/src/start.test.ts` |
 | 書き込みに失敗したら入力を残して理由を出す・ログインが切れたらログイン画面へ・読み込みの失敗から戻れる | `apps/web/e2e/errors.spec.ts` |
 | 書き込みが useAction を通っている | Semgrep `web-writes-through-use-action` |
+| Sentry に送る中身(決めた項目だけ・値を伏せる・送る数の上限・error 以上だけ) | `packages/error-reporting/src/*.test.ts`・`apps/api/test/unit/errors.test.ts` |
+| ブラウザから送るのはこちらのバグだけ・送る前に値を落とす・SSR の失敗はサーバーから送る | `apps/web/src/report-error.test.ts`・`src/start.test.ts` |
 
-## 6. まだやっていないこと
+## 6. Sentry
 
-- 失敗を **Sentry に送る**(監視の基本で入れる)。いまは JSON のログと Logs Insights だけ。
+- **error 以上のログは、そのまま Sentry にも行く**(API・画面のサーバー)。Sentry を直接呼ばない。失敗はいままでどおり `logger.error({ err }, "…")` で残す。
+- ブラウザは、捕まえられなかった失敗と、画面の受け皿(`ErrorPage`)に落ちたバグだけ。API の失敗・通信の失敗・SSR の失敗は送らない(ほかで記録済み)。
+- 送る中身と、値の落とし方は [monitoring.md](monitoring.md) の「Sentry」。
+
+## 7. まだやっていないこと
+
 - **書き込みの自動のやり直し**はしない(二重に作られる)。やり直すなら、API に冪等キー(Idempotency-Key)を入れてから。

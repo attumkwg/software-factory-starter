@@ -97,6 +97,29 @@ describe("ログに値を残さない", () => {
     expect(lines.join("")).not.toContain("taro@example.com");
     expect(lines.join("")).toContain("57P01");
   });
+
+  it("Sentry の出口には error 以上だけが、ログと同じく値を落とした形で行く", () => {
+    const toSentry: string[] = [];
+    const reporter = {
+      stream: new Writable({
+        write(chunk, _enc, cb) {
+          toSentry.push(chunk.toString());
+          cb();
+        },
+      }),
+      report: () => {},
+      flush: async () => {},
+    };
+    const destination = new Writable({ write: (_c, _e, cb) => cb() });
+    const logger = createLogger({ level: "info", destination, reporter });
+    logger.info({ path: "/api/x" }, "request");
+    logger.warn({ err: drizzleWrapped(pgError("23505")) }, "同時の変更とぶつかりました");
+    logger.error({ err: drizzleWrapped(pgError("57P01")) }, "失敗しました");
+    expect(toSentry).toHaveLength(1);
+    expect(toSentry[0]).toContain("57P01");
+    expect(toSentry[0]).not.toContain("秘密の案件名");
+    expect(toSentry[0]).not.toContain("taro@example.com");
+  });
 });
 
 describe("DB の接続が切れてもプロセスは落ちない", () => {

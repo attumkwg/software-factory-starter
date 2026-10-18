@@ -9,3 +9,4 @@ mail_image_repository_url = "<stg のアカウント ID>.dkr.ecr.ap-northeast-1.
 slack_team_id      = "<T で始まるワークスペースの ID>"
 slack_channel_id   = "<C で始まる #alerts-prod の ID>"
 monthly_budget_usd = 600
+sentry_dsn         = "<Sentry の DSN。stg と prod で同じプロジェクトでよい(environment で分かれる)>"

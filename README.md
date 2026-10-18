@@ -41,6 +41,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
+├─ packages/error-reporting/   error 以上のログを Sentry に送る(値を落としてから。API と画面のサーバー)。ブラウザは apps/web/src/report-error.ts
 ├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし)と、本物と比べる契約テスト(contract/)
 ├─ docker/postfix/              メールの中継(Postfix)。本番は ECS(送り待ちは EFS)→ SES、手元は Mailpit
 ├─ docs/
@@ -298,7 +299,6 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: いまは署名つき Cookie。強制ログアウトが要るなら DB か Valkey に。
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
-- **Sentry**: 次の PR。AWS 側の見張り(アラーム → Slack)は入っている([docs/guides/monitoring.md](docs/guides/monitoring.md))。
 - **監査ログ・機能フラグ・OpenTelemetry のトレース・外からの死活の確認・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。

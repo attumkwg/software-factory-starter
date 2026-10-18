@@ -1,12 +1,16 @@
 import { Button, Heading, Muted, Page, Stack } from "@app/ui";
 import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { describeError } from "../errors.ts";
+import { reportBrowserError } from "../report-error.ts";
 
 // 画面を読むときの失敗の受け皿(router.tsx の defaultErrorComponent)。中身(スタックや SQL)は見せない。
 // 問い合わせのときに使えるよう、API の request ID があれば出す。「もう一度読み込む」で、その画面だけを読み直す。
 export function ErrorPage({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   const { message, requestId } = describeError(error);
+  // こちらのバグなら Sentry へ(API・通信・SSR の失敗は、ほかで記録済みなので送らない)
+  useEffect(() => reportBrowserError(error), [error]);
   return (
     <Page>
       <main>

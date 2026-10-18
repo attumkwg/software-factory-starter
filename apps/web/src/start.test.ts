@@ -8,6 +8,7 @@ vi.mock("@tanstack/react-start/server", () => ({
 
 const { hiddenErrorAdapter } = await import("./start.ts");
 const { HttpError, NetworkError } = await import("./api.ts");
+const { setReportError } = await import("./report-hook.ts");
 
 describe("SSR の失敗をブラウザへ渡す形", () => {
   it("想定外の失敗は、中身を捨てて渡す(元の失敗はサーバーのログにだけ残す)", () => {
@@ -19,6 +20,23 @@ describe("SSR の失敗をブラウザへ渡す形", () => {
     expect(sent).not.toContain("internal.ts");
     expect(hiddenErrorAdapter.fromSerializable({}).message).toBe("想定外の失敗");
     expect(String(write.mock.calls[0]?.[0])).toContain("hunter2");
+    write.mockRestore();
+  });
+
+  it("想定外の失敗は、ログと同じ行で Sentry の入口にも渡す(ブラウザ側では送らない形に戻す)", () => {
+    const write = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const reported: Record<string, unknown>[] = [];
+    setReportError((line) => reported.push(line));
+    hiddenErrorAdapter.toSerializable(new TypeError("boom"));
+    expect(reported).toEqual([
+      expect.objectContaining({
+        level: "error",
+        requestId: "t-1",
+        err: expect.objectContaining({ type: "TypeError" }),
+      }),
+    ]);
+    expect(hiddenErrorAdapter.fromSerializable({}).name).toBe("ServerReportedError");
+    setReportError(undefined);
     write.mockRestore();
   });
 

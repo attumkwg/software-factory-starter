@@ -81,3 +81,9 @@ variable "monthly_budget_usd" {
   type        = number
   default     = 600
 }
+
+variable "sentry_dsn" {
+  description = "Sentry のプロジェクトの DSN(https://…)。秘密ではない(ブラウザにも渡る)。null の間は送らない"
+  type        = string
+  default     = null
+}
