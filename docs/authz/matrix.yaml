@@ -31,24 +31,54 @@ routes:
     body: { email: "{adminEmail}" }
     expect: { admin: 200, member: 200, viewer: 200, anonymous: 200 }
 
-  - route: GET /api/auth/login
+  - route: POST /api/auth/login
     permission: public
     only_in: cognito
-    note: Cognito の画面へ移る(302)。途中の状態(state・nonce・PKCE)を Cookie に置く
-    expect: { admin: 302, member: 302, viewer: 302, anonymous: 302 }
-
-  - route: GET /api/auth/callback
-    permission: public
-    only_in: cognito
-    note: Cognito から戻る口(302)。途中の状態が無ければ /login?error=login_failed へ。流れは cognito-login.int.test.ts
-    expect: { admin: 302, member: 302, viewer: 302, anonymous: 302 }
-
-  - route: POST /api/auth/cognito
-    permission: public
-    only_in: cognito
-    note: stg の ZAP スキャンだけ(COGNITO_SCAN_CLIENT_ID があるとき)。スキャン用クライアント宛てのトークンだけ通す
-    body: { idToken: "not-a-jwt" }
+    note: メールとパスワードでログイン。どちらが違ったかは言わない(401 は同じ文)。流れは cognito-login.int.test.ts
+    body: { email: "nobody@example.test", password: "Wrong-Password-1" }
     expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: POST /api/auth/mfa
+    permission: public
+    only_in: cognito
+    note: 二段階認証のコード。途中の札(Cookie)が無ければ 401。流れは cognito-login.int.test.ts
+    body: { code: "123456" }
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: POST /api/auth/sign-up
+    permission: public
+    only_in: cognito
+    note: 登録。もう登録されているメールでも同じ答え(登録の有無が分からない)。流れは cognito-login.int.test.ts
+    body: { email: "new@example.test", password: "Short" }
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
+  - route: POST /api/auth/confirm-sign-up
+    permission: public
+    only_in: cognito
+    note: 登録の確認コード。流れは cognito-login.int.test.ts
+    body: { email: "new@example.test", code: "000000" }
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
+  - route: POST /api/auth/resend-code
+    permission: public
+    only_in: cognito
+    note: 確認コードの送り直し。いない人にも同じ答え。流れは cognito-login.int.test.ts
+    body: { email: "nobody@example.test" }
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 200 }
+
+  - route: POST /api/auth/forgot-password
+    permission: public
+    only_in: cognito
+    note: パスワードの再設定のコード。いない人にも同じ答え。流れは cognito-login.int.test.ts
+    body: { email: "nobody@example.test" }
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 200 }
+
+  - route: POST /api/auth/reset-password
+    permission: public
+    only_in: cognito
+    note: 再設定のコードと新しいパスワード。流れは cognito-login.int.test.ts
+    body: { email: "nobody@example.test", code: "000000", password: "New-Password-777" }
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
 
   - route: POST /api/auth/logout
     permission: public

@@ -8,7 +8,8 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - データは route の `loader` で読む(SSR でもブラウザの移動でも同じ関数が動く)。画面の中で `useEffect` で取りに行かない。
 - 書き込み(作る・直す・消す)は **`useAction`(`src/use-action.ts`)を通して**ブラウザから送る。成功したら読み直し、失敗したら理由を出し、401 ならログイン画面へ回す(Semgrep が止める)。**SSR から書き込まない**(`api.ts` が止める)。
 - 読む失敗は投げるだけ(画面の受け皿が出す)。利用者への文は `src/messages.ts` の1か所(固定の文だけ・どこが違ったかを言わない)。決まりは `docs/guides/error-handling.md`。
-- 絞り込みなど「共有・再読み込みで残したい状態」は URL の search に持つ(`validateSearch`)。
+- 絞り込みなど「共有・再読み込みで残したい状態」は URL の search に持つ(`validateSearch`)。**メールアドレスなどの個人の情報は URL に載せない**(履歴・ログに残る。ログイン・登録は画面の中で段を進める)。
+- ログイン・登録・再設定の画面(`pages/LoginPage.tsx` など)は `pages/auth/` の入力欄と `useSubmit` を使う。文は `messages.ts` の固定の文(どこが違ったか・登録の有無を言わない)。
 - `src/routeTree.gen.ts` は自動で作られる。手で直さない(`pnpm dev` か `pnpm build` で作り直す)。
 
 ## SSR で気をつけること

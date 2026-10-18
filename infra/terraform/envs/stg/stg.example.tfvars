@@ -3,4 +3,3 @@ state_bucket           = "<状態のバケット>"
 app_domain             = "app.stg.example.com"
 route53_zone_id        = "<Route 53 のゾーン ID>"
 image_pull_account_ids = ["<prod のアカウント ID>"]
-cognito_domain_prefix  = "<他と重ならない名前。例: myapp-stg>"

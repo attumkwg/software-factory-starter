@@ -25,6 +25,11 @@ test("作るのに失敗したら、入力を残したまま理由と問い合�
   await expect(page.getByLabel("新しいプロジェクトの名前")).toHaveValue("失敗する計画");
   await expect(page.getByRole("button", { name: "作る" })).toBeEnabled();
   await expectAccessible(page);
+
+  // 直ったら、そのままもう一度押せば作れる(失敗の印が残ってブラウザに送信を止められない)
+  await page.unroute("**/api/projects");
+  await page.getByRole("button", { name: "作る" }).click();
+  await expect(page.getByRole("link", { name: "失敗する計画" }).first()).toBeVisible();
 });
 
 test("書き込みのときにログインが切れていたら、ログイン画面へ", async ({ page }) => {

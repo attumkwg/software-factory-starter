@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  AuthNext,
   AuthOptions,
   CreateProject,
   CreateTask,
@@ -137,6 +138,18 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   authOptions: () => request<AuthOptions>("GET", "/auth/options"),
   devLogin: (email: string) => request<{ ok: true }>("POST", "/auth/dev-login", { email }),
+  // Cognito のとき(画面 → API → Cognito。トークンは API の中だけ)
+  login: (email: string, password: string) =>
+    request<AuthNext>("POST", "/auth/login", { email, password }),
+  answerMfa: (code: string) => request<AuthNext>("POST", "/auth/mfa", { code }),
+  signUp: (email: string, password: string) =>
+    request<AuthNext>("POST", "/auth/sign-up", { email, password }),
+  confirmSignUp: (email: string, code: string) =>
+    request<AuthNext>("POST", "/auth/confirm-sign-up", { email, code }),
+  resendCode: (email: string) => request<AuthNext>("POST", "/auth/resend-code", { email }),
+  forgotPassword: (email: string) => request<AuthNext>("POST", "/auth/forgot-password", { email }),
+  resetPassword: (email: string, code: string, password: string) =>
+    request<AuthNext>("POST", "/auth/reset-password", { email, code, password }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/me"),
   listProjects: () => request<{ projects: Project[] }>("GET", "/projects"),

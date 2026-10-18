@@ -13,10 +13,7 @@ export function buildOpenApiDocument(mode: "dev" | "cognito") {
     COGNITO_REGION: "ap-northeast-1",
     COGNITO_USER_POOL_ID: "ap-northeast-1_example",
     COGNITO_CLIENT_ID: "example",
-    COGNITO_DOMAIN: "https://example.auth.ap-northeast-1.amazoncognito.com",
     APP_URL: "https://app.stg.example.com",
-    // スキャン用のログイン(stg だけにある API)も表に載せるため
-    COGNITO_SCAN_CLIENT_ID: "example-scanner",
     MAIL_SMTP_URL: "smtp://mail:25",
   });
   const app = createApp({

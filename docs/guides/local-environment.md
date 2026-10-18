@@ -13,7 +13,7 @@
 | Aurora PostgreSQL | postgres:17 のコンテナ | 同上(テストは Testcontainers) | 本物の切り替え(フェイルオーバー)。手元はコンテナの再起動で代える |
 | Secrets Manager | compose の環境変数(手元専用の値) | 同上 | 秘密の取り出しの権限(IAM) |
 | CloudWatch Logs | 標準出力の JSON | `docker compose logs api` | Logs Insights での探し方 |
-| Cognito | ふだんは**開発用ログイン**(メールだけ)。流れを確かめるときは**偽物の Cognito**(`packages/fake-cognito`) | `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` | 本物の画面(Managed Login)・MFA・確認メール。stg で人が確かめる([runbooks/cognito-login.md](../runbooks/cognito-login.md)) |
+| Cognito | ふだんは**開発用ログイン**(メールだけ)。登録・ログイン・二段階認証・再設定を確かめるときは**偽物の Cognito**(`packages/fake-cognito`)。確認コードのメールは Postfix → Mailpit | `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` | SES から届くか・迷惑メールの判定。偽物とのずれは**契約テスト**が週1回、stg の本物で確かめる |
 | SES(メール) | 本番と同じ Postfix が、SES の代わりに Mailpit へ渡す(http://localhost:8025) | `docker compose up` | 迷惑メールの判定・DKIM / SPF・サンドボックス・送信の上限 |
 | S3・SQS・ElastiCache(入れるとき) | MinIO・ElasticMQ・Valkey のコンテナ | 入れるときに足す | 権限(IAM)・暗号化(KMS) |
 
@@ -24,11 +24,25 @@ IAM の権限・VPC やセキュリティグループの通信・KMS・WAF・Clo
 - 書き方の誤りは Terraform の静的な検査で見る(`terraform validate`・Trivy・`terraform.yml`)。
 - 動いて初めて分かるものは stg で確かめる。stg で見つけたら、手元で再現できる形(テスト)にして残す。
 
-## 偽物の Cognito
+## 偽物の Cognito と契約テスト
 
-- 本物と同じ入口(`/oauth2/authorize`・`/oauth2/token`・`/.well-known/jwks.json`・`/logout`)。client_id・戻り先・PKCE・nonce・code の使い回しを、本物と同じく確かめる(甘くすると API 側の確かめ漏れに気づけない)。
-- 画面はメールアドレスを選ぶだけ(パスワードは無い)。「メールアドレスは確認済み」を外すと、確認していない人として返す。
-- 同じメールなら毎回同じ sub を返す(本物と同じく、人ごとに変わらない ID)。
-- 使う所: API の単体・結合テスト(そのまま関数として呼ぶ)・E2E(`E2E_AUTH=cognito pnpm test:e2e`)・手で試す。
-- URL は `http://fake-cognito.localhost:9231`。`*.localhost` はブラウザから見ると自分の PC で、API のコンテナからは compose の別名で同じ名前に届く(本物の Cognito も1つの URL で答えるので、それに合わせた)。
-- **本番では使えない**: 発行元を変える `COGNITO_ISSUER` は、API の設定が local / test 以外では起動時に止める。
+- 本物と同じ取り決め(JSON 1.1・`x-amz-target`)で答える。**アプリが使う入口だけ**: 登録・確認コード・ログイン(USER_PASSWORD_AUTH)・二段階認証(TOTP)・再設定、と契約テストが使う管理の入口(人を確認済みにする・消す・設定を読む)。
+- 本物と同じく断る: パスワードの決まり・違う / 切れたコード・「その人はいない」と言わない・続けて間違えると止める。甘くすると、アプリ側の確かめ漏れに気づけない。
+- 設定(パスワードの決まり・確認コードのメールの文面)は `packages/shared/src/cognito-settings.json`。Terraform も同じ物を読む。
+- 確認コードのメールは、手元では Postfix → Mailpit(http://localhost:8025)。テストからは `fake.lastCode(email)` でも読める。
+- 使う所: API の単体・結合テスト(関数として呼ぶ)・E2E(`E2E_AUTH=cognito pnpm test:e2e`)・手で試す。
+- **本番では使えない**: 入口を変える `COGNITO_ENDPOINT` は、API の設定が local / test 以外では起動時に止める。
+
+### 契約テスト(偽物が本物とずれていないか)
+
+`packages/fake-cognito/contract/` に、**偽物と本物の両方に流す1組のテスト**がある(AWS 公式の SDK でつなぐ)。
+
+| どこに | いつ | 回し方 |
+|---|---|---|
+| 偽物 | PR ごと(CI の単体) | `pnpm test` |
+| stg の本物 | 週1回(月曜 9:00)・Cognito の設定を変えて apply したとき | Actions → **Cognito contract**(`cognito-contract.yml`)。落ちたら Issue が立つ |
+| 手元から stg の本物 | 気になったとき | `COGNITO_CONTRACT_TARGET=real COGNITO_USER_POOL_ID=… COGNITO_CLIENT_ID=… pnpm --filter @app/fake-cognito test:contract`(stg の資格情報で) |
+
+**本物で落ちたとき**: どのテストが落ちたかを見て、本物の振る舞いに合わせて偽物(`src/fake.ts`)を直す → 偽物でも同じテストが通ることを確かめる → アプリ(`apps/api/src/auth`)がその振る舞いに頼っていれば、アプリも直す。**テストを本物に合わせて書き換えるのは、本物の振る舞いが正しいと確かめてから**。
+
+**アプリが Cognito の新しい振る舞いに頼るとき**(新しい入口・新しい失敗の種類): 先に契約テストに足し、本物で通ることを確かめてから、偽物とアプリを書く。

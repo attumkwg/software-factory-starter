@@ -7,12 +7,13 @@
     ".": "./src/fake.ts"
   },
   "scripts": {
-    "dev": "node --watch src/server.ts",
     "start": "node src/server.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:contract": "vitest run contract"
   },
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "3.1152.0",
     "@types/node": "24.19.2",
     "vitest": "5.0.4"
   }

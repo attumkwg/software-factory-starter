@@ -48,7 +48,3 @@ variable "image_pull_account_ids" {
   default     = []
 }
 
-variable "cognito_domain_prefix" {
-  description = "Cognito の画面の入口の接頭辞(https://<これ>.auth.<region>.amazoncognito.com)。リージョンの中で他と重ならない名前"
-  type        = string
-}

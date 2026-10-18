@@ -10,7 +10,7 @@
 |---|---|---|
 | `Button` | 押す操作 | `variant`: primary(1画面に1つ)/ secondary / danger(戻せない)/ ghost(文字だけ) |
 | `Link` | ページの移動 | 本物の `<a href>`(新しいタブで開ける・SSR でも辿れる)。保存や削除には使わず `Button` |
-| `TextField` | 1行の入力 | `label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage` |
+| `TextField` | 1行の入力 | `label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage`。パスワードは `type="password"` と `autoComplete`(`current-password` / `new-password`)、コードは `inputMode="numeric"` と `autoComplete="one-time-code"` |
 | `Select` | 選択肢から1つ | 選択肢は `{ id, label }` の配列 |
 | `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク) |
 | `Table` | 一覧(列がある) | `label` で表の名前。行の名前にする列に `isRowHeader` |
