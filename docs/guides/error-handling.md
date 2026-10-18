@@ -31,25 +31,42 @@ API の失敗は必ず `{ error: { code, message, requestId } }` の形で返す
 - **落とすべきときは落とす**: どこにも受け止められなかった失敗(`uncaughtException` / `unhandledRejection`)は、状態が壊れているかもしれないので JSON で1行残して止まる。ECS が新しいタスクを立てる。
 - **外の仕組み(Cognito など)に届かない**のは、「利用者が間違えた(401)」と混ぜずに 503 にする。混ぜると障害に気づけない。
 
-## 3. 画面(apps/web)
+## 3. 利用者に出す文(セキュリティ)
+
+文の中身は **`apps/web/src/messages.ts` の1か所**にある。プロダクトに合わせて自由に変えてよい。ただし次の決まりは守る(`src/messages.test.ts` が確かめる)。
+
+1. **固定の文だけ**。API の message・`err.message`・入力した値を埋め込まない。中身や他人の情報が漏れるため。
+2. **どこが違ったかを言わない**。ログインの失敗で「メールアドレスが違います」「その人は登録されていません」と書くと、登録されているかどうかを確かめる手がかりになる(アカウントの列挙)。パスワードがあるときも「メールアドレスかパスワードが正しくありません」と両方をまとめる。
+   - Cognito も同じ設定にしてある(`prevent_user_existence_errors = "ENABLED"`)。
+   - 「止まっています」「通信できません」と分けて伝えるのはよい(登録の有無とは関係ない)。
+3. **「無い」と「見る権限が無い(他社の物)」を同じ文にする**。API も同じ 404 を返している。
+4. **中の仕組み(DB・サーバーの名前・SQL・スタック)を書かない**。問い合わせには `requestId` を使う。
+
+画面ではなく API の `message` は開発者向け。利用者には出さない(画面は code で文を選ぶ)。
+
+**SSR で起きた想定外の失敗**は、TanStack Start が HTML に埋め込んでブラウザへ送る。何もしないと、ライブラリやバグの文(内部の URL・ファイルの場所・値)がページのソースに出る。`src/start.ts` の `hiddenErrorAdapter` が中身を捨てて送り、元の失敗は画面のサーバーのログにだけ残す。
+
+## 4. 画面(apps/web)
 
 - **読む失敗**(route の loader): 投げるだけ。`router.tsx` の `defaultErrorComponent`(`pages/ErrorPages.tsx`)が受け止め、理由・問い合わせ番号・「もう一度読み込む」を出す。無い物は `notFound()` を投げる(404 の画面)。
 - **書く失敗**: 必ず `useAction`(`src/use-action.ts`)を通す。Semgrep の `web-writes-through-use-action` が、通していない書き込みを止める。
   - 成功 → 画面を読み直す → トースト / 失敗 → フォームなら入力の下に、それ以外はトースト / 401 → ログイン画面へ / 実行中 → ボタンを押せない(二重に送らない)
-- **文は `src/errors.ts` の `describeError`** で code から決める。API の message(英語の検証の文など)をそのまま出さない。
+- **文は `src/errors.ts` の `describeError`** が code から選ぶ(文の中身は `src/messages.ts`)。API の message をそのまま出さない。
 - **SSR の失敗**: 画面のサーバーから API に届かない・5xx は、画面のサーバーのログに `requestId` つきで1行残る(API のログと突き合わせられる)。SSR からの呼び出しは10秒、ブラウザからは15秒で打ち切る。
 - **失敗の種類をブラウザへ渡す**: SSR で起きた `HttpError` / `NetworkError` は `src/start.ts` の変換でブラウザでも同じ種類になる。新しい種類の失敗クラスを作ったら、ここに足す(足さないと、サーバーとブラウザで画面の文がずれる)。
 
-## 4. 確かめる仕組み
+## 5. 確かめる仕組み
 
 | 何を | どこで |
 |---|---|
 | DB の失敗の振り分け・ログに値が出ない・接続が切れても落ちない・本文の失敗の code | `apps/api/test/unit/errors.test.ts` |
 | 画面の文(code ごと・通信の失敗・SSR とブラウザの違い) | `apps/web/src/errors.test.ts` |
+| 文の決まり(固定の文・ログインの失敗で欄を名指ししない・「無い」で権限に触れない・中の仕組みを書かない) | `apps/web/src/messages.test.ts` |
+| SSR の想定外の失敗の中身をブラウザへ送らない | `apps/web/src/start.test.ts` |
 | 書き込みに失敗したら入力を残して理由を出す・ログインが切れたらログイン画面へ・読み込みの失敗から戻れる | `apps/web/e2e/errors.spec.ts` |
 | 書き込みが useAction を通っている | Semgrep `web-writes-through-use-action` |
 
-## 5. まだやっていないこと
+## 6. まだやっていないこと
 
 - 失敗を **Sentry に送る**(監視の基本で入れる)。いまは JSON のログと Logs Insights だけ。
 - **書き込みの自動のやり直し**はしない(二重に作られる)。やり直すなら、API に冪等キー(Idempotency-Key)を入れてから。

@@ -1,7 +1,7 @@
 import { Button, Card, Heading, Muted, Page, Stack, TextField } from "@app/ui";
 import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { api, HttpError } from "../api.ts";
+import { api } from "../api.ts";
 import { describeError, errorText } from "../errors.ts";
 
 // 開発環境(local / preview)だけの簡易ログイン。本番は Cognito のホスト UI に飛ばす(差し替え口は API 側)。
@@ -21,12 +21,9 @@ export function LoginPage() {
     try {
       await api.devLogin(email);
     } catch (err) {
-      // 「その人はいない」と「こちらが壊れている・通信が切れている」を分けて伝える
-      setError(
-        err instanceof HttpError && err.code === "login_failed"
-          ? "ログインできませんでした。メールアドレスを確かめてください"
-          : errorText(describeError(err)),
-      );
+      // どこが違ったか(その人がいない・パスワードが違う)は言わない(messages.ts の決まり 2)。
+      // 「こちらが止まっている・通信が切れている」は、登録の有無と関係ないので分けて伝える
+      setError(errorText(describeError(err)));
       return;
     } finally {
       setPending(false);
