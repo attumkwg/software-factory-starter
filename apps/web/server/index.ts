@@ -61,3 +61,13 @@ function shutdown(signal: string) {
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+
+// どこにも受け止められなかった失敗。JSON で1行残して止まる(ECS が新しいタスクを立てる)。API と同じ決まり
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "受け止められなかった失敗で止まります");
+  process.exit(1);
+});
+process.on("unhandledRejection", (err) => {
+  logger.fatal({ err }, "受け止められなかった Promise の失敗で止まります");
+  process.exit(1);
+});

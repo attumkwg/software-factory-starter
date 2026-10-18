@@ -81,3 +81,19 @@ rules:
       include: ["/apps/api/src/"]
       exclude: ["/apps/api/src/routes/common.ts"]
     pattern-regex: '\bbody:\s*\{\s*content:'
+
+  - id: web-writes-through-use-action
+    message: >-
+      画面から API に書き込むとき(create・update・delete・logout)は useAction を通す(apps/web/src/use-action.ts)。
+      直接 await すると、失敗したときに画面が黙る(利用者は成功したと思う・連打で二重に送る・ログインが切れても気づかない)。
+      docs/guides/error-handling.md
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/web/src/"]
+    patterns:
+      - pattern: api.$METHOD(...)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(create|update|delete|logout)
+      - pattern-not-inside: $ACTION.run(...)

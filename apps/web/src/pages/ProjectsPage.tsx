@@ -9,28 +9,28 @@ import {
   Table,
   type TableColumn,
   TextField,
-  useToast,
 } from "@app/ui";
-import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
 import { formatDate } from "../format.ts";
 import { canDeleteProject, canWrite } from "../permissions.ts";
+import { useAction } from "../use-action.ts";
 
-// 一覧のデータは route(routes/_app/index.tsx)の loader が SSR で読む。変えたら invalidate で読み直す。
+// 一覧のデータは route(routes/_app/index.tsx)の loader が SSR で読む。
+// 書き込みは useAction を通す(成功したら読み直し、失敗したら次に何をすればよいかを出す)。
 export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) {
   const [name, setName] = useState("");
-  const toast = useToast();
-  const router = useRouter();
-  const reload = () => router.invalidate();
+  const creating = useAction();
+  const deleting = useAction();
 
   async function create(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    await api.createProject({ name });
-    setName("");
-    await reload();
-    toast.show("プロジェクトを作りました");
+    const ok = await creating.run(() => api.createProject({ name }), {
+      success: "プロジェクトを作りました",
+      showErrorAs: "inline",
+    });
+    if (ok) setName("");
   }
 
   const columns: TableColumn<Project>[] = [
@@ -61,9 +61,9 @@ export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) 
           confirmLabel="消す"
           isDestructive
           onConfirm={async () => {
-            await api.deleteProject(p.id);
-            await reload();
-            toast.show("プロジェクトを消しました");
+            await deleting.run(() => api.deleteProject(p.id), {
+              success: "プロジェクトを消しました",
+            });
           }}
         >
           「{p.name}」と、中のタスクをすべて消します。元に戻せません。
@@ -83,8 +83,10 @@ export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) 
               value={name}
               onChange={setName}
               placeholder="例: 春の新機能"
+              isInvalid={creating.errorMessage !== undefined}
+              errorMessage={creating.errorMessage}
             />
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" isDisabled={creating.pending}>
               作る
             </Button>
           </Inline>

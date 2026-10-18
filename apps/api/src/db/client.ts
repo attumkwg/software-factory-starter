@@ -13,14 +13,25 @@ export type RootDb = NodePgDatabase<typeof schema>;
 /** テナントの文脈つきのトランザクション。ルートとリポジトリはこれだけを使う。 */
 export type TenantTx = Parameters<Parameters<RootDb["transaction"]>[0]>[0];
 
-/** databaseUrl が無ければ node-postgres が PG* の環境変数を読む。 */
-export function createDb(databaseUrl: string | undefined): { db: RootDb; pool: pg.Pool } {
+/**
+ * databaseUrl が無ければ node-postgres が PG* の環境変数を読む。
+ * onIdleError: 使っていない接続が切れたとき(DB の再起動・Aurora の切り替え)に呼ぶ。
+ * **これが無いとプロセスごと落ちる**(pg のプールは 'error' を投げ、聞く人がいないと Node が止まる)。
+ */
+export function createDb(
+  databaseUrl: string | undefined,
+  opts: { onIdleError?: (err: Error) => void } = {},
+): { db: RootDb; pool: pg.Pool } {
   const pool = new pg.Pool({
     connectionString: databaseUrl,
     max: 10,
+    // DB に届かないとき、いつまでも待たない(待たずに 503 を返す)
+    connectionTimeoutMillis: 5_000,
     // 1社の重いクエリで全体を止めない(security.md 4.3 の 6)
     options: "-c statement_timeout=5000",
   });
+  // 切れた接続はプールが捨てて、次は新しくつなぐ。ここでは記録だけ
+  pool.on("error", (err) => opts.onIdleError?.(err));
   const db = drizzle({ client: pool, schema, casing: "snake_case" });
   return { db, pool };
 }

@@ -46,3 +46,21 @@ export function examples(input: string) {
 
   return [pool, tenantId, projectId, route, route2] as [Pool, string, string, unknown, unknown, TenantTx?];
 }
+
+declare const api: {
+  createProject: (i: { name: string }) => Promise<unknown>;
+  deleteTask: (id: string) => Promise<unknown>;
+  listProjects: () => Promise<unknown>;
+};
+declare const creating: { run: (f: () => Promise<unknown>, o?: unknown) => Promise<boolean> };
+
+export async function webWrites() {
+  // ruleid: web-writes-through-use-action
+  await api.createProject({ name: "失敗しても黙る" });
+  // ruleid: web-writes-through-use-action
+  void api.deleteTask("t1");
+  // ok: web-writes-through-use-action
+  await creating.run(() => api.createProject({ name: "受け止める" }), { success: "作りました" });
+  // ok: web-writes-through-use-action
+  await api.listProjects();
+}

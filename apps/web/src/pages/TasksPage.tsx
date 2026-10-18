@@ -10,12 +10,11 @@ import {
   Select,
   Stack,
   TextField,
-  useToast,
 } from "@app/ui";
-import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
 import { canWrite } from "../permissions.ts";
+import { useAction } from "../use-action.ts";
 
 export const TASK_FILTERS = [
   { id: "all", label: "すべて" },
@@ -29,7 +28,8 @@ export function toTaskFilter(value: unknown): TaskFilter {
   return TASK_FILTERS.find((f) => f.id === value)?.id ?? "all";
 }
 
-// データは route(routes/_app/projects/$projectId.tsx)の loader が SSR で読む。変えたら invalidate で読み直す。
+// データは route(routes/_app/projects/$projectId.tsx)の loader が SSR で読む。
+// 書き込みは useAction を通す(成功したら読み直し、失敗したら次に何をすればよいかを出す)。
 export function TasksPage({
   me,
   project,
@@ -45,17 +45,18 @@ export function TasksPage({
 }) {
   const [title, setTitle] = useState("");
   const writable = canWrite(me.role);
-  const toast = useToast();
-  const router = useRouter();
-  const reload = () => router.invalidate();
+  const adding = useAction();
+  // 完了の切り替えと削除。1つずつ送る(実行中は押せない)
+  const changing = useAction();
 
   async function add(e: FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
-    await api.createTask(project.id, { title });
-    setTitle("");
-    await reload();
-    toast.show("タスクを足しました");
+    const ok = await adding.run(() => api.createTask(project.id, { title }), {
+      success: "タスクを足しました",
+      showErrorAs: "inline",
+    });
+    if (ok) setTitle("");
   }
 
   const shown = tasks.filter((t) => filter === "all" || (filter === "done" ? t.done : !t.done));
@@ -77,8 +78,10 @@ export function TasksPage({
                 value={title}
                 onChange={setTitle}
                 placeholder="やること"
+                isInvalid={adding.errorMessage !== undefined}
+                errorMessage={adding.errorMessage}
               />
-              <Button type="submit" variant="primary">
+              <Button type="submit" variant="primary" isDisabled={adding.pending}>
                 足す
               </Button>
             </Inline>
@@ -100,11 +103,8 @@ export function TasksPage({
               <Inline justify="between" align="center">
                 <Checkbox
                   isSelected={t.done}
-                  isDisabled={!writable}
-                  onChange={async (done) => {
-                    await api.updateTask(t.id, { done });
-                    await reload();
-                  }}
+                  isDisabled={!writable || changing.pending}
+                  onChange={(done) => changing.run(() => api.updateTask(t.id, { done }))}
                 >
                   {t.title}
                 </Checkbox>
@@ -112,11 +112,10 @@ export function TasksPage({
                   <Button
                     size="sm"
                     aria-label={`${t.title} を消す`}
-                    onPress={async () => {
-                      await api.deleteTask(t.id);
-                      await reload();
-                      toast.show("タスクを消しました");
-                    }}
+                    isDisabled={changing.pending}
+                    onPress={() =>
+                      changing.run(() => api.deleteTask(t.id), { success: "タスクを消しました" })
+                    }
                   >
                     消す
                   </Button>

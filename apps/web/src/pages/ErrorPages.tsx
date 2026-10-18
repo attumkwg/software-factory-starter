@@ -1,18 +1,30 @@
-import { Heading, Muted, Page, Stack } from "@app/ui";
-import type { ErrorComponentProps } from "@tanstack/react-router";
-import { HttpError } from "../api.ts";
+import { Button, Heading, Muted, Page, Stack } from "@app/ui";
+import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
+import { describeError } from "../errors.ts";
 
-// 想定していない失敗の受け皿(router.tsx の defaultErrorComponent)。中身(スタックや SQL)は見せない。
-// 問い合わせのときに使えるよう、API の request ID があれば出す。
-export function ErrorPage({ error }: ErrorComponentProps) {
-  const requestId = error instanceof HttpError ? error.body?.error.requestId : undefined;
+// 画面を読むときの失敗の受け皿(router.tsx の defaultErrorComponent)。中身(スタックや SQL)は見せない。
+// 問い合わせのときに使えるよう、API の request ID があれば出す。「もう一度読み込む」で、その画面だけを読み直す。
+export function ErrorPage({ error, reset }: ErrorComponentProps) {
+  const router = useRouter();
+  const { message, requestId } = describeError(error);
   return (
     <Page>
       <main>
-        <Stack gap={2}>
+        <Stack gap={4}>
           <Heading level={1}>うまく表示できませんでした</Heading>
-          <Muted>時間をおいて、もう一度開いてください。</Muted>
+          <Muted>{message}</Muted>
           {requestId && <Muted>問い合わせ番号: {requestId}</Muted>}
+          <div>
+            <Button
+              variant="primary"
+              onPress={async () => {
+                await router.invalidate();
+                reset();
+              }}
+            >
+              もう一度読み込む
+            </Button>
+          </div>
         </Stack>
       </main>
     </Page>

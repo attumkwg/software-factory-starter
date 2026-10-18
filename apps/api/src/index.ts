@@ -3,10 +3,17 @@ import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { createDb } from "./db/client.ts";
 import { createLogger } from "./logger.ts";
+import { runOutsideRequestContext } from "./request-context.ts";
 
 const config = loadConfig();
 const logger = createLogger({ level: config.logLevel });
-const { db, pool } = createDb(config.databaseUrl);
+const { db, pool } = createDb(config.databaseUrl, {
+  // 接続を作ったリクエストの文脈が残っているので、外して記録する
+  onIdleError: (err) =>
+    runOutsideRequestContext(() =>
+      logger.warn({ err }, "使っていない DB の接続が切れました(DB の再起動など)"),
+    ),
+});
 const lifecycle = { shuttingDown: false };
 const app = createApp({ config, db, logger, lifecycle });
 
@@ -48,3 +55,14 @@ async function shutdown(signal: string) {
 
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT", () => void shutdown("SIGINT"));
+
+// どこにも受け止められなかった失敗。状態が壊れているかもしれないので、JSON で1行残して止まる
+// (ECS が新しいタスクを立てる)。止まる前のログが Logs Insights で引けるように。
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "受け止められなかった失敗で止まります");
+  process.exit(1);
+});
+process.on("unhandledRejection", (err) => {
+  logger.fatal({ err }, "受け止められなかった Promise の失敗で止まります");
+  process.exit(1);
+});

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { Button } from "./Button.tsx";
 
@@ -10,10 +10,11 @@ export type ConfirmDialogProps = {
   confirmLabel: string;
   /** 消すなど戻せない操作なら true(赤いボタン) */
   isDestructive?: boolean;
+  /** 失敗は呼ぶ側で受け止める(apps/web の useAction)。ここでは待つだけ */
   onConfirm: () => void | Promise<void>;
 };
 
-/** 確かめてから実行するダイアログ。開いている間は外に触れず、Esc で閉じる。 */
+/** 確かめてから実行するダイアログ。開いている間は外に触れず、Esc で閉じる。実行中は二度押せない。 */
 export function ConfirmDialog({
   trigger,
   title,
@@ -22,6 +23,7 @@ export function ConfirmDialog({
   isDestructive,
   onConfirm,
 }: ConfirmDialogProps) {
+  const [pending, setPending] = useState(false);
   return (
     <DialogTrigger>
       {trigger}
@@ -38,9 +40,15 @@ export function ConfirmDialog({
                   <Button onPress={close}>やめる</Button>
                   <Button
                     variant={isDestructive ? "danger" : "primary"}
+                    isDisabled={pending}
                     onPress={async () => {
-                      await onConfirm();
-                      close();
+                      setPending(true);
+                      try {
+                        await onConfirm();
+                      } finally {
+                        setPending(false);
+                        close();
+                      }
                     }}
                   >
                     {confirmLabel}
