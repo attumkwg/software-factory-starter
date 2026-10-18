@@ -7,6 +7,8 @@ export type RequestContext = {
   traceId: string;
   /** ログインのセッションから決まったテナント。ログイン前は null。 */
   tenantId: string | null;
+  /** ログインしている人(users の ID。メールアドレスではない)。ログイン前は null。 */
+  userId: string | null;
 };
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -39,5 +41,5 @@ export function contextFromHeaders(get: (name: string) => string | undefined): R
   const traceId =
     traceparent?.[1] ?? (amzn ? `${amzn[1]}${amzn[2]}` : randomBytes(16).toString("hex"));
 
-  return { requestId, traceId, tenantId: null };
+  return { requestId, traceId, tenantId: null, userId: null };
 }

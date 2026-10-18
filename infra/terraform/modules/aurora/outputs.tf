@@ -23,3 +23,7 @@ output "database_url_secret_arn" {
 output "kms_key_arn" {
   value = aws_kms_key.db.arn
 }
+
+output "cluster_identifier" {
+  value = aws_rds_cluster.this.cluster_identifier
+}

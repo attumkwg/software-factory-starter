@@ -9,7 +9,10 @@ export function authenticate(cfg: SessionConfig): MiddlewareHandler<AppEnv> {
     const session = await readSession(c, cfg);
     c.set("session", session);
     const ctx = getRequestContext();
-    if (ctx && session) ctx.tenantId = session.tenantId;
+    if (ctx && session) {
+      ctx.tenantId = session.tenantId;
+      ctx.userId = session.userId;
+    }
     await next();
   };
 }

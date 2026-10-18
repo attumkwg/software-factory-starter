@@ -15,10 +15,15 @@ function capture() {
 }
 
 describe("ログ", () => {
-  it("全行に requestId / tenantId / traceId が入る", () => {
+  it("全行に requestId / tenantId / userId / traceId が入る", () => {
     const { logger, lines } = capture();
     runWithRequestContext(
-      { requestId: "req-12345678", traceId: "t".repeat(32), tenantId: "tenant-a" },
+      {
+        requestId: "req-12345678",
+        traceId: "t".repeat(32),
+        tenantId: "tenant-a",
+        userId: "user-1",
+      },
       () => {
         logger.info({ projectId: "p1" }, "作った");
       },
@@ -29,10 +34,16 @@ describe("ログ", () => {
       message: "作った",
       requestId: "req-12345678",
       tenantId: "tenant-a",
+      userId: "user-1",
       traceId: "t".repeat(32),
       projectId: "p1",
     });
-    expect(lines[1]).toMatchObject({ requestId: null, tenantId: null, traceId: null });
+    expect(lines[1]).toMatchObject({
+      requestId: null,
+      tenantId: null,
+      userId: null,
+      traceId: null,
+    });
   });
 
   it("メールやトークンは伏せる", () => {

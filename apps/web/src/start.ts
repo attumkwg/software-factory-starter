@@ -2,6 +2,8 @@ import { createSerializationAdapter } from "@tanstack/react-router";
 import { createIsomorphicFn, createStart } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { HttpError, NetworkError } from "./api.ts";
+import { ServerReportedError } from "./report-error.ts";
+import { reportError } from "./report-hook.ts";
 
 // SSR で起きた失敗を、ブラウザへ渡すときの形。
 //
@@ -25,19 +27,22 @@ const networkErrorAdapter = createSerializationAdapter({
   fromSerializable: ({ reason, side }) => new NetworkError(reason, side),
 });
 
-/** ブラウザへ送らなかった失敗を、画面のサーバーのログに残す(JSON 1行。server/index.ts と同じ形)。 */
+/**
+ * ブラウザへ送らなかった失敗を、画面のサーバーのログに残す(JSON 1行。server/index.ts と同じ形)。
+ * Sentry にも同じ行を送る(値は @app/error-reporting が落とす)。
+ */
 const logHidden = createIsomorphicFn()
   .server((e: Error) => {
-    process.stdout.write(
-      `${JSON.stringify({
-        level: "error",
-        time: new Date().toISOString(),
-        service: "web",
-        requestId: getRequest().headers.get("x-request-id"),
-        err: { type: e.constructor.name, message: e.message, stack: e.stack },
-        message: "SSR で想定外の失敗(ブラウザには中身を送っていない)",
-      })}\n`,
-    );
+    const line = {
+      level: "error",
+      time: new Date().toISOString(),
+      service: "web",
+      requestId: getRequest().headers.get("x-request-id"),
+      err: { type: e.constructor.name, message: e.message, stack: e.stack },
+      message: "SSR で想定外の失敗(ブラウザには中身を送っていない)",
+    };
+    process.stdout.write(`${JSON.stringify(line)}\n`);
+    reportError(line);
   })
   .client(() => {});
 
@@ -50,7 +55,8 @@ export const hiddenErrorAdapter = createSerializationAdapter({
     logHidden(e);
     return {};
   },
-  fromSerializable: () => new Error("想定外の失敗"),
+  // サーバーが Sentry に送ったので、ブラウザからは送らない(report-error.ts)
+  fromSerializable: () => new ServerReportedError(),
 });
 
 export const startInstance = createStart(() => ({

@@ -12,7 +12,7 @@
 - **メール**(ADR 0008): リクエストの中で直接送らない。出来事を積み、受け手(`outbox/handlers.ts`)で組み立てて `mailer.send()`。宛先は送る直前に DB から読む(出来事にメールアドレスを入れない)。手順は `docs/guides/mail.md`。
 - リポジトリは RLS に頼り切らず、`tenantId` でも絞る(層を重ねる)。
 - 他社の物・無い物は 404。権限が無ければ 403。ログインしていなければ 401。
-- 失敗は投げるだけ(`errors.ts` の関数)。ルートで try/catch して形を作らない。`onError` が code に直し、ログは `logger.error({ err }, "…")` の形だけ(SQL の値が落ちる)。決まりは `docs/guides/error-handling.md`。
+- 失敗は投げるだけ(`errors.ts` の関数)。ルートで try/catch して形を作らない。`onError` が code に直し、ログは `logger.error({ err }, "…")` の形だけ(SQL の値が落ちる)。error 以上のログはそのまま Sentry にも行くので、Sentry を直接呼ばない。決まりは `docs/guides/error-handling.md`。
 - 入力は Zod で検証(`@app/shared` のスキーマを使う)。`sql.raw` は使わない。
 - テストは必ず2社で書く(`test/helpers/fixtures.ts` の `createTenantFixture`)。
 - 単体は `test/unit`(DB 無し)、DB が要るものは `test/integration/*.int.test.ts`(Testcontainers)。

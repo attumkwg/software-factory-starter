@@ -41,6 +41,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
+├─ packages/error-reporting/   error 以上のログを Sentry に送る(値を落としてから。API と画面のサーバー)。ブラウザは apps/web/src/report-error.ts
 ├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし)と、本物と比べる契約テスト(contract/)
 ├─ docker/postfix/              メールの中継(Postfix)。本番は ECS(送り待ちは EFS)→ SES、手元は Mailpit
 ├─ docs/
@@ -49,7 +50,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
-│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・preview-env・github-oidc
+│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
 ├─ .github/
 │  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
@@ -280,6 +281,14 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 |---|---|
 | `ANTHROPIC_API_KEY` | claude(`@claude`)。Claude の GitHub App を入れて使う方法もある |
 
+### 4. 見張りの知らせを Slack に流す
+
+1. stg と prod の AWS アカウントそれぞれで、コンソールの「Amazon Q Developer in chat applications」(旧 AWS Chatbot)から Slack のワークスペースを許可する(ワークスペースの ID `T…` が分かる)
+2. Slack に `#alerts-stg` と `#alerts-prod` を作り、チャンネルの ID(`C…`)を `*.auto.tfvars` の `slack_team_id` / `slack_channel_id` に入れて apply
+3. 試しに鳴らして Slack に出るのを確かめる。月の上限(`monthly_budget_usd`)も見直す
+
+手順・何を見張っているか・費用は [docs/guides/monitoring.md](docs/guides/monitoring.md)。鳴ったら [docs/runbooks/alarms.md](docs/runbooks/alarms.md)、Sentry に来たら [docs/runbooks/sentry.md](docs/runbooks/sentry.md)。
+
 ---
 
 ## 📏 わざとやっていないこと(次の一歩)
@@ -290,7 +299,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: いまは署名つき Cookie。強制ログアウトが要るなら DB か Valkey に。
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
-- **監査ログ・機能フラグ・Sentry・OpenTelemetry のトレース**: ログには traceId を入れてあるので、トレースは後から足せる。
+- **監査ログ・機能フラグ・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
 - **WAF**: ALB / CloudFront の前に。

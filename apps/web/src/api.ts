@@ -82,6 +82,7 @@ const target = createIsomorphicFn()
       // ALB の待ち時間(60秒)より十分短く。API が詰まっても画面のサーバーまで詰まらない
       timeoutMs: 10_000,
       // 画面のサーバーの JSON ログと同じ形(server/index.ts)。Logs Insights で requestId から API の行と突き合わせる
+      // Sentry には送らない(API の 5xx は API が送る・API に届かないならアラームが鳴る。二重に数えない)
       report: (failure) =>
         process.stdout.write(
           `${JSON.stringify({

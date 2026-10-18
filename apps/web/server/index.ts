@@ -1,29 +1,54 @@
 import { fileURLToPath } from "node:url";
+import { createErrorReporter, logsLinkFrom } from "@app/error-reporting";
 import { serve } from "@hono/node-server";
 import { pino } from "pino";
 import ssr from "#ssr";
+import { setReportError } from "../src/report-hook.ts";
 import { createWebApp } from "./app.ts";
 
 // 画面のサービスの起動。`pnpm --filter @app/web build` で dist/index.js(1つの JS)になる。
 //   PORT             … 待ち受け(既定 3001。API の 3000 と同じタスクでも重ならないように)
 //   API_INTERNAL_URL … SSR から API を読む先(ECS では Service Connect の http://api:3000)
 //   LOG_LEVEL / SHUTDOWN_TIMEOUT_MS … API と同じ
+//   SENTRY_DSN / SENTRY_RELEASE / APP_ENV … 失敗を Sentry に送る(無ければ送らない)。ブラウザにも同じ DSN を渡す
+//   LOGS_INSIGHTS_REGION / LOGS_INSIGHTS_GROUPS … Sentry の1件にログを開くリンクを付ける
 
 const port = Number(process.env.PORT ?? 3001);
 const shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 25_000);
 
-// API と同じ形の JSON ログ(Logs Insights で service と requestId で引ける)
-const logger = pino({
-  level: process.env.LOG_LEVEL ?? "info",
-  base: { service: "web" },
-  messageKey: "message",
-  timestamp: pino.stdTimeFunctions.isoTime,
-  formatters: { level: (label) => ({ level: label }) },
-  redact: {
-    paths: ["cookie", "*.cookie", "authorization", "*.authorization"],
-    censor: "[REDACTED]",
-  },
+const logLevel = process.env.LOG_LEVEL ?? "info";
+
+// error 以上のログを Sentry にも送る(API と同じ。docs/guides/monitoring.md)
+const reporter = createErrorReporter({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.APP_ENV ?? "local",
+  service: "web",
+  release: process.env.SENTRY_RELEASE,
+  logsLink: logsLinkFrom(process.env.LOGS_INSIGHTS_REGION, process.env.LOGS_INSIGHTS_GROUPS),
 });
+// SSR の中(src/start.ts)の失敗も、同じ入口から送る
+setReportError(reporter?.report);
+
+// API と同じ形の JSON ログ(Logs Insights で service と requestId で引ける)
+const logger = pino(
+  {
+    level: logLevel,
+    base: { service: "web" },
+    messageKey: "message",
+    timestamp: pino.stdTimeFunctions.isoTime,
+    formatters: { level: (label) => ({ level: label }) },
+    redact: {
+      paths: ["cookie", "*.cookie", "authorization", "*.authorization"],
+      censor: "[REDACTED]",
+    },
+  },
+  reporter
+    ? pino.multistream([
+        { level: logLevel as pino.Level, stream: pino.destination(1) },
+        { level: "error", stream: reporter.stream },
+      ])
+    : undefined,
+);
 
 const lifecycle = { shuttingDown: false };
 const app = createWebApp({
@@ -52,7 +77,8 @@ function shutdown(signal: string) {
     process.exit(1);
   }, shutdownTimeoutMs);
   force.unref();
-  server.close(() => {
+  server.close(async () => {
+    await reporter?.flush(2_000);
     clearTimeout(force);
     logger.info("止まりました");
   });
@@ -63,11 +89,14 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 // どこにも受け止められなかった失敗。JSON で1行残して止まる(ECS が新しいタスクを立てる)。API と同じ決まり
-process.on("uncaughtException", (err) => {
-  logger.fatal({ err }, "受け止められなかった失敗で止まります");
+// Sentry に送り終わるのを2秒まで待つ
+async function die(err: unknown, message: string) {
+  logger.fatal({ err }, message);
+  await reporter?.flush(2_000);
   process.exit(1);
-});
-process.on("unhandledRejection", (err) => {
-  logger.fatal({ err }, "受け止められなかった Promise の失敗で止まります");
-  process.exit(1);
-});
+}
+process.on("uncaughtException", (err) => void die(err, "受け止められなかった失敗で止まります"));
+process.on(
+  "unhandledRejection",
+  (err) => void die(err, "受け止められなかった Promise の失敗で止まります"),
+);

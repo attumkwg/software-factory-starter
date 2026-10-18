@@ -48,3 +48,32 @@ variable "image_pull_account_ids" {
   default     = []
 }
 
+variable "slack_team_id" {
+  description = "Slack のワークスペースの ID(T…)。コンソールで Slack を許可したあとに分かる。null の間は Slack に流さない"
+  type        = string
+  default     = null
+}
+
+variable "slack_channel_id" {
+  description = "知らせを流すチャンネルの ID(C…)。stg と prod でチャンネルを分ける(例: #alerts-stg)"
+  type        = string
+  default     = null
+}
+
+variable "alert_emails" {
+  description = "メールでも受ける宛先(任意。作ったあと確認のメールのリンクを押す)"
+  type        = list(string)
+  default     = []
+}
+
+variable "monthly_budget_usd" {
+  description = "このアカウントの月の上限(ドル)。80% を使ったときと、月末の見込みが超えるときに知らせる"
+  type        = number
+  default     = 250
+}
+
+variable "sentry_dsn" {
+  description = "Sentry のプロジェクトの DSN(https://…)。秘密ではない(ブラウザにも渡る)。null の間は送らない"
+  type        = string
+  default     = null
+}

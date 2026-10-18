@@ -97,6 +97,29 @@ describe("ログに値を残さない", () => {
     expect(lines.join("")).not.toContain("taro@example.com");
     expect(lines.join("")).toContain("57P01");
   });
+
+  it("Sentry の出口には error 以上だけが、ログと同じく値を落とした形で行く", () => {
+    const toSentry: string[] = [];
+    const reporter = {
+      stream: new Writable({
+        write(chunk, _enc, cb) {
+          toSentry.push(chunk.toString());
+          cb();
+        },
+      }),
+      report: () => {},
+      flush: async () => {},
+    };
+    const destination = new Writable({ write: (_c, _e, cb) => cb() });
+    const logger = createLogger({ level: "info", destination, reporter });
+    logger.info({ path: "/api/x" }, "request");
+    logger.warn({ err: drizzleWrapped(pgError("23505")) }, "同時の変更とぶつかりました");
+    logger.error({ err: drizzleWrapped(pgError("57P01")) }, "失敗しました");
+    expect(toSentry).toHaveLength(1);
+    expect(toSentry[0]).toContain("57P01");
+    expect(toSentry[0]).not.toContain("秘密の案件名");
+    expect(toSentry[0]).not.toContain("taro@example.com");
+  });
 });
 
 describe("DB の接続が切れてもプロセスは落ちない", () => {
@@ -111,6 +134,40 @@ describe("DB の接続が切れてもプロセスは落ちない", () => {
     ).not.toThrow();
     expect(seen).toHaveLength(1);
     await pool.end();
+  });
+});
+
+describe("どの API で失敗したかをログ(と Sentry)に残す", () => {
+  it("5xx のログに、ID を入れる前の道すじが入る", async () => {
+    const lines: Record<string, unknown>[] = [];
+    const destination = new Writable({
+      write(chunk, _enc, cb) {
+        lines.push(JSON.parse(chunk.toString()));
+        cb();
+      },
+    });
+    const config = loadConfig({
+      APP_ENV: "test",
+      DATABASE_URL: "postgres://unused",
+      SESSION_SECRET: "x".repeat(32),
+    });
+    // DB の代わりに空の物を渡すので、ログインの途中で想定外の失敗(500)になる
+    const app = createApp({
+      config,
+      db: {} as RootDb,
+      logger: createLogger({ level: "info", destination }),
+    });
+    const res = await app.request("/api/auth/dev-login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "taro@example.com" }),
+    });
+    expect(res.status).toBe(500);
+    const failed = lines.find((l) => l.message === "失敗しました");
+    expect(failed).toMatchObject({ code: "internal", route: "POST /api/auth/dev-login" });
+    expect(lines.find((l) => l.message === "request")).toMatchObject({
+      route: "POST /api/auth/dev-login",
+    });
   });
 });
 

@@ -1,7 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { csrf } from "hono/csrf";
+import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
 import { authenticate } from "./auth/middleware.ts";
 import type { CognitoClient } from "./auth/providers.ts";
@@ -27,6 +28,14 @@ export type AppDeps = {
   cognito?: CognitoClient;
 };
 
+/**
+ * どの API か(メソッド+ID を入れる前の道すじ。例 "POST /api/projects/:projectId/tasks")。
+ * path と違って値(ID)が入らないので、Sentry にも送れる・Logs Insights で API ごとに数えられる。
+ */
+function routeOf(c: Context): string {
+  return `${c.req.method} ${routePath(c, -1)}`;
+}
+
 /** 1リクエストの文脈(request ID・trace ID)を作り、終わったらアクセスログを1行。 */
 function requestContext(logger: Logger): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -40,6 +49,7 @@ function requestContext(logger: Logger): MiddlewareHandler<AppEnv> {
         {
           method: c.req.method,
           path: c.req.path,
+          route: routeOf(c),
           status: c.res.status,
           durationMs: Math.round(performance.now() - started),
         },
@@ -115,8 +125,10 @@ export function createApp(deps: AppDeps) {
   app.onError((err, c) => {
     const requestId = getRequestContext()?.requestId;
     const apiError = toApiError(err);
-    if (apiError.status >= 500) logger.error({ err, code: apiError.code }, "失敗しました");
-    else if (apiError.code === "conflict") logger.warn({ err }, "同時の変更とぶつかりました");
+    const route = routeOf(c);
+    if (apiError.status >= 500) logger.error({ err, code: apiError.code, route }, "失敗しました");
+    else if (apiError.code === "conflict")
+      logger.warn({ err, route }, "同時の変更とぶつかりました");
     if (apiError.code === "service_unavailable") c.header("retry-after", "5");
     return c.json(
       { error: { code: apiError.code, message: apiError.message, requestId } },

@@ -1,3 +1,4 @@
+import { createErrorReporter } from "@app/error-reporting";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
@@ -8,7 +9,15 @@ import { outboxHandlers, startOutboxRelay } from "./outbox/index.ts";
 import { runOutsideRequestContext } from "./request-context.ts";
 
 const config = loadConfig();
-const logger = createLogger({ level: config.logLevel });
+// error 以上のログを Sentry にも送る(SENTRY_DSN が無ければ null。docs/guides/monitoring.md)
+const reporter = createErrorReporter({
+  dsn: config.sentry.dsn,
+  environment: config.appEnv,
+  service: "api",
+  release: config.sentry.release,
+  logsLink: config.sentry.logsLink,
+});
+const logger = createLogger({ level: config.logLevel, reporter });
 const { db, pool } = createDb(config.databaseUrl, {
   // 接続を作ったリクエストの文脈が残っているので、外して記録する
   onIdleError: (err) =>
@@ -62,6 +71,7 @@ async function shutdown(signal: string) {
   });
   await relay?.stop();
   await pool.end();
+  await reporter?.flush(2_000);
   clearTimeout(force);
   logger.info("止まりました");
 }
@@ -71,11 +81,14 @@ process.on("SIGINT", () => void shutdown("SIGINT"));
 
 // どこにも受け止められなかった失敗。状態が壊れているかもしれないので、JSON で1行残して止まる
 // (ECS が新しいタスクを立てる)。止まる前のログが Logs Insights で引けるように。
-process.on("uncaughtException", (err) => {
-  logger.fatal({ err }, "受け止められなかった失敗で止まります");
+// Sentry に送り終わるのを2秒まで待つ(待っても届かなければ、ログにだけ残る)。
+async function die(err: unknown, message: string) {
+  logger.fatal({ err }, message);
+  await reporter?.flush(2_000);
   process.exit(1);
-});
-process.on("unhandledRejection", (err) => {
-  logger.fatal({ err }, "受け止められなかった Promise の失敗で止まります");
-  process.exit(1);
-});
+}
+process.on("uncaughtException", (err) => void die(err, "受け止められなかった失敗で止まります"));
+process.on(
+  "unhandledRejection",
+  (err) => void die(err, "受け止められなかった Promise の失敗で止まります"),
+);

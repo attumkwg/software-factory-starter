@@ -5,6 +5,13 @@
 locals {
   env  = "stg"
   name = "${var.project}-${local.env}"
+  # 失敗を Sentry に送る(docs/guides/monitoring.md)。DSN が無ければ送らない
+  # Sentry の1件から、そのリクエストのログを開くリンクも付ける(API と画面のサーバーのロググループ)
+  sentry_environment = var.sentry_dsn == null ? {} : {
+    SENTRY_DSN           = var.sentry_dsn
+    LOGS_INSIGHTS_REGION = var.region
+    LOGS_INSIGHTS_GROUPS = "/ecs/${local.name},/ecs/${local.name}-web"
+  }
 }
 
 module "network" {
@@ -121,8 +128,9 @@ module "app" {
   desired_count      = 1
   # stg はすぐ消せるように
   deletion_protection = false
+  alarm_topic_arns    = [module.alerts.topic_arn]
 
-  environment = {
+  environment = merge({
     APP_ENV              = local.env
     AUTH_MODE            = "cognito"
     COGNITO_REGION       = var.region
@@ -132,7 +140,7 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }
+  }, local.sentry_environment)
   secrets = {
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
@@ -156,6 +164,7 @@ module "web" {
   name                          = "${local.name}-web"
   image                         = "${aws_ecr_repository.this["web"].repository_url}:${var.initial_image_tag}"
   desired_count                 = 1
+  alarm_topic_arns              = [module.alerts.topic_arn]
   cluster_arn                   = module.app.cluster_arn
   vpc_id                        = module.network.vpc_id
   private_subnet_ids            = module.network.private_subnet_ids
@@ -164,9 +173,10 @@ module "web" {
   alb_arn_suffix                = module.app.alb_arn_suffix
   api_security_group_id         = module.app.service_security_group_id
   service_connect_namespace_arn = module.app.service_connect_namespace_arn
-  environment = {
+  # 画面のサーバーとブラウザの失敗も同じ Sentry へ(DSN は秘密ではない。ブラウザに渡る)
+  environment = merge({
     APP_ENV = local.env
-  }
+  }, local.sentry_environment)
 }
 
 # ── メール(API → Postfix → SES)。docs/guides/mail.md ─────────────────────────────
@@ -242,6 +252,51 @@ module "waf" {
 }
 
 module "security_baseline" {
-  source = "../../modules/security-baseline"
-  name   = local.name
+  source             = "../../modules/security-baseline"
+  name               = local.name
+  findings_topic_arn = module.alerts.topic_arn
+}
+
+# ── 見張りと知らせ(アラーム → SNS → Slack)。docs/guides/monitoring.md ────────────────────
+
+module "alerts" {
+  source             = "../../modules/alerts"
+  name               = local.name
+  slack_team_id      = var.slack_team_id
+  slack_channel_id   = var.slack_channel_id
+  email_addresses    = var.alert_emails
+  monthly_budget_usd = var.monthly_budget_usd
+  extra_topic_arns   = [module.uptime.topic_arn]
+}
+
+module "monitoring" {
+  source       = "../../modules/monitoring"
+  name         = local.name
+  topic_arn    = module.alerts.topic_arn
+  cluster_name = module.app.cluster_name
+  cluster_arn  = module.app.cluster_arn
+  services = {
+    api  = { service_name = module.app.service_name, min_running = 1 }
+    web  = { service_name = module.web.service_name, min_running = 1 }
+    mail = { service_name = module.mail.service_name, min_running = 1 }
+  }
+  alb_arn_suffix = module.app.alb_arn_suffix
+  target_groups = {
+    api = module.app.target_group_arn_suffixes
+    web = module.web.target_group_arn_suffixes
+  }
+  db_cluster_identifier = module.aurora.cluster_identifier
+  certificate_arn       = aws_acm_certificate_validation.app.certificate_arn
+}
+
+# 外形監視(外から開けるか)。Route 53 の決まりで、アラームはバージニアに置く
+module "uptime" {
+  source          = "../../modules/uptime"
+  name            = local.name
+  domain          = var.app_domain
+  email_addresses = var.alert_emails
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
 }

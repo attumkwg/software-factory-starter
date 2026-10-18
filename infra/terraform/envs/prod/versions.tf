@@ -33,3 +33,17 @@ provider "aws" {
     }
   }
 }
+
+# 外形監視(Route 53 のヘルスチェック)の数字はバージニアにしか出ないので、アラームと通知はここに置く
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+  default_tags {
+    tags = {
+      Project     = var.project
+      Environment = local.env
+      ManagedBy   = "terraform"
+      Repository  = var.github_repository
+    }
+  }
+}
