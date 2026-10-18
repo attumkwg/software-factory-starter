@@ -7,6 +7,7 @@
 - ルート(`src/routes`)は入力と出力の形だけ。DB の読み書きは `src/repositories` に書き、`scopeOf(c)` を渡す。
 - リポジトリは RLS に頼り切らず、`tenantId` でも絞る(層を重ねる)。
 - 他社の物・無い物は 404。権限が無ければ 403。ログインしていなければ 401。
+- 失敗は投げるだけ(`errors.ts` の関数)。ルートで try/catch して形を作らない。`onError` が code に直し、ログは `logger.error({ err }, "…")` の形だけ(SQL の値が落ちる)。決まりは `docs/guides/error-handling.md`。
 - 入力は Zod で検証(`@app/shared` のスキーマを使う)。`sql.raw` は使わない。
 - テストは必ず2社で書く(`test/helpers/fixtures.ts` の `createTenantFixture`)。
 - 単体は `test/unit`(DB 無し)、DB が要るものは `test/integration/*.int.test.ts`(Testcontainers)。

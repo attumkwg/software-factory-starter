@@ -8,6 +8,7 @@ import {
   authErrors,
   badRequestError,
   bodyErrors,
+  conflictError,
   createRouter,
   json,
   jsonBody,
@@ -54,6 +55,8 @@ export const taskRoutes = createRouter()
         ...bodyErrors,
         ...authErrors,
         ...notFoundError,
+        // 確かめた直後にプロジェクトが消された(外部キー)
+        ...conflictError,
       },
     }),
     async (c) => {

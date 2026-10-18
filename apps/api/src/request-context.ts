@@ -19,6 +19,11 @@ export function getRequestContext(): RequestContext | undefined {
   return storage.getStore();
 }
 
+/** リクエストの文脈の外で動かす(DB の接続の出来事などに、たまたま前のリクエストの ID が付かないように)。 */
+export function runOutsideRequestContext<T>(fn: () => T): T {
+  return storage.exit(fn);
+}
+
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 const TRACEPARENT = /^[\da-f]{2}-([\da-f]{32})-[\da-f]{16}-[\da-f]{2}$/;
 const AMZN_TRACE_ROOT = /Root=1-([\da-f]{8})-([\da-f]{24})/;

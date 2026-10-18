@@ -53,9 +53,28 @@ export const UpdateTaskSchema = z
   });
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
 
+/**
+ * 失敗の種類。画面・スマホはこの code で分岐する(message は人が読む説明で、変わりうる)。
+ * 足すのはよいが、消す・意味を変えるのはしない(古い画面が残るため)。
+ */
+export const ERROR_CODES = [
+  "bad_request", // 入力が正しくない(400)
+  "unauthorized", // ログインしていない(401)
+  "login_failed", // ログインできなかった(401)
+  "forbidden", // 権限が無い(403)
+  "not_found", // 無い・他社の物(404)
+  "conflict", // ほかの変更とぶつかった(409)。読み直して、やり直せば通ることがある
+  "payload_too_large", // 本文が大きすぎる(413)
+  "unsupported_media_type", // 本文が JSON ではない(415)
+  "service_unavailable", // DB などが一時的に使えない(503)。少し待てば通る
+  "internal", // それ以外の想定外(500)
+] as const;
+export const ErrorCodeSchema = z.enum(ERROR_CODES);
+export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
+
 export const ErrorSchema = z.object({
   error: z.object({
-    code: z.string(),
+    code: ErrorCodeSchema,
     message: z.string(),
     requestId: z.string().optional(),
   }),

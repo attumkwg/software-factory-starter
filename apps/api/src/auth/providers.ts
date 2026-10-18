@@ -1,4 +1,5 @@
-import { createRemoteJWKSet, type JWTVerifyGetKey, jwtVerify } from "jose";
+import { createRemoteJWKSet, errors, type JWTVerifyGetKey, jwtVerify } from "jose";
+import { serviceUnavailable } from "../errors.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 認証(ログイン)は自作しない。本物は Cognito に任せ、ここは「差し替え口」だけ。
@@ -28,6 +29,11 @@ export class CognitoVerifier {
     this.#jwks = jwks ?? createRemoteJWKSet(new URL(`${this.#issuer}/.well-known/jwks.json`));
   }
 
+  /**
+   * トークンが正しくなければ null(→ 401)。
+   * Cognito の公開鍵を取りに行けない(通信の失敗・時間切れ・変な応答)ときは 503 を投げる。
+   * 「パスワードが違う」と「こちらが壊れている」を混ぜない(混ぜると障害に気づけない)。
+   */
   async verify(idToken: string): Promise<LoginIdentity | null> {
     try {
       const { payload } = await jwtVerify(idToken, this.#jwks, {
@@ -37,7 +43,12 @@ export class CognitoVerifier {
       });
       if (payload.token_use !== "id" || typeof payload.sub !== "string") return null;
       return { kind: "external", externalId: payload.sub };
-    } catch {
+    } catch (e) {
+      const infra =
+        !(e instanceof errors.JOSEError) ||
+        e instanceof errors.JWKSTimeout ||
+        e instanceof errors.JWKSInvalid;
+      if (infra) throw Object.assign(serviceUnavailable(), { cause: e });
       return null;
     }
   }

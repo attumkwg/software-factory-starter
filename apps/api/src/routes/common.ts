@@ -21,16 +21,22 @@ export const jsonBody = <T extends z.ZodType>(schema: T) => ({
 
 const error = (description: string) => json(ErrorSchema, description);
 
-/** ログインが要る API に付ける共通の失敗。 */
+/** ログインが要る API に付ける共通の失敗(どの API でも起きうる 500 / 503 も載せる)。 */
 export const authErrors = {
   401: error("ログインしていない"),
   403: error("権限が無い"),
+  500: error("想定外の失敗(中身は返さない。requestId でログを引く)"),
+  503: error("DB などが一時的に使えない(Retry-After の秒数を待って、やり直す)"),
 } as const;
 export const notFoundError = { 404: error("無い(他社の物も 404)") } as const;
 export const badRequestError = { 400: error("入力が正しくない") } as const;
-/** 本文(jsonBody)がある API に付ける失敗。本文が JSON でなければ 415。 */
+export const conflictError = {
+  409: error("ほかの変更とぶつかった(読み直して、やり直す)"),
+} as const;
+/** 本文(jsonBody)がある API に付ける失敗。本文が JSON でなければ 415、1MB を超えれば 413。 */
 export const bodyErrors = {
   400: error("入力が正しくない・本文が無い"),
+  413: error("本文が大きすぎる(1MB まで)"),
   415: error("本文が JSON ではない"),
 } as const;
 

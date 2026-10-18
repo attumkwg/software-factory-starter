@@ -18,6 +18,7 @@ import { getRequest } from "@tanstack/react-start/server";
 //   SSR     … API_INTERNAL_URL へ直接(ECS の Service Connect)。来た Cookie と request ID を渡す
 // SSR から API を呼ぶのは読み取り(GET)だけ。書き込みは必ずブラウザから(CSRF の守りを通す)。
 
+/** API が失敗を返した(4xx / 5xx)。code で分岐する(packages/shared の ERROR_CODES)。 */
 export class HttpError extends Error {
   constructor(
     readonly status: number,
@@ -25,9 +26,40 @@ export class HttpError extends Error {
   ) {
     super(body?.error.message ?? `HTTP ${status}`);
   }
+  get code() {
+    return this.body?.error.code;
+  }
+  get requestId() {
+    return this.body?.error.requestId;
+  }
 }
 
-type Target = { base: string; headers: Record<string, string> };
+/**
+ * API まで届かなかった(通信が切れている・時間切れ)。
+ * side … どこで起きたか。browser なら利用者の通信の問題かもしれない。server(SSR)ならこちらの問題。
+ */
+export class NetworkError extends Error {
+  constructor(
+    readonly reason: "timeout" | "unreachable",
+    readonly side: "server" | "browser",
+    options?: { cause?: unknown },
+  ) {
+    super(
+      reason === "timeout" ? "API の応答が時間内にありませんでした" : "API に届きませんでした",
+      options,
+    );
+  }
+}
+
+type Failure = { method: string; path: string; status?: number; reason?: string };
+type Target = {
+  side: "server" | "browser";
+  base: string;
+  headers: Record<string, string>;
+  timeoutMs: number;
+  /** 失敗を記録する(SSR だけ。ブラウザの失敗は画面に出す) */
+  report: (failure: Failure) => void;
+};
 
 // SSR のときに API へ引き継ぐヘッダー。これ以外(Host・Authorization など)は渡さない。
 const FORWARDED_HEADERS = ["cookie", "x-request-id", "traceparent", "x-amzn-trace-id"];
@@ -41,21 +73,62 @@ const target = createIsomorphicFn()
       const value = incoming.get(name);
       if (value) headers[name] = value;
     }
-    return { base: process.env.API_INTERNAL_URL ?? "http://localhost:3000", headers };
+    return {
+      side: "server",
+      base: process.env.API_INTERNAL_URL ?? "http://localhost:3000",
+      headers,
+      // ALB の待ち時間(60秒)より十分短く。API が詰まっても画面のサーバーまで詰まらない
+      timeoutMs: 10_000,
+      // 画面のサーバーの JSON ログと同じ形(server/index.ts)。Logs Insights で requestId から API の行と突き合わせる
+      report: (failure) =>
+        process.stdout.write(
+          `${JSON.stringify({
+            level: failure.status !== undefined && failure.status < 500 ? "warn" : "error",
+            time: new Date().toISOString(),
+            service: "web",
+            requestId: headers["x-request-id"] ?? null,
+            ...failure,
+            message: "SSR から API を読めませんでした",
+          })}\n`,
+        ),
+    };
   })
-  .client((_method: string): Target => ({ base: "", headers: {} }));
+  .client(
+    (_method: string): Target => ({
+      side: "browser",
+      base: "",
+      headers: {},
+      timeoutMs: 15_000,
+      report: () => {},
+    }),
+  );
+
+const isApiError = (v: unknown): v is ApiError =>
+  typeof v === "object" && v !== null && typeof (v as ApiError).error?.code === "string";
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const { base, headers } = target(method);
-  const res = await fetch(`${base}/api${path}`, {
-    method,
-    credentials: "same-origin",
-    headers: body === undefined ? headers : { ...headers, "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const { side, base, headers, timeoutMs, report } = target(method);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api${path}`, {
+      method,
+      credentials: "same-origin",
+      headers: body === undefined ? headers : { ...headers, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (cause) {
+    const reason =
+      cause instanceof DOMException && cause.name === "TimeoutError" ? "timeout" : "unreachable";
+    report({ method, path, reason });
+    throw new NetworkError(reason, side, { cause });
+  }
   if (!res.ok) {
-    const parsed = (await res.json().catch(() => null)) as ApiError | null;
-    throw new HttpError(res.status, parsed);
+    // ALB が返す 502 / 504 は HTML なので、決まった形でなければ本文は無い扱い
+    const parsed = await res.json().catch(() => null);
+    // 401 はログインし直せばよいので、記録しない
+    if (res.status !== 401) report({ method, path, status: res.status });
+    throw new HttpError(res.status, isApiError(parsed) ? parsed : null);
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }

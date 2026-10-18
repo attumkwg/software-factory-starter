@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { csrf } from "hono/csrf";
-import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { authenticate } from "./auth/middleware.ts";
 import type { CognitoVerifier } from "./auth/providers.ts";
@@ -10,7 +10,7 @@ import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
 import type { AppEnv } from "./env.ts";
-import { ApiError } from "./errors.ts";
+import { payloadTooLarge, toApiError } from "./errors.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
@@ -56,9 +56,18 @@ export function createApp(deps: AppDeps) {
 
   app.use("*", requestContext(logger));
   app.use("*", secureHeaders());
-  app.route("/", healthRoutes({ db, lifecycle }));
+  app.route("/", healthRoutes({ db, lifecycle, logger }));
 
-  // ここから下の /api/* は、全部「セッションを読む → 認可の関所」を通る
+  // ここから下の /api/* は、全部「本文の大きさ → セッションを読む → 認可の関所」を通る
+  app.use(
+    "/api/*",
+    bodyLimit({
+      maxSize: 1024 * 1024,
+      onError: () => {
+        throw payloadTooLarge();
+      },
+    }),
+  );
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
   app.use("/api/*", authorize({ db, logger }));
@@ -98,25 +107,20 @@ export function createApp(deps: AppDeps) {
     ),
   );
 
+  // 失敗はすべてここで同じ形にする(errors.ts)。中身(SQL・値・スタック)は返さない。
+  //   4xx … 利用者の側の問題。ログは残さない(アクセスログに status が出る)
+  //   409 … 同時の変更。多いと設計の問題なので warn で数える
+  //   5xx … こちらの問題。error で残す(503 は待てば通るので Retry-After を付ける)
   app.onError((err, c) => {
     const requestId = getRequestContext()?.requestId;
-    if (err instanceof ApiError) {
-      return c.json({ error: { code: err.code, message: err.message, requestId } }, err.status);
-    }
-    if (err instanceof HTTPException) {
-      return c.json(
-        {
-          error: {
-            code: "http_error",
-            message: err.message || "このリクエストは受け付けられません",
-            requestId,
-          },
-        },
-        err.status,
-      );
-    }
-    logger.error({ err }, "unhandled error");
-    return c.json({ error: { code: "internal", message: "内部エラーです", requestId } }, 500);
+    const apiError = toApiError(err);
+    if (apiError.status >= 500) logger.error({ err, code: apiError.code }, "失敗しました");
+    else if (apiError.code === "conflict") logger.warn({ err }, "同時の変更とぶつかりました");
+    if (apiError.code === "service_unavailable") c.header("retry-after", "5");
+    return c.json(
+      { error: { code: apiError.code, message: apiError.message, requestId } },
+      apiError.status,
+    );
   });
 
   return app;

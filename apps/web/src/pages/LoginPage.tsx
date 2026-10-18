@@ -2,6 +2,7 @@ import { Button, Card, Heading, Muted, Page, Stack, TextField } from "@app/ui";
 import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api } from "../api.ts";
+import { describeError, errorText } from "../errors.ts";
 
 // 開発環境(local / preview)だけの簡易ログイン。本番は Cognito のホスト UI に飛ばす(差し替え口は API 側)。
 const DEV_USERS = ["admin@acme.test", "member@acme.test", "viewer@acme.test", "admin@globex.test"];
@@ -10,15 +11,22 @@ export function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState(DEV_USERS[0] ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (pending) return;
     setError(null);
+    setPending(true);
     try {
       await api.devLogin(email);
-    } catch {
-      setError("ログインできませんでした");
+    } catch (err) {
+      // どこが違ったか(その人がいない・パスワードが違う)は言わない(messages.ts の決まり 2)。
+      // 「こちらが止まっている・通信が切れている」は、登録の有無と関係ないので分けて伝える
+      setError(errorText(describeError(err)));
       return;
+    } finally {
+      setPending(false);
     }
     router.clearCache();
     await router.navigate({ to: "/" });
@@ -43,7 +51,7 @@ export function LoginPage() {
                 errorMessage={error ?? undefined}
               />
               <div>
-                <Button type="submit" variant="primary">
+                <Button type="submit" variant="primary" isDisabled={pending}>
                   ログイン
                 </Button>
               </div>
