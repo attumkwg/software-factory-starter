@@ -1,11 +1,10 @@
 # Cognito でのログインを手元で丸ごと試す(偽物の Cognito を使う。AWS は要らない)。
 #   docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d
-#   → http://localhost:8080 の「ログイン」で、偽物の Cognito の画面(http://fake-cognito.localhost:9231)へ
+#   → http://localhost:8080 で、登録・確認コード・ログイン・二段階認証・パスワードの再設定
+#     確認コードのメールは、本番と同じ Postfix を通って Mailpit(http://localhost:8025)に届く
 #   E2E: E2E_AUTH=cognito pnpm test:e2e
 # 普段の開発は docker-compose.yml だけ(開発用ログイン)でよい。ここにある値はすべて手元専用で、秘密ではない。
-#
-# fake-cognito.localhost という名前にしているのは、ブラウザ(*.localhost は自分の PC)からも、
-# API のコンテナ(下の aliases)からも、同じ URL で届くようにするため。本物の Cognito も1つの URL で答える。
+# 偽物が本物とずれていないかは、契約テスト(packages/fake-cognito/contract)が確かめる。
 
 services:
   fake-cognito:
@@ -14,18 +13,17 @@ services:
       context: .
       dockerfile: packages/fake-cognito/Dockerfile
     environment:
-      FAKE_COGNITO_BASE_URL: http://fake-cognito.localhost:9231
+      FAKE_COGNITO_BASE_URL: http://fake-cognito:9231
       FAKE_COGNITO_USER_POOL_ID: local_fakepool
       FAKE_COGNITO_CLIENT_ID: local-web-client
-      FAKE_COGNITO_CALLBACK_URLS: http://localhost:8080/api/auth/callback
-      FAKE_COGNITO_LOGOUT_URLS: http://localhost:8080/login
-      FAKE_COGNITO_EMAILS: admin@acme.test,member@acme.test,viewer@acme.test,admin@globex.test
+      FAKE_COGNITO_SMTP_URL: smtp://postfix:25
+      FAKE_COGNITO_MAIL_FROM: Tasks <no-reply@example.test>
     ports:
+      # E2E が、テストの前に人を消す・二段階認証を設定するために直接つなぐ
       - "9231:9231"
-    networks:
-      default:
-        aliases:
-          - fake-cognito.localhost
+    depends_on:
+      postfix:
+        condition: service_healthy
 
   api:
     environment:
@@ -33,8 +31,7 @@ services:
       COGNITO_REGION: ap-northeast-1
       COGNITO_USER_POOL_ID: local_fakepool
       COGNITO_CLIENT_ID: local-web-client
-      COGNITO_DOMAIN: http://fake-cognito.localhost:9231
-      COGNITO_ISSUER: http://fake-cognito.localhost:9231/local_fakepool
+      COGNITO_ENDPOINT: http://fake-cognito:9231
       APP_URL: http://localhost:8080
     depends_on:
       fake-cognito:

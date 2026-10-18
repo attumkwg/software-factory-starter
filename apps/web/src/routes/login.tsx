@@ -1,17 +1,17 @@
 import { safeReturnTo } from "@app/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { api } from "../api.ts";
-import { LOGIN_PAGE_ERRORS, LoginPage, type LoginPageError } from "../pages/LoginPage.tsx";
+import { type LoginNotice, LoginPage } from "../pages/LoginPage.tsx";
 
-type LoginSearch = { error?: LoginPageError; returnTo?: string };
+type LoginSearch = { notice?: LoginNotice; returnTo?: string };
+const NOTICES: readonly LoginNotice[] = ["registered", "reset"];
 
 export const Route = createFileRoute("/login")({
-  // Cognito から戻ったときの失敗は、API が /login?error=<code> に返す(apps/api/src/auth/routes.ts)。
-  // 知っている code だけを受け取り、文は messages.ts の固定の文を出す(URL の値をそのまま画面に出さない)。
+  // 知っている値だけを受け取る(URL の値をそのまま画面に出さない。文は messages.ts の固定の文)
   validateSearch: (search: Record<string, unknown>): LoginSearch => {
-    const error = LOGIN_PAGE_ERRORS.find((e) => e === search.error);
+    const notice = NOTICES.find((n) => n === search.notice);
     const returnTo = safeReturnTo(search.returnTo);
-    return { ...(error ? { error } : {}), ...(returnTo !== "/" ? { returnTo } : {}) };
+    return { ...(notice ? { notice } : {}), ...(returnTo !== "/" ? { returnTo } : {}) };
   },
   // もうログインしていれば、戻り先(無ければ一覧)へ
   beforeLoad: async ({ search }) => {
@@ -25,6 +25,6 @@ export const Route = createFileRoute("/login")({
 
 function LoginRoute() {
   const options = Route.useLoaderData();
-  const { error, returnTo } = Route.useSearch();
-  return <LoginPage options={options} error={error} returnTo={safeReturnTo(returnTo)} />;
+  const { notice, returnTo } = Route.useSearch();
+  return <LoginPage options={options} notice={notice} returnTo={safeReturnTo(returnTo)} />;
 }
