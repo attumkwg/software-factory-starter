@@ -10,8 +10,8 @@ rules:
     languages: [typescript]
     paths:
       include:
-        - "/apps/api/src/routes/"
-        - "/apps/api/src/repositories/"
+        # 領域の中(ルートとリポジトリ)。ADR 0004
+        - "/apps/api/src/domains/"
     pattern-either:
       # pg と db/client(接続プール)を読み込むこと自体を止める(型だけの import type はよい)
       - pattern-regex: (?m)^import\s+(?!type\s)[^;]*?from\s+["'](pg|(\.\.?/)+db/client(\.ts)?)["']
@@ -72,14 +72,14 @@ rules:
 
   - id: request-body-must-use-jsonbody
     message: >-
-      API の本文は routes/common.ts の jsonBody(schema) で書く(本文が必須になる)。
+      API の本文は http/common.ts の jsonBody(schema) で書く(本文が必須になる)。
       body: { content: ... } と直接書くと、本文が無いリクエストが検証を素通りし、空のまま処理が進む
       (Schemathesis が見つけた 500。test/integration/input-validation.int.test.ts)。
     severity: ERROR
     languages: [typescript]
     paths:
       include: ["/apps/api/src/"]
-      exclude: ["/apps/api/src/routes/common.ts"]
+      exclude: ["/apps/api/src/http/common.ts"]
     pattern-regex: '\bbody:\s*\{\s*content:'
 
   - id: web-writes-through-use-action

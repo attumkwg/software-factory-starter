@@ -1,7 +1,7 @@
 import type { Task, UpdateTask } from "@app/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { tasks } from "../db/schema.ts";
-import type { TenantScope } from "./scope.ts";
+import type { TenantScope } from "../../db/scope.ts";
+import { tasks } from "./schema.ts";
 
 type Row = typeof tasks.$inferSelect;
 const toTask = (r: Row): Task => ({

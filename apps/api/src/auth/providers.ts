@@ -8,7 +8,7 @@ import { serviceUnavailable } from "../errors.ts";
 //             以外では起動させない(stg / prod で有効にすると起動時に落ちる)。
 //   cognito … Cognito のホスト UI でログインした結果の ID トークンを検証する。
 //
-// どちらも「この人は users のどの行か」を返すだけ。セッションを作るのは routes/auth.ts。
+// どちらも「この人は users のどの行か」を返すだけ。セッションを作るのは auth/routes.ts。
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type LoginIdentity =

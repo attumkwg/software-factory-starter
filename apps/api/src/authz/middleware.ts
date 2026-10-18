@@ -1,9 +1,8 @@
-import { and, eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { matchedRoutes } from "hono/route";
 import type { RootDb } from "../db/client.ts";
-import { users } from "../db/schema.ts";
 import { withTenant } from "../db/tenant.ts";
+import { findRole } from "../domains/organizations/index.ts";
 import type { AppEnv } from "../env.ts";
 import { forbidden, unauthorized } from "../errors.ts";
 import type { Logger } from "../logger.ts";
@@ -41,14 +40,11 @@ export function authorize(deps: { db: RootDb; logger: Logger }): MiddlewareHandl
 
     try {
       await withTenant(deps.db, session.tenantId, async (tx) => {
-        const [user] = await tx
-          .select({ role: users.role })
-          .from(users)
-          .where(and(eq(users.id, session.userId), eq(users.tenantId, session.tenantId)));
-        if (!user) throw unauthorized();
-        if (!can(user.role, rule)) throw forbidden();
+        const role = await findRole(tx, session.tenantId, session.userId);
+        if (!role) throw unauthorized();
+        if (!can(role, rule)) throw forbidden();
 
-        c.set("actor", { userId: session.userId, tenantId: session.tenantId, role: user.role });
+        c.set("actor", { userId: session.userId, tenantId: session.tenantId, role });
         c.set("tx", tx);
         await next();
         // ハンドラーが失敗していたら、書いた物を取り消す

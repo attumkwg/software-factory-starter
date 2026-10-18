@@ -1,11 +1,11 @@
 import { MeSchema } from "@app/shared";
 import { createRoute } from "@hono/zod-openapi";
-import { unauthorized } from "../errors.ts";
-import { getMe } from "../repositories/me.ts";
-import { scopeOf } from "../repositories/scope.ts";
-import { authErrors, createRouter, json } from "./common.ts";
+import { scopeOf } from "../../db/scope.ts";
+import { unauthorized } from "../../errors.ts";
+import { authErrors, createRouter, json } from "../../http/common.ts";
+import { getMe } from "./repository.ts";
 
-export const meRoutes = createRouter().openapi(
+export const organizationRoutes = createRouter().openapi(
   createRoute({
     method: "get",
     path: "/me",

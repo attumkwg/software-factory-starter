@@ -15,6 +15,13 @@
       "when": 1792217086110,
       "tag": "0001_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792288226676,
+      "tag": "0002_domain_schemas",
+      "breakpoints": true
     }
   ]
 }

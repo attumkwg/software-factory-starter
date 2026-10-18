@@ -9,14 +9,14 @@ import { authRoutes } from "./auth/routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
+import { organizationRoutes } from "./domains/organizations/index.ts";
+import { projectRoutes } from "./domains/projects/index.ts";
+import { taskRoutes } from "./domains/tasks/index.ts";
 import type { AppEnv } from "./env.ts";
 import { payloadTooLarge, toApiError } from "./errors.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
-import { meRoutes } from "./routes/me.ts";
-import { projectRoutes } from "./routes/projects.ts";
-import { taskRoutes } from "./routes/tasks.ts";
 
 export type AppDeps = {
   config: Config;
@@ -81,7 +81,8 @@ export function createApp(deps: AppDeps) {
       auth: { ...config.auth, cognitoVerifier: deps.cognitoVerifier },
     }),
   );
-  app.route("/api", meRoutes);
+  // 領域ごとのルート(src/domains/<領域>/routes.ts)
+  app.route("/api", organizationRoutes);
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
 

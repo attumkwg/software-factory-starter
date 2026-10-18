@@ -1,9 +1,7 @@
 import { CreateTaskSchema, IdSchema, TaskSchema, UpdateTaskSchema } from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
-import { notFound } from "../errors.ts";
-import { getProject } from "../repositories/projects.ts";
-import { scopeOf } from "../repositories/scope.ts";
-import { createTask, deleteTask, listTasks, updateTask } from "../repositories/tasks.ts";
+import { scopeOf } from "../../db/scope.ts";
+import { notFound } from "../../errors.ts";
 import {
   authErrors,
   badRequestError,
@@ -13,7 +11,10 @@ import {
   json,
   jsonBody,
   notFoundError,
-} from "./common.ts";
+} from "../../http/common.ts";
+// ほかの領域(projects)は index.ts の関数だけを使う。表を直接読まない
+import { projectExists } from "../projects/index.ts";
+import { createTask, deleteTask, listTasks, updateTask } from "./repository.ts";
 
 const ProjectParams = z.object({ projectId: IdSchema });
 const TaskParams = z.object({ taskId: IdSchema });
@@ -36,7 +37,7 @@ export const taskRoutes = createRouter()
     async (c) => {
       const scope = scopeOf(c);
       const { projectId } = c.req.valid("param");
-      if (!(await getProject(scope, projectId))) throw notFound();
+      if (!(await projectExists(scope, projectId))) throw notFound();
       return c.json({ tasks: await listTasks(scope, projectId) }, 200);
     },
   )
@@ -62,7 +63,7 @@ export const taskRoutes = createRouter()
     async (c) => {
       const scope = scopeOf(c);
       const { projectId } = c.req.valid("param");
-      if (!(await getProject(scope, projectId))) throw notFound();
+      if (!(await projectExists(scope, projectId))) throw notFound();
       return c.json(await createTask(scope, projectId, c.req.valid("json")), 201);
     },
   )
