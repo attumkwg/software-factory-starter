@@ -1,4 +1,4 @@
-# 戻す訓練(毎月): stg の DB を一時の DB に時点復元し、表・移行・行の数を確かめて消す。
+# 戻す訓練(有効にすれば毎月): stg の DB を一時の DB に時点復元し、表・移行・行の数を確かめて消す。
 # 「バックアップがある」ではなく「戻せる」ことを、毎月確かめる(手順書 docs/runbooks/db-restore.md)。
 #   戻すのにかかった時間・どの時点まで戻せたかを、実行の Summary に残す(手順書の「目安」の元)。
 #   落ちたら Issue を立てる。prod は四半期に1回、人が手順書どおりに(本物のお客さんのデータなので自動にしない)。
@@ -9,10 +9,13 @@
 # 費用: 一時の DB(0.5〜2 ACU)を30分ほど動かす分 = 1回 数十円。
 name: Restore drill
 
+# いまは手動だけ(Actions → Restore drill → Run workflow)。自動にするときは schedule のコメントを外す。
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 1 1 * *" # 毎月1日 日本時間 10:00
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎月1日に stg の DB を一時の DB に戻して確かめる(1回 数十円)。
+  # schedule:
+  #   - cron: "0 1 1 * *" # 毎月1日 日本時間 10:00
 
 permissions:
   contents: read
