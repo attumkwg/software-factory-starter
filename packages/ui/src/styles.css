@@ -291,6 +291,20 @@ body {
   color: var(--color-danger);
 }
 
+.ui-alert {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid currentColor;
+  border-left-width: var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.ui-alert--danger {
+  color: var(--color-danger);
+}
+.ui-alert--info {
+  color: var(--color-info);
+}
+
 /* ── 並べる・囲む ── */
 .ui-page {
   max-width: 48rem;

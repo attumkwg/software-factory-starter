@@ -9,6 +9,7 @@ coverage/
 
 # Playwright
 playwright-report/
+playwright-report-cognito/
 test-results/
 blob-report/
 

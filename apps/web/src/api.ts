@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  AuthOptions,
   CreateProject,
   CreateTask,
   Me,
@@ -134,6 +135,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const api = {
+  authOptions: () => request<AuthOptions>("GET", "/auth/options"),
   devLogin: (email: string) => request<{ ok: true }>("POST", "/auth/dev-login", { email }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/me"),
