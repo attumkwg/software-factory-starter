@@ -28,3 +28,6 @@ crash.log
 
 # 手元の検査の結果(security:fuzz など)
 reports/
+
+# 生成物(pnpm openapi)
+apps/api/openapi.json
