@@ -64,3 +64,28 @@ export async function webWrites() {
   // ok: web-writes-through-use-action
   await api.listProjects();
 }
+
+declare const unitPrice: number;
+declare const totalAmount: number;
+declare const createdAt: Date;
+
+export function moneyAndTime() {
+  // ruleid: no-float-money
+  const withTax = unitPrice * 1.1;
+  // ruleid: no-float-money
+  const shown = totalAmount.toFixed(2);
+  // ok: no-float-money
+  const doubled = totalAmount * 2;
+
+  // ruleid: no-local-time
+  const hour = createdAt.getHours();
+  // ruleid: no-local-time
+  const day = new Date(2026, 9, 18);
+  // ruleid: no-local-time
+  const label = createdAt.toLocaleDateString("ja-JP");
+  // ok: no-local-time
+  const utcDay = new Date(Date.UTC(2026, 9, 18)).getUTCDate();
+  // ok: no-local-time
+  const tokyo = createdAt.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
+  return [withTax, shown, doubled, hour, day, label, utcDay, tokyo];
+}

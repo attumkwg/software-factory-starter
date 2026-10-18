@@ -10,6 +10,7 @@ export async function getMe(s: TenantScope): Promise<Me | null> {
       userId: users.id,
       tenantId: users.tenantId,
       tenantName: tenants.name,
+      timeZone: tenants.timeZone,
       email: users.email,
       name: users.name,
       role: users.role,

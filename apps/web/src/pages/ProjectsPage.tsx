@@ -43,7 +43,7 @@ export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) 
     {
       id: "createdAt",
       header: "作った日",
-      cell: (p) => formatDate(p.createdAt),
+      cell: (p) => formatDate(p.createdAt, me.timeZone),
     },
   ];
   if (canDeleteProject(me.role)) {

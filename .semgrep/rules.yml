@@ -97,3 +97,47 @@ rules:
           metavariable: $METHOD
           regex: ^(create|update|delete|logout)
       - pattern-not-inside: $ACTION.run(...)
+
+  - id: no-float-money
+    message: >-
+      お金を普通の数(小数)で計算しない(0.1 + 0.2 が 0.30000000000000004 になる・丸め方が決まらない)。
+      @app/shared の money.ts(multiply・sum・allocate・taxByRate)を使い、丸め方を必ず渡す。ADR 0005
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+      exclude: ["/packages/shared/src/money.ts"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $X * $N
+              - pattern: $N * $X
+              - pattern: $X / $N
+          - metavariable-regex:
+              metavariable: $X
+              regex: (?i).*(price|amount|total|tax|fee|cost|subtotal|discount|金額|税).*
+          - metavariable-regex:
+              metavariable: $N
+              regex: ^\d*\.\d+$
+      - pattern: $V.toFixed(...)
+
+  - id: no-local-time
+    message: >-
+      端末やサーバーの時間帯に頼った日時の扱いをしない(サーバーは UTC・利用者は日本とは限らない・SSR で表示がずれる)。
+      日付は @app/shared の time.ts(toLocalDate・localDayRange)、表示は apps/web/src/format.ts に組織の時間帯を渡す。ADR 0005
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+    pattern-either:
+      # その場所の時計で年・月・日・時を読む / 書く
+      - pattern-regex: \.(get|set)(FullYear|Month|Date|Day|Hours|Minutes)\(
+      # 年月日の数から Date を作る(その場所の時計の時刻になる)。Date.UTC(...) はよい
+      - pattern: new Date($Y, $M, ...)
+      # 時間帯を渡さない表示
+      - pattern: $D.toLocaleDateString()
+      - pattern: $D.toLocaleDateString($L)
+      - pattern: $D.toLocaleTimeString()
+      - pattern: $D.toLocaleTimeString($L)
+      - pattern: $D.toLocaleString()
+      - pattern: $D.toLocaleString($L)

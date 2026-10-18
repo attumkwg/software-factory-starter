@@ -1,4 +1,4 @@
-import { ROLES } from "@app/shared";
+import { DEFAULT_TIME_ZONE, ROLES } from "@app/shared";
 import { pgSchema, text, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, id } from "../../db/columns.ts";
 
@@ -12,6 +12,9 @@ export const roleEnum = organizations.enum("role", ROLES);
 export const tenants = organizations.table("tenants", {
   tenantId: id("tenant_id"),
   name: text("name").notNull(),
+  // 画面で時刻を見せる時間帯・「1日」の区切り(ADR 0005)。IANA の名前("Asia/Tokyo")。
+  // 正しい名前かはアプリ(@app/shared の TimeZoneSchema)で確かめる
+  timeZone: text("time_zone").notNull().default(DEFAULT_TIME_ZONE),
   createdAt: createdAt(),
 });
 

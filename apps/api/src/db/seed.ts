@@ -10,6 +10,8 @@ import { withTenant } from "./tenant.ts";
 type SeedTenant = {
   tenantId: string;
   name: string;
+  /** 2社で時間帯を変えておく(時刻の表示が組織ごとになっているかを確かめるため) */
+  timeZone: string;
   users: { id: string; email: string; name: string; role: Role }[];
   projects: { id: string; name: string; tasks: string[] }[];
 };
@@ -18,6 +20,7 @@ export const SEED: SeedTenant[] = [
   {
     tenantId: "0199a000-0000-7000-8000-00000000a001",
     name: "Acme 株式会社",
+    timeZone: "Asia/Tokyo",
     users: [
       {
         id: "0199a000-0000-7000-8000-0000000a0001",
@@ -49,6 +52,7 @@ export const SEED: SeedTenant[] = [
   {
     tenantId: "0199a000-0000-7000-8000-00000000b001",
     name: "Globex 合同会社",
+    timeZone: "America/Los_Angeles",
     users: [
       {
         id: "0199a000-0000-7000-8000-0000000b0001",
@@ -75,7 +79,7 @@ export async function seed(databaseUrl: string | undefined): Promise<void> {
       await withTenant(db, t.tenantId, async (tx) => {
         await tx
           .insert(tenants)
-          .values({ tenantId: t.tenantId, name: t.name })
+          .values({ tenantId: t.tenantId, name: t.name, timeZone: t.timeZone })
           .onConflictDoNothing();
         await tx
           .insert(users)
