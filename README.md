@@ -22,7 +22,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  │  ├─ src/app.ts             組み立て(request ID → セッション → 認可の関所 → ルート)
 │  │  ├─ src/index.ts           起動と SIGTERM での停止
 │  │  ├─ src/cli.ts             移行・種データ・使い捨て DB のロール作成
-│  │  ├─ src/auth/              認証: 開発用ログイン / Cognito(API が code を受け取る・トークンはサーバーの中だけ)・署名つき Cookie
+│  │  ├─ src/auth/              認証: 開発用ログイン / Cognito(自前の画面 → API → Cognito の API。トークンはサーバーの中だけ)・署名つき Cookie
 │  │  ├─ src/authz/             認可: 既定は拒否のポリシー(policy.ts)と関所(middleware.ts)
 │  │  ├─ src/db/                Drizzle のスキーマ・withTenant(SET LOCAL)・種データ
 │  │  ├─ src/domains/           領域ごと(organizations・projects・tasks)の表・読み書き・API。ほかからは index.ts だけ
@@ -41,12 +41,12 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
-├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし。docker-compose.cognito.yml・テストで使う)
+├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし)と、本物と比べる契約テスト(contract/)
 ├─ docker/postfix/              メールの中継(Postfix)。本番は ECS(送り待ちは EFS)→ SES、手元は Mailpit
 ├─ docs/
 │  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
-│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン)
+│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・preview-env・github-oidc
@@ -270,6 +270,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `AWS_STG_DEPLOY_ROLE_ARN` / `AWS_PROD_DEPLOY_ROLE_ARN` | `<project>-<env>-deploy` | deploy |
 | `ECR_REPOSITORY_URL` / `WEB_ECR_REPOSITORY_URL` | stg の出力(API / 画面) | deploy |
 | `MAIL_ECR_REPOSITORY_URL` | stg の出力 `mail_ecr_repository_url`(メールの中継) | deploy-mail-relay |
+| `AWS_STG_COGNITO_CONTRACT_ROLE_ARN` / `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` | stg の出力(`github_role_arns` の `…-cognito-contract`・`cognito_user_pool_id`・`cognito_client_id`) | cognito-contract |
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
 
@@ -283,8 +284,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 
 ## 📏 わざとやっていないこと(次の一歩)
 
-- **ログインの画面を自作する**(次の PR): いまは Cognito の画面(Managed Login)で、デザインシステムと見た目がそろわない。画面だけを自作し、パスワード・MFA・確認コードは Cognito のまま(ADR 0007 の「次にやること」)。
-- **偽物の Cognito と本物の契約テスト**: 同じテストを偽物(PR ごと)と stg の本物(週1回)に流し、ずれに気づく。ログインの画面を自作する PR で一緒に作る。
+- **二段階認証の設定の画面・メールアドレスとパスワードの変更**: ログイン・登録・再設定の画面までは自前(ADR 0009)。設定の画面は次の PR。
 - **メールの受け取らない設定・まとめ送り・HTML のメール**(spec 0002 の「やらないこと」)。
 - **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。

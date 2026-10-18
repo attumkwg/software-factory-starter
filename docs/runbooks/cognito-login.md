@@ -1,6 +1,6 @@
 # 手順書: Cognito でのログイン(人を入れる・ログインできないとき)
 
-> 決まり: **誰でも Cognito に登録できる。アプリに入れるのは `organizations.users` にいる人だけ**(ADR 0007)。
+> 決まり: **誰でも登録できる。アプリに入れるのは `organizations.users` にいる人だけ**(ADR 0007・0009)。
 > 初めてのログインで、Cognito が「確認済み」と言うメールが users の行と一致したら、その行に Cognito の sub が結びつく。
 
 ## 新しい人を入れる
@@ -13,26 +13,27 @@ INSERT INTO organizations.users (id, tenant_id, email, name, role)
 VALUES (gen_random_uuid(), '<組織の tenant_id>', 'new.person@example.com', '新しい人', 'member');
 ```
 
-その人に「アプリの URL を開いて『ログイン』→ 初めてなら Cognito の画面で登録 → メールの確認コードを入れる」と伝える。
+その人に「アプリの URL を開いて『初めての方は登録』→ メールの確認コードを入れる → ログイン」と伝える。
 
 ## ログインできないと言われたら
 
-画面は理由を言わない(「ログインできませんでした」だけ。どこが違ったかを教えると、登録の有無を確かめる手がかりになる)。理由はログで見る。
+画面は理由を言わない(「メールアドレスかパスワードが正しくありません」だけ。どこが違ったかを教えると、登録の有無を確かめる手がかりになる)。理由はログで見る。画面の問い合わせ番号が `requestId`。
 
 ```
-fields @timestamp, requestId, message, reason, hasVerifiedEmail
-| filter service = "api" and (message like /Cognito からの戻り/ or message = "ログインに失敗")
+fields @timestamp, requestId, message, what, reason, hasVerifiedEmail
+| filter service = "api" and (message = "Cognito が断りました" or message like /ログインに失敗/)
 | sort @timestamp desc
 ```
 
 | ログ | 意味 | どうするか |
 |---|---|---|
-| `ログインに失敗`・`hasVerifiedEmail: false` | Cognito でメールを確認していない | 確認コードのメールを探してもらう(迷惑メールも) |
-| `ログインに失敗`・`hasVerifiedEmail: true` | users にそのメールの行が無い・**別の Cognito のアカウントと結びついている** | 下の「結びつきを直す」 |
-| `reason: state_mismatch` / `no_pending_login` | ログインの途中で10分以上たった・別のタブで始め直した・戻りの URL だけを踏んだ | もう一度「ログイン」から |
-| `reason: cognito_error` | Cognito の画面で「やめる」を押した、または Cognito 側の設定の誤り | 続くなら、Cognito のアプリクライアントの戻り先(`callback_urls`)を確かめる |
-| `reason: token_endpoint_400` | code が古い・使い済み・戻り先の URL が登録と違う | 続くなら `APP_URL` と `callback_urls` が同じかを確かめる |
-| `Cognito か DB に届かず`(error) | Cognito か DB に届かない | 画面は「止まっています」。NAT・セキュリティグループ・Cognito の障害を確かめる |
+| `Cognito が断りました`・`reason: NotAuthorizedException` | パスワードが違う・その人がいない・続けて間違えて止められた(`what: sign_in`) | パスワードの再設定を案内する。止められたときは少し待つ |
+| `ログインに失敗(users に結びつく行が無い)`・`hasVerifiedEmail: false` | Cognito ではパスワードが通ったが、メールが確認済みでない(管理の操作で確認しただけ など) | パスワードの再設定をしてもらう(確認コードでメールが確認済みになる) |
+| `ログインに失敗(users に結びつく行が無い)`・`hasVerifiedEmail: true` | users にそのメールの行が無い・**別の Cognito のアカウントと結びついている** | 下の「結びつきを直す」 |
+| `reason: CodeMismatchException` / `ExpiredCodeException` | 確認コード・二段階認証のコードが違う・切れた | コードを送り直す。二段階認証なら端末の時計がずれていないか |
+| `reason: InvalidPasswordException` | パスワードが決まりを満たさない | 画面に決まりが出ている(`cognito-settings.json`) |
+| status 429 | Cognito の流量の上限・試しすぎ | 少し待つ。続くなら Cognito の上限(サービスクォータ)を見る |
+| status 503(error のログ) | Cognito か DB に届かない | NAT・セキュリティグループ・Cognito の障害を確かめる |
 
 ### 結びつきを直す(Cognito のアカウントを作り直した人)
 
@@ -49,9 +50,10 @@ UPDATE organizations.users SET external_id = NULL WHERE email = 'person@example.
 
 手元の偽物の Cognito では確かめられない所。
 
-- [ ] 「ログイン」で Cognito の画面が出る。登録 → 確認コードのメール → ログインして、アプリに戻る
-- [ ] users にいない人は「ログインできませんでした」
+まず契約テストを流す(Actions → **Cognito contract**)。偽物とのずれは、これが見つける。そのうえで、人の目で:
+
+- [ ] 登録 → 確認コードのメールが SES から届く(迷惑メールに入らない・文面が `cognito-settings.json` どおり)→ ログインできる
+- [ ] users にいない人は「メールアドレスかパスワードが正しくありません」
 - [ ] 開いていた画面(`/projects/...`)に戻る
-- [ ] ログアウトの後に「ログイン」を押すと、Cognito の画面でもう一度聞かれる(Cognito 側も終わっている)
-- [ ] パスワードを忘れた → 再設定のメールが届く
-- [ ] ブラウザの開発者ツールで、`/api/auth/callback` の応答とページの中にトークン(`eyJ…`)が無い
+- [ ] パスワードを忘れた → 再設定のメールが届く → 新しいパスワードでログインできる
+- [ ] ブラウザの開発者ツールで、`/api/auth/login` の応答とページの中にトークン(`eyJ…`)が無い
