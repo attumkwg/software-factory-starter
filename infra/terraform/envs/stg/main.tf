@@ -121,6 +121,7 @@ module "app" {
   desired_count      = 1
   # stg はすぐ消せるように
   deletion_protection = false
+  alarm_topic_arns    = [module.alerts.topic_arn]
 
   environment = {
     APP_ENV              = local.env
@@ -156,6 +157,7 @@ module "web" {
   name                          = "${local.name}-web"
   image                         = "${aws_ecr_repository.this["web"].repository_url}:${var.initial_image_tag}"
   desired_count                 = 1
+  alarm_topic_arns              = [module.alerts.topic_arn]
   cluster_arn                   = module.app.cluster_arn
   vpc_id                        = module.network.vpc_id
   private_subnet_ids            = module.network.private_subnet_ids
@@ -242,6 +244,37 @@ module "waf" {
 }
 
 module "security_baseline" {
-  source = "../../modules/security-baseline"
-  name   = local.name
+  source             = "../../modules/security-baseline"
+  name               = local.name
+  findings_topic_arn = module.alerts.topic_arn
+}
+
+# ── 見張りと知らせ(アラーム → SNS → Slack)。docs/guides/monitoring.md ────────────────────
+
+module "alerts" {
+  source             = "../../modules/alerts"
+  name               = local.name
+  slack_team_id      = var.slack_team_id
+  slack_channel_id   = var.slack_channel_id
+  email_addresses    = var.alert_emails
+  monthly_budget_usd = var.monthly_budget_usd
+}
+
+module "monitoring" {
+  source       = "../../modules/monitoring"
+  name         = local.name
+  topic_arn    = module.alerts.topic_arn
+  cluster_name = module.app.cluster_name
+  cluster_arn  = module.app.cluster_arn
+  services = {
+    api  = { service_name = module.app.service_name, min_running = 1 }
+    web  = { service_name = module.web.service_name, min_running = 1 }
+    mail = { service_name = module.mail.service_name, min_running = 1 }
+  }
+  alb_arn_suffix = module.app.alb_arn_suffix
+  target_groups = {
+    api = module.app.target_group_arn_suffixes
+    web = module.web.target_group_arn_suffixes
+  }
+  db_cluster_identifier = module.aurora.cluster_identifier
 }

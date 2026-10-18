@@ -49,7 +49,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
-│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・preview-env・github-oidc
+│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
 ├─ .github/
 │  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
@@ -280,6 +280,14 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 |---|---|
 | `ANTHROPIC_API_KEY` | claude(`@claude`)。Claude の GitHub App を入れて使う方法もある |
 
+### 4. 見張りの知らせを Slack に流す
+
+1. stg と prod の AWS アカウントそれぞれで、コンソールの「Amazon Q Developer in chat applications」(旧 AWS Chatbot)から Slack のワークスペースを許可する(ワークスペースの ID `T…` が分かる)
+2. Slack に `#alerts-stg` と `#alerts-prod` を作り、チャンネルの ID(`C…`)を `*.auto.tfvars` の `slack_team_id` / `slack_channel_id` に入れて apply
+3. 試しに鳴らして Slack に出るのを確かめる。月の上限(`monthly_budget_usd`)も見直す
+
+手順・何を見張っているか・費用は [docs/guides/monitoring.md](docs/guides/monitoring.md)。鳴ったら [docs/runbooks/alarms.md](docs/runbooks/alarms.md)。
+
 ---
 
 ## 📏 わざとやっていないこと(次の一歩)
@@ -290,7 +298,8 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: いまは署名つき Cookie。強制ログアウトが要るなら DB か Valkey に。
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
-- **監査ログ・機能フラグ・Sentry・OpenTelemetry のトレース**: ログには traceId を入れてあるので、トレースは後から足せる。
+- **Sentry**: 次の PR。AWS 側の見張り(アラーム → Slack)は入っている([docs/guides/monitoring.md](docs/guides/monitoring.md))。
+- **監査ログ・機能フラグ・OpenTelemetry のトレース・外からの死活の確認・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
 - **WAF**: ALB / CloudFront の前に。

@@ -96,7 +96,8 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 - Aurora の東京の単価は**推定**(公式の料金表で確かめていない)。実際は使い方で2〜3倍ぶれる。
 - WAF・GuardDuty・Security Hub は、上に加えて合わせて 月 約3千〜5千円(量で変わる。[security.md](security.md))。
-- 費用の警報(AWS Budgets)を最初に作る: 月の上限の 80% と 100% でメール。
+- 費用の警報(AWS Budgets)は Terraform が作る(`monthly_budget_usd`。既定は stg 250ドル・prod 600ドル): 使った額が 80% のときと、月末の見込みが 100% を超えるときに Slack へ。アラームと合わせて [guides/monitoring.md](guides/monitoring.md)。
+- 見張り(アラーム 15〜20個)は1環境 月 約300〜450円。
 
 ### PMF の前の節約
 

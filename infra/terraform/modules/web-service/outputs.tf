@@ -13,3 +13,8 @@ output "execution_role_arn" {
 output "task_role_arn" {
   value = aws_iam_role.task.arn
 }
+
+output "target_group_arn_suffixes" {
+  description = "画面のターゲットグループ(blue と green。見張りで使う)"
+  value       = [for tg in aws_lb_target_group.this : tg.arn_suffix]
+}

@@ -60,3 +60,8 @@ output "alb_arn_suffix" {
 output "service_connect_namespace_arn" {
   value = aws_service_discovery_http_namespace.this.arn
 }
+
+output "target_group_arn_suffixes" {
+  description = "API のターゲットグループ(blue と green。見張りで使う)"
+  value       = [for tg in aws_lb_target_group.this : tg.arn_suffix]
+}

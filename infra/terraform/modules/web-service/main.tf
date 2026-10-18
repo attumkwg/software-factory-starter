@@ -203,12 +203,13 @@ resource "aws_lb_listener_rule" "production" {
 
 resource "aws_cloudwatch_metric_alarm" "target_5xx" {
   alarm_name          = "${var.name}-target-5xx"
-  alarm_description   = "画面(SSR)の 5xx が増えた。デプロイ中なら自動で戻る"
+  alarm_description   = "画面(SSR)の 5xx が増えた。デプロイ中なら自動で戻る。docs/runbooks/alarms.md#target-5xx"
   evaluation_periods  = 2
   threshold           = var.alarm_5xx_threshold
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = var.alarm_topic_arns
+  ok_actions          = var.alarm_topic_arns
 
   # ALB は API と共有なので、画面のターゲットグループ(blue と green)の分だけを足す
   metric_query {
