@@ -15,6 +15,7 @@ import type { Context } from "hono";
 import { MANUAL_AUDIT_ACTIONS, recordAudit } from "../audit/index.ts";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import { endSupportSession } from "../domains/organizations/index.ts";
 import { ApiError } from "../errors.ts";
 import { bodyErrors, createRouter, json, jsonBody } from "../http/common.ts";
 import type { Logger } from "../logger.ts";
@@ -132,15 +133,18 @@ export function authRoutes(deps: Deps) {
         const session = c.get("session");
         clearSession(c, deps.session);
         // ログアウトは必ず成功させる(記録に失敗しても Cookie は消してある)
+        // 代理の最中なら、代理も終える(見ていた組織の記録に「出た」を残す)
         if (session) {
-          await withTenant(deps.db, session.tenantId, (tx) =>
-            recordAudit(tx, {
+          const support = session.support;
+          await withTenant(deps.db, session.tenantId, async (tx) => {
+            if (support) await endSupportSession(tx, session.tenantId, support.sessionId);
+            await recordAudit(tx, {
               tenantId: session.tenantId,
-              actor: { kind: "user", id: session.userId },
-              action: MANUAL_AUDIT_ACTIONS.logout,
+              actor: { kind: support ? "support" : "user", id: session.userId },
+              action: support ? "support.end" : MANUAL_AUDIT_ACTIONS.logout,
               outcome: "allowed",
-            }),
-          ).catch((err) => deps.logger.warn({ err }, "ログアウトの監査ログを残せませんでした"));
+            });
+          }).catch((err) => deps.logger.warn({ err }, "ログアウトの監査ログを残せませんでした"));
         }
         return c.body(null, 204);
       },

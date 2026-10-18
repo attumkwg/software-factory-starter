@@ -634,6 +634,239 @@
           "def": "CREATE TRIGGER audit_events_no_truncate BEFORE TRUNCATE ON platform.audit_events FOR EACH STATEMENT EXECUTE FUNCTION platform.audit_events_append_only()"
         }
       ]
+    },
+    {
+      "name": "organizations.support_grants",
+      "type": "BASE TABLE",
+      "comment": "サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "granted_by",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "code_hash",
+          "type": "text",
+          "nullable": false,
+          "comment": "サポート番号の SHA-256(番号そのものは保存しない)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "取り消した時刻(入っている社員も次のリクエストから入れない)"
+        },
+        {
+          "name": "revoked_by",
+          "type": "uuid",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_grants_pkey",
+          "def": "CREATE UNIQUE INDEX support_grants_pkey ON organizations.support_grants USING btree (id)",
+          "table": "organizations.support_grants",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_grants_tenant_id_id_key",
+          "def": "CREATE UNIQUE INDEX support_grants_tenant_id_id_key ON organizations.support_grants USING btree (tenant_id, id)",
+          "table": "organizations.support_grants",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "support_grants_code_hash_key",
+          "def": "CREATE UNIQUE INDEX support_grants_code_hash_key ON organizations.support_grants USING btree (code_hash)",
+          "table": "organizations.support_grants",
+          "columns": [
+            "code_hash"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_grants_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.support_grants",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "support_grants_granted_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, granted_by) REFERENCES organizations.users(tenant_id, id)",
+          "table": "organizations.support_grants",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "granted_by"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "support_grants_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "organizations.support_grants",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_grants_tenant_id_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, id)",
+          "table": "organizations.support_grants",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "organizations.support_sessions",
+      "type": "BASE TABLE",
+      "comment": "社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "grant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "staff_user_id",
+          "type": "uuid",
+          "nullable": false,
+          "comment": "社員(運営の組織の users。別の組織なので外部キーは無い)"
+        },
+        {
+          "name": "staff_name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "staff_email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "終えた時刻(自分で終えた・ログアウト・許可の取り消し)"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_sessions_pkey",
+          "def": "CREATE UNIQUE INDEX support_sessions_pkey ON organizations.support_sessions USING btree (id)",
+          "table": "organizations.support_sessions",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_sessions_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.support_sessions",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "support_sessions_grant_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, grant_id) REFERENCES organizations.support_grants(tenant_id, id)",
+          "table": "organizations.support_sessions",
+          "referenced_table": "organizations.support_grants",
+          "columns": [
+            "tenant_id",
+            "grant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "support_sessions_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "organizations.support_sessions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -731,6 +964,62 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.support_grants",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.support_grants",
+      "columns": [
+        "tenant_id",
+        "granted_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, granted_by) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "organizations.support_sessions",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.support_sessions",
+      "columns": [
+        "tenant_id",
+        "grant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.support_grants",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, grant_id) REFERENCES organizations.support_grants(tenant_id, id)"
     }
   ],
   "functions": [
@@ -780,6 +1069,12 @@
       "name": "platform.audit_events_append_only",
       "return_type": "trigger",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.support_find_grant",
+      "return_type": "record",
+      "arguments": "p_code_hash text",
       "type": "FUNCTION"
     }
   ],

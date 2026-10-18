@@ -11,9 +11,19 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "task.create": "タスクを作った",
   "task.update": "タスクを直した",
   "task.delete": "タスクを消した",
+  "support_grant.create": "サポートに見せるのを許可した",
+  "support_grant.revoke": "サポートへの許可を取り消した",
+  "support.start": "サポートが入った",
+  "support.read": "サポートが見た",
+  "support.end": "サポートが出た",
 };
 
-const TARGET_LABELS: Record<string, string> = { project: "プロジェクト", task: "タスク" };
+const TARGET_LABELS: Record<string, string> = {
+  project: "プロジェクト",
+  task: "タスク",
+  support_grant: "サポートへの許可",
+  support_session: "サポートの入室",
+};
 const FIELD_LABELS: Record<string, string> = { title: "題名", done: "完了" };
 
 export function auditActionLabel(e: AuditEvent): string {

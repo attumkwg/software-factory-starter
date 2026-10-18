@@ -127,3 +127,30 @@ routes:
     permission: audit:read
     note: 自社の監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので管理者だけ。他社の分は RLS で見えない
     expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: GET /api/support-grants
+    permission: support_grant:manage
+    note: サポートへの許可の一覧(docs/specs/0004-support-access.md)。番号は出ない
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/support-grants
+    permission: support_grant:manage
+    note: サポートに見せるのを許可する。番号はこの応答にだけ出る
+    body: { hours: 24 }
+    expect: { admin: 201, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: DELETE /api/support-grants/{grantId}
+    permission: support_grant:manage
+    note: 許可を取り消す。入っている社員も次のリクエストから入れない
+    expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/support/sessions
+    permission: support:start
+    note: 社員がサポート番号で入る。運営の組織(SUPPORT_TENANT_ID)の人でなければ 403。入れることは support-access.int.test.ts で確かめる
+    body: { code: "AAAA-BBBB-CCCC" }
+    expect: { admin: 403, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/support/end
+    permission: support:end
+    note: 社員が代理を終える。代理の最中でなければ 400。流れは support-access.int.test.ts
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 401 }

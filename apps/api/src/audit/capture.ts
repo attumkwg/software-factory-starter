@@ -43,10 +43,12 @@ export async function auditEntryFor(
     tenantId: string;
     actor: AuditEntry["actor"];
     outcome: AuditEntry["outcome"];
+    /** 足す details(代理の社員が読んだ API の名前など。値は入れない) */
+    extraDetails?: Record<string, unknown> | undefined;
   },
 ): Promise<AuditEntry> {
   const params = pathParams(opts.handlerPath, c.req.path);
-  const targetKey = `${opts.audit.target}Id`;
+  const targetKey = opts.audit.param ?? `${opts.audit.target}Id`;
   const targetId =
     opts.outcome === "allowed" ? ((await createdId(c)) ?? params[targetKey]) : params[targetKey];
   const { [targetKey]: _target, ...otherParams } = params;
@@ -57,6 +59,6 @@ export async function auditEntryFor(
     action: opts.audit.action,
     target: targetId ? { type: opts.audit.target, id: targetId } : null,
     outcome: opts.outcome,
-    details: { ...otherParams, ...(fields ? { fields } : {}) },
+    details: { ...otherParams, ...(fields ? { fields } : {}), ...opts.extraDetails },
   };
 }

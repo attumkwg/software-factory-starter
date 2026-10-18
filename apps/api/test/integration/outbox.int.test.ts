@@ -43,14 +43,20 @@ const scopeOf = (t: TenantFixture, tx: Parameters<Parameters<typeof withTenant>[
   userId: t.users.admin.id,
 });
 
-/** 送り出しを1回回し、届いた物を返す。 */
+/**
+ * 送り出しを1回回し、届いた物を返す。
+ * 送り出しは全社分を扱うので、ほかのテストのファイル(同時に動く)が積んだ出来事も来る。
+ * このファイルの2社の物だけを数える(ほかの物は、送れたことにして流す)。
+ */
 async function deliver(handler?: (e: OutboxEvent) => Promise<void>) {
   const got: OutboxEvent[] = [];
+  const mine = new Set([a.tenantId, b.tenantId]);
   await relayOnce({
     db: appDb.db,
     logger,
     handlers: {
       "tasks.task_completed": async (e) => {
+        if (!mine.has(e.tenantId)) return;
         got.push(e);
         await handler?.(e);
       },

@@ -16,6 +16,9 @@ type SeedTenant = {
   projects: { id: string; name: string; tasks: string[] }[];
 };
 
+/** 運営の組織(手元・プレビューの SUPPORT_TENANT_ID と同じ) */
+export const SUPPORT_SEED_TENANT_ID = "0199a000-0000-7000-8000-00000000c001";
+
 export const SEED: SeedTenant[] = [
   {
     tenantId: "0199a000-0000-7000-8000-00000000a001",
@@ -68,6 +71,21 @@ export const SEED: SeedTenant[] = [
         tasks: ["他社に見えてはいけない"],
       },
     ],
+  },
+  {
+    // 運営の組織(社員がサポート番号で代理ログインする。SUPPORT_TENANT_ID。docs/specs/0004-support-access.md)
+    tenantId: SUPPORT_SEED_TENANT_ID,
+    name: "運営(サポート)",
+    timeZone: "Asia/Tokyo",
+    users: [
+      {
+        id: "0199a000-0000-7000-8000-0000000c0001",
+        email: "support@ops.test",
+        name: "サポート担当",
+        role: "member",
+      },
+    ],
+    projects: [],
   },
 ];
 

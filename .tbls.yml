@@ -33,6 +33,16 @@ comments:
       topic: 何が起きたか(領域.出来事。src/outbox/topics.ts)
       locked_until: 送り出しが借りている期限
       dead_at: あきらめた時刻(人が見て直す)
+  - table: organizations.support_grants
+    tableComment: サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md
+    columnComments:
+      code_hash: サポート番号の SHA-256(番号そのものは保存しない)
+      revoked_at: 取り消した時刻(入っている社員も次のリクエストから入れない)
+  - table: organizations.support_sessions
+    tableComment: 社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる
+    columnComments:
+      staff_user_id: 社員(運営の組織の users。別の組織なので外部キーは無い)
+      ended_at: 終えた時刻(自分で終えた・ログアウト・許可の取り消し)
   - table: platform.audit_events
     tableComment: 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013
     columnComments:

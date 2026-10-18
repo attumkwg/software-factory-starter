@@ -143,6 +143,8 @@ resource "aws_ecs_task_definition" "this" {
         { name = "AUTH_MODE", value = "dev" },
         { name = "DATABASE_URL", value = "postgres://app@localhost:5432/app" },
         { name = "LOG_LEVEL", value = "debug" },
+        # 種データの運営の組織(社員の代理ログイン。docs/specs/0004-support-access.md)
+        { name = "SUPPORT_TENANT_ID", value = "0199a000-0000-7000-8000-00000000c001" },
       ]
       secrets          = [{ name = "SESSION_SECRET", valueFrom = aws_secretsmanager_secret.session.arn }]
       dependsOn        = [{ containerName = "setup", condition = "SUCCESS" }]

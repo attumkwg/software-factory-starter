@@ -292,6 +292,10 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 
 prod のバックアップの保管庫は **compliance のロック**で、apply から3日を過ぎると、ロックも保存の期間も誰にも変えられない(root でも)。**3日のうちに**、保管庫・毎日 35日・毎月 365日・1回目のバックアップが取れたこと、を確かめる([docs/runbooks/db-restore.md](docs/runbooks/db-restore.md) の 6)。prod の戻す訓練は四半期に1回、手で(同じ手順書の 5)。
 
+### 6. サポートの代理ログイン(運営の組織)
+
+社員がお客さんの画面を見るのは、お客さんの管理者が許可した間だけ・見るだけ(docs/specs/0004-support-access.md)。本番の DB に「運営の組織」と社員を1回だけ作り、その ID を `*.auto.tfvars` の `support_tenant_id` に入れて apply する。手順は [docs/runbooks/support-access.md](docs/runbooks/support-access.md)。手元とプレビューは種データの `support@ops.test` で試せる。
+
 手順・何を見張っているか・費用は [docs/guides/monitoring.md](docs/guides/monitoring.md)。鳴ったら [docs/runbooks/alarms.md](docs/runbooks/alarms.md)、Sentry に来たら [docs/runbooks/sentry.md](docs/runbooks/sentry.md)。
 
 ---

@@ -15,6 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
+import { Route as AppSupportRouteImport } from './routes/_app/support'
+import { Route as AppSupportAccessRouteImport } from './routes/_app/support-access'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects/$projectId'
 
 const AppRoute = AppRouteImport.update({
@@ -46,6 +48,16 @@ const AppAuditRoute = AppAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSupportRoute = AppSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSupportAccessRoute = AppSupportAccessRouteImport.update({
+  id: '/support-access',
+  path: '/support-access',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
@@ -58,6 +70,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/audit': typeof AppAuditRoute
+  '/support': typeof AppSupportRoute
+  '/support-access': typeof AppSupportAccessRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
 }
 export interface FileRoutesByTo {
@@ -65,6 +79,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/audit': typeof AppAuditRoute
+  '/support': typeof AppSupportRoute
+  '/support-access': typeof AppSupportAccessRoute
   '/': typeof AppIndexRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
 }
@@ -75,6 +91,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/_app/audit': typeof AppAuditRoute
+  '/_app/support': typeof AppSupportRoute
+  '/_app/support-access': typeof AppSupportAccessRoute
   '/_app/': typeof AppIndexRoute
   '/_app/projects/$projectId': typeof AppProjectsProjectIdRoute
 }
@@ -86,6 +104,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/audit'
+    | '/support'
+    | '/support-access'
     | '/projects/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -93,6 +113,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/audit'
+    | '/support'
+    | '/support-access'
     | '/'
     | '/projects/$projectId'
   id:
@@ -102,6 +124,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/_app/audit'
+    | '/_app/support'
+    | '/_app/support-access'
     | '/_app/'
     | '/_app/projects/$projectId'
   fileRoutesById: FileRoutesById
@@ -157,6 +181,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/support': {
+      id: '/_app/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AppSupportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/support-access': {
+      id: '/_app/support-access'
+      path: '/support-access'
+      fullPath: '/support-access'
+      preLoaderRoute: typeof AppSupportAccessRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/projects/$projectId': {
       id: '/_app/projects/$projectId'
       path: '/projects/$projectId'
@@ -169,12 +207,16 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
+  AppSupportRoute: typeof AppSupportRoute
+  AppSupportAccessRoute: typeof AppSupportAccessRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
+  AppSupportRoute: AppSupportRoute,
+  AppSupportAccessRoute: AppSupportAccessRoute,
   AppIndexRoute: AppIndexRoute,
   AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
 }

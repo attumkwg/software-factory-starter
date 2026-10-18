@@ -16,6 +16,12 @@ export const PERMISSIONS = {
   "task:write": ["admin", "member"],
   // 監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので、管理者だけ
   "audit:read": ["admin"],
+  // サポートへの許可(docs/specs/0004-support-access.md)。組織の管理者だけ
+  "support_grant:manage": ["admin"],
+  // 社員が代理で入る。ロールに加えて「運営の組織の人か」をハンドラーが確かめる(代理の最中は閲覧者なので入れない)
+  "support:start": ["admin", "member"],
+  // 代理を終える(代理の最中は閲覧者)
+  "support:end": ["admin", "member", "viewer"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -48,6 +54,11 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "PATCH /api/tasks/{taskId}": "task:write",
   "DELETE /api/tasks/{taskId}": "task:write",
   "GET /api/audit-events": "audit:read",
+  "GET /api/support-grants": "support_grant:manage",
+  "POST /api/support-grants": "support_grant:manage",
+  "DELETE /api/support-grants/{grantId}": "support_grant:manage",
+  "POST /api/support/sessions": "support:start",
+  "POST /api/support/end": "support:end",
 };
 
 export function can(role: Role, permission: Permission): boolean {

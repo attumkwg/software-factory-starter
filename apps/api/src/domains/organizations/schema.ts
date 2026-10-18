@@ -1,6 +1,6 @@
 import { DEFAULT_TIME_ZONE, ROLES } from "@app/shared";
-import { pgSchema, text, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { createdAt, id } from "../../db/columns.ts";
+import { foreignKey, pgSchema, text, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { createdAt, id, instant } from "../../db/columns.ts";
 
 // 領域「組織」(docs/domain/organizations)。Postgres のスキーマ organizations に置く。
 // ほかの領域は、この表を外部キーで指してよい(組織と人は全領域の土台)。読むときは index.ts の関数を通す。
@@ -37,5 +37,66 @@ export const users = organizations.table(
     unique("users_tenant_id_id_key").on(t.tenantId, t.id),
     uniqueIndex("users_email_key").on(t.email),
     uniqueIndex("users_external_id_key").on(t.externalId),
+  ],
+);
+
+// ── サポートの代理ログイン(docs/specs/0004-support-access.md・ADR 0014) ─────────────────
+
+/**
+ * お客さんの管理者が出した「サポートに見せてよい」の許可。番号そのものは持たない(ハッシュだけ)。
+ * 社員が番号から許可を探すのは、移行 0007 の関数(support_find_grant)だけ(アプリは全社分を読めない)。
+ */
+export const supportGrants = organizations.table(
+  "support_grants",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    grantedBy: uuid("granted_by").notNull(),
+    /** サポート番号の SHA-256(16進)。番号は画面に1回だけ出して、保存しない */
+    codeHash: text("code_hash").notNull(),
+    createdAt: createdAt(),
+    expiresAt: instant("expires_at").notNull(),
+    revokedAt: instant("revoked_at"),
+    revokedBy: uuid("revoked_by"),
+  },
+  (t) => [
+    unique("support_grants_tenant_id_id_key").on(t.tenantId, t.id),
+    uniqueIndex("support_grants_code_hash_key").on(t.codeHash),
+    foreignKey({
+      name: "support_grants_granted_by_fkey",
+      columns: [t.tenantId, t.grantedBy],
+      foreignColumns: [users.tenantId, users.id],
+    }),
+  ],
+);
+
+/**
+ * 社員が入っている間の記録(入室)。代理の Cookie はこの ID を持ち、認可の関所が毎回
+ * 「終わっていない・期限内・許可が取り消されていない」を確かめる。
+ * 社員は運営の組織の人なので、users への外部キーは張らない(名前とメールを写しておく)。
+ */
+export const supportSessions = organizations.table(
+  "support_sessions",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    grantId: uuid("grant_id").notNull(),
+    staffUserId: uuid("staff_user_id").notNull(),
+    staffName: text("staff_name").notNull(),
+    staffEmail: text("staff_email").notNull(),
+    startedAt: instant("started_at").notNull().defaultNow(),
+    expiresAt: instant("expires_at").notNull(),
+    endedAt: instant("ended_at"),
+  },
+  (t) => [
+    foreignKey({
+      name: "support_sessions_grant_fkey",
+      columns: [t.tenantId, t.grantId],
+      foreignColumns: [supportGrants.tenantId, supportGrants.id],
+    }),
   ],
 );

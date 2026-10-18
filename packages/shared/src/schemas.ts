@@ -16,6 +16,10 @@ export const MeSchema = z.object({
   role: RoleSchema,
   /** 組織の時間帯。画面はこの時間帯で時刻を見せる(SSR とブラウザで同じになる) */
   timeZone: TimeZoneSchema,
+  /** 社員の代理ログインの最中なら、その入室の期限(画面は上に帯を出す。role は閲覧者) */
+  support: z.object({ expiresAt: InstantSchema }).optional(),
+  /** 運営の組織の人(サポート番号で代理ログインできる)なら true */
+  isSupportStaff: z.boolean().optional(),
 });
 export type Me = z.infer<typeof MeSchema>;
 
@@ -100,6 +104,39 @@ export type ApiError = { error: { code: ErrorCode; message: string; requestId?: 
 export const DevLoginSchema = z.object({
   email: z.email(),
 });
+
+// ── サポートの代理ログイン(docs/specs/0004-support-access.md) ─────────────────────
+
+/** 許可の長さ(時間)。画面は 1時間・24時間・3日 から選ぶ */
+export const SUPPORT_GRANT_HOURS = [1, 24, 72] as const;
+
+export const SupportGrantSchema = z.object({
+  id: IdSchema,
+  createdAt: InstantSchema,
+  expiresAt: InstantSchema,
+  revokedAt: InstantSchema.nullable(),
+  status: z.enum(["active", "expired", "revoked"]),
+});
+export type SupportGrant = z.infer<typeof SupportGrantSchema>;
+
+export const CreateSupportGrantSchema = z.object({
+  hours: z.union(SUPPORT_GRANT_HOURS.map((h) => z.literal(h))),
+});
+export type CreateSupportGrant = z.infer<typeof CreateSupportGrantSchema>;
+
+/** 作ったときだけ番号が返る(保存しないので二度と出ない) */
+export const CreatedSupportGrantSchema = SupportGrantSchema.extend({ code: z.string() });
+export type CreatedSupportGrant = z.infer<typeof CreatedSupportGrantSchema>;
+
+export const StartSupportSchema = z.object({ code: z.string().trim().min(1).max(30) });
+export type StartSupport = z.infer<typeof StartSupportSchema>;
+
+export const SupportSessionSchema = z.object({
+  id: IdSchema,
+  tenantName: z.string(),
+  expiresAt: InstantSchema,
+});
+export type SupportSession = z.infer<typeof SupportSessionSchema>;
 
 // ── 監査ログ(docs/specs/0003-audit-log.md) ─────────────────────────────────
 

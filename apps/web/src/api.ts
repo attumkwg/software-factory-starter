@@ -3,10 +3,15 @@ import type {
   AuditEventPage,
   AuthNext,
   AuthOptions,
+  CreatedSupportGrant,
   CreateProject,
+  CreateSupportGrant,
   CreateTask,
   Me,
   Project,
+  StartSupport,
+  SupportGrant,
+  SupportSession,
   Task,
   UpdateTask,
 } from "@app/shared";
@@ -158,6 +163,14 @@ export const api = {
   getProject: (id: string) => request<Project>("GET", `/projects/${id}`),
   createProject: (input: CreateProject) => request<Project>("POST", "/projects", input),
   deleteProject: (id: string) => request<void>("DELETE", `/projects/${id}`),
+  // サポートの代理ログイン(docs/specs/0004-support-access.md)
+  listSupportGrants: () => request<{ grants: SupportGrant[] }>("GET", "/support-grants"),
+  createSupportGrant: (input: CreateSupportGrant) =>
+    request<CreatedSupportGrant>("POST", "/support-grants", input),
+  revokeSupportGrant: (id: string) => request<void>("DELETE", `/support-grants/${id}`),
+  startSupport: (input: StartSupport) =>
+    request<SupportSession>("POST", "/support/sessions", input),
+  endSupport: () => request<void>("POST", "/support/end"),
   listAuditEvents: (before?: string) =>
     request<AuditEventPage>(
       "GET",

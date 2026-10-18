@@ -32,6 +32,7 @@ function fill(template: string, self: TenantFixture): string {
   return template
     .replaceAll("{projectId}", self.projectId)
     .replaceAll("{taskId}", self.taskId)
+    .replaceAll("{grantId}", self.supportGrantId)
     .replaceAll("{adminEmail}", self.users.admin.email);
 }
 

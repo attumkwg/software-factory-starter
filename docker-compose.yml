@@ -55,6 +55,8 @@ services:
       AUTH_MODE: dev
       DATABASE_URL: postgres://app:app@db:5432/app
       SESSION_SECRET: local-dev-only-session-secret-not-used-anywhere
+      # 運営の組織(種データの「運営(サポート)」)。社員の代理ログイン(docs/specs/0004-support-access.md)
+      SUPPORT_TENANT_ID: 0199a000-0000-7000-8000-00000000c001
       LOG_LEVEL: info
       # メールは Postfix に渡す(本番は ECS の Service Connect の smtp://mail:25)
       MAIL_SMTP_URL: smtp://postfix:25
