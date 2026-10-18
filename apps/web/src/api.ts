@@ -7,6 +7,7 @@ import type {
   CreateProject,
   CreateSupportGrant,
   CreateTask,
+  ExportData,
   Me,
   Project,
   StartSupport,
@@ -171,6 +172,8 @@ export const api = {
   startSupport: (input: StartSupport) =>
     request<SupportSession>("POST", "/support/sessions", input),
   endSupport: () => request<void>("POST", "/support/end"),
+  // データの書き出し(docs/specs/0005-offboarding.md)。管理者だけ
+  exportData: () => request<ExportData>("POST", "/exports"),
   listAuditEvents: (before?: string) =>
     request<AuditEventPage>(
       "GET",

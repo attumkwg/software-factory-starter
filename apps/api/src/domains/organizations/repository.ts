@@ -1,5 +1,5 @@
-import type { Me, Role } from "@app/shared";
-import { and, eq, inArray } from "drizzle-orm";
+import type { ExportData, Me, Role } from "@app/shared";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { tenants, users } from "./schema.ts";
@@ -62,4 +62,35 @@ export async function findUserNames(
     .from(users)
     .where(and(eq(users.tenantId, tenantId), inArray(users.id, userIds)));
   return new Map(rows.map((r) => [r.id, r.name]));
+}
+
+/**
+ * データの書き出し(docs/specs/0005-offboarding.md)。組織と利用者。
+ * 認証の製品の ID(external_id = Cognito の sub)は入れない(写す項目を決めて、表を丸ごと出さない)。
+ */
+export async function exportOrganization(
+  s: TenantScope,
+): Promise<Pick<ExportData, "organization" | "users">> {
+  const [tenant] = await s.tx.select().from(tenants).where(eq(tenants.tenantId, s.tenantId));
+  if (!tenant) throw new Error("tenant not found");
+  const rows = await s.tx
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.tenantId, s.tenantId))
+    .orderBy(asc(users.createdAt));
+  return {
+    organization: {
+      id: tenant.tenantId,
+      name: tenant.name,
+      timeZone: tenant.timeZone,
+      createdAt: tenant.createdAt.toISOString(),
+    },
+    users: rows.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })),
+  };
 }

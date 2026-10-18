@@ -36,6 +36,8 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
    - `CREATE POLICY tenant_isolation ... USING / WITH CHECK (tenant_id = app_current_tenant())`
    - `GRANT ... TO app_rw`(要る操作だけ)
    - 忘れると結合テスト「全テーブルに RLS」が落ちる
+   - **解約の削除の一覧**(`apps/api/src/offboarding/delete-tenant.ts` の `TENANT_TABLES`)に、親より前(子から親の順)に足す。忘れると結合テスト `offboarding.int.test.ts` が落ちる
+   - お客さんが持ち出すべき物なら、**書き出し**(`apps/api/src/export/routes.ts` と `ExportSchema`)にも足す(秘密・内部の ID は入れない)
 5. 大きい表の索引は `CREATE INDEX CONCURRENTLY`(その移行はトランザクションの外で流す必要がある。人に相談)。
 6. `pnpm --filter @app/api db:lint`(squawk)を通す。例外が要るなら、その行の上に `-- squawk-ignore <ルール>` と理由を書き、PR で説明する(`.squawk.toml` で全体を外さない)。
    - 表を別のスキーマへ移す(`SET SCHEMA`)・名前を変えるのは、古い版のアプリを止める。本番があるなら段階を踏む(`drizzle/0002_domain_schemas.sql` の注意書き)。

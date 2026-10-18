@@ -1,5 +1,5 @@
 import type { Project } from "@app/shared";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { projects } from "./schema.ts";
@@ -61,4 +61,21 @@ export async function findProjectOwner(
     .from(projects)
     .where(and(eq(projects.tenantId, tenantId), eq(projects.id, id)));
   return row ?? null;
+}
+
+/** データの書き出し(docs/specs/0005-offboarding.md)。自社のプロジェクトを全部(作った人も) */
+export async function exportProjects(
+  s: TenantScope,
+): Promise<{ id: string; name: string; createdBy: string; createdAt: string }[]> {
+  const rows = await s.tx
+    .select()
+    .from(projects)
+    .where(eq(projects.tenantId, s.tenantId))
+    .orderBy(asc(projects.createdAt));
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    createdBy: r.createdBy,
+    createdAt: r.createdAt.toISOString(),
+  }));
 }

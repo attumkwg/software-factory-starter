@@ -7,4 +7,5 @@ export {
   supportReadAction,
 } from "./actions.ts";
 export { type AuditEntry, recordAudit } from "./record.ts";
+export { exportAuditEvents } from "./repository.ts";
 export { auditRoutes } from "./routes.ts";

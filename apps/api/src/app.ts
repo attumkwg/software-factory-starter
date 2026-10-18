@@ -17,6 +17,7 @@ import { projectRoutes } from "./domains/projects/index.ts";
 import { taskRoutes } from "./domains/tasks/index.ts";
 import type { AppEnv } from "./env.ts";
 import { payloadTooLarge, toApiError } from "./errors.ts";
+import { exportRoutes } from "./export/routes.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
@@ -107,6 +108,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", taskRoutes);
   // 共通の仕組み(領域ではない)
   app.route("/api", auditRoutes);
+  app.route("/api", exportRoutes);
 
   if (config.exposeOpenApi) {
     app.doc31("/api/openapi.json", {

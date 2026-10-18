@@ -2,14 +2,18 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { createDb } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { seed } from "./db/seed.ts";
+import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
 //   node dist/cli.js migrate          … 移行(表の持ち主で。MIGRATION_DATABASE_URL か PG* の環境変数)
 //   node dist/cli.js seed             … 種データ(local / test / preview だけ)
 //   node dist/cli.js init-roles       … 接続ユーザーを作る(使い捨ての DB だけ。SUPERUSER_DATABASE_URL)
 //   node dist/cli.js init-roles migrate seed   … プレビュー環境の起動時
+//   node dist/cli.js delete-tenant <組織の ID> [--execute --confirm-name <名前>]
+//                                      … 解約した組織を消す(試し → 本番。docs/runbooks/offboarding.md)
 
 const appEnv = process.env.APP_ENV ?? "local";
 const throwaway = appEnv === "local" || appEnv === "test" || appEnv === "preview";
@@ -32,8 +36,43 @@ async function initRoles() {
   }
 }
 
+/** 解約した組織を消す。--execute が無ければ数えるだけ。結果は JSON 1行(組織の名前は出さない) */
+async function deleteTenantCommand(args: string[]) {
+  const [tenantId, ...flags] = args;
+  if (!tenantId) throw new Error("組織の ID がありません: delete-tenant <組織の ID>");
+  const execute = flags.includes("--execute");
+  const nameAt = flags.indexOf("--confirm-name");
+  const confirmName = nameAt >= 0 ? flags[nameAt + 1] : undefined;
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    if (!execute) {
+      const plan = await planTenantDeletion(db, tenantId);
+      if (!plan) throw new Error(`組織がありません: ${tenantId}`);
+      const line = { mode: "plan", tenantId, counts: plan.counts, cognitoSubs: plan.cognitoSubs };
+      process.stdout.write(`${JSON.stringify(line)}\n`);
+      process.stdout.write(
+        "まだ消していません。組織の名前を確かめて --execute --confirm-name <名前> を付けて流してください\n",
+      );
+      return;
+    }
+    if (!confirmName) throw new Error("--execute には --confirm-name <組織の名前> が要ります");
+    const done = await deleteTenant(db, tenantId, {
+      confirmName,
+      supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
+    });
+    process.stdout.write(`${JSON.stringify({ mode: "deleted", tenantId, counts: done.counts })}\n`);
+  } finally {
+    await pool.end();
+  }
+}
+
 const commands = process.argv.slice(2);
-if (commands.length === 0) throw new Error("コマンドがありません(init-roles / migrate / seed)");
+if (commands.length === 0)
+  throw new Error("コマンドがありません(init-roles / migrate / seed / delete-tenant)");
+if (commands[0] === "delete-tenant") {
+  await deleteTenantCommand(commands.slice(1));
+  process.exit(0);
+}
 
 for (const command of commands) {
   switch (command) {

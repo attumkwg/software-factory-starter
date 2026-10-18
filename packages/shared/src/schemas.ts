@@ -169,6 +169,40 @@ export const AuditEventPageSchema = z.object({
 });
 export type AuditEventPage = z.infer<typeof AuditEventPageSchema>;
 
+// ── データの書き出し(docs/specs/0005-offboarding.md) ──────────────────────────
+
+/** 書き出しの形の名前と版。形を変えるときは版の数字を上げる(古い書き出しを読む人のため) */
+export const EXPORT_FORMAT = "software-factory-starter/export@1";
+
+export const ExportSchema = z.object({
+  format: z.literal(EXPORT_FORMAT),
+  exportedAt: InstantSchema,
+  organization: z.object({
+    id: IdSchema,
+    name: z.string(),
+    timeZone: TimeZoneSchema,
+    createdAt: InstantSchema,
+  }),
+  /** 認証の製品の ID(Cognito の sub)は入れない */
+  users: z.array(
+    z.object({
+      id: IdSchema,
+      email: z.email(),
+      name: z.string(),
+      role: RoleSchema,
+      createdAt: InstantSchema,
+    }),
+  ),
+  projects: z.array(
+    z.object({ id: IdSchema, name: z.string(), createdBy: IdSchema, createdAt: InstantSchema }),
+  ),
+  tasks: z.array(TaskSchema),
+  auditEvents: z.array(AuditEventSchema),
+  /** サポート番号(のハッシュ)は入れない */
+  supportGrants: z.array(SupportGrantSchema),
+});
+export type ExportData = z.infer<typeof ExportSchema>;
+
 /**
  * ログインの方式(GET /api/auth/options)。画面はこれを見て、ログインとログアウトの出し方を変える。
  *   dev     … 開発用ログイン(local / test / preview だけ)
