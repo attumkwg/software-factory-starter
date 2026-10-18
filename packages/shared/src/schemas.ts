@@ -71,18 +71,31 @@ export const ERROR_CODES = [
   "unsupported_media_type", // 本文が JSON ではない(415)
   "service_unavailable", // DB などが一時的に使えない(503)。少し待てば通る
   "internal", // それ以外の想定外(500)
+  "invalid_code", // 確認コード・二段階認証のコードが違う・切れた(400)
+  "invalid_password", // パスワードが決まり(cognito-settings.json)を満たさない(400)
+  "too_many_requests", // 短い間に試しすぎた(429)。少し待てば通る
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 
+// OpenAPI では code を「増えることがある一覧」(x-extensible-enum)として書く。enum にすると、code を足しただけで
+// 互換の検査(oasdiff)が「壊す変更」と判定する(足すのは、してよい変更。docs/guides/api-changes.md)。
+// 画面・アプリは知らない code が来ても動くように書く(apps/web/src/errors.ts)。
+const ExtensibleErrorCode = z.string().meta({
+  description:
+    "失敗の種類(ERROR_CODES)。増えることがある。知らない値は「うまくいきませんでした」として扱う",
+  "x-extensible-enum": [...ERROR_CODES],
+});
+
 export const ErrorSchema = z.object({
   error: z.object({
-    code: ErrorCodeSchema,
+    code: ExtensibleErrorCode,
     message: z.string(),
     requestId: z.string().optional(),
   }),
 });
-export type ApiError = z.infer<typeof ErrorSchema>;
+/** 失敗の本文の型(code はこの版で知っている物。古い版の画面には知らない code が届きうる) */
+export type ApiError = { error: { code: ErrorCode; message: string; requestId?: string } };
 
 export const DevLoginSchema = z.object({
   email: z.email(),

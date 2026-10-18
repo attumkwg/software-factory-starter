@@ -1,0 +1,15 @@
+{
+  "$comment": "Cognito の設定の正(1か所)。Terraform(infra/terraform/envs/*/cognito.tf)・偽物の Cognito(packages/fake-cognito)・画面(パスワードの決まりの表示)が読む。変えたら stg に apply してから、契約テスト(cognito-contract.yml)で本物と偽物がそろっているかを確かめる",
+  "passwordPolicy": {
+    "minimumLength": 12,
+    "requireLowercase": true,
+    "requireUppercase": true,
+    "requireNumbers": true,
+    "requireSymbols": false,
+    "temporaryPasswordValidityDays": 3
+  },
+  "verificationEmail": {
+    "subject": "確認コードのお知らせ",
+    "message": "確認コードは {####} です。画面に入力してください。心当たりが無い場合は、このメールを捨ててください。"
+  }
+}
