@@ -9,6 +9,7 @@ const cognito = {
   COGNITO_CLIENT_ID: "c",
   COGNITO_DOMAIN: "https://x.auth.ap-northeast-1.amazoncognito.com",
   APP_URL: "https://app.example.com",
+  MAIL_SMTP_URL: "smtp://mail:25",
 };
 
 describe("設定", () => {
@@ -55,6 +56,19 @@ describe("設定", () => {
     expect(
       loadConfig({ ...base, ...cognito, APP_ENV: "stg", COGNITO_SCAN_CLIENT_ID: "s" }).auth,
     ).toMatchObject({ scanClientId: "s" });
+  });
+
+  it.each(["stg", "prod"])("%s はメールの送り先と画面の URL が無いと起動しない", (APP_ENV) => {
+    const { MAIL_SMTP_URL: _m, ...noMail } = cognito;
+    expect(() => loadConfig({ ...base, ...noMail, APP_ENV })).toThrow(/MAIL_SMTP_URL/);
+    const { APP_URL: _a, ...noUrl } = cognito;
+    expect(() => loadConfig({ ...base, ...noUrl, APP_ENV })).toThrow(/APP_URL/);
+  });
+
+  it("手元では、メールの送り先が無ければ送らずに記録だけ", () => {
+    const local = loadConfig({ ...base, APP_ENV: "local" });
+    expect(local.mail.smtpUrl).toBeNull();
+    expect(local.appUrl).toBe("http://localhost:8080");
   });
 
   it("短すぎるセッションの秘密は通さない", () => {

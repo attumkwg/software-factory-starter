@@ -1,5 +1,6 @@
 import type { Project } from "@app/shared";
 import { and, desc, eq } from "drizzle-orm";
+import type { TenantTx } from "../../db/client.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { projects } from "./schema.ts";
 
@@ -47,4 +48,17 @@ export async function deleteProject(s: TenantScope, id: string): Promise<boolean
 /** ほかの領域(tasks)が「このプロジェクトはあるか」を確かめる。 */
 export async function projectExists(s: TenantScope, id: string): Promise<boolean> {
   return (await getProject(s, id)) !== null;
+}
+
+/** プロジェクトの名前と、作った人(知らせの宛先を決めるため。アウトボックスの受け手が使う) */
+export async function findProjectOwner(
+  tx: TenantTx,
+  tenantId: string,
+  id: string,
+): Promise<{ name: string; createdBy: string } | null> {
+  const [row] = await tx
+    .select({ name: projects.name, createdBy: projects.createdBy })
+    .from(projects)
+    .where(and(eq(projects.tenantId, tenantId), eq(projects.id, id)));
+  return row ?? null;
 }

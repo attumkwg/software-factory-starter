@@ -17,6 +17,7 @@ export function buildOpenApiDocument(mode: "dev" | "cognito") {
     APP_URL: "https://app.stg.example.com",
     // スキャン用のログイン(stg だけにある API)も表に載せるため
     COGNITO_SCAN_CLIENT_ID: "example-scanner",
+    MAIL_SMTP_URL: "smtp://mail:25",
   });
   const app = createApp({
     config,

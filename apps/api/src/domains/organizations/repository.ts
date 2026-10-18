@@ -33,3 +33,19 @@ export async function findRole(
     .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
   return row?.role ?? null;
 }
+
+/**
+ * 知らせ(メール)の宛先。アウトボックスの受け手が、送る直前に読む(出来事の中身にメールを入れないため)。
+ * いなければ null(消された人には送らない)。
+ */
+export async function findContact(
+  tx: TenantTx,
+  tenantId: string,
+  userId: string,
+): Promise<{ email: string; name: string } | null> {
+  const [row] = await tx
+    .select({ email: users.email, name: users.name })
+    .from(users)
+    .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
+  return row ?? null;
+}

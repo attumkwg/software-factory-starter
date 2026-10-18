@@ -9,6 +9,7 @@
 - 共通の部品: `src/http/common.ts`(OpenAPI の応答・本文)・`src/db/`(接続・テナント・列の作り方)・`src/outbox/`(送信待ち)。
 - **お金と時刻**(ADR 0005): 金額は最小単位の整数+通貨、単価・率は小数の文字列、計算は `@app/shared` の `money.ts`(丸め方を必ず渡す)。時刻は UTC で持ち、日付だけの値は `date`。「1日」の区切りは組織の時間帯(`tenants.time_zone`・`time.ts` の `localDayRange`)。
 - **起きたことをほかへ知らせる**(ADR 0006): 外へ直接送らず、同じトランザクションで `enqueue()`。受け手は同じ出来事が2回届いても大丈夫に書く。
+- **メール**(ADR 0008): リクエストの中で直接送らない。出来事を積み、受け手(`outbox/handlers.ts`)で組み立てて `mailer.send()`。宛先は送る直前に DB から読む(出来事にメールアドレスを入れない)。手順は `docs/guides/mail.md`。
 - リポジトリは RLS に頼り切らず、`tenantId` でも絞る(層を重ねる)。
 - 他社の物・無い物は 404。権限が無ければ 403。ログインしていなければ 401。
 - 失敗は投げるだけ(`errors.ts` の関数)。ルートで try/catch して形を作らない。`onError` が code に直し、ログは `logger.error({ err }, "…")` の形だけ(SQL の値が落ちる)。決まりは `docs/guides/error-handling.md`。

@@ -5,6 +5,8 @@ export const APP_ENVS = ["local", "test", "preview", "stg", "prod"] as const;
 const DEV_LOGIN_ALLOWED: ReadonlySet<string> = new Set(["local", "test", "preview"]);
 // 偽物の Cognito・http の URL を使ってよい所(手元とテスト)
 const LOCAL_ONLY: ReadonlySet<string> = new Set(["local", "test"]);
+// 手元の画面(docker compose の ALB の代わり)。stg・prod では APP_URL が必須
+const DEFAULT_APP_URL = "http://localhost:8080";
 
 const EnvSchema = z
   .object({
@@ -31,6 +33,10 @@ const EnvSchema = z
     COGNITO_ISSUER: z.url().optional(),
     // ZAP の認証つきスキャン用のアプリクライアント(stg だけ)
     COGNITO_SCAN_CLIENT_ID: z.string().optional(),
+    // メールを渡す先(Postfix)。smtp://mail:25 など。無ければ送らずに記録だけ(local / test / preview だけ)
+    MAIL_SMTP_URL: z.url().optional(),
+    // 送り元。SES で確かめたドメインのアドレス(例: "Tasks <no-reply@example.com>")
+    MAIL_FROM: z.string().min(3).default("Tasks <no-reply@example.test>"),
     // ECS の stopTimeout(既定30秒)より短く
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
     // アウトボックスの送り出しを、この API のプロセスで回すか(ADR 0006)。別のサービスに分けたら off に
@@ -43,6 +49,22 @@ const EnvSchema = z
         path: ["AUTH_MODE"],
         message: `開発用ログインは ${env.APP_ENV} では使えません(local / test / preview だけ)`,
       });
+    }
+    if (!LOCAL_ONLY.has(env.APP_ENV) && env.APP_ENV !== "preview") {
+      if (!env.MAIL_SMTP_URL) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["MAIL_SMTP_URL"],
+          message: `${env.APP_ENV} ではメールを送る先(MAIL_SMTP_URL)が要ります`,
+        });
+      }
+      if (!env.APP_URL) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["APP_URL"],
+          message: `${env.APP_ENV} では画面の URL(APP_URL。メールのリンクに使う)が要ります`,
+        });
+      }
     }
     if (env.AUTH_MODE !== "cognito") return;
     if (
@@ -113,7 +135,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
             userPoolId: e.COGNITO_USER_POOL_ID ?? "",
             clientId: e.COGNITO_CLIENT_ID ?? "",
             domain: e.COGNITO_DOMAIN ?? "",
-            appUrl: e.APP_URL ?? "",
+            appUrl: e.APP_URL ?? DEFAULT_APP_URL,
             issuer: e.COGNITO_ISSUER,
             scanClientId: e.COGNITO_SCAN_CLIENT_ID,
           }
@@ -125,6 +147,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       secureCookie: e.APP_ENV !== "local" && e.APP_ENV !== "test",
     },
     exposeOpenApi: e.APP_ENV !== "prod",
+    appUrl: e.APP_URL ?? DEFAULT_APP_URL,
+    mail: { smtpUrl: e.MAIL_SMTP_URL ?? null, from: e.MAIL_FROM },
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
   };
