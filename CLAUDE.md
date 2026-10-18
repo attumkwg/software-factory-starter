@@ -13,6 +13,7 @@
 
 - `apps/api` … Hono の API。領域ごとに `src/domains/<領域>/`。ルールは `apps/api/CLAUDE.md`
 - `apps/web` … TanStack Start の画面(SSR。API とは別のサービス)。ルールは `apps/web/CLAUDE.md`
+- `packages/fake-cognito` … 開発とテスト専用の偽物の Cognito。手元の AWS の代わりの一覧は `docs/guides/local-environment.md`
 - `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/adr` 設計判断 / `docs/runbooks` 手順
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)

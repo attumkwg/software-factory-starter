@@ -70,6 +70,8 @@ module "app" {
     COGNITO_REGION       = var.region
     COGNITO_USER_POOL_ID = aws_cognito_user_pool.this.id
     COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.web.id
+    COGNITO_DOMAIN       = "https://${aws_cognito_user_pool_domain.this.domain}.auth.${var.region}.amazoncognito.com"
+    APP_URL              = "https://${var.app_domain}"
   }
   secrets = {
     DATABASE_URL   = module.aurora.database_url_secret_arn

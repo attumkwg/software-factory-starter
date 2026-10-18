@@ -22,7 +22,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  │  ├─ src/app.ts             組み立て(request ID → セッション → 認可の関所 → ルート)
 │  │  ├─ src/index.ts           起動と SIGTERM での停止
 │  │  ├─ src/cli.ts             移行・種データ・使い捨て DB のロール作成
-│  │  ├─ src/auth/              認証: 開発用ログイン / Cognito の差し替え口・署名つき Cookie
+│  │  ├─ src/auth/              認証: 開発用ログイン / Cognito(API が code を受け取る・トークンはサーバーの中だけ)・署名つき Cookie
 │  │  ├─ src/authz/             認可: 既定は拒否のポリシー(policy.ts)と関所(middleware.ts)
 │  │  ├─ src/db/                Drizzle のスキーマ・withTenant(SET LOCAL)・種データ
 │  │  ├─ src/domains/           領域ごと(organizations・projects・tasks)の表・読み書き・API。ほかからは index.ts だけ
@@ -41,11 +41,12 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
+├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし。docker-compose.cognito.yml・テストで使う)
 ├─ docs/
 │  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
-│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス)
-│  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない)
+│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン)
+│  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・aurora・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
@@ -280,7 +281,10 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 
 ## 📏 わざとやっていないこと(次の一歩)
 
-- **画面の Cognito ログイン**: API の差し替え口(`POST /api/auth/cognito` で ID トークンを検証)まで。画面からホスト UI に飛ばす部分は未実装。
+- **ログインの画面を自作する**(次の PR): いまは Cognito の画面(Managed Login)で、デザインシステムと見た目がそろわない。画面だけを自作し、パスワード・MFA・確認コードは Cognito のまま(ADR 0007 の「次にやること」)。
+- **メール**(次の次の PR): アプリは SMTP でしか送らない。本番は Postfix → SES、手元は Mailpit。送るのはアウトボックス経由(必ず届く)。Cognito の確認メールも SES へ。
+- **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
+- **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: いまは署名つき Cookie。強制ログアウトが要るなら DB か Valkey に。
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
 - **監査ログ・機能フラグ・Sentry・OpenTelemetry のトレース**: ログには traceId を入れてあるので、トレースは後から足せる。
