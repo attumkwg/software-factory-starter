@@ -1,7 +1,7 @@
 import type { Project } from "@app/shared";
 import { and, desc, eq } from "drizzle-orm";
-import { projects } from "../db/schema.ts";
-import type { TenantScope } from "./scope.ts";
+import type { TenantScope } from "../../db/scope.ts";
+import { projects } from "./schema.ts";
 
 type Row = typeof projects.$inferSelect;
 const toProject = (r: Row): Project => ({
@@ -42,4 +42,9 @@ export async function deleteProject(s: TenantScope, id: string): Promise<boolean
     .where(and(eq(projects.tenantId, s.tenantId), eq(projects.id, id)))
     .returning({ id: projects.id });
   return rows.length > 0;
+}
+
+/** ほかの領域(tasks)が「このプロジェクトはあるか」を確かめる。 */
+export async function projectExists(s: TenantScope, id: string): Promise<boolean> {
+  return (await getProject(s, id)) !== null;
 }

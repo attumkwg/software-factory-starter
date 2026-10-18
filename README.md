@@ -25,8 +25,9 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  │  ├─ src/auth/              認証: 開発用ログイン / Cognito の差し替え口・署名つき Cookie
 │  │  ├─ src/authz/             認可: 既定は拒否のポリシー(policy.ts)と関所(middleware.ts)
 │  │  ├─ src/db/                Drizzle のスキーマ・withTenant(SET LOCAL)・種データ
-│  │  ├─ src/routes/            API の入力と出力の形だけ
-│  │  ├─ src/repositories/      DB の読み書き(テナントの文脈つきのトランザクションだけを使う)
+│  │  ├─ src/domains/           領域ごと(organizations・projects・tasks)の表・読み書き・API。ほかからは index.ts だけ
+│  │  ├─ src/outbox/            送信待ち(アウトボックス)と、その送り出し
+│  │  ├─ src/http/              API の入力と出力の共通の形
 │  │  ├─ drizzle/               移行の SQL(0001_rls.sql が RLS)
 │  │  ├─ db/init/               手元・テスト用の接続ユーザーの作成
 │  │  ├─ test/unit/             DB 無しのテスト(権限の表の網羅 ① を含む)
@@ -43,7 +44,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 ├─ docs/
 │  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
-│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR と別サービス)
+│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・aurora・preview-env・github-oidc
@@ -148,11 +149,11 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | 層 | この雛形のどこ |
 |---|---|
-| 全テーブルに tenant_id(UUIDv7)・(tenant_id, id) の組で参照 | `apps/api/src/db/schema.ts` |
+| 全テーブルに tenant_id(UUIDv7)・(tenant_id, id) の組で参照 | `apps/api/src/domains/*/schema.ts` |
 | テナントはセッションからだけ | `src/auth/session.ts`(署名つき Cookie)・`src/authz/middleware.ts` |
 | トランザクションごとに `SET LOCAL app.tenant_id` | `src/db/tenant.ts`(`set_config(..., true)`) |
 | RLS+FORCE・接続ユーザーは持ち主ではない | `drizzle/0001_rls.sql`・`db/init/001-roles.sql` |
-| アプリ側でも絞る | `src/repositories/`(`tenantId` で WHERE) |
+| アプリ側でも絞る | `src/domains/*/repository.ts`(`tenantId` で WHERE) |
 | 書き忘れを機械で止める | `.semgrep/rules.yml`(`tenant-scoped-db-only` / `tenant-from-request`) |
 | 確かめるテスト | `test/integration/rls.int.test.ts`(全テーブルに RLS・持ち主でない・文脈が漏れない)・`tenant-isolation.int.test.ts`(2社)・E2E の `tenant-isolation.spec.ts` |
 | 設計判断 | `docs/adr/0001-shared-tables-with-rls.md`・`docs/runbooks/tenant-data-leak.md` |

@@ -2,26 +2,30 @@
 
 ## Tables
 
-| Name                                  | Columns | Comment                                                                                   | Type       |
-| ------------------------------------- | ------- | ----------------------------------------------------------------------------------------- | ---------- |
-| [public.projects](public.projects.md) | 5       | プロジェクト。タスクのまとまり。docs/domain/projects                                      | BASE TABLE |
-| [public.tasks](public.tasks.md)       | 7       | タスク。プロジェクトの中のやること。docs/domain/tasks                                     | BASE TABLE |
-| [public.tenants](public.tenants.md)   | 3       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations         | BASE TABLE |
-| [public.users](public.users.md)       | 7       | 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations | BASE TABLE |
+| Name                                              | Columns | Comment                                                                                                                         | Type       |
+| ------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| [projects.projects](projects.projects.md)         | 5       | プロジェクト。タスクのまとまり。docs/domain/projects                                                                            | BASE TABLE |
+| [tasks.tasks](tasks.tasks.md)                     | 7       | タスク。プロジェクトの中のやること。docs/domain/tasks                                                                           | BASE TABLE |
+| [organizations.tenants](organizations.tenants.md) | 4       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations                                               | BASE TABLE |
+| [organizations.users](organizations.users.md)     | 7       | 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations                                       | BASE TABLE |
+| [platform.outbox](platform.outbox.md)             | 11      | 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md | BASE TABLE |
 
 ## Stored procedures and functions
 
-| Name                                 | ReturnType | Arguments          | Type     |
-| ------------------------------------ | ---------- | ------------------ | -------- |
-| public.app_current_tenant            | uuid       |                    | FUNCTION |
-| public.auth_find_user_by_email       | record     | p_email text       | FUNCTION |
-| public.auth_find_user_by_external_id | record     | p_external_id text | FUNCTION |
+| Name                                 | ReturnType | Arguments                                                        | Type     |
+| ------------------------------------ | ---------- | ---------------------------------------------------------------- | -------- |
+| public.app_current_tenant            | uuid       |                                                                  | FUNCTION |
+| public.auth_find_user_by_email       | record     | p_email text                                                     | FUNCTION |
+| public.auth_find_user_by_external_id | record     | p_external_id text                                               | FUNCTION |
+| public.outbox_claim                  | outbox     | p_limit integer, p_lease_seconds integer                         | FUNCTION |
+| public.outbox_mark_sent              | void       | p_id uuid                                                        | FUNCTION |
+| public.outbox_mark_failed            | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean | FUNCTION |
 
 ## Enums
 
-| Name        | Values                |
-| ----------- | --------------------- |
-| public.role | admin, member, viewer |
+| Name               | Values                |
+| ------------------ | --------------------- |
+| organizations.role | admin, member, viewer |
 
 ## Relations
 

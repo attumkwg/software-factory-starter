@@ -27,8 +27,9 @@ export function createDb(
     max: 10,
     // DB に届かないとき、いつまでも待たない(待たずに 503 を返す)
     connectionTimeoutMillis: 5_000,
-    // 1社の重いクエリで全体を止めない(security.md 4.3 の 6)
-    options: "-c statement_timeout=5000",
+    // 1社の重いクエリで全体を止めない(security.md 4.3 の 6)。
+    // 接続の時間帯は UTC に固定する(SQL の now()::date などが、DB の設定で変わらないように。ADR 0005)
+    options: "-c statement_timeout=5000 -c TimeZone=UTC",
   });
   // 切れた接続はプールが捨てて、次は新しくつなぐ。ここでは記録だけ
   pool.on("error", (err) => opts.onIdleError?.(err));

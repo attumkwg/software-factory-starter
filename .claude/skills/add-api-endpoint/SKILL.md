@@ -10,22 +10,27 @@ description: 新しい API(エンドポイント)を足すときの手順。ル�
 ## 手順
 
 1. **仕様を確かめる**: Issue の受け入れ条件か `docs/specs/` に「誰が(ロール)・何を・他社からは?」が書いてあるか。無ければ実装せず、PR / Issue で聞く。
-2. **契約**: 入力と出力のスキーマを `packages/shared/src/schemas.ts` に足す(項目は足すだけ・消さない)。
-3. **リポジトリ**: `apps/api/src/repositories/` に関数を足す。
+2. **契約**: 入力と出力のスキーマを `packages/shared/src/schemas.ts` に足す(項目は足すだけ・消さない。CI の「API の互換」が見張る。`docs/guides/api-changes.md`)。
+   - 時刻は `InstantSchema`(UTC)、日付だけなら `DateOnlySchema`、お金は `MoneySchema`、単価・率は `DecimalSchema`(ADR 0005)。
+3. **どの領域か決める**: `apps/api/src/domains/<領域>/`(organizations・projects・tasks。`docs/domain/` と同じ名前)。
+   - ほかの領域のデータが要るなら、その領域の `index.ts` の関数を使う(無ければそちらに足して export)。表を直接読まない。
+   - 新しい向き(A → B)が要るなら `domains/dependencies.ts` に足す。輪(A → B → A)は作らない。迷ったら出来事(アウトボックス)で済まないか考える。
+4. **リポジトリ**: `apps/api/src/domains/<領域>/repository.ts` に関数を足す。
    - 引数は `TenantScope`(`scopeOf(c)`)。`tenantId` で必ず絞る(RLS に頼り切らない)。
    - 接続プール(`RootDb`)は使わない。`sql.raw` は使わない。
-4. **ルート**: `apps/api/src/routes/` に `createRoute` で足す。
+5. **ルート**: `apps/api/src/domains/<領域>/routes.ts` に `createRoute` で足す。
    - ルートの中で `role` を見ない。他社の物・無い物は `throw notFound()`。
    - 失敗の応答(`authErrors` / `notFoundError` / `badRequestError`)を付けて OpenAPI に載せる。
-5. **権限の決まり**: `apps/api/src/authz/policy.ts`
+   - 起きたことをほかへ知らせるなら、同じトランザクションで `enqueue(scope, "<領域>.<出来事>", {...})`(`src/outbox/topics.ts` に足す。ADR 0006)。
+6. **権限の決まり**: `apps/api/src/authz/policy.ts`
    - 既存の権限で足りなければ `PERMISSIONS` に足す。
    - `ROUTE_RULES` に `"メソッド /api/パス": "権限"` を1行。
-6. **権限の表**: `docs/authz/matrix.yaml` に1行。
+7. **権限の表**: `docs/authz/matrix.yaml` に1行。
    - `admin` / `member` / `viewer` / `anonymous` の答えを全部書く。
    - パスに ID があれば `other_tenant: 404` を必ず書く。
    - 書き込みなら `body` を書く。
-7. **テスト**: 表に足せば `authz-matrix.int.test.ts` が自動で全ロールを叩く。そのうえで、業務の決まり(入力の境界・2社の分離)を `test/integration/` に足す。**テストは必ず2社**。
-8. **確かめる**: `pnpm turbo run typecheck test --affected` と `pnpm test:integration`。
+8. **テスト**: 表に足せば `authz-matrix.int.test.ts` が自動で全ロールを叩く。そのうえで、業務の決まり(入力の境界・2社の分離)を `test/integration/` に足す。**テストは必ず2社**。
+9. **確かめる**: `pnpm turbo run typecheck test --affected` と `pnpm test:integration`。
 
 ## PR に書くこと
 

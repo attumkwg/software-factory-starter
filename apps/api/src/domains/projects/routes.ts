@@ -1,13 +1,7 @@
 import { CreateProjectSchema, IdSchema, ProjectSchema } from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
-import { notFound } from "../errors.ts";
-import {
-  createProject,
-  deleteProject,
-  getProject,
-  listProjects,
-} from "../repositories/projects.ts";
-import { scopeOf } from "../repositories/scope.ts";
+import { scopeOf } from "../../db/scope.ts";
+import { notFound } from "../../errors.ts";
 import {
   authErrors,
   badRequestError,
@@ -16,7 +10,8 @@ import {
   json,
   jsonBody,
   notFoundError,
-} from "./common.ts";
+} from "../../http/common.ts";
+import { createProject, deleteProject, getProject, listProjects } from "./repository.ts";
 
 // 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
 const ProjectParams = z.object({ projectId: IdSchema });

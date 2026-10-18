@@ -32,8 +32,8 @@
 ## 関係するファイル
 
 - `apps/api/src/auth/`(セッション・ログイン)・`apps/api/src/authz/`(権限)
-- `apps/api/src/db/schema.ts` の `tenants`・`users`
-- `docs/db/public.tenants.md`・`docs/db/public.users.md`(表の説明書)
+- `apps/api/src/domains/organizations/`(Postgres のスキーマ `organizations`)の `tenants`・`users`。組織の時間帯 `time_zone`(ADR 0005)
+- `docs/db/organizations.tenants.md`・`docs/db/organizations.users.md`(表の説明書)
 
 ## これから決めること
 

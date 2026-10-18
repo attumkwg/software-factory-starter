@@ -11,9 +11,9 @@
 
 ## 地図
 
-- `apps/api` … Hono の API。ルールは `apps/api/CLAUDE.md`
+- `apps/api` … Hono の API。領域ごとに `src/domains/<領域>/`。ルールは `apps/api/CLAUDE.md`
 - `apps/web` … TanStack Start の画面(SSR。API とは別のサービス)。ルールは `apps/web/CLAUDE.md`
-- `packages/shared` … 画面と API の契約(Zod)。項目は足すだけ・消さない
+- `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/adr` 設計判断 / `docs/runbooks` 手順
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
 

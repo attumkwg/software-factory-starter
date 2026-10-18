@@ -50,8 +50,8 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 | 残す(ライン) | 差し替える(題材) |
 |---|---|
-| `apps/api/src/app.ts`・`authz/middleware.ts`・`auth/`・`db/tenant.ts`・`db/client.ts`・ログ・設定 | `apps/api/src/routes/`・`repositories/` の projects と tasks |
-| `drizzle/0001_rls.sql` の形(新しい表にも同じ形で RLS) | `db/schema.ts` の projects と tasks・`drizzle/0000_init.sql` |
+| `apps/api/src/app.ts`・`authz/middleware.ts`・`auth/`・`db/tenant.ts`・`db/client.ts`・ログ・設定 | `apps/api/src/domains/` の projects と tasks(organizations は残す) |
+| `drizzle/0001_rls.sql` の形(新しい表にも同じ形で RLS) | 領域の `schema.ts`・`drizzle/` の移行・`domains/dependencies.ts` の向き |
 | `authz/policy.ts` の仕組み・`docs/authz/matrix.yaml` の形 | 権限の名前と行(自分の API に合わせる) |
 | `packages/ui`(部品とトークンの仕組み) | `tokens.css` の色(自分のブランド) |
 | CI・検査・Semgrep のルール・ハーネス(`CLAUDE.md`・`.claude/`) | `CLAUDE.md` の最初の1行(何のプロダクトか) |

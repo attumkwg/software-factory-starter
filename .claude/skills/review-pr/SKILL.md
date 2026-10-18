@@ -95,7 +95,7 @@ gh pr view <番号> --comments   # Terraform の plan のコメント・プレ�
 | 項目 | 結果 | メモ |
 |---|---|---|
 | テスト | ✅ | |
-| テナント | ⚠️ | `repositories/x.ts:42` で tenantId の絞り込みが無い(RLS では止まる) |
+| テナント | ⚠️ | `domains/x/repository.ts:42` で tenantId の絞り込みが無い(RLS では止まる) |
 | ... | | |
 
 ### 提案(任意)

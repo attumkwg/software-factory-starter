@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { RoleSchema } from "./roles.ts";
+import { InstantSchema, TimeZoneSchema } from "./time.ts";
 
 // 画面と API で共有する「契約」。API はここから OpenAPI を作り、画面は型として使う。
 // 項目は足すだけ・消さない・意味を変えない(古い画面やアプリから呼ばれても壊れないように)。
@@ -13,13 +14,15 @@ export const MeSchema = z.object({
   email: z.email(),
   name: z.string(),
   role: RoleSchema,
+  /** 組織の時間帯。画面はこの時間帯で時刻を見せる(SSR とブラウザで同じになる) */
+  timeZone: TimeZoneSchema,
 });
 export type Me = z.infer<typeof MeSchema>;
 
 export const ProjectSchema = z.object({
   id: IdSchema,
   name: z.string(),
-  createdAt: z.iso.datetime(),
+  createdAt: InstantSchema,
 });
 export type Project = z.infer<typeof ProjectSchema>;
 
@@ -33,8 +36,8 @@ export const TaskSchema = z.object({
   projectId: IdSchema,
   title: z.string(),
   done: z.boolean(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: InstantSchema,
+  updatedAt: InstantSchema,
 });
 export type Task = z.infer<typeof TaskSchema>;
 

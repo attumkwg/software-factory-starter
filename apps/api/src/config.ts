@@ -23,6 +23,8 @@ const EnvSchema = z
     COGNITO_CLIENT_ID: z.string().optional(),
     // ECS の stopTimeout(既定30秒)より短く
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
+    // アウトボックスの送り出しを、この API のプロセスで回すか(ADR 0006)。別のサービスに分けたら off に
+    OUTBOX_RELAY: z.enum(["on", "off"]).default("on"),
   })
   .superRefine((env, ctx) => {
     if (env.AUTH_MODE === "dev" && !DEV_LOGIN_ALLOWED.has(env.APP_ENV)) {
@@ -76,5 +78,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     },
     exposeOpenApi: e.APP_ENV !== "prod",
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
+    outboxRelay: e.OUTBOX_RELAY === "on",
   };
 }

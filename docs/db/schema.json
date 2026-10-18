@@ -2,7 +2,7 @@
   "name": "app",
   "tables": [
     {
-      "name": "public.projects",
+      "name": "projects.projects",
       "type": "BASE TABLE",
       "comment": "プロジェクト。タスクのまとまり。docs/domain/projects",
       "columns": [
@@ -37,16 +37,16 @@
       "indexes": [
         {
           "name": "projects_pkey",
-          "def": "CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id)",
-          "table": "public.projects",
+          "def": "CREATE UNIQUE INDEX projects_pkey ON projects.projects USING btree (id)",
+          "table": "projects.projects",
           "columns": [
             "id"
           ]
         },
         {
           "name": "projects_tenant_id_id_key",
-          "def": "CREATE UNIQUE INDEX projects_tenant_id_id_key ON public.projects USING btree (tenant_id, id)",
-          "table": "public.projects",
+          "def": "CREATE UNIQUE INDEX projects_tenant_id_id_key ON projects.projects USING btree (tenant_id, id)",
+          "table": "projects.projects",
           "columns": [
             "tenant_id",
             "id"
@@ -58,7 +58,7 @@
           "name": "projects_pkey",
           "type": "PRIMARY KEY",
           "def": "PRIMARY KEY (id)",
-          "table": "public.projects",
+          "table": "projects.projects",
           "referenced_table": "",
           "columns": [
             "id"
@@ -68,7 +68,7 @@
           "name": "projects_tenant_id_id_key",
           "type": "UNIQUE",
           "def": "UNIQUE (tenant_id, id)",
-          "table": "public.projects",
+          "table": "projects.projects",
           "referenced_table": "",
           "columns": [
             "tenant_id",
@@ -78,9 +78,9 @@
         {
           "name": "projects_tenant_id_tenants_tenant_id_fk",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)",
-          "table": "public.projects",
-          "referenced_table": "public.tenants",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "projects.projects",
+          "referenced_table": "organizations.tenants",
           "columns": [
             "tenant_id"
           ],
@@ -91,9 +91,9 @@
         {
           "name": "projects_created_by_fkey",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES users(tenant_id, id)",
-          "table": "public.projects",
-          "referenced_table": "public.users",
+          "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)",
+          "table": "projects.projects",
+          "referenced_table": "organizations.users",
           "columns": [
             "tenant_id",
             "created_by"
@@ -106,7 +106,7 @@
       ]
     },
     {
-      "name": "public.tasks",
+      "name": "tasks.tasks",
       "type": "BASE TABLE",
       "comment": "タスク。プロジェクトの中のやること。docs/domain/tasks",
       "columns": [
@@ -153,16 +153,16 @@
       "indexes": [
         {
           "name": "tasks_pkey",
-          "def": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)",
-          "table": "public.tasks",
+          "def": "CREATE UNIQUE INDEX tasks_pkey ON tasks.tasks USING btree (id)",
+          "table": "tasks.tasks",
           "columns": [
             "id"
           ]
         },
         {
           "name": "tasks_tenant_id_project_id_idx",
-          "def": "CREATE INDEX tasks_tenant_id_project_id_idx ON public.tasks USING btree (tenant_id, project_id)",
-          "table": "public.tasks",
+          "def": "CREATE INDEX tasks_tenant_id_project_id_idx ON tasks.tasks USING btree (tenant_id, project_id)",
+          "table": "tasks.tasks",
           "columns": [
             "tenant_id",
             "project_id"
@@ -173,9 +173,9 @@
         {
           "name": "tasks_project_fkey",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (tenant_id, project_id) REFERENCES projects(tenant_id, id) ON DELETE CASCADE",
-          "table": "public.tasks",
-          "referenced_table": "public.projects",
+          "def": "FOREIGN KEY (tenant_id, project_id) REFERENCES projects.projects(tenant_id, id) ON DELETE CASCADE",
+          "table": "tasks.tasks",
+          "referenced_table": "projects.projects",
           "columns": [
             "tenant_id",
             "project_id"
@@ -189,7 +189,7 @@
           "name": "tasks_pkey",
           "type": "PRIMARY KEY",
           "def": "PRIMARY KEY (id)",
-          "table": "public.tasks",
+          "table": "tasks.tasks",
           "referenced_table": "",
           "columns": [
             "id"
@@ -198,9 +198,9 @@
         {
           "name": "tasks_tenant_id_tenants_tenant_id_fk",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)",
-          "table": "public.tasks",
-          "referenced_table": "public.tenants",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "tasks.tasks",
+          "referenced_table": "organizations.tenants",
           "columns": [
             "tenant_id"
           ],
@@ -211,7 +211,7 @@
       ]
     },
     {
-      "name": "public.tenants",
+      "name": "organizations.tenants",
       "type": "BASE TABLE",
       "comment": "組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations",
       "columns": [
@@ -230,13 +230,20 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "time_zone",
+          "type": "text",
+          "nullable": false,
+          "default": "'Asia/Tokyo'::text",
+          "comment": "時刻を見せる時間帯・「1日」の区切り(IANA の名前。ADR 0005)"
         }
       ],
       "indexes": [
         {
           "name": "tenants_pkey",
-          "def": "CREATE UNIQUE INDEX tenants_pkey ON public.tenants USING btree (tenant_id)",
-          "table": "public.tenants",
+          "def": "CREATE UNIQUE INDEX tenants_pkey ON organizations.tenants USING btree (tenant_id)",
+          "table": "organizations.tenants",
           "columns": [
             "tenant_id"
           ]
@@ -247,7 +254,7 @@
           "name": "tenants_pkey",
           "type": "PRIMARY KEY",
           "def": "PRIMARY KEY (tenant_id)",
-          "table": "public.tenants",
+          "table": "organizations.tenants",
           "referenced_table": "",
           "columns": [
             "tenant_id"
@@ -256,7 +263,7 @@
       ]
     },
     {
-      "name": "public.users",
+      "name": "organizations.users",
       "type": "BASE TABLE",
       "comment": "組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations",
       "columns": [
@@ -288,7 +295,7 @@
         },
         {
           "name": "role",
-          "type": "role",
+          "type": "organizations.role",
           "nullable": false,
           "comment": "admin / member / viewer"
         },
@@ -302,16 +309,16 @@
       "indexes": [
         {
           "name": "users_pkey",
-          "def": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)",
-          "table": "public.users",
+          "def": "CREATE UNIQUE INDEX users_pkey ON organizations.users USING btree (id)",
+          "table": "organizations.users",
           "columns": [
             "id"
           ]
         },
         {
           "name": "users_tenant_id_id_key",
-          "def": "CREATE UNIQUE INDEX users_tenant_id_id_key ON public.users USING btree (tenant_id, id)",
-          "table": "public.users",
+          "def": "CREATE UNIQUE INDEX users_tenant_id_id_key ON organizations.users USING btree (tenant_id, id)",
+          "table": "organizations.users",
           "columns": [
             "tenant_id",
             "id"
@@ -319,16 +326,16 @@
         },
         {
           "name": "users_email_key",
-          "def": "CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)",
-          "table": "public.users",
+          "def": "CREATE UNIQUE INDEX users_email_key ON organizations.users USING btree (email)",
+          "table": "organizations.users",
           "columns": [
             "email"
           ]
         },
         {
           "name": "users_external_id_key",
-          "def": "CREATE UNIQUE INDEX users_external_id_key ON public.users USING btree (external_id)",
-          "table": "public.users",
+          "def": "CREATE UNIQUE INDEX users_external_id_key ON organizations.users USING btree (external_id)",
+          "table": "organizations.users",
           "columns": [
             "external_id"
           ]
@@ -338,9 +345,9 @@
         {
           "name": "users_tenant_id_tenants_tenant_id_fk",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)",
-          "table": "public.users",
-          "referenced_table": "public.tenants",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.users",
+          "referenced_table": "organizations.tenants",
           "columns": [
             "tenant_id"
           ],
@@ -352,7 +359,7 @@
           "name": "users_pkey",
           "type": "PRIMARY KEY",
           "def": "PRIMARY KEY (id)",
-          "table": "public.users",
+          "table": "organizations.users",
           "referenced_table": "",
           "columns": [
             "id"
@@ -362,10 +369,121 @@
           "name": "users_tenant_id_id_key",
           "type": "UNIQUE",
           "def": "UNIQUE (tenant_id, id)",
-          "table": "public.users",
+          "table": "organizations.users",
           "referenced_table": "",
           "columns": [
             "tenant_id",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "platform.outbox",
+      "type": "BASE TABLE",
+      "comment": "送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "topic",
+          "type": "text",
+          "nullable": false,
+          "comment": "何が起きたか(領域.出来事。src/outbox/topics.ts)"
+        },
+        {
+          "name": "payload",
+          "type": "jsonb",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "available_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "locked_until",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "送り出しが借りている期限"
+        },
+        {
+          "name": "attempts",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dead_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "あきらめた時刻(人が見て直す)"
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "outbox_pkey",
+          "def": "CREATE UNIQUE INDEX outbox_pkey ON platform.outbox USING btree (id)",
+          "table": "platform.outbox",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "outbox_pending_idx",
+          "def": "CREATE INDEX outbox_pending_idx ON platform.outbox USING btree (available_at) WHERE ((sent_at IS NULL) AND (dead_at IS NULL))",
+          "table": "platform.outbox",
+          "columns": [
+            "available_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "outbox_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "platform.outbox",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "outbox_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "platform.outbox",
+          "referenced_table": "",
+          "columns": [
             "id"
           ]
         }
@@ -374,73 +492,86 @@
   ],
   "relations": [
     {
-      "table": "public.projects",
+      "table": "projects.projects",
       "columns": [
         "tenant_id"
       ],
       "cardinality": "zero_or_more",
-      "parent_table": "public.tenants",
+      "parent_table": "organizations.tenants",
       "parent_columns": [
         "tenant_id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
     },
     {
-      "table": "public.projects",
+      "table": "projects.projects",
       "columns": [
         "tenant_id",
         "created_by"
       ],
       "cardinality": "zero_or_more",
-      "parent_table": "public.users",
+      "parent_table": "organizations.users",
       "parent_columns": [
         "tenant_id",
         "id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES users(tenant_id, id)"
+      "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)"
     },
     {
-      "table": "public.tasks",
+      "table": "tasks.tasks",
       "columns": [
         "tenant_id",
         "project_id"
       ],
       "cardinality": "zero_or_more",
-      "parent_table": "public.projects",
+      "parent_table": "projects.projects",
       "parent_columns": [
         "tenant_id",
         "id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (tenant_id, project_id) REFERENCES projects(tenant_id, id) ON DELETE CASCADE"
+      "def": "FOREIGN KEY (tenant_id, project_id) REFERENCES projects.projects(tenant_id, id) ON DELETE CASCADE"
     },
     {
-      "table": "public.tasks",
+      "table": "tasks.tasks",
       "columns": [
         "tenant_id"
       ],
       "cardinality": "zero_or_more",
-      "parent_table": "public.tenants",
+      "parent_table": "organizations.tenants",
       "parent_columns": [
         "tenant_id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
     },
     {
-      "table": "public.users",
+      "table": "organizations.users",
       "columns": [
         "tenant_id"
       ],
       "cardinality": "zero_or_more",
-      "parent_table": "public.tenants",
+      "parent_table": "organizations.tenants",
       "parent_columns": [
         "tenant_id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "platform.outbox",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
     }
   ],
   "functions": [
@@ -461,11 +592,29 @@
       "return_type": "record",
       "arguments": "p_external_id text",
       "type": "FUNCTION"
+    },
+    {
+      "name": "public.outbox_claim",
+      "return_type": "outbox",
+      "arguments": "p_limit integer, p_lease_seconds integer",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.outbox_mark_sent",
+      "return_type": "void",
+      "arguments": "p_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.outbox_mark_failed",
+      "return_type": "void",
+      "arguments": "p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean",
+      "type": "FUNCTION"
     }
   ],
   "enums": [
     {
-      "name": "public.role",
+      "name": "organizations.role",
       "values": [
         "admin",
         "member",

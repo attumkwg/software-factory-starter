@@ -46,7 +46,7 @@ describe("接続ユーザーの形", () => {
 
   it("アプリの接続ユーザーはどの表の持ち主でもない", async () => {
     const { rows } = await app.query(
-      "select tablename from pg_tables where schemaname = 'public' and tableowner = current_user",
+      "select tablename from pg_tables where schemaname not in ('pg_catalog', 'information_schema') and tableowner = current_user",
     );
     expect(rows).toEqual([]);
   });
@@ -58,20 +58,22 @@ describe("接続ユーザーの形", () => {
 });
 
 describe("全テーブル", () => {
-  it("public の全テーブルに tenant_id があり、RLS が有効で FORCE も付いている", async () => {
+  it("アプリの全スキーマの全テーブルに tenant_id があり、RLS が有効で FORCE も付いている", async () => {
     const { rows } = await owner.pool.query<{
       relname: string;
       relrowsecurity: boolean;
       relforcerowsecurity: boolean;
       has_tenant_id: boolean;
     }>(`
-      select c.relname, c.relrowsecurity, c.relforcerowsecurity,
+      select n.nspname || '.' || c.relname as relname, c.relrowsecurity, c.relforcerowsecurity,
              exists (select 1 from information_schema.columns col
-                     where col.table_schema = 'public' and col.table_name = c.relname
+                     where col.table_schema = n.nspname and col.table_name = c.relname
                        and col.column_name = 'tenant_id') as has_tenant_id
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and c.relkind = 'r'
-      order by c.relname`);
+      -- 領域ごとのスキーマ(ADR 0004)も含めて全部。システムと移行の記録(drizzle)だけを外す
+      where n.nspname not in ('pg_catalog', 'information_schema', 'pg_toast', 'drizzle')
+        and c.relkind = 'r'
+      order by relname`);
     expect(rows.length).toBeGreaterThan(0);
     const bad = rows.filter((r) => !(r.relrowsecurity && r.relforcerowsecurity && r.has_tenant_id));
     expect(bad.map((r) => r.relname)).toEqual([]);
@@ -82,7 +84,7 @@ describe("行の分離", () => {
   it("テナントを渡さなければ、1行も見えない", async () => {
     const count = await asTenant(
       null,
-      async (c) => (await c.query("select count(*)::int as n from projects")).rows[0].n,
+      async (c) => (await c.query("select count(*)::int as n from projects.projects")).rows[0].n,
     );
     expect(count).toBe(0);
   });
@@ -92,7 +94,7 @@ describe("行の分離", () => {
       a.tenantId,
       async (c) =>
         (
-          await c.query("select id, tenant_id from projects where id = any($1)", [
+          await c.query("select id, tenant_id from projects.projects where id = any($1)", [
             [a.projectId, b.projectId],
           ])
         ).rows,
@@ -104,7 +106,7 @@ describe("行の分離", () => {
     await expect(
       asTenant(a.tenantId, (c) =>
         c.query(
-          "insert into projects (id, tenant_id, name, created_by) values (gen_random_uuid(), $1, 'x', $2)",
+          "insert into projects.projects (id, tenant_id, name, created_by) values (gen_random_uuid(), $1, 'x', $2)",
           [b.tenantId, b.users.admin.id],
         ),
       ),
@@ -114,7 +116,7 @@ describe("行の分離", () => {
   it("自社の行を他社に付け替えられない", async () => {
     await expect(
       asTenant(a.tenantId, (c) =>
-        c.query("update tasks set tenant_id = $1 where id = $2", [b.tenantId, a.taskId]),
+        c.query("update tasks.tasks set tenant_id = $1 where id = $2", [b.tenantId, a.taskId]),
       ),
     ).rejects.toMatchObject({ code: "42501" });
   });
@@ -122,7 +124,7 @@ describe("行の分離", () => {
   it("他社の行は消せない(0行になるだけ)", async () => {
     const deleted = await asTenant(
       a.tenantId,
-      async (c) => (await c.query("delete from tasks where id = $1", [b.taskId])).rowCount,
+      async (c) => (await c.query("delete from tasks.tasks where id = $1", [b.taskId])).rowCount,
     );
     expect(deleted).toBe(0);
   });
@@ -133,7 +135,7 @@ describe("行の分離", () => {
       await c.query("begin");
       await c.query("select set_config('app.tenant_id', $1, true)", [a.tenantId]);
       await c.query("commit");
-      const { rows } = await c.query("select count(*)::int as n from projects");
+      const { rows } = await c.query("select count(*)::int as n from projects.projects");
       expect(rows[0].n).toBe(0);
     } finally {
       c.release();
@@ -144,7 +146,8 @@ describe("行の分離", () => {
     const leaked = await asTenant(
       a.tenantId,
       async (c) =>
-        (await c.query("select email from users where tenant_id = $1", [b.tenantId])).rows,
+        (await c.query("select email from organizations.users where tenant_id = $1", [b.tenantId]))
+          .rows,
     );
     expect(leaked).toEqual([]);
     const found = (
