@@ -101,6 +101,37 @@ export const DevLoginSchema = z.object({
   email: z.email(),
 });
 
+// ── 監査ログ(docs/specs/0003-audit-log.md) ─────────────────────────────────
+
+/** 誰が: 自社の人 / 代理ログインの社員(サポート) / 仕組み */
+export const AUDIT_ACTOR_KINDS = ["user", "support", "system"] as const;
+
+export const AuditEventSchema = z.object({
+  id: IdSchema,
+  occurredAt: InstantSchema,
+  actor: z.object({
+    kind: z.enum(AUDIT_ACTOR_KINDS),
+    id: IdSchema.nullable(),
+    /** 自社の人なら名前。社員・仕組み・消された人は null(画面は kind で出し分ける) */
+    name: z.string().nullable(),
+  }),
+  /** 何をしたか(「対象.動作」。例 project.create)。画面は名前から文を選ぶ */
+  action: z.string(),
+  target: z.object({ type: z.string(), id: IdSchema }).nullable(),
+  outcome: z.enum(["allowed", "denied"]),
+  requestId: z.string().nullable(),
+  /** 直した項目の名前など(値は入らない) */
+  details: z.record(z.string(), z.unknown()),
+});
+export type AuditEvent = z.infer<typeof AuditEventSchema>;
+
+export const AuditEventPageSchema = z.object({
+  events: z.array(AuditEventSchema),
+  /** 続きを読むときに before に渡す。無ければ終わり */
+  nextCursor: z.string().nullable(),
+});
+export type AuditEventPage = z.infer<typeof AuditEventPageSchema>;
+
 /**
  * ログインの方式(GET /api/auth/options)。画面はこれを見て、ログインとログアウトの出し方を変える。
  *   dev     … 開発用ログイン(local / test / preview だけ)

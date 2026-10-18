@@ -9,6 +9,7 @@
 | [organizations.tenants](organizations.tenants.md) | 4       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations                                               | BASE TABLE |
 | [organizations.users](organizations.users.md)     | 7       | 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations                                       | BASE TABLE |
 | [platform.outbox](platform.outbox.md)             | 11      | 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md | BASE TABLE |
+| [platform.audit_events](platform.audit_events.md) | 11      | 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013  | BASE TABLE |
 
 ## Stored procedures and functions
 
@@ -21,6 +22,7 @@
 | public.outbox_mark_sent              | void       | p_id uuid                                                        | FUNCTION |
 | public.outbox_mark_failed            | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean | FUNCTION |
 | public.auth_link_external_id         | record     | p_email text, p_external_id text                                 | FUNCTION |
+| platform.audit_events_append_only    | trigger    |                                                                  | FUNCTION |
 
 ## Enums
 

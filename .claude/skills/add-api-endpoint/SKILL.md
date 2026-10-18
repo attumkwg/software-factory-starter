@@ -25,6 +25,7 @@ description: 新しい API(エンドポイント)を足すときの手順。ル�
 6. **権限の決まり**: `apps/api/src/authz/policy.ts`
    - 既存の権限で足りなければ `PERMISSIONS` に足す。
    - `ROUTE_RULES` に `"メソッド /api/パス": "権限"` を1行。
+   - **書き込み(GET 以外)なら、監査ログの名前**を `apps/api/src/audit/actions.ts` に1行(`"POST /api/…": { action: "対象.動作", target: "対象" }`)。記録は認可の関所が自動で取る。無ければ `audit-coverage.test.ts` が落ちる。画面の文は `apps/web/src/audit-labels.ts`。**一度使った名前は変えない**。
 7. **権限の表**: `docs/authz/matrix.yaml` に1行。
    - `admin` / `member` / `viewer` / `anonymous` の答えを全部書く。
    - パスに ID があれば `other_tenant: 404` を必ず書く。

@@ -1,9 +1,9 @@
 import type { AuthOptions, Me } from "@app/shared";
-import { Badge, Button, Inline, Page, Stack } from "@app/ui";
+import { Badge, Button, Inline, Link, Page, Stack } from "@app/ui";
 import { useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { api } from "../api.ts";
-import { roleLabel } from "../permissions.ts";
+import { canReadAudit, roleLabel } from "../permissions.ts";
 import { useAction } from "../use-action.ts";
 
 // ログインした後の画面の外枠: 会社名・名前・ロール・ログアウト。
@@ -23,6 +23,12 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
                   {roleLabel(me.role)}
                 </span>
               </Badge>
+              <nav aria-label="メニュー">
+                <Inline gap={3}>
+                  <Link href="/">プロジェクト</Link>
+                  {canReadAudit(me.role) && <Link href="/audit">監査ログ</Link>}
+                </Inline>
+              </nav>
             </Inline>
             <Button
               variant="ghost"
