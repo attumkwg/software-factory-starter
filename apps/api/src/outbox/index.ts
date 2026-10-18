@@ -2,4 +2,4 @@
 export { enqueue } from "./enqueue.ts";
 export { outboxHandlers } from "./handlers.ts";
 export { type OutboxEvent, type OutboxHandler, relayOnce, startOutboxRelay } from "./relay.ts";
-export { OUTBOX_TOPICS, type OutboxTopic } from "./topics.ts";
+export { OUTBOX_TOPICS, type OutboxPayload, type OutboxTopic } from "./topics.ts";

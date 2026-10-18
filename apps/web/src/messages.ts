@@ -15,7 +15,8 @@ import type { ErrorCode } from "@app/shared";
 export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   bad_request: "入力を確かめてください",
   unauthorized: "ログインが切れました。もう一度ログインしてください",
-  login_failed: "ログインできませんでした",
+  // どちらが違ったかは言わない(決まり 2)。その人がいないときも同じ文
+  login_failed: "メールアドレスかパスワードが正しくありません",
   forbidden: "この操作の権限がありません",
   not_found: "見つかりませんでした。最新の内容を読み込み直しました",
   conflict: "ほかの変更とぶつかりました。最新の内容を読み込み直したので、もう一度試してください",
@@ -24,6 +25,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   service_unavailable:
     "いま混み合っているか、止まっています。少し待ってから、もう一度試してください",
   internal: "うまくいきませんでした。時間をおいて、もう一度試してください",
+  invalid_code: "コードが違うか、期限が切れています。もう一度確かめてください",
+  invalid_password: "パスワードが決まりを満たしていません",
+  too_many_requests: "試した回数が多すぎます。しばらく待ってから、もう一度試してください",
 };
 
 /** API まで届かなかったとき・それ以外の想定外。 */
@@ -39,3 +43,15 @@ export const OTHER_MESSAGES = {
 /** 問い合わせ番号の付け方。requestId はサーバーが作る ID なので、出してよい。 */
 export const withRequestId = (message: string, requestId: string) =>
   `${message}(問い合わせ番号: ${requestId})`;
+
+/** ログイン・登録・再設定の画面のお知らせ(失敗ではないもの)。固定の文だけ */
+export const AUTH_NOTICES = {
+  registered: "登録できました。メールアドレスとパスワードでログインしてください",
+  reset: "パスワードを変えました。新しいパスワードでログインしてください",
+  confirmed: "メールアドレスを確認できました。もう一度ログインしてください",
+  codeSent: "確認コードを送りました。メールを確かめてください",
+  // 登録の有無を言わない(いない人にも同じ文。決まり 2)
+  resetCodeSent:
+    "登録されているメールアドレスなら、確認コードを送りました。メールを確かめてください",
+  mfaRestart: "もう一度、パスワードから入力してください",
+} as const;

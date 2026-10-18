@@ -58,7 +58,8 @@ variable "alarm_topic_arns" {
   default     = []
 }
 
-variable "cognito_domain_prefix" {
-  description = "Cognito の画面の入口の接頭辞(https://<これ>.auth.<region>.amazoncognito.com)。リージョンの中で他と重ならない名前"
+
+variable "mail_image_repository_url" {
+  description = "stg のメールの中継(Postfix)の ECR(stg の出力 mail_ecr_repository_url)"
   type        = string
 }

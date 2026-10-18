@@ -1,6 +1,7 @@
 # 手元で丸ごと動かす: docker compose up --build → http://localhost:8080
 # 本番と同じ形: alb(ALB の代わり)が /api/* を api へ、それ以外を web(SSR)へ振り分ける。
 # 種データ(2社)で、開発用ログインが使える。ここにある値はすべて手元専用で、秘密ではない。
+# メールは本番と同じ道(API → Postfix → 本番は SES / 手元は Mailpit)。届いたメールは http://localhost:8025
 name: software-factory-starter
 
 x-app: &app
@@ -55,9 +56,14 @@ services:
       DATABASE_URL: postgres://app:app@db:5432/app
       SESSION_SECRET: local-dev-only-session-secret-not-used-anywhere
       LOG_LEVEL: info
+      # メールは Postfix に渡す(本番は ECS の Service Connect の smtp://mail:25)
+      MAIL_SMTP_URL: smtp://postfix:25
+      MAIL_FROM: Tasks <no-reply@example.test>
     depends_on:
       seed:
         condition: service_completed_successfully
+      postfix:
+        condition: service_healthy
 
   web:
     image: software-factory-starter/web:local
@@ -84,5 +90,38 @@ services:
       web:
         condition: service_healthy
 
+  # メールの中継。本番と同じイメージで、渡す先だけ Mailpit にする
+  postfix:
+    image: software-factory-starter/postfix:local
+    build:
+      context: .
+      dockerfile: docker/postfix/Dockerfile
+    environment:
+      POSTFIX_RELAYHOST: "[mailpit]:1025"
+      POSTFIX_RELAY_TLS: none
+      POSTFIX_MYNETWORKS: 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+      POSTFIX_SENDER_DOMAINS: example.test
+      POSTFIX_MYHOSTNAME: postfix.local
+    # 本番(ECS)と同じく、書けるのは送り待ちと /run だけ
+    read_only: true
+    tmpfs:
+      - /run
+    volumes:
+      - postfix-spool:/var/spool/postfix
+    ports:
+      # ホストで動かす API(pnpm dev)から渡すとき: MAIL_SMTP_URL=smtp://localhost:2525
+      - "2525:25"
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  # 届いたメールを見る(SES の代わり): http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    ports:
+      - "8025:8025"
+
 volumes:
   db-data:
+  # Postfix の送り待ち(本番は EFS)
+  postfix-spool:

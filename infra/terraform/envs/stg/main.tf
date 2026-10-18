@@ -22,7 +22,7 @@ resource "aws_kms_key" "app" {
 
 # API と画面(SSR)の2つ。どちらも stg で作り、prod は同じイメージを引く
 resource "aws_ecr_repository" "this" {
-  for_each             = toset(["api", "web"])
+  for_each             = toset(["api", "web", "mail"])
   name                 = "${var.project}/${each.key}"
   image_tag_mutability = "IMMUTABLE"
   image_scanning_configuration {
@@ -128,10 +128,10 @@ module "app" {
     COGNITO_REGION       = var.region
     COGNITO_USER_POOL_ID = aws_cognito_user_pool.this.id
     COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.web.id
-    COGNITO_DOMAIN       = "https://${aws_cognito_user_pool_domain.this.domain}.auth.${var.region}.amazoncognito.com"
     APP_URL              = "https://${var.app_domain}"
-    # ZAP の認証つきスキャン(.github/workflows/zap-api-scan.yml)用。prod には置かない
-    COGNITO_SCAN_CLIENT_ID = aws_cognito_user_pool_client.scanner.id
+    # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
+    MAIL_SMTP_URL = module.mail.smtp_url
+    MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
   }
   secrets = {
     DATABASE_URL   = module.aurora.database_url_secret_arn
@@ -167,6 +167,31 @@ module "web" {
   environment = {
     APP_ENV = local.env
   }
+}
+
+# ── メール(API → Postfix → SES)。docs/guides/mail.md ─────────────────────────────
+
+module "ses" {
+  source          = "../../modules/ses-domain"
+  name            = local.name
+  domain          = var.app_domain
+  route53_zone_id = var.route53_zone_id
+  kms_key_arn     = aws_kms_key.app.arn
+}
+
+module "mail" {
+  source                        = "../../modules/mail-relay"
+  name                          = "${local.name}-mail"
+  image                         = "${aws_ecr_repository.this["mail"].repository_url}:${var.initial_image_tag}"
+  cluster_arn                   = module.app.cluster_arn
+  vpc_id                        = module.network.vpc_id
+  vpc_cidr                      = module.network.vpc_cidr
+  private_subnet_ids            = module.network.private_subnet_ids
+  api_security_group_id         = module.app.service_security_group_id
+  service_connect_namespace_arn = module.app.service_connect_namespace_arn
+  sender_domains                = [var.app_domain]
+  smtp_credentials_secret_arn   = module.ses.smtp_credentials_secret_arn
+  secrets_kms_key_arns          = [aws_kms_key.app.arn]
 }
 
 # ── DNS と証明書 ───────────────────────────────────────────────────────────────

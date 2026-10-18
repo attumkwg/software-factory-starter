@@ -1,0 +1,114 @@
+# メールの中継(Postfix。docker/postfix)を出す。めったに変わらないので、ふだんの Deploy とは分けて手で流す。
+#   1. イメージを作って stg の ECR へ(prod も同じイメージを引く)
+#   2. stg → (承認のあと)prod の順に、ECS のサービスを新しいタスク定義で入れ替える
+# 入れ替えの間(数十秒)は Postfix が1台もいない。API はメールを渡せず、アウトボックスがやり直す
+# (メールは遅れるだけで消えない。送り待ちは EFS に残る)。docs/guides/mail.md
+# AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
+name: Deploy mail relay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-mail-relay
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  stg:
+    name: stg に出す
+    if: vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.MAIL_ECR_REPOSITORY_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: stg
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    env:
+      CLUSTER: ${{ vars.PROJECT || 'sfs' }}-stg
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_STG_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Postfix のイメージを作って ECR へ
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/postfix/Dockerfile
+          push: true
+          tags: ${{ vars.MAIL_ECR_REPOSITORY_URL }}:${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+      - id: image
+        run: echo "image=${{ vars.MAIL_ECR_REPOSITORY_URL }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+      - name: いまのタスク定義を取る
+        run: |
+          aws ecs describe-task-definition --task-definition "$CLUSTER-mail" \
+            --query taskDefinition > task-definition.json
+      - id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition: task-definition.json
+          container-name: mail
+          image: ${{ steps.image.outputs.image }}
+      - name: 入れ替える(古い方を止めてから新しい方を起こす。1台だけ)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.CLUSTER }}
+          service: ${{ env.CLUSTER }}-mail
+          wait-for-service-stability: true
+          wait-for-minutes: 15
+
+  prod:
+    name: prod に出す(承認のあと)
+    needs: stg
+    if: vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: prod
+    env:
+      CLUSTER: ${{ vars.PROJECT || 'sfs' }}-prod
+      IMAGE: ${{ needs.stg.outputs.image }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PROD_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: いまのタスク定義を取る
+        run: |
+          aws ecs describe-task-definition --task-definition "$CLUSTER-mail" \
+            --query taskDefinition > task-definition.json
+      - id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@8d79160660ad39c402a16e5fc7cd2a32e8f7d6b7 # v1.9.1
+        with:
+          task-definition: task-definition.json
+          container-name: mail
+          image: ${{ env.IMAGE }}
+      - name: 入れ替える(古い方を止めてから新しい方を起こす。1台だけ)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a00d4d57ac0de1a99b39fe469f3d898d38717c2b # v2.6.4
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.CLUSTER }}
+          service: ${{ env.CLUSTER }}-mail
+          wait-for-service-stability: true
+          wait-for-minutes: 15

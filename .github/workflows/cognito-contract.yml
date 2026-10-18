@@ -1,0 +1,74 @@
+# Cognito の契約テスト: 偽物の Cognito(packages/fake-cognito)と同じテストを、stg の本物の Cognito に流す。
+# 本物で落ちたら、偽物(と、それに合わせて書いたアプリ)が本物とずれている合図 → Issue を立てる。
+#   偽物には PR ごとに流れている(CI の単体。pnpm test)。ここは本物の側だけ。
+#   試しの人は SES の試し用の宛先(success+…@simulator.amazonses.com)で作り、終わったら消す。
+#   Cognito の月の利用者が数人増えるだけ(月1万人までは無料)。
+#
+# 要るもの(stg の Terraform の出力。README の「本人がやる設定」):
+#   変数  AWS_STG_COGNITO_CONTRACT_ROLE_ARN・COGNITO_USER_POOL_ID・COGNITO_CLIENT_ID
+# 無ければ、失敗せずに飛ばす。Cognito の設定(packages/shared/src/cognito-settings.json・cognito.tf)を変えて
+# stg に apply したら、手でも流す(Actions → Cognito contract → Run workflow)。
+name: Cognito contract
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1" # 日本時間 月曜 9:00
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cognito-contract
+  cancel-in-progress: false
+
+jobs:
+  real:
+    name: stg の本物の Cognito に流す
+    if: vars.AWS_STG_COGNITO_CONTRACT_ROLE_ARN != '' && vars.COGNITO_USER_POOL_ID != '' && vars.COGNITO_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_STG_COGNITO_CONTRACT_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - name: 契約テスト(stg の本物)
+        env:
+          COGNITO_CONTRACT_TARGET: real
+          COGNITO_REGION: ap-northeast-1
+          COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
+        run: pnpm --filter @app/fake-cognito test:contract
+      - name: 落ちたら Issue を立てる(同じ題名の Issue が開いていれば、コメントを足す)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Cognito の契約テストが本物で落ちました(偽物とずれています)"
+          body="$(printf '%s\n\n%s\n%s\n%s' \
+            "実行: $RUN_URL" \
+            "- どのテストが落ちたかを見て、本物の振る舞いに合わせて偽物(packages/fake-cognito/src/fake.ts)を直す" \
+            "- アプリ(apps/api/src/auth)がその振る舞いに頼っていれば、アプリも直す" \
+            "- 手順: docs/guides/local-environment.md の「偽物の Cognito」")"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

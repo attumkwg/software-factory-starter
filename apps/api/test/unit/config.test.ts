@@ -7,8 +7,8 @@ const cognito = {
   COGNITO_REGION: "ap-northeast-1",
   COGNITO_USER_POOL_ID: "p",
   COGNITO_CLIENT_ID: "c",
-  COGNITO_DOMAIN: "https://x.auth.ap-northeast-1.amazoncognito.com",
   APP_URL: "https://app.example.com",
+  MAIL_SMTP_URL: "smtp://mail:25",
 };
 
 describe("設定", () => {
@@ -31,30 +31,31 @@ describe("設定", () => {
     expect(loadConfig({ ...base, APP_ENV: "local" }).session.secureCookie).toBe(false);
   });
 
-  it("偽物の Cognito(発行元の差し替え)は手元とテストだけ", () => {
-    const fake = { ...cognito, COGNITO_ISSUER: "http://fake-cognito.localhost:9231/p" };
-    expect(() => loadConfig({ ...base, ...fake, APP_ENV: "stg" })).toThrow(/COGNITO_ISSUER/);
+  it("偽物の Cognito(入口の差し替え)は手元とテストだけ", () => {
+    const fake = { ...cognito, COGNITO_ENDPOINT: "http://fake-cognito:9231" };
+    expect(() => loadConfig({ ...base, ...fake, APP_ENV: "stg" })).toThrow(/COGNITO_ENDPOINT/);
     expect(loadConfig({ ...base, ...fake, APP_ENV: "local" }).auth).toMatchObject({
-      issuer: "http://fake-cognito.localhost:9231/p",
+      endpoint: "http://fake-cognito:9231",
     });
   });
 
-  it("stg と prod では、Cognito の入口と画面の URL は https だけ", () => {
+  it("stg と prod では、画面の URL は https だけ", () => {
     expect(() =>
       loadConfig({ ...base, ...cognito, APP_ENV: "stg", APP_URL: "http://app.example.com" }),
     ).toThrow(/APP_URL/);
-    expect(() =>
-      loadConfig({ ...base, ...cognito, APP_ENV: "prod", COGNITO_DOMAIN: "http://x.example" }),
-    ).toThrow(/COGNITO_DOMAIN/);
   });
 
-  it("スキャン用のログインは prod では起動しない", () => {
-    expect(() =>
-      loadConfig({ ...base, ...cognito, APP_ENV: "prod", COGNITO_SCAN_CLIENT_ID: "s" }),
-    ).toThrow(/COGNITO_SCAN_CLIENT_ID/);
-    expect(
-      loadConfig({ ...base, ...cognito, APP_ENV: "stg", COGNITO_SCAN_CLIENT_ID: "s" }).auth,
-    ).toMatchObject({ scanClientId: "s" });
+  it.each(["stg", "prod"])("%s はメールの送り先と画面の URL が無いと起動しない", (APP_ENV) => {
+    const { MAIL_SMTP_URL: _m, ...noMail } = cognito;
+    expect(() => loadConfig({ ...base, ...noMail, APP_ENV })).toThrow(/MAIL_SMTP_URL/);
+    const { APP_URL: _a, ...noUrl } = cognito;
+    expect(() => loadConfig({ ...base, ...noUrl, APP_ENV })).toThrow(/APP_URL/);
+  });
+
+  it("手元では、メールの送り先が無ければ送らずに記録だけ", () => {
+    const local = loadConfig({ ...base, APP_ENV: "local" });
+    expect(local.mail.smtpUrl).toBeNull();
+    expect(local.appUrl).toBe("http://localhost:8080");
   });
 
   it("短すぎるセッションの秘密は通さない", () => {

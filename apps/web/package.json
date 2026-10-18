@@ -23,6 +23,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@app/fake-cognito": "workspace:*",
     "@axe-core/playwright": "4.13.0",
     "@hono/node-server": "2.1.4",
     "@playwright/test": "1.64.0",

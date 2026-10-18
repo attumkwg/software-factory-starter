@@ -3,6 +3,7 @@ import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { createDb } from "./db/client.ts";
 import { createLogger } from "./logger.ts";
+import { createMailer } from "./mail/index.ts";
 import { outboxHandlers, startOutboxRelay } from "./outbox/index.ts";
 import { runOutsideRequestContext } from "./request-context.ts";
 
@@ -19,8 +20,13 @@ const lifecycle = { shuttingDown: false };
 const app = createApp({ config, db, logger, lifecycle });
 
 // 送信待ち(アウトボックス)の送り出し。止めるときは、DB を閉じる前に止める
+const mailer = createMailer(config.mail, logger);
 const relay = config.outboxRelay
-  ? startOutboxRelay({ db, logger, handlers: outboxHandlers(logger) })
+  ? startOutboxRelay({
+      db,
+      logger,
+      handlers: outboxHandlers({ db, logger, mailer, appUrl: config.appUrl }),
+    })
   : null;
 
 const server = serve({ fetch: app.fetch, port: config.port }, (info) => {

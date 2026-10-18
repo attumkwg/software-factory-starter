@@ -94,6 +94,7 @@ export const taskRoutes = createRouter()
         await enqueue(scope, "tasks.task_completed", {
           taskId: result.task.id,
           projectId: result.task.projectId,
+          completedBy: scope.userId,
         });
       }
       return c.json(result.task, 200);

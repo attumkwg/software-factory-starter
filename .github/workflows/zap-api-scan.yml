@@ -1,15 +1,15 @@
 # ZAP の認証つき API スキャン(攻撃型)を stg に向けて流す。OpenAPI の全 API を、ログインした状態で叩く。
 # PR のプレビューでは受け身のスキャン(ZAP ベースライン)だけ。こちらは stg に負荷と変なデータを入れるので、夜に流す想定。
 #
-# ログインの仕方: stg の Cognito の「スキャン用のアプリクライアント」(infra/terraform/envs/stg/cognito.tf)で
-# スキャン用の利用者としてログイン → ID トークンを API に渡して Cookie をもらう → その Cookie で ZAP が叩く。
+# ログインの仕方: 画面と同じ POST /api/auth/login に、スキャン用の利用者のメールとパスワードを送って Cookie をもらう
+# → その Cookie で ZAP が叩く。トークンはこのジョブにも来ない(API の中だけ)。
 #
 # 要るもの:
-#   変数  STG_URL(https://app.stg.example.com)・COGNITO_SCAN_CLIENT_ID(stg の Terraform の出力)
-#   秘密  ZAP_SCAN_USERNAME・ZAP_SCAN_PASSWORD(stg の Cognito に作ったスキャン用の利用者。本物の人のものは使わない)
-#   stg の users に、スキャン用の利用者と同じメールの行(組織と役割は好きに)。初めてのスキャンで Cognito の sub と結びつく
-#   (docs/runbooks/cognito-login.md の「新しい人を入れる」。Cognito 側でメールを確認済みにしておく)
-# API は、スキャン用のクライアント宛てのトークンだけをこの口で受け付ける(COGNITO_SCAN_CLIENT_ID。stg だけ)。
+#   変数  STG_URL(https://app.stg.example.com)
+#   秘密  ZAP_SCAN_USERNAME・ZAP_SCAN_PASSWORD(stg の画面から登録したスキャン用の利用者。本物の人のものは使わない。
+#         二段階認証は有効にしない)
+#   stg の users に、スキャン用の利用者と同じメールの行(組織と役割は好きに)。初めてのログインで Cognito の sub と結びつく
+#   (docs/runbooks/cognito-login.md の「新しい人を入れる」)
 # 無ければ、失敗せずに飛ばす。
 #
 # いまは手動だけ(Actions → ZAP API scan → Run workflow)。
@@ -28,7 +28,7 @@ permissions:
 jobs:
   scan:
     name: ZAP(認証つき・stg)
-    if: vars.STG_URL != '' && vars.COGNITO_SCAN_CLIENT_ID != ''
+    if: vars.STG_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -50,18 +50,13 @@ jobs:
         env:
           USERNAME: ${{ secrets.ZAP_SCAN_USERNAME }}
           PASSWORD: ${{ secrets.ZAP_SCAN_PASSWORD }}
-          CLIENT_ID: ${{ vars.COGNITO_SCAN_CLIENT_ID }}
         run: |
           set -euo pipefail
-          # InitiateAuth は AWS の資格情報が要らない(アプリクライアントの ID だけ)
-          id_token=$(aws cognito-idp initiate-auth --no-sign-request --region ap-northeast-1 \
-            --auth-flow USER_PASSWORD_AUTH --client-id "$CLIENT_ID" \
-            --auth-parameters "USERNAME=$USERNAME,PASSWORD=$PASSWORD" \
-            --query 'AuthenticationResult.IdToken' --output text)
-          echo "::add-mask::$id_token"
-          cookie=$(curl -fsS -D - -o /dev/null -X POST "$TARGET/api/auth/cognito" \
+          # 画面と同じログインの入口。本文は jq で組み立てる(パスワードに記号があっても壊れない)
+          body=$(jq -n --arg email "$USERNAME" --arg password "$PASSWORD" '{email: $email, password: $password}')
+          cookie=$(curl -fsS -D - -o /dev/null -X POST "$TARGET/api/auth/login" \
             -H "content-type: application/json" -H "origin: $TARGET" \
-            --data "{\"idToken\":\"$id_token\"}" | tr -d '\r' | sed -n 's/^set-cookie: \([^;]*\).*/\1/Ip' | head -1)
+            --data "$body" | tr -d '\r' | sed -n 's/^set-cookie: \([^;]*\).*/\1/Ip' | grep -m1 'sid=')
           echo "::add-mask::$cookie"
           echo "cookie=$cookie" >> "$GITHUB_OUTPUT"
       - name: ZAP の API スキャン

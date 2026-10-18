@@ -40,7 +40,22 @@ output "url" {
   value = "https://${var.app_domain}"
 }
 
-output "cognito_scan_client_id" {
-  description = "GitHub の変数 COGNITO_SCAN_CLIENT_ID に(ZAP の認証つきスキャン用)"
-  value       = aws_cognito_user_pool_client.scanner.id
+
+output "mail_ecr_repository_url" {
+  description = "GitHub の変数 MAIL_ECR_REPOSITORY_URL に(メールの中継)"
+  value       = aws_ecr_repository.this["mail"].repository_url
+}
+
+output "ecs_mail_service" {
+  value = module.mail.service_name
+}
+
+output "cognito_user_pool_id" {
+  description = "GitHub の変数 COGNITO_USER_POOL_ID に(契約テスト cognito-contract.yml)"
+  value       = aws_cognito_user_pool.this.id
+}
+
+output "cognito_client_id" {
+  description = "GitHub の変数 COGNITO_CLIENT_ID に(契約テスト・ZAP のスキャン)"
+  value       = aws_cognito_user_pool_client.web.id
 }

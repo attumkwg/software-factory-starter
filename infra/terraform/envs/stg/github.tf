@@ -1,6 +1,7 @@
 # GitHub Actions が使う役割(OIDC)。値は GitHub の変数に入れる(README の「本人がやる設定」)。
 #   AWS_STG_DEPLOY_ROLE_ARN … deploy.yml(environment: stg のジョブだけが使える)
 #   AWS_STG_PLAN_ROLE_ARN   … terraform.yml の plan(読むだけ)
+#   AWS_STG_COGNITO_CONTRACT_ROLE_ARN … cognito-contract.yml(stg のユーザープールに試しの人を作って消すだけ)
 
 module "github_oidc" {
   source            = "../../modules/github-oidc"
@@ -12,6 +13,11 @@ module "github_oidc" {
       description = "deploy.yml: push images, run migration, update ECS services (api, web)"
       subjects    = ["environment:${local.env}"]
       policy_json = data.aws_iam_policy_document.deploy.json
+    }
+    "${local.name}-cognito-contract" = {
+      description = "cognito-contract.yml: create and delete test users in the stg user pool"
+      subjects    = ["ref:refs/heads/main"]
+      policy_json = data.aws_iam_policy_document.cognito_contract.json
     }
     "${local.name}-plan" = {
       description         = "terraform.yml: plan only (read)"
@@ -57,6 +63,7 @@ data "aws_iam_policy_document" "deploy" {
     resources = [
       module.app.execution_role_arn, module.app.task_role_arn,
       module.web.execution_role_arn, module.web.task_role_arn,
+      module.mail.execution_role_arn, module.mail.task_role_arn,
     ]
   }
 }
@@ -71,5 +78,19 @@ data "aws_iam_policy_document" "plan_state" {
     sid       = "StateLock"
     actions   = ["s3:PutObject", "s3:DeleteObject"]
     resources = ["arn:aws:s3:::${var.state_bucket}/${local.env}/*.tflock"]
+  }
+}
+
+# 契約テスト(packages/fake-cognito/contract)が、試しの人を確認済みにする・消す・設定を読むためだけの権限
+data "aws_iam_policy_document" "cognito_contract" {
+  statement {
+    sid = "TestUsersInStgPool"
+    actions = [
+      "cognito-idp:AdminConfirmSignUp",
+      "cognito-idp:AdminDeleteUser",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:DescribeUserPool",
+    ]
+    resources = [aws_cognito_user_pool.this.arn]
   }
 }

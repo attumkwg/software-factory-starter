@@ -1,159 +1,109 @@
 import { FakeCognito } from "@app/fake-cognito";
 import { createLocalJWKSet } from "jose";
-import { beforeAll, describe, expect, it } from "vitest";
-import { CognitoClient, CognitoRejected, pkceChallenge } from "../../src/auth/providers.ts";
+import { describe, expect, it } from "vitest";
+import { CognitoClient, CognitoError } from "../../src/auth/providers.ts";
 import { ApiError } from "../../src/errors.ts";
 
-// 本物の Cognito にはつながず、偽物の Cognito(packages/fake-cognito)で「確かめ方」が正しいかを見る。
-// ログインの流れ全体(DB で users と結びつく所まで)は test/integration/cognito-login.int.test.ts。
+// Cognito の API の呼び方と、ID トークンの確かめ方(DB 無し)。流れ全体は test/integration/cognito-login.int.test.ts。
 
-const APP_URL = "https://app.test";
 const settings = {
   region: "ap-northeast-1",
-  userPoolId: "ap-northeast-1_test",
+  userPoolId: "local_pool",
   clientId: "client-1",
-  domain: "https://fake-cognito.test",
-  appUrl: APP_URL,
-  issuer: "https://fake-cognito.test/ap-northeast-1_test",
-  scanClientId: "scanner-1",
+  appUrl: "https://app.test",
+  endpoint: "https://fake-cognito.test",
 };
-
 const fake = new FakeCognito({
-  baseUrl: settings.domain,
-  userPoolId: settings.userPoolId,
-  clientId: settings.clientId,
-  callbackUrls: [`${APP_URL}/api/auth/callback`],
-  logoutUrls: [`${APP_URL}/login`],
+  baseUrl: settings.endpoint,
+  userPoolId: "local_pool",
+  clientId: "client-1",
 });
+const jwks = createLocalJWKSet(fake.jwks as never);
+const withFetch = (fetch: typeof globalThis.fetch) => new CognitoClient(settings, { jwks, fetch });
+const client = withFetch((input, init) => fake.fetch(new Request(input, init)));
+const answer = (status: number, body: unknown) => async () =>
+  new Response(JSON.stringify(body), { status });
 
-let client: CognitoClient;
-beforeAll(() => {
-  client = new CognitoClient(settings, {
-    jwks: createLocalJWKSet(fake.jwks as never),
-    fetch: (input, init) => fake.fetch(new Request(input, init)),
-  });
-});
-
-/** 偽物の画面でログインして、戻り先に付いた code を受け取る */
-async function codeFor(email: string, opts: { verified?: boolean; nonce?: string } = {}) {
-  const verifier = "v".repeat(43);
-  const url = new URL(
-    client.authorizeUrl({ state: "s1", nonce: opts.nonce ?? "n1", codeVerifier: verifier }),
-  );
-  const form = new URLSearchParams(url.searchParams);
-  form.set("email", email);
-  form.set("action", "login");
-  if (opts.verified !== false) form.set("email_verified", "true");
-  const res = await fake.fetch(
-    new Request(`${settings.domain}/oauth2/authorize`, { method: "POST", body: form }),
-  );
-  const back = new URL(res.headers.get("location") ?? "");
-  return {
-    code: back.searchParams.get("code") ?? "",
-    verifier,
-    state: back.searchParams.get("state"),
-  };
-}
-
-describe("Cognito の画面へ送る URL", () => {
-  it("PKCE(S256)・state・nonce を付け、戻り先は API の callback", () => {
-    const url = new URL(client.authorizeUrl({ state: "s", nonce: "n", codeVerifier: "abc" }));
-    expect(url.origin + url.pathname).toBe("https://fake-cognito.test/oauth2/authorize");
-    expect(Object.fromEntries(url.searchParams)).toMatchObject({
-      response_type: "code",
-      client_id: "client-1",
-      redirect_uri: "https://app.test/api/auth/callback",
-      state: "s",
-      nonce: "n",
-      code_challenge: pkceChallenge("abc"),
-      code_challenge_method: "S256",
-    });
+describe("Cognito の API の呼び方", () => {
+  it("断られたら、Cognito の例外の名前を持った CognitoError", async () => {
+    const err = await client.signIn("nobody@example.test", "Whatever-123456").catch((e) => e);
+    expect(err).toBeInstanceOf(CognitoError);
+    expect(err.type).toBe("NotAuthorizedException");
   });
 
-  it("ログアウトは Cognito 側も終わらせて、ログイン画面へ戻る", () => {
-    const url = new URL(client.logoutUrl);
-    expect(url.pathname).toBe("/logout");
-    expect(url.searchParams.get("logout_uri")).toBe("https://app.test/login");
-  });
-});
-
-describe("code をトークンに替える", () => {
-  it("確認済みのメールなら、sub とメールを返す", async () => {
-    const { code, verifier, state } = await codeFor("a@example.test");
-    expect(state).toBe("s1");
-    expect(await client.exchange(code, verifier, "n1")).toMatchObject({
-      kind: "external",
-      verifiedEmail: "a@example.test",
-    });
-  });
-
-  it("確認していないメールは、結びつけに使わない", async () => {
-    const { code, verifier } = await codeFor("b@example.test", { verified: false });
-    expect(await client.exchange(code, verifier, "n1")).toMatchObject({ verifiedEmail: null });
-  });
-
-  it("nonce が違う(別のログインのトークン)は受け付けない", async () => {
-    const { code, verifier } = await codeFor("a@example.test", { nonce: "other" });
-    await expect(client.exchange(code, verifier, "n1")).rejects.toBeInstanceOf(CognitoRejected);
-  });
-
-  it("PKCE の verifier が違う・code の使い回しは受け付けない", async () => {
-    const { code, verifier } = await codeFor("a@example.test");
-    await expect(client.exchange(code, "w".repeat(43), "n1")).rejects.toBeInstanceOf(
-      CognitoRejected,
+  it("名前に頭(com.amazonaws…#)が付いていても読める", async () => {
+    const c = withFetch(answer(400, { __type: "com.amazonaws.cognito#CodeMismatchException" }));
+    expect((await c.confirmSignUp("a@example.test", "123456").catch((e) => e)).type).toBe(
+      "CodeMismatchException",
     );
-    // 偽物も本物と同じく、失敗しても code は使い済みになる
-    await expect(client.exchange(code, verifier, "n1")).rejects.toBeInstanceOf(CognitoRejected);
   });
 
-  it("Cognito に届かない・Cognito が 5xx は 503(ログインの失敗と混ぜない)", async () => {
-    const down = new CognitoClient(settings, {
-      jwks: createLocalJWKSet(fake.jwks as never),
-      fetch: () => Promise.reject(new TypeError("fetch failed")),
-    });
-    const err = await down.exchange("c", "v", "n").catch((e) => e);
+  it.each([
+    ["届かない", () => Promise.reject(new TypeError("fetch failed"))],
+    ["5xx", answer(502, { message: "bad gateway" })],
+    ["Cognito の中の失敗", answer(400, { __type: "InternalErrorException" })],
+    ["形の分からない答え", async () => new Response("<html>", { status: 400 })],
+  ])("%s は 503(ログインの失敗と混ぜない)", async (_, f) => {
+    const err = await withFetch(f as typeof fetch)
+      .forgotPassword("a@example.test")
+      .catch((e) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(503);
+  });
 
-    const broken = new CognitoClient(settings, {
-      jwks: createLocalJWKSet(fake.jwks as never),
-      fetch: async () => new Response("oops", { status: 502 }),
-    });
-    expect((await broken.exchange("c", "v", "n").catch((e) => e)).status).toBe(503);
+  it.each(["TooManyRequestsException", "LimitExceededException", "TooManyFailedAttemptsException"])(
+    "%s は 429(少し待てば通る)",
+    async (type) => {
+      const err = await withFetch(answer(400, { __type: type }))
+        .signIn("a@example.test", "x")
+        .catch((e) => e);
+      expect(err.status).toBe(429);
+      expect(err.code).toBe("too_many_requests");
+    },
+  );
+
+  it("ログアウトの後はアプリのログイン画面", () => {
+    expect(client.logoutUrl).toBe("https://app.test/login");
   });
 });
 
 describe("ID トークンの確かめ方", () => {
-  const expected = { audience: "client-1", nonce: null };
-
-  it("アクセストークンは受け付けない", async () => {
-    const t = fake.signIdToken({ sub: "x", aud: "client-1", token_use: "access", exp: 4e9 });
-    expect(await client.verify(t, expected)).toBeNull();
+  it("正しい ID トークンなら sub と、確認済みならメールを返す", async () => {
+    const t = fake.signIdToken({
+      sub: "s1",
+      aud: "client-1",
+      email: "a@example.test",
+      email_verified: true,
+      exp: 4e9,
+    });
+    expect(await client.verify(t)).toEqual({
+      kind: "external",
+      externalId: "s1",
+      verifiedEmail: "a@example.test",
+    });
   });
 
-  it("別のアプリ宛て・別の発行元・切れたものは受け付けない", async () => {
-    expect(
-      await client.verify(fake.signIdToken({ sub: "x", aud: "other", exp: 4e9 }), expected),
-    ).toBeNull();
-    expect(
-      await client.verify(
-        fake.signIdToken({ sub: "x", aud: "client-1", iss: "https://evil.example", exp: 4e9 }),
-        expected,
-      ),
-    ).toBeNull();
-    expect(
-      await client.verify(fake.signIdToken({ sub: "x", aud: "client-1", exp: 1 }), expected),
-    ).toBeNull();
+  it("確認していないメールは返さない(users と結びつけない)", async () => {
+    const t = fake.signIdToken({
+      sub: "s1",
+      aud: "client-1",
+      email: "a@example.test",
+      email_verified: false,
+      exp: 4e9,
+    });
+    expect(await client.verify(t)).toMatchObject({ verifiedEmail: null });
   });
 
-  it("壊れたトークンは受け付けない", async () => {
-    expect(await client.verify("not-a-jwt", expected)).toBeNull();
-  });
-
-  it("スキャン用の口は、スキャン用のクライアント宛てだけ", async () => {
-    const forWeb = fake.signIdToken({ sub: "x", aud: "client-1", exp: 4e9 });
-    const forScan = fake.signIdToken({ sub: "x", aud: "scanner-1", exp: 4e9 });
-    expect(await client.verifyScanToken(forWeb)).toBeNull();
-    expect(await client.verifyScanToken(forScan)).toMatchObject({ externalId: "x" });
+  it("アクセストークン・別のアプリ宛て・別の発行元・切れたもの・壊れたものは受け付けない", async () => {
+    const base = { sub: "s1", aud: "client-1", exp: 4e9 };
+    for (const t of [
+      fake.signIdToken({ ...base, token_use: "access" }),
+      fake.signIdToken({ ...base, aud: "other" }),
+      fake.signIdToken({ ...base, iss: "https://evil.example" }),
+      fake.signIdToken({ ...base, exp: 1 }),
+      "not-a-jwt",
+    ]) {
+      expect(await client.verify(t)).toBeNull();
+    }
   });
 });

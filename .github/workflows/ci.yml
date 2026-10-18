@@ -211,7 +211,7 @@ jobs:
       - name: 依存の脆弱性・秘密・設定(Dockerfile・compose)
         run: >-
           docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE"
-          fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+          fs --ignorefile .trivyignore.yaml --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
           --skip-dirs infra .
       - name: インフラ定義(Terraform)
         run: >-
@@ -225,8 +225,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # API と画面(SSR)は別のイメージ・別の ECS サービス
-        app: [api, web]
+        # API・画面(SSR)・メールの中継(Postfix)は別のイメージ・別の ECS サービス
+        include:
+          - app: api
+            file: apps/api/Dockerfile
+          - app: web
+            file: apps/web/Dockerfile
+          - app: mail
+            file: docker/postfix/Dockerfile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -235,7 +241,7 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: apps/${{ matrix.app }}/Dockerfile
+          file: ${{ matrix.file }}
           tags: ${{ matrix.app }}:ci
           load: true
           cache-from: type=gha,scope=${{ matrix.app }}
