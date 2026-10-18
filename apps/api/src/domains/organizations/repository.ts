@@ -1,5 +1,5 @@
 import type { Me, Role } from "@app/shared";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { tenants, users } from "./schema.ts";
@@ -48,4 +48,18 @@ export async function findContact(
     .from(users)
     .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
   return row ?? null;
+}
+
+/** 監査ログの画面に「誰が」を名前で出すため。自社の人だけ(いない人・消された人は返らない)。 */
+export async function findUserNames(
+  tx: TenantTx,
+  tenantId: string,
+  userIds: string[],
+): Promise<Map<string, string>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await tx
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(and(eq(users.tenantId, tenantId), inArray(users.id, userIds)));
+  return new Map(rows.map((r) => [r.id, r.name]));
 }

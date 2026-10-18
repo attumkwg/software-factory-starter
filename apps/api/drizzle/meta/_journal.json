@@ -43,6 +43,13 @@
       "when": 1792300890930,
       "tag": "0005_login_link",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792330666250,
+      "tag": "0006_audit_log",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import { csrf } from "hono/csrf";
 import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
+import { auditRoutes } from "./audit/index.ts";
 import { authenticate } from "./auth/middleware.ts";
 import type { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
@@ -95,6 +96,8 @@ export function createApp(deps: AppDeps) {
   app.route("/api", organizationRoutes);
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
+  // 共通の仕組み(領域ではない)
+  app.route("/api", auditRoutes);
 
   if (config.exposeOpenApi) {
     app.doc31("/api/openapi.json", {

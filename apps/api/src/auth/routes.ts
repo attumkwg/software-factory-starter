@@ -12,7 +12,9 @@ import {
 } from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
+import { MANUAL_AUDIT_ACTIONS, recordAudit } from "../audit/index.ts";
 import type { RootDb } from "../db/client.ts";
+import { withTenant } from "../db/tenant.ts";
 import { ApiError } from "../errors.ts";
 import { bodyErrors, createRouter, json, jsonBody } from "../http/common.ts";
 import type { Logger } from "../logger.ts";
@@ -86,6 +88,15 @@ export function authRoutes(deps: Deps) {
       throw loginFailed();
     }
     await writeSession(c, deps.session, session);
+    // 入った記録(監査ログ)。失敗したログインは、会社に結びつけられないのでアプリのログだけ
+    await withTenant(deps.db, session.tenantId, (tx) =>
+      recordAudit(tx, {
+        tenantId: session.tenantId,
+        actor: { kind: "user", id: session.userId },
+        action: MANUAL_AUDIT_ACTIONS.login,
+        outcome: "allowed",
+      }),
+    );
     if (session.linked) {
       deps.logger.info(
         { userId: session.userId, loginTenantId: session.tenantId },
@@ -117,8 +128,20 @@ export function authRoutes(deps: Deps) {
           "Cookie を消す。そのあと GET /api/auth/options の logoutUrl(ログイン画面)へ移る",
         responses: { 204: { description: "Cookie を消した" } },
       }),
-      (c) => {
+      async (c) => {
+        const session = c.get("session");
         clearSession(c, deps.session);
+        // ログアウトは必ず成功させる(記録に失敗しても Cookie は消してある)
+        if (session) {
+          await withTenant(deps.db, session.tenantId, (tx) =>
+            recordAudit(tx, {
+              tenantId: session.tenantId,
+              actor: { kind: "user", id: session.userId },
+              action: MANUAL_AUDIT_ACTIONS.logout,
+              outcome: "allowed",
+            }),
+          ).catch((err) => deps.logger.warn({ err }, "ログアウトの監査ログを残せませんでした"));
+        }
         return c.body(null, 204);
       },
     )

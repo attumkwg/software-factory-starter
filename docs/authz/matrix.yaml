@@ -122,3 +122,8 @@ routes:
   - route: DELETE /api/tasks/{taskId}
     permission: task:write
     expect: { admin: 204, member: 204, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: GET /api/audit-events
+    permission: audit:read
+    note: 自社の監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので管理者だけ。他社の分は RLS で見えない
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }

@@ -14,6 +14,8 @@ export const PERMISSIONS = {
   "project:delete": ["admin"],
   "task:read": ["admin", "member", "viewer"],
   "task:write": ["admin", "member"],
+  // 監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので、管理者だけ
+  "audit:read": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -45,6 +47,7 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "POST /api/projects/{projectId}/tasks": "task:write",
   "PATCH /api/tasks/{taskId}": "task:write",
   "DELETE /api/tasks/{taskId}": "task:write",
+  "GET /api/audit-events": "audit:read",
 };
 
 export function can(role: Role, permission: Permission): boolean {

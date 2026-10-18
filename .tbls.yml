@@ -33,3 +33,10 @@ comments:
       topic: 何が起きたか(領域.出来事。src/outbox/topics.ts)
       locked_until: 送り出しが借りている期限
       dead_at: あきらめた時刻(人が見て直す)
+  - table: platform.audit_events
+    tableComment: 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013
+    columnComments:
+      actor_kind: user = 自社の人 / support = 代理ログインの社員 / system = 仕組み
+      action: 何をしたか(対象.動作。apps/api/src/audit/actions.ts)
+      outcome: allowed = できた / denied = 権限が無くて断った
+      details: 直した項目の名前など(値は入れない)

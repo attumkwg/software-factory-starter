@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  AuditEventPage,
   AuthNext,
   AuthOptions,
   CreateProject,
@@ -157,6 +158,11 @@ export const api = {
   getProject: (id: string) => request<Project>("GET", `/projects/${id}`),
   createProject: (input: CreateProject) => request<Project>("POST", "/projects", input),
   deleteProject: (id: string) => request<void>("DELETE", `/projects/${id}`),
+  listAuditEvents: (before?: string) =>
+    request<AuditEventPage>(
+      "GET",
+      before ? `/audit-events?before=${encodeURIComponent(before)}` : "/audit-events",
+    ),
   listTasks: (projectId: string) =>
     request<{ tasks: Task[] }>("GET", `/projects/${projectId}/tasks`),
   createTask: (projectId: string, input: CreateTask) =>

@@ -13,6 +13,8 @@ export class ApiError extends Error {
   }
 }
 
+export const badRequest = (message = "入力が正しくありません") =>
+  new ApiError(400, "bad_request", message);
 export const unauthorized = () => new ApiError(401, "unauthorized", "ログインが必要です");
 export const forbidden = () => new ApiError(403, "forbidden", "この操作の権限がありません");
 // 他社の物は「無い」と答える(存在すること自体を漏らさない)
