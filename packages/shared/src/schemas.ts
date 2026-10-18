@@ -87,3 +87,30 @@ export type ApiError = z.infer<typeof ErrorSchema>;
 export const DevLoginSchema = z.object({
   email: z.email(),
 });
+
+/**
+ * ログインの方式(GET /api/auth/options)。画面はこれを見て、ログインとログアウトの出し方を変える。
+ *   dev     … 開発用ログイン(local / test / preview だけ)
+ *   cognito … Cognito の画面へ移る。logoutUrl は Cognito 側のログインも終わらせる行き先
+ */
+export const AuthOptionsSchema = z.discriminatedUnion("method", [
+  z.object({ method: z.literal("dev") }),
+  z.object({ method: z.literal("cognito"), logoutUrl: z.url() }),
+]);
+export type AuthOptions = z.infer<typeof AuthOptionsSchema>;
+
+/**
+ * ログインの後に戻る先。**アプリの中のパスだけ**を通す(よそのサイトへ飛ばされる穴を作らない)。
+ * 「/」で始まり、「//」「/\」(よそのサイトの意味になる)・/api・制御文字・長すぎるものは「/」にする。
+ */
+export function safeReturnTo(value: unknown): string {
+  if (typeof value !== "string" || value.length > 512) return "/";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/";
+  // ブラウザは「\」を「/」と読むので、「/\evil.example」もよそのサイトになる。どこにあっても弾く
+  if (value.includes("\\")) return "/";
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字を見つけて弾くため
+  if (/[\u0000-\u001f\u007f]/.test(value)) return "/";
+  if (value === "/api" || value.startsWith("/api/") || value.startsWith("/api?")) return "/";
+  if (value === "/login" || value.startsWith("/login?")) return "/";
+  return value;
+}

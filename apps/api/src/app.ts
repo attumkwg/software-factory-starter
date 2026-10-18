@@ -4,7 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import { csrf } from "hono/csrf";
 import { secureHeaders } from "hono/secure-headers";
 import { authenticate } from "./auth/middleware.ts";
-import type { CognitoVerifier } from "./auth/providers.ts";
+import type { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
@@ -23,8 +23,8 @@ export type AppDeps = {
   db: RootDb;
   logger: Logger;
   lifecycle?: Lifecycle;
-  /** テスト用: Cognito の公開鍵を差し替える */
-  cognitoVerifier?: CognitoVerifier;
+  /** テスト用: 偽物の Cognito につないだ物に差し替える */
+  cognito?: CognitoClient;
 };
 
 /** 1リクエストの文脈(request ID・trace ID)を作り、終わったらアクセスログを1行。 */
@@ -78,7 +78,7 @@ export function createApp(deps: AppDeps) {
       db,
       logger,
       session: config.session,
-      auth: { ...config.auth, cognitoVerifier: deps.cognitoVerifier },
+      auth: { ...config.auth, cognito: deps.cognito },
     }),
   );
   // 領域ごとのルート(src/domains/<領域>/routes.ts)
