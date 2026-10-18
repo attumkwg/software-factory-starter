@@ -2,6 +2,7 @@
 #   AWS_STG_DEPLOY_ROLE_ARN … deploy.yml(environment: stg のジョブだけが使える)
 #   AWS_STG_PLAN_ROLE_ARN   … terraform.yml の plan(読むだけ)
 #   AWS_STG_COGNITO_CONTRACT_ROLE_ARN … cognito-contract.yml(stg のユーザープールに試しの人を作って消すだけ)
+#   AWS_STG_RESTORE_DRILL_ROLE_ARN    … restore-drill.yml(stg の DB を一時の DB に時点復元して、確かめて、消すだけ)
 
 module "github_oidc" {
   source            = "../../modules/github-oidc"
@@ -18,6 +19,11 @@ module "github_oidc" {
       description = "cognito-contract.yml: create and delete test users in the stg user pool"
       subjects    = ["ref:refs/heads/main"]
       policy_json = data.aws_iam_policy_document.cognito_contract.json
+    }
+    "${local.name}-restore-drill" = {
+      description = "restore-drill.yml: restore the stg DB to a temporary cluster, check it, and delete it"
+      subjects    = ["ref:refs/heads/main"]
+      policy_json = data.aws_iam_policy_document.restore_drill.json
     }
     "${local.name}-plan" = {
       description         = "terraform.yml: plan only (read)"
@@ -94,3 +100,70 @@ data "aws_iam_policy_document" "cognito_contract" {
     resources = [aws_cognito_user_pool.this.arn]
   }
 }
+
+# 戻す訓練(restore-drill.yml)。触れるのは名前が「<名前>-restore-drill-」で始まる一時の DB だけ。
+# 元の DB は「復元の元にする」以外は何もできない(読む・書く・消す・変える、のどれもできない)。
+locals {
+  drill_prefix = "${module.aurora.cluster_identifier}-restore-drill-"
+  rds_arn      = "arn:aws:rds:${var.region}:${data.aws_caller_identity.current.account_id}"
+}
+
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "restore_drill" {
+  statement {
+    sid     = "RestoreFromStgCluster"
+    actions = ["rds:RestoreDBClusterToPointInTime"]
+    resources = [
+      module.aurora.cluster_arn,
+      "${local.rds_arn}:cluster:${local.drill_prefix}*",
+      "${local.rds_arn}:subgrp:*",
+      "${local.rds_arn}:cluster-pg:*",
+    ]
+  }
+  statement {
+    sid = "ManageDrillClusterOnly"
+    actions = [
+      "rds:CreateDBInstance", "rds:DeleteDBInstance", "rds:DeleteDBCluster", "rds:ModifyDBCluster",
+      "rds:AddTagsToResource",
+    ]
+    resources = [
+      "${local.rds_arn}:cluster:${local.drill_prefix}*",
+      "${local.rds_arn}:db:${local.drill_prefix}*",
+    ]
+  }
+  statement {
+    sid     = "Describe"
+    actions = ["rds:DescribeDBClusters", "rds:DescribeDBInstances", "ec2:DescribeSecurityGroups", "ec2:DescribeSubnets", "ec2:DescribeVpcs"]
+    #trivy:ignore:AVD-AWS-0057 一覧の読み取りはリソースを絞れない(AWS の仕様)
+    resources = ["*"]
+  }
+  statement {
+    sid       = "UseDbKey"
+    actions   = ["kms:CreateGrant", "kms:DescribeKey", "kms:Decrypt", "kms:GenerateDataKey"]
+    resources = [module.aurora.kms_key_arn]
+  }
+  # 一時の DB の管理者のパスワード(RDS が作る秘密)を、Data API で SQL を流すためだけに読む
+  statement {
+    sid       = "DrillSecretOnly"
+    actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+    resources = ["arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:rds!cluster-*"]
+    condition {
+      test     = "StringLike"
+      variable = "secretsmanager:ResourceTag/aws:rds:primaryDBClusterArn"
+      values   = ["${local.rds_arn}:cluster:${local.drill_prefix}*"]
+    }
+  }
+  # 管理者のパスワードを RDS に作らせる(modify-db-cluster --manage-master-user-password)・消す
+  statement {
+    sid       = "RdsManagedSecret"
+    actions   = ["secretsmanager:CreateSecret", "secretsmanager:TagResource", "secretsmanager:RotateSecret", "secretsmanager:DeleteSecret"]
+    resources = ["arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:rds!cluster-*"]
+  }
+  statement {
+    sid       = "DataApiOnDrillCluster"
+    actions   = ["rds-data:ExecuteStatement"]
+    resources = ["${local.rds_arn}:cluster:${local.drill_prefix}*"]
+  }
+}
+

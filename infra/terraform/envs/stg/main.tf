@@ -300,3 +300,14 @@ module "uptime" {
     aws.us_east_1 = aws.us_east_1
   }
 }
+
+# ── バックアップ(消せない保管庫に、毎日と毎月)。docs/runbooks/db-restore.md ─────────────────
+
+module "backup" {
+  source         = "../../modules/backup"
+  name           = local.name
+  db_cluster_arn = module.aurora.cluster_arn
+  topic_arn      = module.alerts.topic_arn
+  # stg は作り直すことがあるので、外せるロック
+  lock_mode = "governance"
+}

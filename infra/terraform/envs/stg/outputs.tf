@@ -59,3 +59,12 @@ output "cognito_client_id" {
   description = "GitHub の変数 COGNITO_CLIENT_ID に(契約テスト・ZAP のスキャン)"
   value       = aws_cognito_user_pool_client.web.id
 }
+
+output "db_cluster_identifier" {
+  description = "Aurora のクラスター(戻すとき・戻す訓練で使う)"
+  value       = module.aurora.cluster_identifier
+}
+
+output "backup_vault_name" {
+  value = module.backup.vault_name
+}

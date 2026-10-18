@@ -69,6 +69,15 @@ PR が増えて手で回すのが追いつかなくなったら、自動のレ�
 
 > 💡 実装が速くなると「次に何を作るか」が足りなくなる。毎週、仕様の在庫を見る。
 
+## 毎月・四半期にやること
+
+| いつ | やること | 使うもの |
+|---|---|---|
+| 毎月 | stg の戻す訓練の結果を見る(自動。落ちたら Issue が立つ) | Actions → Restore drill の Summary |
+| 毎月 | 障害の振り返りの再発防止の Issue が閉じたか | `docs/incidents/` |
+| 四半期 | **prod の戻す訓練**(2人・手で。結果は Issue に `restore-drill` のラベル) | [runbooks/db-restore.md](runbooks/db-restore.md) の 5 |
+| 四半期 | 手順書を1つ選んで、stg で通しでやってみる(古くなっていないか) | [runbooks/](runbooks/) |
+
 ## 人と AI の分担
 
 | 仕事 | 人 | AI |

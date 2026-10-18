@@ -50,7 +50,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
-│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
+│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・backup(消せない保管庫)・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
 ├─ .github/
 │  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
@@ -271,6 +271,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `AWS_STG_DEPLOY_ROLE_ARN` / `AWS_PROD_DEPLOY_ROLE_ARN` | `<project>-<env>-deploy` | deploy |
 | `ECR_REPOSITORY_URL` / `WEB_ECR_REPOSITORY_URL` | stg の出力(API / 画面) | deploy |
 | `MAIL_ECR_REPOSITORY_URL` | stg の出力 `mail_ecr_repository_url`(メールの中継) | deploy-mail-relay |
+| `AWS_STG_RESTORE_DRILL_ROLE_ARN` / `STG_DB_CLUSTER` | stg の出力(`github_role_arns` の `…-restore-drill`・`db_cluster_identifier`) | restore-drill(毎月の戻す訓練) |
 | `AWS_STG_COGNITO_CONTRACT_ROLE_ARN` / `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` | stg の出力(`github_role_arns` の `…-cognito-contract`・`cognito_user_pool_id`・`cognito_client_id`) | cognito-contract |
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
@@ -286,6 +287,10 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 1. stg と prod の AWS アカウントそれぞれで、コンソールの「Amazon Q Developer in chat applications」(旧 AWS Chatbot)から Slack のワークスペースを許可する(ワークスペースの ID `T…` が分かる)
 2. Slack に `#alerts-stg` と `#alerts-prod` を作り、チャンネルの ID(`C…`)を `*.auto.tfvars` の `slack_team_id` / `slack_channel_id` に入れて apply
 3. 試しに鳴らして Slack に出るのを確かめる。月の上限(`monthly_budget_usd`)も見直す
+
+### 5. バックアップ(prod は3日のうちに確かめる)
+
+prod のバックアップの保管庫は **compliance のロック**で、apply から3日を過ぎると、ロックも保存の期間も誰にも変えられない(root でも)。**3日のうちに**、保管庫・毎日 35日・毎月 365日・1回目のバックアップが取れたこと、を確かめる([docs/runbooks/db-restore.md](docs/runbooks/db-restore.md) の 6)。prod の戻す訓練は四半期に1回、手で(同じ手順書の 5)。
 
 手順・何を見張っているか・費用は [docs/guides/monitoring.md](docs/guides/monitoring.md)。鳴ったら [docs/runbooks/alarms.md](docs/runbooks/alarms.md)、Sentry に来たら [docs/runbooks/sentry.md](docs/runbooks/sentry.md)。
 

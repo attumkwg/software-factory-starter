@@ -27,3 +27,7 @@ output "kms_key_arn" {
 output "cluster_identifier" {
   value = aws_rds_cluster.this.cluster_identifier
 }
+
+output "cluster_arn" {
+  value = aws_rds_cluster.this.arn
+}
