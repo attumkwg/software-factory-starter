@@ -1,0 +1,8 @@
+# Trivy で外す指摘。**ファイルを絞って、理由を書く**(全体で外さない)。
+misconfigurations:
+  - id: DS-0002
+    paths:
+      - "docker/postfix/Dockerfile"
+    statement: >-
+      Postfix の master は root で起動する作り(25番を開き、送り待ちの持ち主を整え、各処理は postfix のユーザーに下がる)。
+      受け取り・配送の処理は postfix のユーザーで動く。ECS では読み取り専用のファイルシステムで、受けるのは API からだけ
