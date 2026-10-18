@@ -26,7 +26,10 @@ export type RouteRule = Permission | typeof PUBLIC;
  */
 export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "GET /api/openapi.json": PUBLIC,
+  "GET /api/auth/options": PUBLIC,
   "POST /api/auth/dev-login": PUBLIC,
+  "GET /api/auth/login": PUBLIC,
+  "GET /api/auth/callback": PUBLIC,
   "POST /api/auth/cognito": PUBLIC,
   "POST /api/auth/logout": PUBLIC,
   "GET /api/me": "me:read",

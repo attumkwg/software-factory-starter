@@ -3,6 +3,8 @@ import { z } from "zod";
 // 環境の名前。開発用ログインを使ってよいのは local / test / preview だけ(本物の利用者がいない所)。
 export const APP_ENVS = ["local", "test", "preview", "stg", "prod"] as const;
 const DEV_LOGIN_ALLOWED: ReadonlySet<string> = new Set(["local", "test", "preview"]);
+// 偽物の Cognito・http の URL を使ってよい所(手元とテスト)
+const LOCAL_ONLY: ReadonlySet<string> = new Set(["local", "test"]);
 
 const EnvSchema = z
   .object({
@@ -21,6 +23,14 @@ const EnvSchema = z
     COGNITO_REGION: z.string().optional(),
     COGNITO_USER_POOL_ID: z.string().optional(),
     COGNITO_CLIENT_ID: z.string().optional(),
+    // Cognito の画面の入口(https://<接頭辞>.auth.<region>.amazoncognito.com)
+    COGNITO_DOMAIN: z.url().optional(),
+    // この画面の URL(戻り先 https://<APP_URL>/api/auth/callback を作る。Host ヘッダーは信じない)
+    APP_URL: z.url().optional(),
+    // 発行元を変える。手元の偽物の Cognito(packages/fake-cognito)だけ
+    COGNITO_ISSUER: z.url().optional(),
+    // ZAP の認証つきスキャン用のアプリクライアント(stg だけ)
+    COGNITO_SCAN_CLIENT_ID: z.string().optional(),
     // ECS の stopTimeout(既定30秒)より短く
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
     // アウトボックスの送り出しを、この API のプロセスで回すか(ADR 0006)。別のサービスに分けたら off に
@@ -34,15 +44,49 @@ const EnvSchema = z
         message: `開発用ログインは ${env.APP_ENV} では使えません(local / test / preview だけ)`,
       });
     }
+    if (env.AUTH_MODE !== "cognito") return;
     if (
-      env.AUTH_MODE === "cognito" &&
-      !(env.COGNITO_REGION && env.COGNITO_USER_POOL_ID && env.COGNITO_CLIENT_ID)
+      !(
+        env.COGNITO_REGION &&
+        env.COGNITO_USER_POOL_ID &&
+        env.COGNITO_CLIENT_ID &&
+        env.COGNITO_DOMAIN &&
+        env.APP_URL
+      )
     ) {
       ctx.addIssue({
         code: "custom",
         path: ["AUTH_MODE"],
         message:
-          "cognito には COGNITO_REGION / COGNITO_USER_POOL_ID / COGNITO_CLIENT_ID が要ります",
+          "cognito には COGNITO_REGION / COGNITO_USER_POOL_ID / COGNITO_CLIENT_ID / COGNITO_DOMAIN / APP_URL が要ります",
+      });
+    }
+    const local = LOCAL_ONLY.has(env.APP_ENV);
+    if (env.COGNITO_ISSUER && !local) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["COGNITO_ISSUER"],
+        message: "COGNITO_ISSUER(偽物の Cognito)は local / test だけで使えます",
+      });
+    }
+    for (const key of ["COGNITO_DOMAIN", "APP_URL"] as const) {
+      const value = env[key];
+      if (value && !local && !value.startsWith("https://")) {
+        ctx.addIssue({ code: "custom", path: [key], message: `${key} は https:// にしてください` });
+      }
+      if (value?.endsWith("/")) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: `${key} の最後に / を付けないでください`,
+        });
+      }
+    }
+    if (env.COGNITO_SCAN_CLIENT_ID && env.APP_ENV === "prod") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["COGNITO_SCAN_CLIENT_ID"],
+        message: "スキャン用のログイン(COGNITO_SCAN_CLIENT_ID)は prod では使えません",
       });
     }
   });
@@ -68,6 +112,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
             region: e.COGNITO_REGION ?? "",
             userPoolId: e.COGNITO_USER_POOL_ID ?? "",
             clientId: e.COGNITO_CLIENT_ID ?? "",
+            domain: e.COGNITO_DOMAIN ?? "",
+            appUrl: e.APP_URL ?? "",
+            issuer: e.COGNITO_ISSUER,
+            scanClientId: e.COGNITO_SCAN_CLIENT_ID,
           }
         : { mode: "dev" as const },
     session: {

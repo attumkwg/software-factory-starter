@@ -7,6 +7,9 @@
 # 要るもの:
 #   変数  STG_URL(https://app.stg.example.com)・COGNITO_SCAN_CLIENT_ID(stg の Terraform の出力)
 #   秘密  ZAP_SCAN_USERNAME・ZAP_SCAN_PASSWORD(stg の Cognito に作ったスキャン用の利用者。本物の人のものは使わない)
+#   stg の users に、スキャン用の利用者と同じメールの行(組織と役割は好きに)。初めてのスキャンで Cognito の sub と結びつく
+#   (docs/runbooks/cognito-login.md の「新しい人を入れる」。Cognito 側でメールを確認済みにしておく)
+# API は、スキャン用のクライアント宛てのトークンだけをこの口で受け付ける(COGNITO_SCAN_CLIENT_ID。stg だけ)。
 # 無ければ、失敗せずに飛ばす。
 #
 # いまは手動だけ(Actions → ZAP API scan → Run workflow)。

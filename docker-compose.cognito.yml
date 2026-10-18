@@ -1,0 +1,41 @@
+# Cognito でのログインを手元で丸ごと試す(偽物の Cognito を使う。AWS は要らない)。
+#   docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d
+#   → http://localhost:8080 の「ログイン」で、偽物の Cognito の画面(http://fake-cognito.localhost:9231)へ
+#   E2E: E2E_AUTH=cognito pnpm test:e2e
+# 普段の開発は docker-compose.yml だけ(開発用ログイン)でよい。ここにある値はすべて手元専用で、秘密ではない。
+#
+# fake-cognito.localhost という名前にしているのは、ブラウザ(*.localhost は自分の PC)からも、
+# API のコンテナ(下の aliases)からも、同じ URL で届くようにするため。本物の Cognito も1つの URL で答える。
+
+services:
+  fake-cognito:
+    image: software-factory-starter/fake-cognito:local
+    build:
+      context: .
+      dockerfile: packages/fake-cognito/Dockerfile
+    environment:
+      FAKE_COGNITO_BASE_URL: http://fake-cognito.localhost:9231
+      FAKE_COGNITO_USER_POOL_ID: local_fakepool
+      FAKE_COGNITO_CLIENT_ID: local-web-client
+      FAKE_COGNITO_CALLBACK_URLS: http://localhost:8080/api/auth/callback
+      FAKE_COGNITO_LOGOUT_URLS: http://localhost:8080/login
+      FAKE_COGNITO_EMAILS: admin@acme.test,member@acme.test,viewer@acme.test,admin@globex.test
+    ports:
+      - "9231:9231"
+    networks:
+      default:
+        aliases:
+          - fake-cognito.localhost
+
+  api:
+    environment:
+      AUTH_MODE: cognito
+      COGNITO_REGION: ap-northeast-1
+      COGNITO_USER_POOL_ID: local_fakepool
+      COGNITO_CLIENT_ID: local-web-client
+      COGNITO_DOMAIN: http://fake-cognito.localhost:9231
+      COGNITO_ISSUER: http://fake-cognito.localhost:9231/local_fakepool
+      APP_URL: http://localhost:8080
+    depends_on:
+      fake-cognito:
+        condition: service_healthy

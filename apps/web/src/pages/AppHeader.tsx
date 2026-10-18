@@ -1,4 +1,4 @@
-import type { Me } from "@app/shared";
+import type { AuthOptions, Me } from "@app/shared";
 import { Badge, Button, Inline, Page, Stack } from "@app/ui";
 import { useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -28,11 +28,19 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
               variant="ghost"
               isDisabled={loggingOut.pending}
               onPress={async () => {
+                let options: AuthOptions | undefined;
+                const done = await loggingOut.run(async () => {
+                  options = await api.authOptions();
+                  await api.logout();
+                });
                 // 失敗したら(通信が切れているなど)Cookie が残るので、ログイン画面へは進まずに知らせる
-                if (!(await loggingOut.run(() => api.logout()))) return;
+                if (!done) return;
                 // 前の人のデータを画面の覚え(キャッシュ)に残さない
                 router.clearCache();
-                await router.navigate({ to: "/login" });
+                // Cognito のときは、Cognito 側のログインも終わらせる(残すと次の「ログイン」で黙って同じ人に戻る)。
+                // Cognito がログイン画面へ戻してくれる
+                if (options?.method === "cognito") window.location.assign(options.logoutUrl);
+                else await router.navigate({ to: "/login" });
               }}
             >
               ログアウト

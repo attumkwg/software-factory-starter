@@ -1,5 +1,6 @@
 // 画面はここにある部品だけで作る(apps/web/CLAUDE.md・docs/design-system.md)。
 // 見た目の決まりは styles.css / tokens.css。画面側ではルート(apps/web/src/routes/__root.tsx)で1回だけ読み込む。
+export { Alert } from "./components/Alert.tsx";
 export { Badge, type BadgeTone } from "./components/Badge.tsx";
 export { Button, type ButtonProps } from "./components/Button.tsx";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox.tsx";

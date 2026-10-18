@@ -35,6 +35,8 @@ docker compose up --build
 ```
 
 http://localhost:8080 を開き、`admin@acme.test` でログインする(パスワードなし。開発用のログイン)。
+
+> 本番と同じ「Cognito の画面へ移ってログイン」の流れを試すときは、偽物の Cognito を重ねて立てる: `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d`(AWS は要らない。[guides/local-environment.md](guides/local-environment.md))。
 画面は SSR(サーバーで HTML を作る)なので、ページのソースを見ると中身が入っている。
 
 確かめること:

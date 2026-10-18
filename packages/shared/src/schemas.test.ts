@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CreateProjectSchema, UpdateTaskSchema } from "./schemas.ts";
+import { CreateProjectSchema, safeReturnTo, UpdateTaskSchema } from "./schemas.ts";
 
 describe("CreateProjectSchema", () => {
   it("前後の空白を落とし、空の名前は通さない", () => {
@@ -12,5 +12,30 @@ describe("UpdateTaskSchema", () => {
   it("何も変えない更新は通さない", () => {
     expect(UpdateTaskSchema.safeParse({}).success).toBe(false);
     expect(UpdateTaskSchema.safeParse({ done: true }).success).toBe(true);
+  });
+});
+
+describe("safeReturnTo(ログインの後に戻る先)", () => {
+  it.each(["/", "/projects/0190", "/projects/0190?filter=open"])(
+    "アプリの中のパス %s は、そのまま",
+    (path) => {
+      expect(safeReturnTo(path)).toBe(path);
+    },
+  );
+
+  it.each([
+    ["よそのサイト", "https://evil.example/"],
+    ["スキームを省いたよそのサイト", "//evil.example/"],
+    ["ブラウザが / と読む \\", "/\\evil.example"],
+    ["途中の \\", "/projects\\..\\x"],
+    ["javascript:", "javascript:alert(1)"],
+    ["API", "/api/projects"],
+    ["ログイン画面(行ったり来たり)", "/login?error=login_failed"],
+    ["改行", "/projects\r\nSet-Cookie: x=1"],
+    ["長すぎる", `/${"a".repeat(600)}`],
+    ["文字列でない", 42],
+    ["空", ""],
+  ])("%s は / にする", (_, value) => {
+    expect(safeReturnTo(value)).toBe("/");
   });
 });

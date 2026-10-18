@@ -20,6 +20,7 @@
 | public.outbox_claim                  | outbox     | p_limit integer, p_lease_seconds integer                         | FUNCTION |
 | public.outbox_mark_sent              | void       | p_id uuid                                                        | FUNCTION |
 | public.outbox_mark_failed            | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean | FUNCTION |
+| public.auth_link_external_id         | record     | p_email text, p_external_id text                                 | FUNCTION |
 
 ## Enums
 

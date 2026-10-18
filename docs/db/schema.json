@@ -610,6 +610,12 @@
       "return_type": "void",
       "arguments": "p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean",
       "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_link_external_id",
+      "return_type": "record",
+      "arguments": "p_email text, p_external_id text",
+      "type": "FUNCTION"
     }
   ],
   "enums": [
