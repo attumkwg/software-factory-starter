@@ -1,19 +1,29 @@
-import { AuthOptionsSchema, DevLoginSchema, safeReturnTo } from "@app/shared";
+import {
+  AuthNextSchema,
+  AuthOptionsSchema,
+  ConfirmSignUpSchema,
+  DevLoginSchema,
+  ForgotPasswordSchema,
+  LoginSchema,
+  MfaSchema,
+  ResendCodeSchema,
+  ResetPasswordSchema,
+  SignUpSchema,
+} from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import type { RootDb } from "../db/client.ts";
-import { ApiError, toApiError } from "../errors.ts";
+import { ApiError } from "../errors.ts";
 import { bodyErrors, createRouter, json, jsonBody } from "../http/common.ts";
 import type { Logger } from "../logger.ts";
 import { findLogin } from "./lookup.ts";
-import { takePendingLogin, writePendingLogin } from "./pending-login.ts";
+import { takePendingMfa, writePendingMfa } from "./pending-mfa.ts";
 import {
+  type AuthResult,
   CognitoClient,
-  CognitoRejected,
+  CognitoError,
   type CognitoSettings,
   type LoginIdentity,
-  randomToken,
-  sameSecret,
 } from "./providers.ts";
 import { clearSession, type SessionConfig, writeSession } from "./session.ts";
 
@@ -28,13 +38,40 @@ type Deps = {
 };
 
 const LoggedIn = json(z.object({ ok: z.literal(true) }), "ログインした(Cookie を返す)");
-const loginFailed = () => new ApiError(401, "login_failed", "ログインできませんでした");
+const Next = json(AuthNextSchema, "次にすること(done ならログインした。Cookie を返す)");
+const errorBody = (description: string) => json(z.any(), description);
 
-/** ブラウザのページの移動で来る入口(login・callback)の失敗は、JSON ではなくログイン画面へ戻して伝える */
-type LoginPageError = "login_failed" | "service_unavailable" | "internal";
-const toLoginPage = (c: Context, error: LoginPageError) => c.redirect(`/login?error=${error}`, 302);
+// どちらが違ったか(メール・パスワード・その人がいない)は言わない(画面の messages.ts の決まり 2)
+const loginFailed = () =>
+  new ApiError(401, "login_failed", "メールアドレスかパスワードが正しくありません");
+const invalidCode = () => new ApiError(400, "invalid_code", "コードが違うか、期限が切れています");
+const invalidPassword = () =>
+  new ApiError(400, "invalid_password", "パスワードが決まりを満たしていません");
+
+/**
+ * Cognito が断った理由を、画面に返す失敗に直す。理由の名前はログに残す(中身・メール・パスワードは残さない)。
+ * 「その人はいない」は「パスワードが違う」と同じにする(アカウントの列挙を防ぐ。Cognito の prevent_user_existence_errors と同じ考え)。
+ */
+function toAuthError(e: CognitoError): ApiError {
+  switch (e.type) {
+    case "CodeMismatchException":
+    case "ExpiredCodeException":
+      return invalidCode();
+    case "InvalidPasswordException":
+      return invalidPassword();
+    case "InvalidParameterException":
+      return new ApiError(400, "bad_request", "入力が正しくありません");
+    default:
+      // NotAuthorizedException・UserNotFoundException・PasswordResetRequiredException・未対応の関門 など
+      return loginFailed();
+  }
+}
 
 export function authRoutes(deps: Deps) {
+  const cognito =
+    deps.auth.mode === "cognito" ? (deps.auth.cognito ?? new CognitoClient(deps.auth)) : null;
+
+  /** users の行を引き(初めてなら確認済みのメールで結びつけ)、セッションの Cookie を発行する */
   async function login(identity: LoginIdentity, c: Context) {
     const session = await findLogin(deps.db, identity);
     if (!session) {
@@ -44,7 +81,7 @@ export function authRoutes(deps: Deps) {
           kind: identity.kind,
           hasVerifiedEmail: identity.kind === "external" ? identity.verifiedEmail !== null : null,
         },
-        "ログインに失敗",
+        "ログインに失敗(users に結びつく行が無い)",
       );
       throw loginFailed();
     }
@@ -58,8 +95,16 @@ export function authRoutes(deps: Deps) {
     deps.logger.info({ userId: session.userId, loginTenantId: session.tenantId }, "ログイン");
   }
 
-  const cognito =
-    deps.auth.mode === "cognito" ? (deps.auth.cognito ?? new CognitoClient(deps.auth)) : null;
+  /** Cognito を呼び、断られたら画面に返す失敗に直す(理由はログに) */
+  async function ask<T>(what: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!(e instanceof CognitoError)) throw e;
+      deps.logger.warn({ what, reason: e.type }, "Cognito が断りました");
+      throw toAuthError(e);
+    }
+  }
 
   const router = createRouter()
     .openapi(
@@ -69,7 +114,7 @@ export function authRoutes(deps: Deps) {
         tags: ["auth"],
         summary: "ログアウト",
         description:
-          "Cookie を消す。Cognito のときは、続けて GET /api/auth/options の logoutUrl へ移ると Cognito 側のログインも終わる",
+          "Cookie を消す。そのあと GET /api/auth/options の logoutUrl(ログイン画面)へ移る",
         responses: { 204: { description: "Cookie を消した" } },
       }),
       (c) => {
@@ -103,7 +148,7 @@ export function authRoutes(deps: Deps) {
         tags: ["auth"],
         summary: "【開発環境だけ】メールアドレスだけでログイン",
         request: { body: jsonBody(DevLoginSchema) },
-        responses: { 200: LoggedIn, ...bodyErrors, 401: json(z.any(), "いない") },
+        responses: { 200: LoggedIn, ...bodyErrors, 401: errorBody("いない") },
       }),
       async (c) => {
         await login({ kind: "email", email: c.req.valid("json").email }, c);
@@ -113,94 +158,171 @@ export function authRoutes(deps: Deps) {
     return router;
   }
 
+  // ここから下は Cognito のときだけ(上で dev は返した)
+  const idp = cognito;
+
+  /** ログインの結果に合わせて、Cookie を出すか・二段階認証を待つか・確認コードへ回すか */
+  async function finish(result: AuthResult, email: string, c: Context) {
+    if (result.kind === "mfa") {
+      await writePendingMfa(c, deps.session, { session: result.session, email });
+      return c.json({ next: "mfa" as const }, 200);
+    }
+    if (result.kind === "not_confirmed") {
+      // 確認コードを送り直して、確認の画面へ(パスワードが合っている本人なので、伝えてよい)
+      await ask("resend_code", () => idp.resendCode(email));
+      return c.json({ next: "confirm" as const }, 200);
+    }
+    await login(result.identity, c);
+    return c.json({ next: "done" as const }, 200);
+  }
+
+  const authFailures = {
+    ...bodyErrors,
+    401: errorBody("メールアドレスかパスワードが正しくない(どちらかは言わない)"),
+    429: errorBody("試しすぎ。少し待つ"),
+  };
+
   router
     .openapi(
       createRoute({
-        method: "get",
+        method: "post",
         path: "/auth/login",
         tags: ["auth"],
-        summary: "Cognito の画面へ移る(ブラウザのページの移動で使う)",
-        request: { query: z.object({ returnTo: z.string().optional() }) },
-        responses: { 302: { description: "Cognito の画面へ" } },
+        summary: "メールアドレスとパスワードでログイン",
+        request: { body: jsonBody(LoginSchema) },
+        responses: { 200: Next, ...authFailures },
       }),
       async (c) => {
-        const pending = {
-          state: randomToken(),
-          nonce: randomToken(),
-          codeVerifier: randomToken(),
-          returnTo: safeReturnTo(c.req.valid("query").returnTo),
-        };
-        await writePendingLogin(c, deps.session, pending);
-        return c.redirect(cognito.authorizeUrl(pending), 302);
+        const { email, password } = c.req.valid("json");
+        const result = await ask("sign_in", () => cognito.signIn(email, password));
+        return finish(result, email, c);
       },
     )
     .openapi(
       createRoute({
-        method: "get",
-        path: "/auth/callback",
+        method: "post",
+        path: "/auth/mfa",
         tags: ["auth"],
-        summary: "Cognito から戻る口。code をトークンに替え、Cookie を発行して元の画面へ",
-        request: {
-          query: z.object({
-            code: z.string().optional(),
-            state: z.string().optional(),
-            error: z.string().optional(),
-          }),
-        },
-        responses: {
-          302: { description: "成功なら元の画面へ。失敗なら /login?error=<code> へ" },
-        },
+        summary: "二段階認証のコードを返して、ログインを終える",
+        request: { body: jsonBody(MfaSchema) },
+        responses: { 200: Next, ...authFailures },
       }),
       async (c) => {
-        const q = c.req.valid("query");
-        // 途中の状態は、成否にかかわらずここで消える(同じものを2回使わせない)
-        const pending = await takePendingLogin(c, deps.session);
-        const reject = (reason: string) => {
-          deps.logger.warn({ reason }, "Cognito からの戻りを受け付けませんでした");
-          return toLoginPage(c, "login_failed");
-        };
-        if (q.error) return reject("cognito_error");
-        if (!pending) return reject("no_pending_login");
-        if (!q.state || !sameSecret(q.state, pending.state)) return reject("state_mismatch");
-        if (!q.code) return reject("no_code");
+        const pending = await takePendingMfa(c, deps.session);
+        // 途中の状態が無い・切れた → 最初から(ログイン画面へ)
+        if (!pending) throw loginFailed();
+        const { code } = c.req.valid("json");
         try {
-          const identity = await cognito.exchange(q.code, pending.codeVerifier, pending.nonce);
-          await login(identity, c);
+          const result = await cognito.answerMfa(pending.email, pending.session, code);
+          return await finish(result, pending.email, c);
         } catch (e) {
-          if (e instanceof CognitoRejected) return reject(e.reason);
-          // DB の失敗も、ほかの API と同じ決まり(errors.ts)で「待てば通る / それ以外」に分ける
-          const apiError = toApiError(e);
-          if (apiError.code === "login_failed") return toLoginPage(c, apiError.code);
-          if (apiError.code === "service_unavailable") {
-            deps.logger.error({ err: e }, "Cognito か DB に届かず、ログインできませんでした");
-            return toLoginPage(c, apiError.code);
-          }
-          deps.logger.error({ err: e }, "Cognito からの戻りの処理に失敗");
-          return toLoginPage(c, "internal");
+          if (!(e instanceof CognitoError)) throw e;
+          deps.logger.warn({ what: "mfa", reason: e.type }, "Cognito が断りました");
+          // Cognito の札は1回きり。コードが違っても、パスワードからやり直す
+          throw e.type === "CodeMismatchException" ? invalidCode() : loginFailed();
         }
-        return c.redirect(pending.returnTo, 302);
       },
-    );
-
-  if (cognito.scanEnabled) {
-    // ZAP の認証つきスキャン(stg だけ)。スキャン用のクライアント宛ての ID トークンで Cookie をもらう。
-    // 画面のログインはこれを使わない(トークンをブラウザに渡さない)。config.ts が prod では許さない。
-    router.openapi(
+    )
+    .openapi(
       createRoute({
         method: "post",
-        path: "/auth/cognito",
+        path: "/auth/sign-up",
         tags: ["auth"],
-        summary: "【stg のスキャンだけ】スキャン用クライアントの ID トークンでログイン",
-        request: { body: jsonBody(z.object({ idToken: z.string().min(1) })) },
-        responses: { 200: LoggedIn, ...bodyErrors, 401: json(z.any(), "検証できない") },
+        summary: "登録(確認コードのメールが届く)",
+        request: { body: jsonBody(SignUpSchema) },
+        responses: { 200: Next, ...authFailures },
       }),
       async (c) => {
-        const identity = await cognito.verifyScanToken(c.req.valid("json").idToken);
-        if (!identity) throw loginFailed();
-        await login(identity, c);
-        return c.json({ ok: true as const }, 200);
+        const { email, password } = c.req.valid("json");
+        try {
+          await cognito.signUp(email, password);
+        } catch (e) {
+          // もう登録されている人にも同じ答えを返す(登録の有無を確かめる手がかりにしない)。メールは送られない
+          if (!(e instanceof CognitoError) || e.type !== "UsernameExistsException") {
+            if (e instanceof CognitoError) {
+              deps.logger.warn({ what: "sign_up", reason: e.type }, "Cognito が断りました");
+              throw toAuthError(e);
+            }
+            throw e;
+          }
+          deps.logger.info({ what: "sign_up" }, "登録済みのメールでの登録(同じ答えを返す)");
+        }
+        return c.json({ next: "confirm" as const }, 200);
+      },
+    )
+    .openapi(
+      createRoute({
+        method: "post",
+        path: "/auth/confirm-sign-up",
+        tags: ["auth"],
+        summary: "登録の確認コードを入れる",
+        request: { body: jsonBody(ConfirmSignUpSchema) },
+        responses: { 200: Next, ...authFailures },
+      }),
+      async (c) => {
+        const { email, code } = c.req.valid("json");
+        await ask("confirm_sign_up", () => cognito.confirmSignUp(email, code));
+        return c.json({ next: "login" as const }, 200);
+      },
+    )
+    .openapi(
+      createRoute({
+        method: "post",
+        path: "/auth/resend-code",
+        tags: ["auth"],
+        summary: "登録の確認コードを送り直す(いない人にも同じ答え)",
+        request: { body: jsonBody(ResendCodeSchema) },
+        responses: { 200: Next, ...authFailures },
+      }),
+      async (c) => {
+        const { email } = c.req.valid("json");
+        try {
+          await cognito.resendCode(email);
+        } catch (e) {
+          if (!(e instanceof CognitoError)) throw e;
+          // いない・もう確認済み、も同じ答え(列挙を防ぐ)
+          deps.logger.info({ what: "resend_code", reason: e.type }, "確認コードを送りませんでした");
+        }
+        return c.json({ next: "confirm" as const }, 200);
+      },
+    )
+    .openapi(
+      createRoute({
+        method: "post",
+        path: "/auth/forgot-password",
+        tags: ["auth"],
+        summary: "パスワードの再設定のコードを送る(いない人にも同じ答え)",
+        request: { body: jsonBody(ForgotPasswordSchema) },
+        responses: { 200: Next, ...authFailures },
+      }),
+      async (c) => {
+        const { email } = c.req.valid("json");
+        try {
+          await cognito.forgotPassword(email);
+        } catch (e) {
+          if (!(e instanceof CognitoError)) throw e;
+          deps.logger.info(
+            { what: "forgot_password", reason: e.type },
+            "再設定のコードを送りませんでした",
+          );
+        }
+        return c.json({ next: "confirm" as const }, 200);
+      },
+    )
+    .openapi(
+      createRoute({
+        method: "post",
+        path: "/auth/reset-password",
+        tags: ["auth"],
+        summary: "再設定のコードと新しいパスワードを入れる",
+        request: { body: jsonBody(ResetPasswordSchema) },
+        responses: { 200: Next, ...authFailures },
+      }),
+      async (c) => {
+        const { email, code, password } = c.req.valid("json");
+        await ask("reset_password", () => cognito.resetPassword(email, code, password));
+        return c.json({ next: "login" as const }, 200);
       },
     );
-  }
   return router;
 }
