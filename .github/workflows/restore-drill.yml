@@ -1,0 +1,71 @@
+# 戻す訓練(有効にすれば毎月): stg の DB を一時の DB に時点復元し、表・移行・行の数を確かめて消す。
+# 「バックアップがある」ではなく「戻せる」ことを、毎月確かめる(手順書 docs/runbooks/db-restore.md)。
+#   戻すのにかかった時間・どの時点まで戻せたかを、実行の Summary に残す(手順書の「目安」の元)。
+#   落ちたら Issue を立てる。prod は四半期に1回、人が手順書どおりに(本物のお客さんのデータなので自動にしない)。
+#
+# 要るもの(stg の Terraform の出力。README の「本人がやる設定」):
+#   変数  AWS_STG_RESTORE_DRILL_ROLE_ARN(github_role_arns の …-restore-drill)・STG_DB_CLUSTER(db_cluster_identifier)
+# 無ければ、失敗せずに飛ばす。
+# 費用: 一時の DB(0.5〜2 ACU)を30分ほど動かす分 = 1回 数十円。
+name: Restore drill
+
+# いまは手動だけ(Actions → Restore drill → Run workflow)。自動にするときは schedule のコメントを外す。
+on:
+  workflow_dispatch:
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎月1日に stg の DB を一時の DB に戻して確かめる(1回 数十円)。
+  # schedule:
+  #   - cron: "0 1 1 * *" # 毎月1日 日本時間 10:00
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restore-drill
+  cancel-in-progress: false
+
+jobs:
+  stg:
+    name: stg の DB を戻してみる
+    if: vars.AWS_STG_RESTORE_DRILL_ROLE_ARN != '' && vars.STG_DB_CLUSTER != ''
+    runs-on: ubuntu-latest
+    # 役割のセッションは1時間まで。それより前に終わる(終わらなければ、それ自体が問題)
+    timeout-minutes: 55
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_STG_RESTORE_DRILL_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          role-duration-seconds: 3600
+      - name: 時点復元 → 確かめる → 消す
+        env:
+          SOURCE_CLUSTER: ${{ vars.STG_DB_CLUSTER }}
+        run: |
+          expected=$(jq '.entries | length' apps/api/drizzle/meta/_journal.json)
+          .github/scripts/restore-drill.sh "$SOURCE_CLUSTER" "$expected"
+      - name: 落ちたら Issue を立てる(同じ題名の Issue が開いていれば、コメントを足す)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="stg の DB を戻す訓練が失敗しました"
+          body="$(printf '%s\n\n%s\n%s\n%s' \
+            "実行: $RUN_URL" \
+            "- どこで止まったかを実行のログで見る(復元・インスタンス・Data API・確かめ)" \
+            "- 一時の DB(名前に restore-drill)が残っていたら、RDS のコンソールで消す" \
+            "- 手順: docs/runbooks/db-restore.md の 5")"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

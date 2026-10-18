@@ -33,3 +33,12 @@ output "url" {
 output "ecs_mail_service" {
   value = module.mail.service_name
 }
+
+output "db_cluster_identifier" {
+  description = "Aurora のクラスター(戻すとき・戻す訓練で使う)"
+  value       = module.aurora.cluster_identifier
+}
+
+output "backup_vault_name" {
+  value = module.backup.vault_name
+}

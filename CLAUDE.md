@@ -17,7 +17,7 @@
 - `packages/fake-cognito` … 開発とテスト専用の偽物の Cognito と、本物と比べる契約テスト(`contract/`)。偽物の振る舞いを変えたら契約テストも直す。手元の AWS の代わりの一覧は `docs/guides/local-environment.md`
 - `packages/error-reporting` … error 以上のログを Sentry に送る(値を落としてから)。Sentry を直接呼ばず、`logger.error({ err }, "…")` で残す。`docs/guides/monitoring.md`
 - `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
-- `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/adr` 設計判断 / `docs/runbooks` 手順
+- `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/adr` 設計判断 / `docs/runbooks` 手順(障害のときの入口は `incident.md`)
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
 
 ## 必ず守る
@@ -33,4 +33,5 @@
 - ルートやリポジトリで接続プール(`RootDb`)を直接使う。`c.var.tx`(テナントの文脈つき)だけを使う。
 - ログにオブジェクトを丸ごと渡す(`logger.info(user)`)。必要な項目だけを `{ userId }` の形で。
 - 秘密・本番の値をコード・ログ・PR に書く。`.env` を読む・作る。
+- 本番の DB や AWS に書き込む操作(戻す・入れ替える・止める)を自分で打つ。手順書(`docs/runbooks/`)のコマンドを、確かめた形で人に渡す。
 - 人の承認なしに次を変える(危険度「高」): `apps/api/src/auth` `apps/api/src/authz` `apps/api/src/db` `apps/api/drizzle` `docs/authz` `infra` `.github` `.claude/settings.json`

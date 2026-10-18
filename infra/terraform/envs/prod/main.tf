@@ -240,3 +240,15 @@ module "uptime" {
     aws.us_east_1 = aws.us_east_1
   }
 }
+
+# ── バックアップ(消せない保管庫に、毎日と毎月)。docs/runbooks/db-restore.md ─────────────────
+
+module "backup" {
+  source         = "../../modules/backup"
+  name           = local.name
+  db_cluster_arn = module.aurora.cluster_arn
+  topic_arn      = module.alerts.topic_arn
+  # ⚠️ compliance: apply から3日を過ぎると、ロックも保存の期間も誰にも変えられない(root でも)。
+  #    3日のうちに、保管庫・保存の期間・毎月の分が1年、を確かめる(docs/runbooks/db-restore.md の 6)
+  lock_mode = "compliance"
+}

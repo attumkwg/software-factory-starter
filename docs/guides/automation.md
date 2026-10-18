@@ -16,6 +16,8 @@
 | `deploy.yml` | main → stg、承認 → prod | 手動 | AWS の stg・prod の月額(getting-started の ④) | ここに日付を入れてください |
 | `claude.yml` | `@claude` で実装・レビュー | 手動 | Claude の API(使った分)+分数 | ここに日付を入れてください |
 | `security-fuzz.yml` | Schemathesis で全 API に変な入力(ロールごと) | 手動 | 分数だけ(相手はジョブの中の compose) | ここに日付を入れてください |
+| `cognito-contract.yml` | 偽物の Cognito と同じテストを stg の本物に流す([local-environment.md](local-environment.md)) | 手動(有効にすると毎週月曜)。変数が無ければ飛ばす | 分数だけ+Cognito の利用者が数人(月1万人まで無料) | ここに日付を入れてください |
+| `restore-drill.yml` | stg の DB を一時の DB に戻して確かめ、消す([runbooks/db-restore.md](../runbooks/db-restore.md) の 5) | 手動(有効にすると毎月1日)。変数が無ければ飛ばす | 1回 数十円(一時の DB を30分ほど) | ここに日付を入れてください |
 | `zap-api-scan.yml` | ZAP の認証つき API スキャン(stg) | 手動 | 分数+stg が少し動く分 | ここに日付を入れてください |
 
 コードレビューを自動にする選択肢(`@claude`・Anthropic 公式の Code Review・外部のサービス)は [code-review.md](code-review.md)。
