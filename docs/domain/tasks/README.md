@@ -34,9 +34,10 @@
 
 ## 関係するファイル
 
-- `apps/api/src/routes/tasks.ts`・`apps/api/src/repositories/tasks.ts`
+- `apps/api/src/domains/tasks/`(Postgres のスキーマ `tasks`)。使ってよい領域: organizations・projects
+- 外へ知らせる出来事: `tasks.task_completed`(未完了 → 完了になったとき。アウトボックス。ADR 0006)
 - `apps/web/src/pages/TasksPage.tsx`
-- `docs/db/public.tasks.md`
+- `docs/db/tasks.tasks.md`
 
 ## これから決めること
 

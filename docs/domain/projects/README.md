@@ -28,9 +28,9 @@
 
 ## 関係するファイル
 
-- `apps/api/src/routes/projects.ts`・`apps/api/src/repositories/projects.ts`
+- `apps/api/src/domains/projects/`(Postgres のスキーマ `projects`)。ほかの領域へ出しているのは `index.ts` の `projectExists`
 - `apps/web/src/pages/ProjectsPage.tsx`
-- `docs/specs/0001-tasks.md`(最初の仕様)・`docs/db/public.projects.md`
+- `docs/specs/0001-tasks.md`(最初の仕様)・`docs/db/projects.projects.md`
 
 ## これから決めること
 

@@ -22,21 +22,24 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
 
 ## 2. 手順
 
-1. `apps/api/src/db/schema.ts` を直す。
+1. その領域の `apps/api/src/domains/<領域>/schema.ts` を直す(表は領域の Postgres のスキーマに置く。`organizations.table(...)` など。ADR 0004)。
+   - お金は `moneyAmount`+`currencyCode`、単価・率は `decimal`、瞬間は `instant`、日付だけは `dateOnly`(`src/db/columns.ts`。ADR 0005)。
 2. `pnpm db:generate --name <内容>` で移行ファイルを作る(`apps/api/drizzle/`)。
 3. ファイルの先頭に、ロック待ちの上限を入れる:
    ```sql
    SET LOCAL lock_timeout = '5s';--> statement-breakpoint
    SET LOCAL statement_timeout = '60s';--> statement-breakpoint
    ```
-4. **新しい表なら**、同じ PR で RLS を足す(`drizzle/0001_rls.sql` と同じ形):
+4. **新しい表なら**、同じ PR で RLS を足す(`drizzle/0001_rls.sql` と同じ形。新しいスキーマなら `GRANT USAGE ON SCHEMA ... TO app_rw` も):
    - `tenant_id uuid NOT NULL` と、親の表へは `(tenant_id, id)` の組で参照
    - `ENABLE ROW LEVEL SECURITY` と `FORCE ROW LEVEL SECURITY`
    - `CREATE POLICY tenant_isolation ... USING / WITH CHECK (tenant_id = app_current_tenant())`
    - `GRANT ... TO app_rw`(要る操作だけ)
    - 忘れると結合テスト「全テーブルに RLS」が落ちる
 5. 大きい表の索引は `CREATE INDEX CONCURRENTLY`(その移行はトランザクションの外で流す必要がある。人に相談)。
-6. `pnpm --filter @app/api db:lint`(squawk)を通す。例外が要るなら `.squawk.toml` に理由つきで足し、PR で説明する。
+6. `pnpm --filter @app/api db:lint`(squawk)を通す。例外が要るなら、その行の上に `-- squawk-ignore <ルール>` と理由を書き、PR で説明する(`.squawk.toml` で全体を外さない)。
+   - 表を別のスキーマへ移す(`SET SCHEMA`)・名前を変えるのは、古い版のアプリを止める。本番があるなら段階を踏む(`drizzle/0002_domain_schemas.sql` の注意書き)。
+   - drizzle-kit が対話で聞いてくる変更(表の移動・名前の変更)は、SQL を手で書き、`meta/` の記録は空のフォルダに作り直した形を写す(0002 の作り方)。
 7. `pnpm test:integration` で、空の DB から全部の移行が通ることを確かめる。
 8. 表の説明書を作り直す: `docker compose up -d` のあと `pnpm docs:db`(`docs/db/` が変わる)。新しい表なら `.tbls.yml` に1行の説明を足し、`docs/domain/<領域>/` のエンティティも直す(`/update-domain-docs`)。
 

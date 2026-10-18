@@ -12,6 +12,8 @@ exclude:
 comments:
   - table: organizations.tenants
     tableComment: 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations
+    columnComments:
+      time_zone: 時刻を見せる時間帯・「1日」の区切り(IANA の名前。ADR 0005)
   - table: organizations.users
     tableComment: 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations
     columnComments:
@@ -25,3 +27,9 @@ comments:
     tableComment: タスク。プロジェクトの中のやること。docs/domain/tasks
     columnComments:
       done: 完了したか
+  - table: platform.outbox
+    tableComment: 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md
+    columnComments:
+      topic: 何が起きたか(領域.出来事。src/outbox/topics.ts)
+      locked_until: 送り出しが借りている期限
+      dead_at: あきらめた時刻(人が見て直す)

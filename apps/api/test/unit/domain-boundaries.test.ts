@@ -28,7 +28,7 @@ function listFiles(dir: string): string[] {
 /** src からの相対パスで、その場所が属する領域(領域の外なら null)。 */
 const domainOf = (srcRelative: string) => srcRelative.match(/^domains\/([^/]+)\//)?.[1] ?? null;
 
-export function findViolations(files: SourceFile[]): string[] {
+function findViolations(files: SourceFile[]): string[] {
   const problems: string[] = [];
   for (const file of files) {
     const from = toPosix(file.path); // src からの相対パス

@@ -35,17 +35,26 @@ export async function createTask(
   return toTask(row);
 }
 
+/** 直す。completedNow … この変更で「未完了 → 完了」になったか(出来事を積むかの判断に使う)。 */
 export async function updateTask(
   s: TenantScope,
   id: string,
   input: UpdateTask,
-): Promise<Task | null> {
+): Promise<{ task: Task; completedNow: boolean } | null> {
+  // 前の状態を読んで、同じトランザクションの中で行を押さえる(同時に2人が完了にしても、出来事は1回)
+  const [before] = await s.tx
+    .select({ done: tasks.done })
+    .from(tasks)
+    .where(and(eq(tasks.tenantId, s.tenantId), eq(tasks.id, id)))
+    .for("update");
+  if (!before) return null;
   const [row] = await s.tx
     .update(tasks)
     .set({ ...input, updatedAt: sql`now()` })
     .where(and(eq(tasks.tenantId, s.tenantId), eq(tasks.id, id)))
     .returning();
-  return row ? toTask(row) : null;
+  if (!row) return null;
+  return { task: toTask(row), completedNow: !before.done && row.done };
 }
 
 export async function deleteTask(s: TenantScope, id: string): Promise<boolean> {

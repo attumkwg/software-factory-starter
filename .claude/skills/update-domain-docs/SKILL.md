@@ -10,10 +10,11 @@ description: コードの変更(ブランチの差分)を読み、ドメイン�
 ## 手順
 
 1. **差分を読む**: `git diff origin/main...HEAD --stat` と、中身(特に下のパス)。
-   - `apps/api/src/db/schema.ts`・`apps/api/drizzle/` … 表・列・参照
+   - `apps/api/src/domains/<領域>/schema.ts`・`apps/api/drizzle/` … 表・列・参照
    - `packages/shared/src/schemas.ts` … 入力のルール(文字数・必須)
    - `apps/api/src/authz/policy.ts`・`docs/authz/matrix.yaml` … 権限
-   - `apps/api/src/routes/`・`apps/api/src/repositories/` … 振る舞い・状態の移り変わり
+   - `apps/api/src/domains/<領域>/routes.ts`・`repository.ts` … 振る舞い・状態の移り変わり
+   - `apps/api/src/outbox/topics.ts` … その領域が外へ知らせる出来事
    - 画面の文言(`apps/web/src/`)… 新しい言葉
 2. **直すべき所を挙げて、相手に見せる**(まだ直さない)。形:
    ```

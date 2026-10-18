@@ -29,6 +29,13 @@
       "when": 1792288609110,
       "tag": "0003_tenant_time_zone",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792289057888,
+      "tag": "0004_outbox",
+      "breakpoints": true
     }
   ]
 }

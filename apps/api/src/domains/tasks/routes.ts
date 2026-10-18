@@ -12,6 +12,7 @@ import {
   jsonBody,
   notFoundError,
 } from "../../http/common.ts";
+import { enqueue } from "../../outbox/index.ts";
 // ほかの領域(projects)は index.ts の関数だけを使う。表を直接読まない
 import { projectExists } from "../projects/index.ts";
 import { createTask, deleteTask, listTasks, updateTask } from "./repository.ts";
@@ -85,9 +86,17 @@ export const taskRoutes = createRouter()
       },
     }),
     async (c) => {
-      const task = await updateTask(scopeOf(c), c.req.valid("param").taskId, c.req.valid("json"));
-      if (!task) throw notFound();
-      return c.json(task, 200);
+      const scope = scopeOf(c);
+      const result = await updateTask(scope, c.req.valid("param").taskId, c.req.valid("json"));
+      if (!result) throw notFound();
+      // 完了になったことを、同じトランザクションで送信待ちに積む(アウトボックス。ADR 0006)
+      if (result.completedNow) {
+        await enqueue(scope, "tasks.task_completed", {
+          taskId: result.task.id,
+          projectId: result.task.projectId,
+        });
+      }
+      return c.json(result.task, 200);
     },
   )
   .openapi(

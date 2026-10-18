@@ -29,7 +29,7 @@
 ### 例: Schemathesis が見つけた穴を、テストとルールにした
 
 1. **見つけた**: 本文の無い `POST /api/projects` などが 500 になる(本文の検証が「本文があるときだけ」だった)。
-2. **直した**: 本文を必須にする部品 `jsonBody` を作り、全部の API をそれに置き換えた(`apps/api/src/routes/common.ts`)。
+2. **直した**: 本文を必須にする部品 `jsonBody` を作り、全部の API をそれに置き換えた(`apps/api/src/http/common.ts`)。
 3. **再現のテスト**: `apps/api/test/integration/input-validation.int.test.ts`(本文が無い → 400、JSON でない → 415)。
 4. **同じ形を止めるルール**: Semgrep の `request-body-must-use-jsonbody`(`jsonBody` を使わずに本文を書いたら止まる)。
 

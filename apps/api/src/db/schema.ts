@@ -7,3 +7,5 @@
 export * from "../domains/organizations/schema.ts";
 export * from "../domains/projects/schema.ts";
 export * from "../domains/tasks/schema.ts";
+// 領域ではない共通の仕組み(スキーマ platform)
+export * from "../outbox/schema.ts";
