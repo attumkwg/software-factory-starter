@@ -154,3 +154,8 @@ routes:
     permission: support:end
     note: 社員が代理を終える。代理の最中でなければ 400。流れは support-access.int.test.ts
     expect: { admin: 400, member: 400, viewer: 400, anonymous: 401 }
+
+  - route: POST /api/exports
+    permission: export:create
+    note: 自社のデータを1つの JSON で書き出す(docs/specs/0005-offboarding.md)。組織の全データが出るので管理者だけ。書き出したことは監査ログに残る
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }

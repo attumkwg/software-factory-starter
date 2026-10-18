@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSupportRouteImport } from './routes/_app/support'
 import { Route as AppSupportAccessRouteImport } from './routes/_app/support-access'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects/$projectId'
@@ -48,6 +49,11 @@ const AppAuditRoute = AppAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSupportRoute = AppSupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/audit': typeof AppAuditRoute
+  '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
   '/support-access': typeof AppSupportAccessRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/audit': typeof AppAuditRoute
+  '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
   '/support-access': typeof AppSupportAccessRoute
   '/': typeof AppIndexRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/_app/audit': typeof AppAuditRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/support': typeof AppSupportRoute
   '/_app/support-access': typeof AppSupportAccessRoute
   '/_app/': typeof AppIndexRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/audit'
+    | '/settings'
     | '/support'
     | '/support-access'
     | '/projects/$projectId'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/audit'
+    | '/settings'
     | '/support'
     | '/support-access'
     | '/'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sign-up'
     | '/_app/audit'
+    | '/_app/settings'
     | '/_app/support'
     | '/_app/support-access'
     | '/_app/'
@@ -181,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/support': {
       id: '/_app/support'
       path: '/support'
@@ -207,6 +226,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppSupportRoute: typeof AppSupportRoute
   AppSupportAccessRoute: typeof AppSupportAccessRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -215,6 +235,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppSupportRoute: AppSupportRoute,
   AppSupportAccessRoute: AppSupportAccessRoute,
   AppIndexRoute: AppIndexRoute,

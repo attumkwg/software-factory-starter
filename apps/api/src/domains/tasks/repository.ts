@@ -64,3 +64,13 @@ export async function deleteTask(s: TenantScope, id: string): Promise<boolean> {
     .returning({ id: tasks.id });
   return rows.length > 0;
 }
+
+/** データの書き出し(docs/specs/0005-offboarding.md)。自社のタスクを全部 */
+export async function exportTasks(s: TenantScope): Promise<Task[]> {
+  const rows = await s.tx
+    .select()
+    .from(tasks)
+    .where(eq(tasks.tenantId, s.tenantId))
+    .orderBy(asc(tasks.createdAt));
+  return rows.map(toTask);
+}

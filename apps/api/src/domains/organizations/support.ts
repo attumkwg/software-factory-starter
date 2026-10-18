@@ -236,3 +236,14 @@ export async function getSupportMe(
     support: { expiresAt: row.expiresAt.toISOString() },
   };
 }
+
+/** データの書き出し(docs/specs/0005-offboarding.md)。許可を全部(番号のハッシュは入らない) */
+export async function exportSupportGrants(s: TenantScope): Promise<SupportGrant[]> {
+  const rows = await s.tx
+    .select()
+    .from(supportGrants)
+    .where(eq(supportGrants.tenantId, s.tenantId))
+    .orderBy(desc(supportGrants.createdAt));
+  const now = new Date();
+  return rows.map((r) => toGrant(r, now));
+}

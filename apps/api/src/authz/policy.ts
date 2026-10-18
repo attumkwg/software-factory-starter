@@ -22,6 +22,8 @@ export const PERMISSIONS = {
   "support:start": ["admin", "member"],
   // 代理を終える(代理の最中は閲覧者)
   "support:end": ["admin", "member", "viewer"],
+  // データの書き出し(docs/specs/0005-offboarding.md)。組織の全データが出るので管理者だけ
+  "export:create": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -59,6 +61,7 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "DELETE /api/support-grants/{grantId}": "support_grant:manage",
   "POST /api/support/sessions": "support:start",
   "POST /api/support/end": "support:end",
+  "POST /api/exports": "export:create",
 };
 
 export function can(role: Role, permission: Permission): boolean {

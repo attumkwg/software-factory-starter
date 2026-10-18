@@ -15,7 +15,7 @@
 | [playbook.md](playbook.md) | 開発の進め方・毎週やること・分担 | 進め方を変えたとき(週の振り返りで決める) | 低 |
 | [security.md](security.md) | 何を確かめていて、何を確かめていないか・深い診断の段取り | 検査を足す・変えたとき | 中 |
 | [getting-started.md](getting-started.md) | 使い始めの手引き(手元 → 置き換え → GitHub → AWS → Slack → 運用) | 手順や費用が変わったとき | 低 |
-| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・例外処理・API の変え方・手元で AWS をどこまで再現するか など、仕組みの使い方 | 仕組みを変えたとき | 低 |
+| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか など、仕組みの使い方 | 仕組みを変えたとき | 低 |
 
 ## 記録(書いた時のまま。古くなっても直さない)
 
@@ -23,7 +23,7 @@
 |---|---|---|
 | [specs/](specs/) | 機能ごとの仕様(受け入れ条件・悪用のされ方)。テンプレートあり | 作る前(`/new-feature` が書く) |
 | [adr/](adr/) | 設計の判断となぜそうしたか。テンプレートあり | 後から「なぜ?」と聞かれそうな判断をしたとき |
-| [runbooks/](runbooks/) | 困ったときの手順。入口は [runbooks/incident.md](runbooks/incident.md)(障害対応の型)。アラーム・Sentry・サポートの代理ログイン・DB を戻す・デプロイと移行を戻す・秘密が漏れた・他社のデータが見えた・Cognito・メール | 事故のあと・当番の手順を決めたとき |
+| [runbooks/](runbooks/) | 困ったときの手順。入口は [runbooks/incident.md](runbooks/incident.md)(障害対応の型)。アラーム・Sentry・サポートの代理ログイン・解約・DB を戻す・デプロイと移行を戻す・秘密が漏れた・他社のデータが見えた・Cognito・メール | 事故のあと・当番の手順を決めたとき |
 | [incidents/](incidents/) | 障害の振り返り(S1・S2。1件1ファイル) | 障害のあと5営業日以内([runbooks/incident.md](runbooks/incident.md) の 6) |
 
 - 仕様と今の姿が違ってきたら、**仕様は直さず**、domain(いまの正)を直し、必要なら新しい仕様を足す。

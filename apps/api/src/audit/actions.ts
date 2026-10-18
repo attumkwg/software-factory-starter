@@ -23,6 +23,8 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   // 社員の組織の記録(見る組織の記録は、ハンドラーが support.start で残す)
   "POST /api/support/sessions": { action: "support.start", target: "support_session" },
   "POST /api/support/end": { action: "support.end", target: "support_session" },
+  // データの書き出し(対象は組織全体なので ID は無い)
+  "POST /api/exports": { action: "data.export", target: "organization", param: "none" },
 };
 
 /** 関所の外(ログインの API など)で、手で記録する物 */
