@@ -87,3 +87,9 @@ variable "sentry_dsn" {
   type        = string
   default     = null
 }
+
+variable "support_tenant_id" {
+  description = "運営の組織の ID(社員がサポート番号で代理ログインする)。null の間は代理ログインを使えない。作り方は docs/runbooks/support-access.md"
+  type        = string
+  default     = null
+}

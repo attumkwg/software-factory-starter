@@ -3,7 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { createApp } from "../../src/app.ts";
 import { loadConfig } from "../../src/config.ts";
 import { createDb, type RootDb } from "../../src/db/client.ts";
-import { projects, tasks, tenants, users } from "../../src/db/schema.ts";
+import { projects, supportGrants, tasks, tenants, users } from "../../src/db/schema.ts";
 import { withTenant } from "../../src/db/tenant.ts";
 import { createLogger } from "../../src/logger.ts";
 
@@ -13,6 +13,8 @@ export type TenantFixture = {
   users: Record<Role, { id: string; email: string }>;
   projectId: string;
   taskId: string;
+  /** サポートへの許可(管理者が出した。番号は分からない) */
+  supportGrantId: string;
 };
 
 export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise<TenantFixture> {
@@ -24,6 +26,7 @@ export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise
   const viewer = mk("viewer");
   const projectId = uuidv7();
   const taskId = uuidv7();
+  const supportGrantId = uuidv7();
 
   await withTenant(ownerDb, tenantId, async (tx) => {
     await tx.insert(tenants).values({ tenantId, name: `${label}-${suffix}` });
@@ -36,6 +39,13 @@ export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise
       .insert(projects)
       .values({ id: projectId, tenantId, name: "最初の計画", createdBy: admin.id });
     await tx.insert(tasks).values({ id: taskId, tenantId, projectId, title: "最初のタスク" });
+    await tx.insert(supportGrants).values({
+      id: supportGrantId,
+      tenantId,
+      grantedBy: admin.id,
+      codeHash: `fixture-${supportGrantId}`,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
   });
 
   return {
@@ -47,16 +57,18 @@ export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise
     },
     projectId,
     taskId,
+    supportGrantId,
   };
 }
 
-/** アプリの接続ユーザー(RLS がかかる)で組み立てた、本物と同じアプリ。 */
-export function createTestApp(appUrl: string) {
+/** アプリの接続ユーザー(RLS がかかる)で組み立てた、本物と同じアプリ。env で設定を足せる */
+export function createTestApp(appUrl: string, env: Record<string, string> = {}) {
   const { db, pool } = createDb(appUrl);
   const config = loadConfig({
     APP_ENV: "test",
     DATABASE_URL: appUrl,
     SESSION_SECRET: "test-only-".padEnd(40, "x"),
+    ...env,
   });
   const lifecycle = { shuttingDown: false };
   const app = createApp({ config, db, logger: createLogger({ level: "silent" }), lifecycle });

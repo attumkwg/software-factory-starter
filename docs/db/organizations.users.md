@@ -6,15 +6,15 @@
 
 ## Columns
 
-| Name        | Type                     | Default | Nullable | Children                                  | Parents                                           | Comment                         |
-| ----------- | ------------------------ | ------- | -------- | ----------------------------------------- | ------------------------------------------------- | ------------------------------- |
-| id          | uuid                     |         | false    | [projects.projects](projects.projects.md) |                                                   |                                 |
-| tenant_id   | uuid                     |         | false    | [projects.projects](projects.projects.md) | [organizations.tenants](organizations.tenants.md) |                                 |
-| email       | text                     |         | false    |                                           |                                                   |                                 |
-| external_id | text                     |         | true     |                                           |                                                   | 認証の製品(Cognito)側の ID(sub) |
-| name        | text                     |         | false    |                                           |                                                   |                                 |
-| role        | organizations.role       |         | false    |                                           |                                                   | admin / member / viewer         |
-| created_at  | timestamp with time zone | now()   | false    |                                           |                                                   |                                 |
+| Name        | Type                     | Default | Nullable | Children                                                                                                  | Parents                                           | Comment                         |
+| ----------- | ------------------------ | ------- | -------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------- |
+| id          | uuid                     |         | false    | [projects.projects](projects.projects.md) [organizations.support_grants](organizations.support_grants.md) |                                                   |                                 |
+| tenant_id   | uuid                     |         | false    | [projects.projects](projects.projects.md) [organizations.support_grants](organizations.support_grants.md) | [organizations.tenants](organizations.tenants.md) |                                 |
+| email       | text                     |         | false    |                                                                                                           |                                                   |                                 |
+| external_id | text                     |         | true     |                                                                                                           |                                                   | 認証の製品(Cognito)側の ID(sub) |
+| name        | text                     |         | false    |                                                                                                           |                                                   |                                 |
+| role        | organizations.role       |         | false    |                                                                                                           |                                                   | admin / member / viewer         |
+| created_at  | timestamp with time zone | now()   | false    |                                                                                                           |                                                   |                                 |
 
 ## Constraints
 

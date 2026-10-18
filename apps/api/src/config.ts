@@ -38,6 +38,8 @@ const EnvSchema = z
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
     // アウトボックスの送り出しを、この API のプロセスで回すか(ADR 0006)。別のサービスに分けたら off に
     OUTBOX_RELAY: z.enum(["on", "off"]).default("on"),
+    // 運営の組織(社員が代理ログインに使う。docs/specs/0004-support-access.md)。無ければ代理ログインは使えない
+    SUPPORT_TENANT_ID: z.uuid().optional(),
     // 失敗を Sentry に送る先(docs/guides/monitoring.md)。無ければ送らない
     SENTRY_DSN: z.url().optional(),
     // どの版の失敗か(Sentry で「この版から増えた」が分かる)。deploy.yml がイメージの digest を入れる
@@ -147,6 +149,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     mail: { smtpUrl: e.MAIL_SMTP_URL ?? null, from: e.MAIL_FROM },
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
+    supportTenantId: e.SUPPORT_TENANT_ID ?? null,
     sentry: {
       dsn: e.SENTRY_DSN,
       release: e.SENTRY_RELEASE,

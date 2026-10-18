@@ -8,10 +8,11 @@ import { auditRoutes } from "./audit/index.ts";
 import { authenticate } from "./auth/middleware.ts";
 import type { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
+import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
-import { organizationRoutes } from "./domains/organizations/index.ts";
+import { organizationRoutes, supportGrantRoutes } from "./domains/organizations/index.ts";
 import { projectRoutes } from "./domains/projects/index.ts";
 import { taskRoutes } from "./domains/tasks/index.ts";
 import type { AppEnv } from "./env.ts";
@@ -81,7 +82,12 @@ export function createApp(deps: AppDeps) {
   );
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
-  app.use("/api/*", authorize({ db, logger }));
+  // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う
+  app.use("/api/*", async (c, next) => {
+    c.set("supportTenantId", config.supportTenantId);
+    await next();
+  });
+  app.use("/api/*", authorize({ db, logger, session: config.session }));
 
   app.route(
     "/api",
@@ -94,6 +100,9 @@ export function createApp(deps: AppDeps) {
   );
   // 領域ごとのルート(src/domains/<領域>/routes.ts)
   app.route("/api", organizationRoutes);
+  app.route("/api", supportGrantRoutes());
+  // 社員の代理ログイン(組織を切り替えるので認証の側)
+  app.route("/api", supportSessionRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
   // 共通の仕組み(領域ではない)

@@ -7,6 +7,8 @@ locals {
   name = "${var.project}-${local.env}"
   # 失敗を Sentry に送る(docs/guides/monitoring.md)。DSN が無ければ送らない
   # Sentry の1件から、そのリクエストのログを開くリンクも付ける(API と画面のサーバーのロググループ)
+  # 運営の組織(社員の代理ログイン。docs/runbooks/support-access.md で作ってから ID を入れる)
+  support_environment = var.support_tenant_id == null ? {} : { SUPPORT_TENANT_ID = var.support_tenant_id }
   sentry_environment = var.sentry_dsn == null ? {} : {
     SENTRY_DSN           = var.sentry_dsn
     LOGS_INSIGHTS_REGION = var.region
@@ -140,7 +142,7 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }, local.sentry_environment)
+  }, local.sentry_environment, local.support_environment)
   secrets = {
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
