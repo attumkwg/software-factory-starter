@@ -16,9 +16,6 @@
 # 月の費用: スナップショットの保管 1GB あたり 約3円(Aurora のスナップショットの単価)× 量。
 #           変わった所だけが増えるので、小さな DB なら数百円まで。
 
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-
 resource "aws_kms_key" "vault" {
   description         = "${var.name} backup vault"
   enable_key_rotation = true
