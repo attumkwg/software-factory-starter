@@ -8,6 +8,7 @@
 - `pnpm lint`(Biome。複雑さ・長さの上限も)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:coverage`(カバレッジの下限。`docs/guides/ci-limits.md`)/ `pnpm test:integration`(Docker が要る)
 - `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
+- `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
 
 ## 地図
 
@@ -40,4 +41,5 @@
 - ログにオブジェクトを丸ごと渡す(`logger.info(user)`)。必要な項目だけを `{ userId }` の形で。
 - 秘密・本番の値をコード・ログ・PR に書く。`.env` を読む・作る。
 - 本番の DB や AWS に書き込む操作(戻す・入れ替える・止める)を自分で打つ。手順書(`docs/runbooks/`)のコマンドを、確かめた形で人に渡す。
-- 人の承認なしに次を変える(危険度「高」): `apps/api/src/auth` `apps/api/src/authz` `apps/api/src/db` `apps/api/drizzle` `docs/authz` `infra` `.github` `.claude/settings.json`
+- 人の承認なしに次を変える(危険度「高」): 一覧は `.claude/hooks/protected-paths.json`(認証・認可・DB・移行・権限の表・infra・CI・ハーネス・検査の除外・依存の入れ方)。Edit・Write は確認が出る。Bash で書き換えて確認を避けない(フックが聞く)
+- main へ push する・強制 push する・PR をマージする・承認する(フックが止める。`docs/guides/local-guards.md`)

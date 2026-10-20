@@ -29,7 +29,10 @@
 /.claude/hooks/                     @attumkwg
 /.semgrep/                          @attumkwg
 /.gitleaksignore                    @attumkwg
+/.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg
+/pnpm-workspace.yaml                @attumkwg
+/.npmrc                             @attumkwg
 
 # ── 見た目の決まり(ブランドの判断。人が決める) ──
 /packages/ui/src/tokens.css         @attumkwg
