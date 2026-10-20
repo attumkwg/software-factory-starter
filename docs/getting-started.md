@@ -108,6 +108,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 - WAF・GuardDuty・Security Hub は、上に加えて合わせて 月 約3千〜5千円(量で変わる。[security.md](security.md))。
 - 費用の警報(AWS Budgets)は Terraform が作る(`monthly_budget_usd`。既定は stg 250ドル・prod 600ドル): 使った額が 80% のときと、月末の見込みが 100% を超えるときに Slack へ。アラームと合わせて [guides/monitoring.md](guides/monitoring.md)。
 - 見張り(アラーム 15〜20個)は1環境 月 約300〜450円。
+- API と画面は**混んだときに台数が増える**(自動調整。[guides/monitoring.md](guides/monitoring.md))。上の表は最小の台数のとき。上限まで1か月ずっと増えたままなら、本番は +約3.4万円(API 4台 約2.7万円+画面 4台 約6,800円)、stg は +約5,100円。ふだんは増えない。
 
 ### PMF の前の節約
 

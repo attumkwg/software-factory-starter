@@ -105,3 +105,20 @@ variable "deletion_protection" {
   type    = bool
   default = true
 }
+
+variable "autoscaling" {
+  description = <<-EOT
+    台数の自動調整(CPU の平均を目標に保つ)。null なら desired_count で固定。
+    max は DB の接続の上限と合わせて決める(API は1台あたりプール10本。blue/green の入れ替えの間は2倍になる)
+  EOT
+  type = object({
+    min_count          = number
+    max_count          = number
+    cpu_target_percent = optional(number, 60)
+  })
+  default = null
+  validation {
+    condition     = var.autoscaling == null || (var.autoscaling.min_count >= 1 && var.autoscaling.max_count >= var.autoscaling.min_count)
+    error_message = "autoscaling は 1 <= min_count <= max_count にする"
+  }
+}

@@ -474,3 +474,35 @@ resource "aws_ecs_service" "this" {
 
   depends_on = [aws_lb_listener_rule.production]
 }
+
+# ── 台数の自動調整(CPU の平均を目標に保つ) ─────────────────────────────────────────
+# リクエスト数(ALBRequestCountPerTarget)では見ない: blue/green でターゲットグループが入れ替わるので、
+# 1つのターゲットグループに結びつけられない。CPU なら入れ替えに関係なく使える。
+# 入れ替えの間は ECS が縮める側を止める。台数は deploy.yml も Terraform も触らない(desired_count は ignore_changes)。
+
+resource "aws_appautoscaling_target" "this" {
+  count              = var.autoscaling == null ? 0 : 1
+  service_namespace  = "ecs"
+  scalable_dimension = "ecs:service:DesiredCount"
+  resource_id        = "service/${aws_ecs_cluster.this.name}/${aws_ecs_service.this.name}"
+  min_capacity       = var.autoscaling.min_count
+  max_capacity       = var.autoscaling.max_count
+}
+
+resource "aws_appautoscaling_policy" "cpu" {
+  count              = var.autoscaling == null ? 0 : 1
+  name               = "${var.name}-cpu"
+  policy_type        = "TargetTrackingScaling"
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value = var.autoscaling.cpu_target_percent
+    # 増やすのは早く(1分)、減らすのはゆっくり(5分。行ったり来たりしない)
+    scale_out_cooldown = 60
+    scale_in_cooldown  = 300
+  }
+}

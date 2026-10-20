@@ -16,6 +16,13 @@ resource "aws_vpc" "this" {
   tags                 = { Name = var.name }
 }
 
+# VPC の既定のセキュリティグループは、同じグループどうしと外へを全部許している。何も使わない
+# (資源ごとに自前のグループを付ける)ので、規則を空にして「付け忘れた物が誰とも話せない」にする
+resource "aws_default_security_group" "this" {
+  vpc_id = aws_vpc.this.id
+  tags   = { Name = "${var.name}-default-unused" }
+}
+
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
   tags   = { Name = var.name }
