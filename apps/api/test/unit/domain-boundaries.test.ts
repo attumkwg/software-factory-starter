@@ -29,30 +29,32 @@ function listFiles(dir: string): string[] {
 const domainOf = (srcRelative: string) => srcRelative.match(/^domains\/([^/]+)\//)?.[1] ?? null;
 
 function findViolations(files: SourceFile[]): string[] {
-  const problems: string[] = [];
-  for (const file of files) {
+  return files.flatMap((file) => {
     const from = toPosix(file.path); // src からの相対パス
-    const fromDomain = domainOf(from);
-    for (const [, spec] of file.text.matchAll(/from\s+["'](\.{1,2}\/[^"']+)["']/g)) {
-      const target = toPosix(join(dirname(from), spec as string)).replace(/^\.\//, "");
-      const toDomain = domainOf(target);
-      if (!toDomain || toDomain === fromDomain) continue;
+    return [...file.text.matchAll(/from\s+["'](\.{1,2}\/[^"']+)["']/g)].flatMap(
+      ([, spec]) => importViolation(from, spec as string) ?? [],
+    );
+  });
+}
 
-      const isPublic = target === `domains/${toDomain}/index.ts`;
-      const isSchemaToSchema = from.endsWith("/schema.ts") && target.endsWith("/schema.ts");
-      const isDbAggregator =
-        fromDomain === null &&
-        (from === "db/schema.ts" || from === "db/seed.ts") &&
-        target.endsWith("/schema.ts");
+/** from(src からの相対パス)から spec を読むのが決まりを破っていれば、その説明 */
+function importViolation(from: string, spec: string): string | null {
+  const fromDomain = domainOf(from);
+  const target = toPosix(join(dirname(from), spec)).replace(/^\.\//, "");
+  const toDomain = domainOf(target);
+  if (!toDomain || toDomain === fromDomain) return null;
 
-      if (fromDomain && !DOMAIN_DEPENDENCIES[fromDomain]?.includes(toDomain)) {
-        problems.push(`${from}: 領域 ${fromDomain} → ${toDomain} は dependencies.ts に無い`);
-      } else if (!isPublic && !isSchemaToSchema && !isDbAggregator) {
-        problems.push(`${from}: ${target} を直接読んでいる(domains/${toDomain}/index.ts を通す)`);
-      }
-    }
+  if (fromDomain && !DOMAIN_DEPENDENCIES[fromDomain]?.includes(toDomain)) {
+    return `${from}: 領域 ${fromDomain} → ${toDomain} は dependencies.ts に無い`;
   }
-  return problems;
+  const isPublic = target === `domains/${toDomain}/index.ts`;
+  const isSchemaToSchema = from.endsWith("/schema.ts") && target.endsWith("/schema.ts");
+  const isDbAggregator =
+    fromDomain === null &&
+    (from === "db/schema.ts" || from === "db/seed.ts") &&
+    target.endsWith("/schema.ts");
+  if (isPublic || isSchemaToSchema || isDbAggregator) return null;
+  return `${from}: ${target} を直接読んでいる(domains/${toDomain}/index.ts を通す)`;
 }
 
 function findCycle(deps: Readonly<Record<string, readonly string[]>>): string[] | null {

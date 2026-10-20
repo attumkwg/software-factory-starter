@@ -36,15 +36,11 @@ export function useAction() {
         if (opts.success) toast.show(opts.success);
         return true;
       } catch (e) {
-        if (e instanceof HttpError && e.code === "unauthorized") {
-          router.clearCache();
-          await router.navigate({ to: "/login" });
-          return false;
-        }
-        const described = describeError(e);
-        if (described.shouldReload) await router.invalidate();
-        if ((opts.showErrorAs ?? "toast") === "toast") toast.show(errorText(described));
-        else setError(described);
+        const show =
+          (opts.showErrorAs ?? "toast") === "toast"
+            ? (d: Described) => toast.show(errorText(d))
+            : setError;
+        await handleFailure(e, router, show);
         return false;
       } finally {
         running.current = false;
@@ -55,4 +51,25 @@ export function useAction() {
   );
 
   return { run, pending, error, errorMessage: error ? errorText(error) : undefined };
+}
+
+type FailureRouter = Pick<ReturnType<typeof useRouter>, "clearCache" | "navigate" | "invalidate">;
+
+/**
+ * 書き込みの失敗を受け止める。401 はログイン画面へ。それ以外は利用者向けの文にして show に渡す
+ * (404 / 409 のように読み直せば直るものは、先に画面のデータを読み直す)。
+ */
+export async function handleFailure(
+  e: unknown,
+  router: FailureRouter,
+  show: (described: Described) => void,
+): Promise<void> {
+  if (e instanceof HttpError && e.code === "unauthorized") {
+    router.clearCache();
+    await router.navigate({ to: "/login" });
+    return;
+  }
+  const described = describeError(e);
+  if (described.shouldReload) await router.invalidate();
+  show(described);
 }
