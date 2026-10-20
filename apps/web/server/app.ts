@@ -22,8 +22,40 @@ export type Lifecycle = { shuttingDown: boolean };
 
 // API(apps/api/src/request-context.ts)と同じ形。上から来た ID は形が正しいときだけ引き継ぐ
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
+// 守りのヘッダー(API と同じ secureHeaders に、画面の分を足す)
+//   HSTS          … 1年(既定の180日から延ばす)。一度 https で来たブラウザは、1年は http で来ない
+//   Permissions-Policy … 画面で使わない機能(カメラ・マイク・位置など)を、埋め込まれた物も含めて止める。
+//                    使うようにしたら、ここで外す
+const SECURE_HEADERS = secureHeaders({
+  strictTransportSecurity: "max-age=31536000; includeSubDomains",
+  permissionsPolicy: {
+    camera: [],
+    microphone: [],
+    geolocation: [],
+    payment: [],
+    usb: [],
+    serial: [],
+    bluetooth: [],
+    hid: [],
+    midi: [],
+    accelerometer: [],
+    gyroscope: [],
+    magnetometer: [],
+    displayCapture: [],
+    browsingTopics: [],
+  },
+});
+
 const requestIdFrom = (incoming: string | undefined) =>
   incoming && REQUEST_ID.test(incoming) ? incoming : randomUUID();
+
+// Response.redirect() などはヘッダーを書き換えられないので、写して作り直す
+function withNoStore(res: Response): Response {
+  if (res.headers.has("cache-control")) return res;
+  const headers = new Headers(res.headers);
+  headers.set("cache-control", "no-store");
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
 
 export function createWebApp(deps: {
   ssr: SsrHandler;
@@ -57,7 +89,7 @@ export function createWebApp(deps: {
       "request",
     );
   });
-  app.use("*", secureHeaders());
+  app.use("*", SECURE_HEADERS);
 
   app.use(
     "/assets/*",
@@ -73,7 +105,11 @@ export function createWebApp(deps: {
     headers.set("x-request-id", c.get("requestId"));
     try {
       const res = await ssr(new Request(c.req.raw.url, { method: c.req.method, headers }));
-      return compressResponse(c.req.raw, res);
+      // HTML はブラウザにも途中の仕組みにも残させない(ログインした人のプロジェクトやタスクが入る。
+      // 共有の PC で「戻る」やキャッシュから見えないように)。ログイン前の画面も同じにする
+      // (残しても速さの得は小さく、ログインの前後をここで見分けるより取り違えが無い)。
+      // 画面の側で決めて付けたものはそのまま
+      return compressResponse(c.req.raw, withNoStore(res));
     } catch (err) {
       logger.error({ err }, "SSR で失敗");
       return c.text("内部エラーです", 500);

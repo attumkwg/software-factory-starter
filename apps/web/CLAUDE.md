@@ -16,6 +16,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 
 - 描くとき(コンポーネントの本体)に `window` / `document` / `localStorage` を触らない。サーバーには無い。要るなら `useEffect` の中か `<ClientOnly>`。
 - 日時は `src/format.ts` を通す(サーバーは UTC なので、そのまま出すと読み込み直後に表示がずれる)。
+- 画面のサーバーは、HTML に `Cache-Control: no-store`・HSTS(1年)・Permissions-Policy を付ける(`server/app.ts`)。カメラ・位置などのブラウザの機能を使うようにしたら、Permissions-Policy から外す。
 - 秘密を画面のコードに書かない。`VITE_` で始まる環境変数はブラウザに出る。画面のサーバーは秘密を持たない決まり。
 
 ## 見た目・API・認可

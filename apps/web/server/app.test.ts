@@ -59,6 +59,34 @@ describe("画面のサーバー", () => {
     expect(res.headers.get("x-request-id")).toBeTruthy();
   });
 
+  it("守りのヘッダー: HSTS は1年・使わない機能は Permissions-Policy で止める", async () => {
+    const { app } = setup();
+    const res = await app.request("/");
+    expect(res.headers.get("strict-transport-security")).toBe(
+      "max-age=31536000; includeSubDomains",
+    );
+    const policy = res.headers.get("permissions-policy") ?? "";
+    expect(policy).toContain("camera=()");
+    expect(policy).toContain("geolocation=()");
+    expect(policy).toContain("microphone=()");
+  });
+
+  it("SSR の HTML は残させない(no-store)。画面の側で決めたものと、ビルド済みの JS はそのまま", async () => {
+    const { app } = setup();
+    expect((await app.request("/projects")).headers.get("cache-control")).toBe("no-store");
+    const redirect = setup(() => Response.redirect("http://web/login", 302)).app;
+    const r = await redirect.request("/projects");
+    expect(r.status).toBe(302);
+    expect(r.headers.get("cache-control")).toBe("no-store");
+    const own = setup(
+      () => new Response("ok", { headers: { "cache-control": "public, max-age=60" } }),
+    ).app;
+    expect((await own.request("/about")).headers.get("cache-control")).toBe("public, max-age=60");
+    expect((await app.request("/assets/app-abc123.js")).headers.get("cache-control")).toContain(
+      "immutable",
+    );
+  });
+
   it("SSR に request ID を渡し、応答にも付ける(上から来た ID は引き継ぐ)", async () => {
     let seen: string | null = null;
     const { app } = setup((req) => {
