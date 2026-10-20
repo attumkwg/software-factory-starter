@@ -281,7 +281,7 @@ describe(`Cognito の契約(${TARGET}): ログインと二段階認証`, () => {
     expect(wrong.name).toBe("CodeMismatchException");
 
     await nextTotpWindow();
-    // 間違えた札では、正しいコードでも通らない(アプリは途中の札を1回きりとして扱う。apps/api の auth/routes.ts)
+    // 間違えた札では、正しいコードでも通らない(アプリは途中の札を1回きりとして扱う。apps/api の auth/cognito-routes.ts)
     const reused = await errorOf(answerMfa(challenged.Session, email, totp(SecretCode, clock())));
     expect(reused.name).toBe("NotAuthorizedException");
 

@@ -21,21 +21,14 @@ gzip の大きさで比べるのは、ブラウザに届く量に近いから(�
 | 規則(Biome) | 上限 | 根拠 |
 |---|---|---|
 | `complexity/noExcessiveCognitiveComplexity` | 15 | Biome と SonarQube の既定。if や入れ子が重なって、読む人(AI も)が追えなくなる手前 |
-| `complexity/noExcessiveLinesPerFunction` | 80行 | 画面1つに収まる長さ。いまは1つを除いて全部この中 |
-| `style/noExcessiveLinesPerFile` | 300行 | AI はファイルを丸ごと読むので、大きいファイルは関係の無い所まで読み、間違いの元になる。いまは1つを除いて全部この中。CSS(部品の見た目をまとめた `packages/ui`)は対象外 |
+| `complexity/noExcessiveLinesPerFunction` | 80行 | 画面1つに収まる長さ |
+| `style/noExcessiveLinesPerFile` | 300行 | AI はファイルを丸ごと読むので、大きいファイルは関係の無い所まで読み、間違いの元になる。CSS(部品の見た目をまとめた `packages/ui`)は対象外 |
 
 **超えたら**: 関数を分ける・ファイルを領域ごとに分ける。上限は上げない。どうしても分けられない理由があれば、`biome.json` の例外に足し、PR に理由を書く。
 
-### あとで直す所(いまの例外)
+### 例外(いまは無い)
 
-上限を入れた日(2026-10-20)に、すでに超えていた所。リファクタは別の PR で(`apps/api` は別の作業と重なるので、このとき触らなかった)。直したら `biome.json` の `overrides` から消す。認証・認可以外の6か所は 2026-10-20 に直した(振る舞いは変えず、関数とファイルを分けた)。
-
-| ファイル | 超えている所 | いまの値 |
-|---|---|---|
-| `apps/api/src/authz/middleware.ts` | 複雑さ(2つの関数) | 38・22 |
-| `apps/api/src/auth/routes.ts` | ファイルの長さ・関数の長さ | 321行・211行 |
-
-`apps/api/src/authz`・`apps/api/src/auth` は危険度「高」の場所なので、直す PR も2人で見る。
+上限を入れた日(2026-10-20)に、すでに超えていた8か所は `biome.json` の `overrides` で例外にしていたが、同じ日に全部リファクタして例外を消した(振る舞いは変えず、関数とファイルを分けた。#29・#30)。新しく例外を足すときは、上の「超えたら」のとおり理由を PR に書く。
 
 ## 3. テストのカバレッジ(単体)
 
