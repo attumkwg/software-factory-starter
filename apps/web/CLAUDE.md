@@ -30,3 +30,8 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - E2E(`e2e/`)は種データの2社(Acme / Globex)を使う。要素は役割と名前で取る(`getByRole` / `getByLabel`)。
 - 大事な流れを変えたら E2E を1本足すか直す(目安: 大事な流れ5本程度まで)。
 - 本番の Node サーバー(`server/`)を変えたら `server/app.test.ts` も直す。
+
+## 速さ
+
+- 画面の JS・CSS の大きさに上限がある(CI が `pnpm --filter @app/web size` で見張る)。重いライブラリを足す前に、要る画面でだけ読み込めないか考える。上限と超えたときの考え方は `docs/guides/ci-limits.md`。
+- ALB は圧縮しないので、画面のサーバーが圧縮する(JS・CSS はビルドのときに `.br` / `.gz` を作る・HTML はその場で塊ごとに)。`server/compress.ts` を通さずに応答を返さない。

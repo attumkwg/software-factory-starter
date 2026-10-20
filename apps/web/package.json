@@ -8,11 +8,13 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node scripts/build-server.mjs",
+    "build": "vite build && node scripts/build-server.mjs && node scripts/precompress.mjs",
     "start": "node --enable-source-maps dist/index.js",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@app/error-reporting": "workspace:*",

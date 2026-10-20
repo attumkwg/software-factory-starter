@@ -15,6 +15,9 @@
     "test": {
       "outputs": []
     },
+    "test:coverage": {
+      "outputs": ["coverage/**"]
+    },
     "test:integration": {
       "cache": false,
       "outputs": []

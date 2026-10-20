@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run --project unit",
+    "test:coverage": "vitest run --project unit --coverage",
     "test:integration": "vitest run --project integration",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/cli.ts migrate",

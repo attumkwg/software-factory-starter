@@ -1,0 +1,75 @@
+# CI の上限(画面の大きさ・コードの複雑さ・テストのカバレッジ)と画面の圧縮
+
+CI(`ci.yml` の「Biome・型・単体」)は、次の3つが上限を超えると落ちる。どれも「いまより悪くしない」ための見張りで、目標の値ではない。
+
+| 見張るもの | 上限 | どこで決めている | 手元で |
+|---|---|---|---|
+| 画面の JS・CSS の大きさ | JS の合計 290KB・一番大きい JS 146KB・CSS の合計 4KB(どれも gzip) | `apps/web/scripts/check-bundle-size.mjs` | `pnpm --filter @app/web build && pnpm --filter @app/web size` |
+| 関数の複雑さ・長さ、ファイルの長さ | 複雑さ 15・関数 80行・ファイル 300行(空行は数えない) | `biome.json` | `pnpm lint` |
+| テストのカバレッジ(単体) | パッケージごと(下の表) | 各パッケージの `vitest.config.ts`(画面は `vite.config.ts`) | `pnpm test:coverage` |
+
+## 1. 画面の JS・CSS の大きさ
+
+**根拠**: 2026-10-20 の大きさ(JS の合計 263.6KB・一番大きい JS 132.6KB・CSS 1.8KB)に約10%を足した。画面を1つ足すのは 1〜3KB なので、ふつうの機能追加では超えない。日付・グラフ・UI の部品集のような重いライブラリ(gzip で 20KB〜)を足すと超える。CSS はもともと小さいので、10%ではなく KB で幅を取った。
+
+gzip の大きさで比べるのは、ブラウザに届く量に近いから(実際は brotli で届くので、もう少し小さい)。一番大きい JS は、React・ルーターなど最初に必ず読むまとまりで、初めて開いたときの速さに一番効く。
+
+**超えたら**: まず小さくできないかを考える(その画面でだけ使うものは画面ごとに読み込む・軽いライブラリにする・使う関数だけ読み込む)。それでも要るなら、`check-bundle-size.mjs` の数字を上げ、**上げる理由を PR の「人に判断してほしい所」に書く**(利用者の待ち時間が増えるので、人が判断する)。
+
+## 2. 関数の複雑さ・長さ、ファイルの長さ
+
+| 規則(Biome) | 上限 | 根拠 |
+|---|---|---|
+| `complexity/noExcessiveCognitiveComplexity` | 15 | Biome と SonarQube の既定。if や入れ子が重なって、読む人(AI も)が追えなくなる手前 |
+| `complexity/noExcessiveLinesPerFunction` | 80行 | 画面1つに収まる長さ。いまは2つを除いて全部この中 |
+| `style/noExcessiveLinesPerFile` | 300行 | AI はファイルを丸ごと読むので、大きいファイルは関係の無い所まで読み、間違いの元になる。いまは2つを除いて全部この中。CSS(部品の見た目をまとめた `packages/ui`)は対象外 |
+
+**超えたら**: 関数を分ける・ファイルを領域ごとに分ける。上限は上げない。どうしても分けられない理由があれば、`biome.json` の例外に足し、PR に理由を書く。
+
+### あとで直す所(いまの例外)
+
+上限を入れた日(2026-10-20)に、すでに超えていた所。リファクタは別の PR で(`apps/api` は別の作業と重なるので、このとき触らなかった)。直したら `biome.json` の `overrides` から消す。
+
+| ファイル | 超えている所 | いまの値 |
+|---|---|---|
+| `apps/api/src/authz/middleware.ts` | 複雑さ(2つの関数) | 38・22 |
+| `apps/api/src/config.ts` | 複雑さ | 21 |
+| `apps/api/test/unit/domain-boundaries.test.ts` | 複雑さ | 18 |
+| `apps/web/src/use-action.ts` | 複雑さ | 19 |
+| `packages/shared/src/money.ts` | 複雑さ | 17 |
+| `apps/api/src/auth/routes.ts` | ファイルの長さ・関数の長さ | 321行・211行 |
+| `packages/fake-cognito/src/fake.ts` | ファイルの長さ | 496行 |
+| `packages/fake-cognito/contract/cognito.contract.test.ts` | 関数の長さ | 153行 |
+
+`apps/api/src/authz`・`apps/api/src/auth` は危険度「高」の場所なので、直す PR も2人で見る。
+
+## 3. テストのカバレッジ(単体)
+
+`pnpm test:coverage` が単体テストを流し、行(lines)と分岐(branches)の割合が下限を下回ると落ちる。
+
+| パッケージ | 2026-10-20 の値(行 / 分岐) | 下限(行 / 分岐) |
+|---|---|---|
+| `apps/api` | 35.5% / 32.0% | 33 / 30 |
+| `apps/web` | 25.7% / 25.4% | 23 / 23 |
+| `packages/shared` | 81.9% / 63.2% | 79 / 61 |
+| `packages/error-reporting` | 95.6% / 75.3% | 93 / 73 |
+| `packages/fake-cognito` | 71.0% / 56.4% | 68 / 54 |
+
+**根拠**: いまの値の約2ポイント下。テストの無い小さなファイルを1つ足しただけでは落ちず、テストを消す・テストの無い大きな塊を足すと落ちる幅。
+
+- `apps/api` は単体だけの値。DB を使う所は結合テスト(`pnpm test:integration`)で確かめていて、その分は入っていない。
+- `apps/web` の画面(`.tsx`)は E2E で確かめるので、単体の値は低い。
+- `packages/ui` は単体テストが無いので測っていない。
+
+**上げ方**: テストを足して値が上がったら、下限も「新しい値の約2ポイント下」に上げてよい(下げるのは、理由を PR に書いて人が判断する)。
+
+## 4. 画面の圧縮(ALB は圧縮しない)
+
+AWS の ALB は応答を圧縮しない。そのままだと、画面の JS(約850KB)や HTML が生のまま届く。そこで画面のサーバー(`apps/web/server`)が自分で圧縮する。
+
+| 何を | どうやって | なぜ |
+|---|---|---|
+| 配る JS・CSS(`/assets/*`) | **ビルドのときに** brotli(一番強く)と gzip で圧縮しておき(`scripts/precompress.mjs`)、ブラウザが受け取れる方を返す | 中身が変わらないので、一番強い圧縮を1回だけかければよい。リクエストごとの CPU を使わない。JS は 434KB → 117KB(brotli) |
+| SSR の HTML | **その場で** brotli(強さ 4)か gzip で圧縮し、**描けた塊ごとに流し出す**(`server/compress.ts`) | HTML は毎回違う。ストリーミング SSR は、データを待つ間に先に描けた部分(画面の枠)を送るので、圧縮が「ためてから出す」と、その効き目が無くなる。塊ごとに流すと少しだけ縮みが悪いが、最初の表示を遅らせない |
+
+CloudFront を前に置く形にしたときは、CloudFront の圧縮に任せてもよい(そのときもこのままで害は無い。もう縮んでいるものは CloudFront が縮め直さない)。API の JSON は、このとき対象にしていない(API は別のサービス)。

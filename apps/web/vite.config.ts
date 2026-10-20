@@ -14,5 +14,14 @@ export default defineConfig(({ command }) => ({
   ssr: command === "build" ? { noExternal: true } : {},
   test: {
     include: ["src/**/*.test.ts", "server/**/*.test.ts"],
+    // `pnpm test:coverage`(CI)でだけ測る。画面(.tsx)は E2E で確かめるので、単体の値は低い。
+    // 下限は 2026-10-20 の値(行 25.7%・分岐 25.4%)の少し下。下回ったら CI が落ちる。docs/guides/ci-limits.md
+    coverage: {
+      provider: "v8",
+      include: ["src/**", "server/**"],
+      exclude: ["**/*.test.ts", "src/routeTree.gen.ts"],
+      reporter: ["text-summary"],
+      thresholds: { lines: 23, branches: 23 },
+    },
   },
 }));
