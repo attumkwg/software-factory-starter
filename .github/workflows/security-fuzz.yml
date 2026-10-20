@@ -54,7 +54,7 @@ jobs:
         with:
           name: schemathesis-report
           path: reports/schemathesis
-          retention-days: 14
+          retention-days: 7
       - name: 失敗したら API のログ
         if: failure()
         run: docker compose logs api

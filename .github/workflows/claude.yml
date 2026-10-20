@@ -87,4 +87,4 @@ jobs:
           claude_args: >-
             --max-turns 60
             --allowedTools "Bash(pnpm install --frozen-lockfile),Bash(pnpm lint),Bash(pnpm format),Bash(pnpm typecheck),Bash(pnpm test),Bash(pnpm test:integration),Bash(pnpm turbo run:*),Bash(pnpm decisions:*),Bash(pnpm openapi),Bash(pnpm db:generate),Bash(pnpm docs:db),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git switch:*),Bash(git branch:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(gh issue comment:*),Edit,Write,Read,Glob,Grep"
-            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(git push --force-with-lease:*),Bash(gh pr merge:*)"
+            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(git push --force-with-lease:*),Bash(git push --no-verify:*),Bash(git push --delete:*),Bash(git push origin main:*),Bash(git push origin HEAD:main:*),Bash(git push origin HEAD:refs/heads/main:*),Bash(gh pr merge:*)"

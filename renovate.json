@@ -16,6 +16,37 @@
     "enabled": true,
     "schedule": ["before 9am on the first day of the month"]
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "CI の道具の Docker イメージ(ワークフローの `*_IMAGE: 名前:タグ@sha256:…`)。タグとダイジェストを一緒に上げる",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": [
+        "_IMAGE: (?<depName>[^\\s:@$]+):(?<currentValue>[^\\s@]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "ワークフローの TF_VERSION(Terraform 本体。リリースのタグは v1.2.3)",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["\\bTF_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)\\b"],
+      "depNameTemplate": "hashicorp/terraform",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "ワークフローの TFLINT_VERSION(リリースのタグは v0.1.2)",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["\\bTFLINT_VERSION: (?<currentValue>v\\d+\\.\\d+\\.\\d+)\\b"],
+      "depNameTemplate": "terraform-linters/tflint",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    }
+  ],
   "packageRules": [
     {
       "description": "開発用の依存の小さい更新はまとめて1本(危険度: 低)",
@@ -35,7 +66,13 @@
       "addLabels": ["risk:high"]
     },
     {
-      "matchManagers": ["github-actions", "terraform", "dockerfile", "docker-compose"],
+      "matchManagers": [
+        "github-actions",
+        "terraform",
+        "dockerfile",
+        "docker-compose",
+        "custom.regex"
+      ],
       "addLabels": ["risk:high"]
     },
     {

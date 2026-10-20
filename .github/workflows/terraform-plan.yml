@@ -1,6 +1,9 @@
 # Terraform の plan を AWS に問い合わせて、PR にコメントする(「何が消えるか」を人が見る)。apply は人がする。
 # AWS の変数(AWS_*_PLAN_ROLE_ARN・TF_STATE_BUCKET)が無ければ、失敗せずに飛ばす。
 #
+# PR で plan できるのは stg だけ。prod の plan の役割は main からしか引けない(infra/terraform/envs/prod/github.tf)ので、
+# PR では prod を飛ばす。prod の plan は、マージのあと main で手動で回す(ブランチは main を選ぶ)。
+#
 # いまは手動だけ(Actions → Terraform plan → Run workflow。PR の番号を入れるとコメントする)。
 name: Terraform plan
 
@@ -51,12 +54,13 @@ jobs:
             tfvars_var: TF_VARS_PROD
     env:
       PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-      ROLE_ARN: ${{ vars[matrix.role_var] }}
+      # prod の役割は main からしか引けない。PR(や main 以外の手動)では空にして飛ばす
+      ROLE_ARN: ${{ (matrix.env != 'prod' || github.ref == 'refs/heads/main') && vars[matrix.role_var] || '' }}
       STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
     steps:
       - name: AWS が未設定ならスキップ
         if: env.ROLE_ARN == '' || env.STATE_BUCKET == ''
-        run: echo "::notice::${{ matrix.role_var }} か TF_STATE_BUCKET が無いので plan を飛ばしました(README の「本人がやる設定」)"
+        run: echo "::notice::${{ matrix.role_var }} か TF_STATE_BUCKET が無い、または main 以外での prod の plan なので飛ばしました(README の「本人がやる設定」)"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.ROLE_ARN != '' && env.STATE_BUCKET != ''
         with:

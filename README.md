@@ -188,12 +188,12 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 対象 | 道具 | どこ |
 |---|---|---|
 | 自分のコード | Semgrep CE(公開のルール+自社ルール) | `ci.yml` の semgrep |
-| 依存 | Trivy fs・Renovate | `ci.yml` の trivy-fs・`renovate.json` |
+| 依存 | Trivy fs・Renovate・Dependabot alerts | `ci.yml` の trivy-fs・`vuln-scan.yml`(定期)・`renovate.json` |
 | 秘密情報 | gitleaks(全履歴) | `ci.yml` の gitleaks |
 | イメージ | Trivy image | `ci.yml` の image |
 | インフラ定義 | Trivy config・tflint | `ci.yml`・`terraform.yml` |
 | 移行 | squawk | `ci.yml` の migrations |
-| ワークフロー | actionlint・zizmor | `ci.yml` の workflows |
+| ワークフロー | actionlint・zizmor(PR ごとはオフライン。定期はオンライン) | `ci.yml` の workflows・`vuln-scan.yml` |
 | 動いている画面 | ZAP ベースライン | `preview.yml` |
 | 全 API に変な入力(ロールごと) | Schemathesis | `pnpm security:fuzz`・`security-fuzz.yml` |
 | ログインした状態の API | ZAP API スキャン | `zap-api-scan.yml`(stg) |
@@ -212,13 +212,14 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `ci.yml` | 自動: PR・main | 全部動く(AWS 不要) |
 | `terraform.yml` | 自動: infra を変えた PR | fmt・validate・tflint・Trivy |
 | `labeler.yml` | 自動: PR | 危険度のラベル |
-| `terraform-plan.yml` | 手動 | 飛ばす(notice を出す) |
+| `terraform-plan.yml` | 手動(PR の plan は stg だけ。prod は main のときだけ) | 飛ばす(notice を出す) |
 | `preview.yml` | 手動(PR の番号を入れる) | 飛ばす(notice を出す) |
 | `cleanup-previews.yml` | 手動 | 飛ばす |
 | `deploy.yml` | 手動 | 飛ばす |
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
 | `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
+| `vuln-scan.yml` | 手動(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版) | 動く(AWS も秘密も要らない) |
 
 日々の進め方は [docs/playbook.md](docs/playbook.md)、Slack から頼む形にしたいときは [docs/guides/slack.md](docs/guides/slack.md)。
 
@@ -245,7 +246,9 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
    - 「Fork pull request workflows」で、外の人の PR の実行に承認を必須にする
    - 「Workflow permissions」を **Read repository contents and packages permissions**(読み取りだけ)にする。書き込みが要るワークフローは、ファイルの中で `permissions:` を1つずつ足してある
    - 「Allow GitHub Actions to create and approve pull requests」を**オフ**にする(AI や Actions が自分の PR を承認できないように)
+   - 「Artifact and log retention」を**7日**にする(ZAP のレポートは `zaproxy/action-api-scan` が成果物を作るので、ワークフローから日数を決められない。レポートにはリクエストの中身が入りうる)
 7. **Dependabot alerts**: Settings → Advanced Security(または Code security)→ 「Dependabot alerts」を有効にする(依存の脆弱性の知らせ。直す PR は Renovate が出すので、Dependabot の security updates はオフのままでよい)
+8. **プレビューは dev アカウントだけ**: PR のプレビューが引く AWS の役割(`AWS_PREVIEW_ROLE_ARN`)は、PR の版のワークフローからも引ける(OIDC の `pull_request`)ので、PR を書ける人なら dev の中で動かせる。dev には**本物の秘密・本物のデータを置かない**(プレビューの DB はコンテナの Postgres+種データ)。prod の役割は PR から引けない
 
 ### 2. AWS アカウントと状態の置き場
 
@@ -273,7 +276,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | 変数 | 値 | 使うワークフロー |
 |---|---|---|
 | `TF_STATE_BUCKET` | 状態のバケット | terraform・preview・cleanup |
-| `AWS_STG_PLAN_ROLE_ARN` / `AWS_PROD_PLAN_ROLE_ARN` | `<project>-<env>-plan` | terraform(plan) |
+| `AWS_STG_PLAN_ROLE_ARN` / `AWS_PROD_PLAN_ROLE_ARN` | `<project>-<env>-plan`(**prod は main からだけ**引ける。PR の plan は stg だけ) | terraform(plan) |
 | `TF_VARS_STG` / `TF_VARS_PROD` | `*.auto.tfvars` の中身(秘密は入れない) | terraform(plan) |
 | `AWS_PREVIEW_ROLE_ARN` | `preview-github` | preview・cleanup |
 | `PREVIEW_ECR_REPOSITORY` / `PREVIEW_WEB_ECR_REPOSITORY` / `PREVIEW_DOMAIN` | preview/base の出力(API / 画面)/ `example.com` | preview |
