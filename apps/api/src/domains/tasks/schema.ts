@@ -22,6 +22,14 @@ export const tasks = tasksSchema.table(
   },
   (t) => [
     index("tasks_tenant_id_project_id_idx").on(t.tenantId, t.projectId),
+    // 一覧(古い順・ページング)の並び順と同じ。上の索引はこれで要らなくなる(消すのは別の PR。縮小の段)。
+    // 作るのはトランザクションの外(drizzle/concurrent/0008_list_indexes.sql)。書き込みを止めないため
+    index("tasks_tenant_id_project_id_created_at_id_idx").on(
+      t.tenantId,
+      t.projectId,
+      t.createdAt,
+      t.id,
+    ),
     // 領域をまたぐ外部キー(→ projects)。プロジェクトを消すとタスクも消える。DB を分けるときに切る一覧は ADR 0004
     foreignKey({
       name: "tasks_project_fkey",

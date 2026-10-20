@@ -18,9 +18,11 @@ description: 新しい API(エンドポイント)を足すときの手順。ル�
 4. **リポジトリ**: `apps/api/src/domains/<領域>/repository.ts` に関数を足す。
    - 引数は `TenantScope`(`scopeOf(c)`)。`tenantId` で必ず絞る(RLS に頼り切らない)。
    - 接続プール(`RootDb`)は使わない。`sql.raw` は使わない。
+   - **一覧は必ずページング**(`docs/guides/api-changes.md`「一覧は必ずページング」)。全件を返さない。`src/db/paging.ts` の `decodeCursor` / `cursorTime` / `beyondCursor` / `toPage` で、並びは「作った時刻+ID」、`limit + 1` 件読む(`domains/projects/repository.ts` の `listProjects` が見本)。並びと同じ索引が無ければ張る(`/db-migration`)。
 5. **ルート**: `apps/api/src/domains/<領域>/routes.ts` に `createRoute` で足す。
    - ルートの中で `role` を見ない。他社の物・無い物は `throw notFound()`。
    - 失敗の応答(`authErrors` / `notFoundError` / `badRequestError`)を付けて OpenAPI に載せる。
+   - 一覧なら `request: { query: PageQuery }`(`http/common.ts`)と、応答は `{ <名前>: [...], nextCursor }` のスキーマ(`packages/shared` の `ProjectPageSchema` が見本)。
    - 起きたことをほかへ知らせるなら、同じトランザクションで `enqueue(scope, "<領域>.<出来事>", {...})`(`src/outbox/topics.ts` に足す。ADR 0006)。
 6. **権限の決まり**: `apps/api/src/authz/policy.ts`
    - 既存の権限で足りなければ `PERMISSIONS` に足す。
@@ -30,7 +32,7 @@ description: 新しい API(エンドポイント)を足すときの手順。ル�
    - `admin` / `member` / `viewer` / `anonymous` の答えを全部書く。
    - パスに ID があれば `other_tenant: 404` を必ず書く。
    - 書き込みなら `body` を書く。
-8. **テスト**: 表に足せば `authz-matrix.int.test.ts` が自動で全ロールを叩く。そのうえで、業務の決まり(入力の境界・2社の分離)を `test/integration/` に足す。**テストは必ず2社**。
+8. **テスト**: 一覧なら、続きの印をたどって抜けも重なりも無く最後まで読めること・上限を超える `limit` が 400 になることも(`performance.int.test.ts` が見本)。表に足せば `authz-matrix.int.test.ts` が自動で全ロールを叩く。そのうえで、業務の決まり(入力の境界・2社の分離)を `test/integration/` に足す。**テストは必ず2社**。
 9. **確かめる**: `pnpm turbo run typecheck test --affected` と `pnpm test:integration`。
 
 ## PR に書くこと

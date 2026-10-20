@@ -57,6 +57,13 @@
       "when": 1792335476624,
       "tag": "0007_support_access",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792496763910,
+      "tag": "0008_list_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
-import type { Project } from "@app/shared";
-import { and, asc, desc, eq } from "drizzle-orm";
+import type { Project, ProjectPage } from "@app/shared";
+import { and, asc, desc, eq, getTableColumns } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
+import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { projects } from "./schema.ts";
 
@@ -11,13 +12,25 @@ const toProject = (r: Row): Project => ({
   createdAt: r.createdAt.toISOString(),
 });
 
-export async function listProjects(s: TenantScope): Promise<Project[]> {
+/** 新しい順。cursor は前のページの nextCursor(索引 projects_tenant_id_created_at_id_idx を後ろから読む) */
+export async function listProjects(
+  s: TenantScope,
+  opts: { cursor?: string | undefined; limit: number },
+): Promise<ProjectPage> {
+  const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
   const rows = await s.tx
-    .select()
+    .select({ ...getTableColumns(projects), cursorAt: cursorTime(projects.createdAt) })
     .from(projects)
-    .where(eq(projects.tenantId, s.tenantId))
-    .orderBy(desc(projects.createdAt));
-  return rows.map(toProject);
+    .where(
+      and(
+        eq(projects.tenantId, s.tenantId),
+        beyondCursor(cursor, "desc", projects.createdAt, projects.id),
+      ),
+    )
+    .orderBy(desc(projects.createdAt), desc(projects.id))
+    .limit(opts.limit + 1);
+  const page = toPage(rows, opts.limit, (r) => ({ at: r.cursorAt, id: r.id }));
+  return { projects: page.rows.map(toProject), nextCursor: page.nextCursor };
 }
 
 export async function getProject(s: TenantScope, id: string): Promise<Project | null> {

@@ -2,11 +2,10 @@ import { createErrorReporter } from "@app/error-reporting";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
-import { createDb } from "./db/client.ts";
+import { createDb, dbLogging } from "./db/client.ts";
 import { createLogger } from "./logger.ts";
 import { createMailer } from "./mail/index.ts";
 import { outboxHandlers, startOutboxRelay } from "./outbox/index.ts";
-import { runOutsideRequestContext } from "./request-context.ts";
 
 const config = loadConfig();
 // error 以上のログを Sentry にも送る(SENTRY_DSN が無ければ null。docs/guides/monitoring.md)
@@ -18,13 +17,8 @@ const reporter = createErrorReporter({
   logsLink: config.sentry.logsLink,
 });
 const logger = createLogger({ level: config.logLevel, reporter });
-const { db, pool } = createDb(config.databaseUrl, {
-  // 接続を作ったリクエストの文脈が残っているので、外して記録する
-  onIdleError: (err) =>
-    runOutsideRequestContext(() =>
-      logger.warn({ err }, "使っていない DB の接続が切れました(DB の再起動など)"),
-    ),
-});
+// 接続が切れた・時間のかかったクエリをログに(db/client.ts の dbLogging)
+const { db, pool } = createDb(config.databaseUrl, dbLogging(logger));
 const lifecycle = { shuttingDown: false };
 const app = createApp({ config, db, logger, lifecycle });
 

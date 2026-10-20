@@ -1,5 +1,6 @@
-import type { Task, UpdateTask } from "@app/shared";
-import { and, asc, eq, sql } from "drizzle-orm";
+import type { Task, TaskPage, UpdateTask } from "@app/shared";
+import { and, asc, eq, getTableColumns, sql } from "drizzle-orm";
+import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { tasks } from "./schema.ts";
 
@@ -13,13 +14,27 @@ const toTask = (r: Row): Task => ({
   updatedAt: r.updatedAt.toISOString(),
 });
 
-export async function listTasks(s: TenantScope, projectId: string): Promise<Task[]> {
+/** 古い順。cursor は前のページの nextCursor(索引 tasks_tenant_id_project_id_created_at_id_idx の順) */
+export async function listTasks(
+  s: TenantScope,
+  projectId: string,
+  opts: { cursor?: string | undefined; limit: number },
+): Promise<TaskPage> {
+  const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
   const rows = await s.tx
-    .select()
+    .select({ ...getTableColumns(tasks), cursorAt: cursorTime(tasks.createdAt) })
     .from(tasks)
-    .where(and(eq(tasks.tenantId, s.tenantId), eq(tasks.projectId, projectId)))
-    .orderBy(asc(tasks.createdAt));
-  return rows.map(toTask);
+    .where(
+      and(
+        eq(tasks.tenantId, s.tenantId),
+        eq(tasks.projectId, projectId),
+        beyondCursor(cursor, "asc", tasks.createdAt, tasks.id),
+      ),
+    )
+    .orderBy(asc(tasks.createdAt), asc(tasks.id))
+    .limit(opts.limit + 1);
+  const page = toPage(rows, opts.limit, (r) => ({ at: r.cursorAt, id: r.id }));
+  return { tasks: page.rows.map(toTask), nextCursor: page.nextCursor };
 }
 
 export async function createTask(

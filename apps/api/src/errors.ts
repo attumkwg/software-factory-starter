@@ -38,6 +38,7 @@ export const internal = () => new ApiError(500, "internal", "内部エラーで�
 
 /** Postgres の SQLSTATE のうち、待てば通るもの。 */
 const RETRYABLE_SQLSTATE = new Set([
+  "25P03", // idle_in_transaction_session_timeout(トランザクションを開いたまま止まっていた。db/client.ts)
   "40001", // serialization_failure
   "40P01", // deadlock_detected
   "53300", // too_many_connections
@@ -75,14 +76,17 @@ function findCode(err: unknown): string | undefined {
   return undefined;
 }
 
-/** pg が「接続が切れた・つながらない」を code なしで投げるとき。 */
+/**
+ * pg が「接続が切れた・つながらない」を code なしで投げるとき。
+ * not queryable … 使用中の接続を DB が切った後に、同じ接続でクエリを頼んだ(idle_in_transaction_session_timeout)
+ */
 function isConnectionLost(err: unknown): boolean {
   let cur: unknown = err;
   for (let i = 0; i < 5 && cur && typeof cur === "object"; i++) {
     const { message, cause } = cur as WithCode;
     if (
       typeof message === "string" &&
-      /Connection terminated|connection timeout|timeout exceeded when trying to connect/i.test(
+      /Connection terminated|connection timeout|timeout exceeded when trying to connect|not queryable/i.test(
         message,
       )
     ) {

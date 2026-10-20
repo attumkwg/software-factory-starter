@@ -1,4 +1,10 @@
-import { CreateTaskSchema, IdSchema, TaskSchema, UpdateTaskSchema } from "@app/shared";
+import {
+  CreateTaskSchema,
+  IdSchema,
+  TaskPageSchema,
+  TaskSchema,
+  UpdateTaskSchema,
+} from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
 import { scopeOf } from "../../db/scope.ts";
 import { notFound } from "../../errors.ts";
@@ -11,6 +17,7 @@ import {
   json,
   jsonBody,
   notFoundError,
+  PageQuery,
 } from "../../http/common.ts";
 import { enqueue } from "../../outbox/index.ts";
 // ほかの領域(projects)は index.ts の関数だけを使う。表を直接読まない
@@ -26,10 +33,10 @@ export const taskRoutes = createRouter()
       method: "get",
       path: "/projects/{projectId}/tasks",
       tags: ["tasks"],
-      summary: "プロジェクトのタスク一覧",
-      request: { params: ProjectParams },
+      summary: "プロジェクトのタスク一覧(古い順。続きは nextCursor を cursor に)",
+      request: { params: ProjectParams, query: PageQuery },
       responses: {
-        200: json(z.object({ tasks: z.array(TaskSchema) }), "一覧"),
+        200: json(TaskPageSchema, "一覧"),
         ...badRequestError,
         ...authErrors,
         ...notFoundError,
@@ -39,7 +46,7 @@ export const taskRoutes = createRouter()
       const scope = scopeOf(c);
       const { projectId } = c.req.valid("param");
       if (!(await projectExists(scope, projectId))) throw notFound();
-      return c.json({ tasks: await listTasks(scope, projectId) }, 200);
+      return c.json(await listTasks(scope, projectId, c.req.valid("query")), 200);
     },
   )
   .openapi(

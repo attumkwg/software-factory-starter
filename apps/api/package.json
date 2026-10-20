@@ -14,7 +14,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/cli.ts migrate",
     "db:seed": "tsx --env-file-if-exists=.env src/cli.ts seed",
-    "db:lint": "squawk --config=.squawk.toml drizzle/*.sql",
+    "db:lint": "squawk --config=.squawk.toml drizzle/*.sql && squawk --config=.squawk.toml --no-assume-in-transaction drizzle/concurrent/*.sql",
     "openapi": "tsx scripts/openapi.ts"
   },
   "dependencies": {

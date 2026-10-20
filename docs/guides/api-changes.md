@@ -21,6 +21,18 @@
 - 判定は [oasdiff](https://github.com/oasdiff/oasdiff) が、PR の元と比べて行う(`breaking --fail-on ERR`)。
 - 画面とアプリは、**知らない項目・知らない code が来ても動く**ように書く(例: `apps/web/src/errors.ts` は知らない code でも文を出す)。
 
+## 一覧は必ずページング
+
+利用者が増やせる物(プロジェクト・タスク・ログなど)の一覧は、**全件を一度に返さない**。1社が1万件作っても、1回の応答の大きさと DB の手間が変わらないようにする。
+
+- 入力は `?cursor=…&limit=…`(`apps/api/src/http/common.ts` の `PageQuery`)。`limit` は既定 50・上限 100(`@app/shared` の `PAGE_LIMIT`)。上限を超えると 400。
+- 応答は `{ <一覧の名前>: [...], nextCursor: string | null }`。続きは `nextCursor` をそのまま `cursor` に渡す。`null` なら終わり。印の中身に頼らない(形は変わりうる)。壊れた印は 400。
+- 並び順は「作った時刻+ID」で必ず1通りに決める。続きは「前のページの最後の行より後ろ」で探す(`OFFSET` は使わない。後ろのページほど遅くなるため)。作り方は `apps/api/src/db/paging.ts`。
+- **同じ並びの索引を張る**(`(tenant_id, …, created_at, id)`)。張り方は `.claude/skills/db-migration` の 5。
+- 例外: 件数が決まっている一覧(代理ログインの許可は新しい20件だけ)と、管理者のデータの書き出し(`/api/exports`。全部を1つの JSON で返す決まり。組織が大きくなったら、書き出しの作り方を見直す)。
+- 古い画面・アプリは `nextCursor` を知らなくても動く(項目を足しただけ)。ただし最初のページしか見えないので、一覧の画面は続きを読むように直す。
+- 先にある例: 監査ログ(`/api/audit-events`。続きの印の名前は `before`)。
+
 ## どうしても壊すとき
 
 1. 新しい形を `/api/v2/...` として足す(古い `/api/...` はそのまま)。

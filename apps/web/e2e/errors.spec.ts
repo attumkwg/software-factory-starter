@@ -49,13 +49,15 @@ test("画面を読むのに失敗したら、理由を出し「もう一度読�
   await page.getByRole("link", { name: "Acme の立ち上げ" }).first().click();
   await expect(page.getByRole("heading", { name: "Acme の立ち上げ" })).toBeVisible();
 
-  await page.route("**/api/projects", (route) => route.abort("connectionrefused"));
+  // 一覧は ?limit=…&cursor=… 付きで呼ぶので、道すじ(pathname)で当てる
+  const projectsApi = (url: URL) => url.pathname === "/api/projects";
+  await page.route(projectsApi, (route) => route.abort("connectionrefused"));
   await page.getByRole("link", { name: "← プロジェクト一覧" }).click();
   await expect(page.getByRole("heading", { name: "うまく表示できませんでした" })).toBeVisible();
   await expect(page.getByText("通信できませんでした")).toBeVisible();
   await expectAccessible(page);
 
-  await page.unroute("**/api/projects");
+  await page.unroute(projectsApi);
   await page.getByRole("button", { name: "もう一度読み込む" }).click();
   await expect(page.getByRole("heading", { name: "プロジェクト" })).toBeVisible();
 });

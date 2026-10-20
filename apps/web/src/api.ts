@@ -10,12 +10,15 @@ import type {
   ExportData,
   Me,
   Project,
+  ProjectPage,
   StartSupport,
   SupportGrant,
   SupportSession,
   Task,
+  TaskPage,
   UpdateTask,
 } from "@app/shared";
+import { PAGE_LIMIT } from "@app/shared";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
@@ -143,6 +146,27 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
+// 一覧は API がページで返す(1回に最大 PAGE_LIMIT.max 件。docs/guides/api-changes.md)。
+// 画面にページ送りが付くまでは、続きを LIST_MAX_PAGES 回まで読んで、いまと同じく全部を見せる
+// (それより多い分は出ない。1000件を超える組織・プロジェクトが出る前に、画面にページ送りを付ける)。
+const LIST_MAX_PAGES = 10;
+
+async function readPages<P extends { nextCursor: string | null }, T>(
+  path: string,
+  items: (page: P) => T[],
+): Promise<T[]> {
+  const all: T[] = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < LIST_MAX_PAGES; i++) {
+    const next: string = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
+    const page: P = await request<P>("GET", `${path}?limit=${PAGE_LIMIT.max}${next}`);
+    all.push(...items(page));
+    cursor = page.nextCursor;
+    if (!cursor) break;
+  }
+  return all;
+}
+
 export const api = {
   authOptions: () => request<AuthOptions>("GET", "/auth/options"),
   devLogin: (email: string) => request<{ ok: true }>("POST", "/auth/dev-login", { email }),
@@ -160,7 +184,9 @@ export const api = {
     request<AuthNext>("POST", "/auth/reset-password", { email, code, password }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/me"),
-  listProjects: () => request<{ projects: Project[] }>("GET", "/projects"),
+  listProjects: async (): Promise<{ projects: Project[] }> => ({
+    projects: await readPages<ProjectPage, Project>("/projects", (p) => p.projects),
+  }),
   getProject: (id: string) => request<Project>("GET", `/projects/${id}`),
   createProject: (input: CreateProject) => request<Project>("POST", "/projects", input),
   deleteProject: (id: string) => request<void>("DELETE", `/projects/${id}`),
@@ -179,8 +205,9 @@ export const api = {
       "GET",
       before ? `/audit-events?before=${encodeURIComponent(before)}` : "/audit-events",
     ),
-  listTasks: (projectId: string) =>
-    request<{ tasks: Task[] }>("GET", `/projects/${projectId}/tasks`),
+  listTasks: async (projectId: string): Promise<{ tasks: Task[] }> => ({
+    tasks: await readPages<TaskPage, Task>(`/projects/${projectId}/tasks`, (p) => p.tasks),
+  }),
   createTask: (projectId: string, input: CreateTask) =>
     request<Task>("POST", `/projects/${projectId}/tasks`, input),
   updateTask: (id: string, input: UpdateTask) => request<Task>("PATCH", `/tasks/${id}`, input),
