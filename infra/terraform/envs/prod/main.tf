@@ -67,6 +67,9 @@ module "app" {
   image              = "${var.image_repository_url}:${var.initial_image_tag}"
   certificate_arn    = aws_acm_certificate_validation.app.certificate_arn
   desired_count      = 2
+  # 2〜6台。DB の接続: 6台×プール10本=60本(blue/green の入れ替えの間は2倍の120本)+移行の1本。
+  # Aurora の上限(max_acu 8 で 1,669本)の1割に収まる。上限を上げるなら DB の CPU と費用を先に見る
+  autoscaling        = { min_count = 2, max_count = 6 }
   cpu                = 1024
   memory             = 2048
   log_retention_days = 90
@@ -106,6 +109,7 @@ module "web" {
   name                          = "${local.name}-web"
   image                         = "${var.web_image_repository_url}:${var.initial_image_tag}"
   desired_count                 = 2
+  autoscaling                   = { min_count = 2, max_count = 6 } # 画面は DB につながないので、上限は費用で決める
   log_retention_days            = 90
   bake_time_minutes             = 10
   alarm_topic_arns              = [module.alerts.topic_arn]
@@ -229,6 +233,8 @@ module "monitoring" {
   }
   db_cluster_identifier = module.aurora.cluster_identifier
   certificate_arn       = aws_acm_certificate_validation.app.certificate_arn
+  # max_acu 8 の上限 1,669本の6割。API の台数の上限(autoscaling の max_count)を上げたら見直す
+  db_connections_threshold = 1000
 }
 
 # 外形監視(外から開けるか)。Route 53 の決まりで、アラームはバージニアに置く

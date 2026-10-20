@@ -7,7 +7,8 @@
 # 要るもの:
 #   変数  STG_URL(https://app.stg.example.com)
 #   秘密  ZAP_SCAN_USERNAME・ZAP_SCAN_PASSWORD(stg の画面から登録したスキャン用の利用者。本物の人のものは使わない。
-#         二段階認証は有効にしない)
+#         二段階認証は有効にしない)。リポジトリ全体ではなく Environment「zap」の秘密に置き、その Environment の
+#         「Deployment branches」を main だけにする(main 以外のワークフローからは読めない。README)
 #   stg の users に、スキャン用の利用者と同じメールの行(組織と役割は好きに)。初めてのログインで Cognito の sub と結びつく
 #   (docs/runbooks/cognito-login.md の「新しい人を入れる」)
 # 無ければ、失敗せずに飛ばす。
@@ -31,6 +32,8 @@ jobs:
     if: vars.STG_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # ZAP_SCAN_* はこの Environment の秘密(Deployment branches を main だけに)
+    environment: zap
     permissions:
       contents: read
     env:

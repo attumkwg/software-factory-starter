@@ -3,7 +3,7 @@
 #   2. stg → (承認のあと)prod の順に、ECS のサービスを新しいタスク定義で入れ替える
 # 入れ替えの間(数十秒)は Postfix が1台もいない。API はメールを渡せず、アウトボックスがやり直す
 # (メールは遅れるだけで消えない。送り待ちは EFS に残る)。docs/guides/mail.md
-# AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
+# AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。main 以外から流したときも飛ばす(deploy.yml と同じ理由)。
 name: Deploy mail relay
 
 on:
@@ -22,7 +22,9 @@ env:
 jobs:
   stg:
     name: stg に出す
-    if: vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.MAIL_ECR_REPOSITORY_URL != ''
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.MAIL_ECR_REPOSITORY_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -78,7 +80,7 @@ jobs:
   prod:
     name: prod に出す(承認のあと)
     needs: stg
-    if: vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
+    if: github.ref == 'refs/heads/main' && vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

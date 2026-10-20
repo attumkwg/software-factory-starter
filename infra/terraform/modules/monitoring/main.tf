@@ -9,6 +9,7 @@
 #   ALB 自身の 5xx           HTTPCode_ELB_5XX_Count(後ろに誰もいない等)    2分続けて 5回/分 以上
 #   遅い                     TargetResponseTime の p95                     15分のうち10分 2秒超
 #   DB が上限に張りつく      Aurora の ACUUtilization / CPUUtilization      15分続けて 90% / 80% 超
+#   DB の接続が多すぎる      Aurora の DatabaseConnections                 10分続けて決めた数を超える(台数を増やしすぎ・漏れ)
 #   DB の切り替え・障害       RDS のイベント(failover / failure / 保守)      その都度
 #   メールの評判             SES の Reputation.BounceRate / ComplaintRate   5% / 0.1% 以上(SES が止めるのは 10% / 0.5%)
 #   証明書の期限             ACM の DaysToExpiry                           残り30日を切る(自動の更新が失敗している)
@@ -240,6 +241,24 @@ resource "aws_cloudwatch_metric_alarm" "db_cpu" {
   period              = 300
   evaluation_periods  = 3
   threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.actions
+  ok_actions          = local.actions
+}
+
+# 接続の数。API の台数の自動調整で増えたとき・接続の漏れで、上限(max_connections)に近づく前に気づく
+resource "aws_cloudwatch_metric_alarm" "db_connections" {
+  count               = var.db_connections_threshold == null ? 0 : 1
+  alarm_name          = "${var.name}-db-connections"
+  alarm_description   = "Aurora の接続が ${var.db_connections_threshold} を超えている(上限に近づくと新しい接続が断られる)。docs/runbooks/alarms.md#db-connections"
+  namespace           = "AWS/RDS"
+  metric_name         = "DatabaseConnections"
+  dimensions          = { DBClusterIdentifier = var.db_cluster_identifier }
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = var.db_connections_threshold
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = local.actions
