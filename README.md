@@ -276,7 +276,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | 変数 | 値 | 使うワークフロー |
 |---|---|---|
 | `TF_STATE_BUCKET` | 状態のバケット | terraform・preview・cleanup |
-| `AWS_STG_PLAN_ROLE_ARN` / `AWS_PROD_PLAN_ROLE_ARN` | `<project>-<env>-plan` | terraform(plan) |
+| `AWS_STG_PLAN_ROLE_ARN` / `AWS_PROD_PLAN_ROLE_ARN` | `<project>-<env>-plan`(**prod は main からだけ**引ける。PR の plan は stg だけ) | terraform(plan) |
 | `TF_VARS_STG` / `TF_VARS_PROD` | `*.auto.tfvars` の中身(秘密は入れない) | terraform(plan) |
 | `AWS_PREVIEW_ROLE_ARN` | `preview-github` | preview・cleanup |
 | `PREVIEW_ECR_REPOSITORY` / `PREVIEW_WEB_ECR_REPOSITORY` / `PREVIEW_DOMAIN` | preview/base の出力(API / 画面)/ `example.com` | preview |
