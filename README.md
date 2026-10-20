@@ -47,6 +47,8 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 ├─ docs/
 │  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
+│  ├─ designs/                  設計書のテンプレート(AI 用で網羅的に。AI の仮決めを追う「未確定事項」)
+│  ├─ review-viewpoints.md      設計とレビューの観点(共通の8つ+このプロダクト特有。溜めていく)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
@@ -124,10 +126,10 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 |---|---|
 | ① 受付 | `.github/ISSUE_TEMPLATE/`(機能・不具合。不具合には requestId の欄) |
 | ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル |
-| ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/adr/` |
+| ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
 | ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
 | ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
-| ⑥ レビュー | `pull_request_template.md`(判断してほしい所を一番上)・`CODEOWNERS`・`labeler.yml` |
+| ⑥ レビュー | `pull_request_template.md`(全体像と判断してほしい所を一番上。問いは「事実・理由・問い」)・`docs/review-viewpoints.md`(観点ごとの扱い)・`CODEOWNERS`・`labeler.yml`。直しは `/rework`(上流から作り直す)。考え方は `docs/guides/human-review.md` |
 | ⑦ 出荷と監視 | `deploy.yml`(stg 自動 → prod 承認 → ECS の blue/green)・`ecs-service` の 5xx アラームで自動で戻す・構造化ログ |
 
 ### 危険度(人が見る量を決める)
@@ -144,7 +146,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | 層 | この雛形のどこ |
 |---|---|
-| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / リリースノート)・`.devcontainer/` |
+| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート)・`.devcontainer/` |
 | ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。OWNER / MEMBER だけが起動できる) |
 | ③ 自前のファクトリー | まだ作らない(PR が週に数十件を超えてから) |
 
