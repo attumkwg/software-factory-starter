@@ -319,7 +319,7 @@ prod のバックアップの保管庫は **compliance のロック**で、apply
 
 ## 📏 わざとやっていないこと(次の一歩)
 
-- **二段階認証の設定の画面・メールアドレスとパスワードの変更**: ログイン・登録・再設定の画面までは自前(ADR 0009)。設定の画面は次の PR。
+- **二段階認証の予備のコード・管理者が人の二段階認証を外す画面**: 二段階認証の設定・メールアドレスとパスワードの変更・組織の必須は画面「アカウント」と「設定」にある(docs/specs/0006-account-security.md)。認証アプリを無くした人は、運営が手順書で戻す([docs/runbooks/mfa-reset.md](docs/runbooks/mfa-reset.md))。
 - **メールの受け取らない設定・まとめ送り・HTML のメール**(spec 0002 の「やらないこと」)。
 - **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。

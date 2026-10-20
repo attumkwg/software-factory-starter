@@ -11,6 +11,12 @@ export const OUTBOX_TOPICS = {
     // 完了にした人(自分で完了にしたものは自分に知らせない)。足す前に積まれた出来事には無い
     completedBy: IdSchema.optional(),
   }),
+  // 本人へのお知らせ(docs/specs/0006-account-security.md)。宛先は送る直前に DB から読む
+  "organizations.password_changed": z.object({ userId: IdSchema }),
+  "organizations.mfa_enabled": z.object({ userId: IdSchema }),
+  "organizations.mfa_disabled": z.object({ userId: IdSchema }),
+  // 宛先は古いアドレス(email_changes.previous_email)
+  "organizations.email_changed": z.object({ emailChangeId: IdSchema }),
 } as const;
 
 export type OutboxTopic = keyof typeof OUTBOX_TOPICS;

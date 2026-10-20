@@ -1,5 +1,14 @@
 import { DEFAULT_TIME_ZONE, ROLES } from "@app/shared";
-import { foreignKey, pgSchema, text, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  foreignKey,
+  index,
+  pgSchema,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { createdAt, id, instant } from "../../db/columns.ts";
 
 // 領域「組織」(docs/domain/organizations)。Postgres のスキーマ organizations に置く。
@@ -15,6 +24,9 @@ export const tenants = organizations.table("tenants", {
   // 画面で時刻を見せる時間帯・「1日」の区切り(ADR 0005)。IANA の名前("Asia/Tokyo")。
   // 正しい名前かはアプリ(@app/shared の TimeZoneSchema)で確かめる
   timeZone: text("time_zone").notNull().default(DEFAULT_TIME_ZONE),
+  // この組織では全員に二段階認証を必須にする(docs/specs/0006-account-security.md)。管理者が入れ・切る。
+  // 運営の組織(SUPPORT_TENANT_ID)は最初から true で、切れない
+  mfaRequired: boolean("mfa_required").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -31,6 +43,10 @@ export const users = organizations.table(
     externalId: text("external_id"),
     name: text("name").notNull(),
     role: roleEnum("role").notNull(),
+    // 二段階認証が有効か(正は Cognito。ログインと確かめ直しのたびに写し直す)。関所が「設定待ち」を決めるのに使う
+    mfaEnabled: boolean("mfa_enabled").notNull().default(false),
+    // これより前にログインしたセッションの Cookie は使えない(パスワードなどを変えたら、ほかの端末を切る)
+    sessionsValidAfter: instant("sessions_valid_after"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -98,5 +114,34 @@ export const supportSessions = organizations.table(
       columns: [t.tenantId, t.grantId],
       foreignColumns: [supportGrants.tenantId, supportGrants.id],
     }),
+  ],
+);
+
+// ── メールアドレスの変更(docs/specs/0006-account-security.md) ─────────────────────────────
+
+/**
+ * 本人がメールアドレスの変更を申し込んだ記録。生きているのは本人の最新の1件で、確認していない・24時間以内の物。
+ * 古いアドレス(previous_email)は、変わったときのお知らせの宛先(出来事の中身にメールを入れないため、ここに持つ)。
+ */
+export const emailChanges = organizations.table(
+  "email_changes",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    userId: uuid("user_id").notNull(),
+    previousEmail: text("previous_email").notNull(),
+    newEmail: text("new_email").notNull(),
+    requestedAt: instant("requested_at").notNull().defaultNow(),
+    confirmedAt: instant("confirmed_at"),
+  },
+  (t) => [
+    foreignKey({
+      name: "email_changes_user_fkey",
+      columns: [t.tenantId, t.userId],
+      foreignColumns: [users.tenantId, users.id],
+    }),
+    index("email_changes_user_idx").on(t.tenantId, t.userId, t.requestedAt.desc()),
   ],
 );

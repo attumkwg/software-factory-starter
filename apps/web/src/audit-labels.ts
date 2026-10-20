@@ -16,6 +16,15 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "support.start": "サポートが入った",
   "support.read": "サポートが見た",
   "support.end": "サポートが出た",
+  "account.reauth": "パスワードを入れ直した",
+  "account.password_change": "パスワードを変えた",
+  "account.email_change_request": "メールアドレスの変更を申し込んだ",
+  "account.email_change": "メールアドレスを変えた",
+  "account.mfa_setup": "二段階認証の設定を始めた",
+  "account.mfa_enable": "二段階認証を有効にした",
+  "account.mfa_disable": "二段階認証を外した",
+  "organization.mfa_require": "二段階認証を全員に必須にした",
+  "organization.mfa_unrequire": "二段階認証の必須を切った",
 };
 
 const TARGET_LABELS: Record<string, string> = {
@@ -23,6 +32,8 @@ const TARGET_LABELS: Record<string, string> = {
   task: "タスク",
   support_grant: "サポートへの許可",
   support_session: "サポートの入室",
+  user: "アカウント",
+  organization: "組織",
 };
 const FIELD_LABELS: Record<string, string> = { title: "題名", done: "完了" };
 

@@ -22,6 +22,9 @@
   --color-info: #0b5cad;
   --color-focus: #0b5cad;
   --color-overlay: rgb(31 35 40 / 50%);
+  /* QR コード: 暗い画面でも黒地に白へ反転させない(読めないカメラ・認証アプリがあるため)。dark では上書きしない */
+  --color-qr-dark: #000000;
+  --color-qr-light: #ffffff;
 
   /* 余白(4 の倍数) */
   --space-1: 4px;

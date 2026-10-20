@@ -1,4 +1,5 @@
 import type {
+  Account,
   ApiError,
   AuditEventPage,
   AuthNext,
@@ -9,6 +10,8 @@ import type {
   CreateTask,
   ExportData,
   Me,
+  MfaRequirement,
+  MfaSetup,
   Project,
   ProjectPage,
   StartSupport,
@@ -21,6 +24,7 @@ import type {
 import { PAGE_LIMIT } from "@app/shared";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { appendResponseHeader, getRequest } from "@tanstack/react-start/server";
+import { sessionSetCookies, withCode } from "./api-parts.ts";
 
 // API の呼び出し。型は packages/shared の契約をそのまま使う。
 // 認証は HttpOnly の Cookie(同じオリジン)。トークンを localStorage に置かない。
@@ -75,19 +79,6 @@ type Target = {
   relay: (res: Response) => void;
 };
 
-// API が出し直したセッションの Cookie(使っている間は期限が延びる。ADR 0017)の名前。
-// SSR の応答に写すのはこれだけ(ほかの Cookie は SSR の GET では作られない)。
-const SESSION_COOKIES = ["__Host-sid=", "sid="];
-
-/** SSR で API が返したセッションの Set-Cookie を、画面の応答に写す(画面を開き直すだけでも期限が延びる) */
-function relaySessionCookie(res: Response) {
-  for (const cookie of res.headers.getSetCookie()) {
-    if (SESSION_COOKIES.some((name) => cookie.startsWith(name))) {
-      appendResponseHeader("set-cookie", cookie);
-    }
-  }
-}
-
 // SSR のときに API へ引き継ぐヘッダー。これ以外(Host・Authorization など)は渡さない。
 const FORWARDED_HEADERS = ["cookie", "x-request-id", "traceparent", "x-amzn-trace-id"];
 
@@ -119,7 +110,10 @@ const target = createIsomorphicFn()
             message: "SSR から API を読めませんでした",
           })}\n`,
         ),
-      relay: relaySessionCookie,
+      // API が出し直したセッションの Cookie を画面の応答に写す(画面を開き直すだけでも期限が延びる。ADR 0017)
+      relay: (res) => {
+        for (const cookie of sessionSetCookies(res)) appendResponseHeader("set-cookie", cookie);
+      },
     };
   })
   .client(
@@ -216,6 +210,23 @@ export const api = {
   startSupport: (input: StartSupport) =>
     request<SupportSession>("POST", "/support/sessions", input),
   endSupport: () => request<void>("POST", "/support/end"),
+  // 本人のアカウント(docs/specs/0006-account-security.md)。Cognito のときだけある
+  getAccount: () => request<Account>("GET", "/account"),
+  reauth: (password: string, code?: string) =>
+    request<{ ok: true }>("POST", "/account/reauth", withCode({ password }, code)),
+  changePassword: (currentPassword: string, newPassword: string, code?: string) =>
+    request<void>("POST", "/account/password", withCode({ currentPassword, newPassword }, code)),
+  requestEmailChange: (newEmail: string) =>
+    request<{ next: "confirm" }>("POST", "/account/email", { newEmail }),
+  confirmEmailChange: (code: string) => request<void>("POST", "/account/email/confirm", { code }),
+  setupMfa: () => request<MfaSetup>("POST", "/account/mfa/setup"),
+  enableMfa: (code: string) => request<void>("POST", "/account/mfa/enable", { code }),
+  disableMfa: (password: string, code: string) =>
+    request<void>("POST", "/account/mfa/disable", { password, code }),
+  // 組織の二段階認証の必須(管理者だけ)
+  getMfaRequirement: () => request<MfaRequirement>("GET", "/organization/mfa-requirement"),
+  requireMfa: () => request<void>("POST", "/organization/mfa-requirement"),
+  unrequireMfa: () => request<void>("DELETE", "/organization/mfa-requirement"),
   // データの書き出し(docs/specs/0005-offboarding.md)。管理者だけ
   exportData: () => request<ExportData>("POST", "/exports"),
   listAuditEvents: (before?: string) =>

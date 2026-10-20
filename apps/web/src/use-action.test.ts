@@ -25,6 +25,14 @@ describe("書き込みの失敗の受け止め(useAction)", () => {
     expect(show).not.toHaveBeenCalled();
   });
 
+  it("組織が二段階認証を必須にしていて未設定(403 mfa_setup_required)なら、設定の画面へ回す", async () => {
+    const router = fakeRouter();
+    const show = vi.fn();
+    await handleFailure(httpError(403, "mfa_setup_required"), router as never, show);
+    expect(router.navigate).toHaveBeenCalledWith({ to: "/account" });
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it("読み直せば直るもの(404・409)は読み直してから文を出す", async () => {
     const router = fakeRouter();
     const show = vi.fn();

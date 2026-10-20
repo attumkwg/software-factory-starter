@@ -61,7 +61,7 @@ sequenceDiagram
 - **パスワードの変更と二段階認証を外すのは1回のリクエスト**で済む(いまのパスワード+コードを一緒に送り、API の中で確かめ直し → 変更 → GlobalSignOut)。札を持ち越すのは、2回に分かれる「二段階認証の設定(鍵 → コード)」と「メールアドレスの変更(申し込み → 確認コード)」だけ。
 - **ログインの有効期間(本人の決定・ADR 0017)**: Cookie の中身を `人.組織.期限.ログインした時刻`(代理は `…入室の ID.見ている組織` を後ろに足して6つ)にする。期限 = min(いま+1時間, ログインした時刻+12時間)。関所が認可を通したリクエストで、前に出してから1分以上たっていれば Cookie を出し直す(期限を延ばす)。サーバー側のセッション保存(DB・Valkey・リフレッシュトークン)は作らない。詳しくは 6. の「ログインの有効期間」。
 - **他の端末のログインを切る**: Cookie だけのセッションのまま、`users.sessions_valid_after` を足す。関所はもともと毎回 `users` を引いている(ロール)ので、同じ1回の問い合わせで「この Cookie の**ログインした時刻**はそれより前か」を見る。→ **U-2**
-- **二段階認証が有効かの写し**: `users.mfa_enabled` を DB に持つ(関所が毎回 Cognito に聞くのは遅い・Cognito の流量の上限に当たる)。正は Cognito。**ログインのたび**(コードを聞かれたか)と**確かめ直しのたび**(`GetUser` の `UserMFASettingList`)に写しを直すので、運営が Cognito 側で外しても次のログインでそろう。
+- **二段階認証が有効かの写し**: `users.mfa_enabled` を DB に持つ(関所が毎回 Cognito に聞くのは遅い・Cognito の流量の上限に当たる)。正は Cognito。**ログインのたび**と**確かめ直しのたび**に、Cognito がコードを聞いたか(聞く = 有効)で写しを直す(`GetUser` は呼ばない。問い合わせを1回減らす)ので、運営が Cognito 側で外しても次のログインでそろう。
 - **組織の必須**: `tenants.mfa_required`。関所が「必須の組織で・本人が未設定」なら、決めた API 以外を 403 `mfa_setup_required` にする(画面で回すだけにしない)。
 - 置き場所:
   - `apps/api/src/auth/account-routes.ts`(新)… `/api/account/*`。Cognito を呼ぶので auth に置く(危険度「高」)
@@ -213,7 +213,7 @@ Cognito(本人の操作の API。全部 fetch の JSON 1.1・IAM なし):
 | 操作 | 呼ぶ API | 使う所 | 気をつけること |
 |---|---|---|---|
 | 確かめ直し | `InitiateAuth`(USER_PASSWORD_AUTH)→ 有効なら `RespondToAuthChallenge`(SOFTWARE_TOKEN_MFA) | reauth・password・mfa/disable | 1回のリクエストで両方呼ぶ(途中の Session は API の中だけ)。ログインと同じく続けて間違えると Cognito が一時的に止める |
-| 状態を読む | `GetUser`(AccessToken) | reauth の後 | `UserMFASettingList` に `SOFTWARE_TOKEN_MFA` があるかで写しを直す |
+| 状態を読む | `GetUser`(AccessToken) | アプリは使わない(契約テストだけ) | 写しは「コードを聞かれたか」で直す。`GetUser` の `UserMFASettingList` と同じになることは契約テストが確かめる |
 | 鍵を作る | `AssociateSoftwareToken`(AccessToken) | mfa/setup | `SecretCode`(base32)。呼ぶたびに新しい鍵 |
 | コードを確かめる | `VerifySoftwareToken`(AccessToken・UserCode・FriendlyDeviceName) | mfa/enable | 違えば `EnableSoftwareTokenMFAException`(偽物も同じ) |
 | 有効・無効 | `SetUserMFAPreference`(SoftwareTokenMfaSettings `{Enabled, PreferredMfa}`) | mfa/enable・mfa/disable | |
@@ -357,7 +357,7 @@ Sentry: 新しい物は無い。Cognito で変わったのに DB の更新に失
 - 関所の問い合わせは増やさない。`findRole` を「ロール・`mfa_enabled`・`sessions_valid_after`・組織の `mfa_required`」を1回で引く形にする(`users` と `tenants` の主キーの結合)。
 - `usersWithoutMfa` は自社の `users` の数え上げ(1組織の人数は小さい。索引は要らない)。
 - Cookie の出し直しは1分に1回まで(署名は HMAC 1回。DB は使わない)。
-- Cognito の呼び出しは確かめ直しで2〜3回(InitiateAuth・RespondToAuthChallenge・GetUser)。どれも5秒で切れる(既存の `timeoutMs`)。
+- Cognito の呼び出しは確かめ直しで1〜2回(InitiateAuth・有効なら RespondToAuthChallenge)。どれも5秒で切れる(既存の `timeoutMs`)。
 
 セキュリティ(仕様の STRIDE への対策の置き場所):
 
@@ -462,6 +462,10 @@ Sentry: 新しい物は無い。Cognito で変わったのに DB の更新に失
 - **お知らせの本文の新しいアドレスは一部を伏せる** — 古いアドレスがもう他人の手にある場合に、新しいアドレスを教えない(Cognito の `a***@e***` と同じ形)。
 - **偽物の Cognito への追加は、ci-8 の分割(`actions/`)がマージされてから** — 同じファイルを2つのセッションで触らない。
 - **infra は変えない** — 本人の操作の API に IAM は要らず、プールの設定(TOTP・確認まで古いメール・15分)はもう足りている。
+- **本人のアカウントの API は、関所がトランザクションを閉じてから呼ぶ(`policy.ts` の `OUTSIDE_TRANSACTION`)** — ハンドラーが Cognito を待つ間、DB のトランザクションを開いたままにしない(`apps/api/CLAUDE.md` の DB の時間切れ: 待つ間10秒で切れる)。関所は短いトランザクションで確かめてから呼び、ハンドラーは Cognito の前後で自分で短い `withTenant` を開く。監査ログは成功の後に別の短いトランザクションで残す。
+- **運営の組織の必須は、種データでは既存の手元の DB にもそろえる** — `onConflictDoNothing` のままだと、移行 0009 より前の手元の DB の運営の組織が任意のまま残るため(必須を足すだけで、切りはしない)。
+- **QR コードは暗いテーマでも黒地にしない(トークン `--color-qr-dark` / `--color-qr-light` を足した)** — 白地に黒でないと読めないカメラ・認証アプリがあるため。トークンを足すのは人の判断なので、PR の「人に判断してほしい所」に出した。
+- **ほかの端末を切る比べ方は秒の単位で、変えたのと同じ秒にログインした端末は残す** — Cookie のログインした時刻が秒なので。現実には同じ秒にほかの端末でログインしていることはほぼ無い。結合テストは時計を2秒進めて確かめる。
 - **実装は2つの PR(どちらも危険度「高」)。先に「ログインの有効期間」を小さく出す** — Cookie の形を変える所(`session.ts`・関所・設定・SSR の写し)だけで閉じていて、仮決めが無い(本人が決めた)ので先にマージできる。アカウントの安全の PR は、その「ログインした時刻」の上に `sessions_valid_after` を載せる。2つ目の PR は、コミットを「Cognito と偽物と契約テスト / API と DB / 画面 / E2E」に分ける。どちらも ci-8 の auth・authz の PR(`session.ts`・`config.ts`・関所に触る)がマージされてから、最新の main から始める。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
@@ -482,6 +486,7 @@ Sentry: 新しい物は無い。Cognito で変わったのに DB の更新に失
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-20 | ② アカウントの安全を実装して分かったこと | 設計 | 1.(写しは「コードを聞かれたか」で直す・GetUser は呼ばない)・5.・8.(Cognito の呼び出しの回数)・11.(関所はトランザクションの外で呼ぶ・種データ・QR のトークン・秒の単位) | 実装の PR(アカウントの安全)と同時に直した |
 | 2026-10-20 | U-7 への答え「変更」(運営の組織は最初から必須にする) | 設計 | 12. の U-7 の状態・6.(代理の社員)・11.(運営の組織では必須を切れない) | 仕様 0006(受け入れ条件・決めたこと)・7.(テスト)。実装はまだ |
 | 2026-10-20 | ① ログインの有効期間を実装して分かったこと | 設計 | 6.(403・取り消しでは延ばさない・「切れました」の文は足さない)・7.(代理のテストの置き場所) | 実装の PR(ログインの有効期間)と同時に直した |
 | 2026-10-20 | 本人の決定で範囲を足した(ログインの有効期間を「無操作1時間+最長12時間」に・サーバー側の保存は作らない) | 要求 | 仕様 0006(受け入れ条件・STRIDE・やらないこと・決めたこと)・ADR 0017 | 設計書(0・1・2・4・6・7・8・9・10・11)。「他の端末を切る」の比べ方を、期限からの逆算からログインした時刻に変えた。実装はまだ |

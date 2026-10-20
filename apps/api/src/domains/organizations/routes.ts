@@ -3,6 +3,7 @@ import { createRoute } from "@hono/zod-openapi";
 import { scopeOf } from "../../db/scope.ts";
 import { unauthorized } from "../../errors.ts";
 import { authErrors, createRouter, json } from "../../http/common.ts";
+import { findAccess } from "./account.ts";
 import { getMe } from "./repository.ts";
 import { getSupportMe } from "./support.ts";
 
@@ -22,9 +23,17 @@ export const organizationRoutes = createRouter().openapi(
       if (!me) throw unauthorized();
       return c.json(me, 200);
     }
-    const me = await getMe(scopeOf(c));
-    if (!me) throw unauthorized();
+    const scope = scopeOf(c);
+    const me = await getMe(scope);
+    const access = await findAccess(scope.tx, scope.tenantId, scope.userId);
+    if (!me || !access) throw unauthorized();
     const supportTenantId = c.get("supportTenantId");
-    return c.json({ ...me, isSupportStaff: supportTenantId === me.tenantId }, 200);
+    // 二段階認証の設定待ちなら、画面は /account へ回す(docs/specs/0006-account-security.md)
+    const mfa = {
+      enabled: access.mfaEnabled,
+      required: access.mfaRequired,
+      setupRequired: c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled,
+    };
+    return c.json({ ...me, isSupportStaff: supportTenantId === me.tenantId, mfa }, 200);
   },
 );

@@ -1,15 +1,18 @@
-import type { ExportData } from "@app/shared";
+import type { ExportData, Me, MfaRequirement } from "@app/shared";
 import { Button, Card, Heading, Link, Muted, Stack } from "@app/ui";
 import { api } from "../api.ts";
 import { useAction } from "../use-action.ts";
+import { MfaRequirementCard } from "./settings/MfaRequirementCard.tsx";
 
-// 組織の管理者の「設定」。監査ログ・サポートへの許可・データの書き出し(docs/specs/0005-offboarding.md)。
-export function SettingsPage() {
+// 組織の管理者の「設定」。監査ログ・サポートへの許可・データの書き出し(docs/specs/0005-offboarding.md)・
+// 二段階認証の必須(docs/specs/0006-account-security.md)。
+export function SettingsPage({ me, mfa }: { me: Me; mfa: MfaRequirement }) {
   const exporting = useAction();
 
   return (
     <Stack gap={4}>
       <Heading level={1}>設定</Heading>
+      <MfaRequirementCard me={me} state={mfa} />
       <Card>
         <Stack gap={2}>
           <Heading level={2}>監査ログ</Heading>

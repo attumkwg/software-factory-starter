@@ -34,11 +34,16 @@ export type User = {
   password: string;
   status: "UNCONFIRMED" | "CONFIRMED";
   emailVerified: boolean;
-  code?: { value: string; purpose: "sign_up" | "reset"; expiresAt: number };
+  code?: { value: string; purpose: CodePurpose; expiresAt: number };
   totp?: { secret: string; verified: boolean; enabled: boolean };
+  /** メールの変更を申し込んで、まだ確認していない新しいメール(確認するまでは古いメールのまま) */
+  pendingEmail?: string;
   failures: number;
   lockedUntil: number;
 };
+
+/** 確認コードの使い道(登録・再設定・メールの変更) */
+export type CodePurpose = "sign_up" | "reset" | "verify_email";
 
 export class CognitoFault extends Error {
   readonly type: string;
@@ -50,7 +55,15 @@ export class CognitoFault extends Error {
 
 const SIGN_UP_CODE_TTL_MS = 24 * 60 * 60 * 1000;
 const RESET_CODE_TTL_MS = 60 * 60 * 1000;
+const VERIFY_EMAIL_CODE_TTL_MS = 24 * 60 * 60 * 1000;
+const CODE_TTL_MS: Record<CodePurpose, number> = {
+  sign_up: SIGN_UP_CODE_TTL_MS,
+  reset: RESET_CODE_TTL_MS,
+  verify_email: VERIFY_EMAIL_CODE_TTL_MS,
+};
 const TOKEN_TTL_S = 60 * 60;
+/** アクセストークンの期限。stg・本番のアプリクライアントと同じ15分(infra/terraform の envs の cognito.tf) */
+const ACCESS_TOKEN_TTL_S = 15 * 60;
 
 export const b64url = (data: Buffer | string) => Buffer.from(data).toString("base64url");
 
@@ -76,7 +89,8 @@ export class UserPool {
   readonly clientId: string;
   readonly users = new Map<string, User>();
   readonly sessions = new Map<string, { username: string; expiresAt: number }>();
-  readonly accessTokens = new Map<string, string>();
+  /** アクセストークン → 誰の(メール)・いつまで。GlobalSignOut で消える */
+  readonly accessTokens = new Map<string, { username: string; expiresAt: number }>();
   readonly sent: { to: string; subject: string; text: string; code: string }[] = [];
   readonly #opts: FakeCognitoOptions;
   readonly #privateKey: KeyObject;
@@ -136,21 +150,21 @@ export class UserPool {
     return password;
   }
 
-  async sendCode(user: User, purpose: "sign_up" | "reset") {
+  /** 確認コードを送る。宛先は既定で本人のメール(メールの変更なら新しいメール) */
+  async sendCode(user: User, purpose: CodePurpose, to = user.email) {
     const value = randomInt(0, 1_000_000).toString().padStart(6, "0");
-    const ttl = purpose === "sign_up" ? SIGN_UP_CODE_TTL_MS : RESET_CODE_TTL_MS;
-    user.code = { value, purpose, expiresAt: this.now() + ttl };
+    user.code = { value, purpose, expiresAt: this.now() + CODE_TTL_MS[purpose] };
     const mail = {
-      to: user.email,
+      to,
       subject: settings.verificationEmail.subject,
       text: settings.verificationEmail.message.replace("{####}", value),
     };
     this.sent.push({ ...mail, code: value });
     await this.#opts.sendMail?.(mail);
-    return delivery(user.email);
+    return delivery(to);
   }
 
-  useCode(user: User | undefined, code: unknown, purpose: "sign_up" | "reset") {
+  useCode(user: User | undefined, code: unknown, purpose: CodePurpose) {
     // いない人も「コードが違う」と同じ答え(prevent_user_existence_errors)
     if (!user?.code || user.code.purpose !== purpose || user.code.value !== code) {
       throw new CognitoFault(
@@ -168,10 +182,23 @@ export class UserPool {
   }
 
   byAccessToken(b: Body): User {
-    const username = this.accessTokens.get(String(b.AccessToken ?? ""));
-    const user = this.find(username);
+    const token = this.accessTokens.get(String(b.AccessToken ?? ""));
+    if (token && token.expiresAt <= Math.floor(this.now() / 1000)) {
+      throw new CognitoFault("NotAuthorizedException", "Access Token has expired");
+    }
+    const user = this.find(token?.username);
     if (!user) throw new CognitoFault("NotAuthorizedException", "Invalid Access Token");
     return user;
+  }
+
+  /** メール(ログインの名前)を替える。sub・札・トークンは同じ人のまま */
+  rename(user: User, email: string) {
+    const old = user.email;
+    this.users.delete(old);
+    user.email = email;
+    this.users.set(email, user);
+    for (const t of this.accessTokens.values()) if (t.username === old) t.username = email;
+    for (const s of this.sessions.values()) if (s.username === old) s.username = email;
   }
 
   totpMatches(secret: string, code: unknown): boolean {
@@ -202,14 +229,17 @@ export class UserPool {
       username: user.sub,
       jti: randomUUID(),
       iat: now,
-      exp: now + TOKEN_TTL_S,
+      exp: now + ACCESS_TOKEN_TTL_S,
     });
-    this.accessTokens.set(accessToken, user.email);
+    this.accessTokens.set(accessToken, {
+      username: user.email,
+      expiresAt: now + ACCESS_TOKEN_TTL_S,
+    });
     return {
       IdToken: idToken,
       AccessToken: accessToken,
       RefreshToken: b64url(randomBytes(64)),
-      ExpiresIn: TOKEN_TTL_S,
+      ExpiresIn: ACCESS_TOKEN_TTL_S,
       TokenType: "Bearer",
     };
   }

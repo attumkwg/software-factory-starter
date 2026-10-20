@@ -119,7 +119,7 @@ export function addCognitoRoutes(router: Router, deps: LoginDeps, idp: CognitoCl
 /** ログインと二段階認証 */
 function addSignInRoutes(router: Router, deps: LoginDeps, idp: CognitoClient) {
   /** ログインの結果に合わせて、Cookie を出すか・二段階認証を待つか・確認コードへ回すか */
-  async function finish(result: AuthResult, email: string, c: Context) {
+  async function finish(result: AuthResult, email: string, c: Context, viaMfa = false) {
     if (result.kind === "mfa") {
       await writePendingMfa(c, deps.session, { session: result.session, email });
       return c.json({ next: "mfa" as const }, 200);
@@ -129,7 +129,7 @@ function addSignInRoutes(router: Router, deps: LoginDeps, idp: CognitoClient) {
       await ask(deps.logger, "resend_code", () => idp.resendCode(email));
       return c.json({ next: "confirm" as const }, 200);
     }
-    await logIn(deps, result.identity, c);
+    await logIn(deps, result.identity, c, { mfa: viaMfa });
     return c.json({ next: "done" as const }, 200);
   }
 
@@ -146,7 +146,7 @@ function addSignInRoutes(router: Router, deps: LoginDeps, idp: CognitoClient) {
       const { code } = c.req.valid("json");
       try {
         const result = await idp.answerMfa(pending.email, pending.session, code);
-        return await finish(result, pending.email, c);
+        return await finish(result, pending.email, c, true);
       } catch (e) {
         if (!(e instanceof CognitoError)) throw e;
         deps.logger.warn({ what: "mfa", reason: e.type }, "Cognito が断りました");

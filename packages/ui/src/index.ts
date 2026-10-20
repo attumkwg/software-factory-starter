@@ -7,6 +7,7 @@ export { Checkbox, type CheckboxProps } from "./components/Checkbox.tsx";
 export { ConfirmDialog, type ConfirmDialogProps } from "./components/ConfirmDialog.tsx";
 export { Card, Heading, Inline, List, Muted, Page, Stack } from "./components/Layout.tsx";
 export { Link, type LinkProps, LinkRouterProvider } from "./components/Link.tsx";
+export { QrCode } from "./components/QrCode.tsx";
 export { Select, type SelectOption, type SelectProps } from "./components/Select.tsx";
 export { Table, type TableColumn, type TableProps } from "./components/Table.tsx";
 export { TextField, type TextFieldProps } from "./components/TextField.tsx";

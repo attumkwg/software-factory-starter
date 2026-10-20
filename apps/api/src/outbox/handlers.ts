@@ -1,9 +1,14 @@
-import type { RootDb } from "../db/client.ts";
+import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import {
+  type AccountNotice,
+  accountNoticeMail,
+  emailChangedMail,
+} from "../domains/organizations/index.ts";
 import { taskCompletedMail } from "../domains/tasks/index.ts";
 import type { Logger } from "../logger.ts";
-import type { Mailer } from "../mail/index.ts";
-import type { OutboxHandler } from "./relay.ts";
+import type { Mailer, MailMessage } from "../mail/index.ts";
+import type { OutboxEvent, OutboxHandler } from "./relay.ts";
 import { OUTBOX_TOPICS, type OutboxTopic } from "./topics.ts";
 
 export type HandlerDeps = {
@@ -24,7 +29,41 @@ export type HandlerDeps = {
  */
 export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, OutboxHandler>> {
   const { db, logger, mailer, appUrl } = deps;
+
+  /** 宛先と本文をその会社の文脈(RLS)の中で作り、DB のトランザクションの外で送る */
+  async function sendIn(
+    event: OutboxEvent,
+    build: (tx: TenantTx) => Promise<MailMessage | { skip: string }>,
+  ) {
+    const mail = await withTenant(db, event.tenantId, build);
+    if ("skip" in mail) {
+      logger.info(
+        { eventId: event.id, topic: event.topic, reason: mail.skip },
+        "メールは送りません",
+      );
+      return;
+    }
+    await mailer.send(mail);
+    logger.info(
+      { eventId: event.id, topic: event.topic, messageId: mail.messageId },
+      "メールを渡しました",
+    );
+  }
+
+  /** パスワード・二段階認証のお知らせ(本人のいまのアドレスへ) */
+  const accountNotice = (topic: AccountNotice) => (event: OutboxEvent) => {
+    const payload = OUTBOX_TOPICS[topic].parse(event.payload);
+    return sendIn(event, (tx) => accountNoticeMail(tx, { ...event, topic }, payload, appUrl));
+  };
+
   return {
+    "organizations.password_changed": accountNotice("organizations.password_changed"),
+    "organizations.mfa_enabled": accountNotice("organizations.mfa_enabled"),
+    "organizations.mfa_disabled": accountNotice("organizations.mfa_disabled"),
+    "organizations.email_changed": (event) => {
+      const payload = OUTBOX_TOPICS["organizations.email_changed"].parse(event.payload);
+      return sendIn(event, (tx) => emailChangedMail(tx, event, payload, appUrl));
+    },
     "tasks.task_completed": async (event) => {
       const payload = OUTBOX_TOPICS["tasks.task_completed"].parse(event.payload);
       // 宛先と本文は、その会社の文脈(RLS)の中で読む

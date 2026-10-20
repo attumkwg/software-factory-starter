@@ -46,6 +46,21 @@ UPDATE organizations.users SET external_id = NULL WHERE email = 'person@example.
 
 次のログインで、新しい sub と結びつく。
 
+### メールアドレスが Cognito と users で食い違った(極めてまれ)
+
+メールの変更の確認で、Cognito のメールは替わったが、同じ瞬間に同じアドレスの users の行が足されて、users の更新がぶつかったとき(ログに error `Cognito のメールは替わったが、users の更新がぶつかりました`。Sentry にも届く)。本人は新しいアドレスでログインできる(結びつきは sub なので)。表示のメールだけが古い。本人と、ぶつかった行の持ち主を確かめてから、どちらかを直す:
+
+```sql
+-- 2人で確かめてから流す(文脈を付けて)。誰の・なぜを、#incident か作業の記録に残す
+UPDATE organizations.users SET email = '<新しいアドレス>' WHERE id = '<本人の users.id>';
+```
+
+ぶつかった行が別の人のものなら、本人の Cognito のメールを戻す(`aws cognito-idp admin-update-user-attributes --user-attributes Name=email,Value=<古いアドレス> Name=email_verified,Value=true`)。
+
+## 二段階認証の写しがずれた
+
+`users.mfa_enabled` は Cognito の写し(正は Cognito)。ログインのたび・パスワードを入れ直すたびに直るので、ふつうは何もしない。認証アプリを無くした人を戻すのは [mfa-reset.md](mfa-reset.md)。
+
 ## stg で本物を確かめる(Terraform を変えたとき・初めて作ったとき)
 
 手元の偽物の Cognito では確かめられない所。

@@ -1,4 +1,11 @@
 import {
+  changePassword,
+  getUser,
+  globalSignOut,
+  updateUserAttributes,
+  verifyUserAttribute,
+} from "./actions/account.ts";
+import {
   adminConfirmSignUp,
   adminDeleteUser,
   adminGetUser,
@@ -29,6 +36,7 @@ import { sendMailViaSmtp } from "./smtp.ts";
 //   ログイン … InitiateAuth(USER_PASSWORD_AUTH)・RespondToAuthChallenge(SOFTWARE_TOKEN_MFA)
 //   再設定   … ForgotPassword・ConfirmForgotPassword
 //   二段階   … AssociateSoftwareToken・VerifySoftwareToken・SetUserMFAPreference
+//   本人     … GetUser・ChangePassword・UpdateUserAttributes・VerifyUserAttribute・GlobalSignOut
 //   管理     … AdminConfirmSignUp・AdminDeleteUser・AdminGetUser・DescribeUserPool(署名は確かめない)
 //   公開鍵   … GET /<プール>/.well-known/jwks.json
 //
@@ -52,6 +60,11 @@ const ACTIONS = new Map<string, (pool: UserPool, b: Body) => unknown>([
   ["AssociateSoftwareToken", associateSoftwareToken],
   ["VerifySoftwareToken", verifySoftwareToken],
   ["SetUserMFAPreference", setMfaPreference],
+  ["GetUser", getUser],
+  ["ChangePassword", changePassword],
+  ["UpdateUserAttributes", updateUserAttributes],
+  ["VerifyUserAttribute", verifyUserAttribute],
+  ["GlobalSignOut", globalSignOut],
   ["AdminConfirmSignUp", adminConfirmSignUp],
   ["AdminDeleteUser", adminDeleteUser],
   ["AdminGetUser", adminGetUser],

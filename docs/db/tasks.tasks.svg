@@ -74,29 +74,32 @@
 <!-- organizations.tenants -->
 <g id="node3" class="node">
 <title>organizations.tenants</title>
-<polygon fill="#efefef" stroke="none" points="671.65,-181.8 671.65,-217.4 962.6,-217.4 962.6,-181.8 671.65,-181.8"/>
-<polygon fill="none" stroke="black" points="671.65,-181.8 671.65,-217.4 962.6,-217.4 962.6,-181.8 671.65,-181.8"/>
-<text text-anchor="start" x="678.65" y="-195.2" font-family="Arial Bold" font-size="18.00">organizations.tenants</text>
-<text text-anchor="start" x="831.11" y="-195.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="862.23" y="-195.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<polygon fill="none" stroke="black" points="671.65,-151 671.65,-181.8 962.6,-181.8 962.6,-151 671.65,-151"/>
-<text text-anchor="start" x="678.65" y="-163.2" font-family="Arial" font-size="14.00">tenant_id </text>
-<text text-anchor="start" x="740.15" y="-163.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="671.65,-120.2 671.65,-151 962.6,-151 962.6,-120.2 671.65,-120.2"/>
-<text text-anchor="start" x="678.65" y="-132.4" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="717.56" y="-132.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="671.65,-89.4 671.65,-120.2 962.6,-120.2 962.6,-89.4 671.65,-89.4"/>
-<text text-anchor="start" x="678.65" y="-101.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="748.7" y="-101.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="671.65,-58.6 671.65,-89.4 962.6,-89.4 962.6,-58.6 671.65,-58.6"/>
-<text text-anchor="start" x="678.65" y="-70.8" font-family="Arial" font-size="14.00">time_zone </text>
-<text text-anchor="start" x="747.14" y="-70.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="#efefef" stroke="none" points="671.65,-197.2 671.65,-232.8 962.6,-232.8 962.6,-197.2 671.65,-197.2"/>
+<polygon fill="none" stroke="black" points="671.65,-197.2 671.65,-232.8 962.6,-232.8 962.6,-197.2 671.65,-197.2"/>
+<text text-anchor="start" x="678.65" y="-210.6" font-family="Arial Bold" font-size="18.00">organizations.tenants</text>
+<text text-anchor="start" x="831.11" y="-210.6" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="862.23" y="-210.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<polygon fill="none" stroke="black" points="671.65,-166.4 671.65,-197.2 962.6,-197.2 962.6,-166.4 671.65,-166.4"/>
+<text text-anchor="start" x="678.65" y="-178.6" font-family="Arial" font-size="14.00">tenant_id </text>
+<text text-anchor="start" x="740.15" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="671.65,-135.6 671.65,-166.4 962.6,-166.4 962.6,-135.6 671.65,-135.6"/>
+<text text-anchor="start" x="678.65" y="-147.8" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="717.56" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="671.65,-104.8 671.65,-135.6 962.6,-135.6 962.6,-104.8 671.65,-104.8"/>
+<text text-anchor="start" x="678.65" y="-117" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="748.7" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="671.65,-74 671.65,-104.8 962.6,-104.8 962.6,-74 671.65,-74"/>
+<text text-anchor="start" x="678.65" y="-86.2" font-family="Arial" font-size="14.00">time_zone </text>
+<text text-anchor="start" x="747.14" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="671.65,-43.2 671.65,-74 962.6,-74 962.6,-43.2 671.65,-43.2"/>
+<text text-anchor="start" x="678.65" y="-55.4" font-family="Arial" font-size="14.00">mfa_required </text>
+<text text-anchor="start" x="765.03" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
 </g>
 <!-- tasks.tasks&#45;&gt;organizations.tenants -->
 <g id="edge2" class="edge">
 <title>tasks.tasks:tenant_id&#45;&gt;organizations.tenants:tenant_id</title>
-<path fill="none" stroke="black" d="M766.29,-527.04C847.99,-517.61 800.07,-392.38 754.97,-312 733.68,-274.06 693.06,-298.48 671.65,-260.6 651.06,-224.15 628.78,-166.4 670.65,-166.4"/>
-<polygon fill="black" stroke="black" points="766.28,-527.04 756.05,-523.09 760.96,-527.33 756.63,-527.56 756.63,-527.56 756.63,-527.56 760.96,-527.33 756.55,-532.08 766.28,-527.04"/>
+<path fill="none" stroke="black" d="M766.31,-527.02C848.42,-517.35 805.77,-388.91 754.97,-312 732.73,-278.34 693.99,-309.59 671.65,-276 648.47,-241.13 628.78,-181.8 670.65,-181.8"/>
+<polygon fill="black" stroke="black" points="766.28,-527.02 756.05,-523.09 760.96,-527.32 756.63,-527.56 756.63,-527.56 756.63,-527.56 760.96,-527.32 756.55,-532.07 766.28,-527.02"/>
 <text text-anchor="start" x="762.97" y="-537.6" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)</text>
 </g>
 </g>

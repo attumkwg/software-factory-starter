@@ -10,7 +10,9 @@
 ```sql
 BEGIN;
 SELECT set_config('app.tenant_id', '<新しい UUID>', true);
-INSERT INTO organizations.tenants (tenant_id, name, time_zone) VALUES ('<新しい UUID>', '運営(サポート)', 'Asia/Tokyo');
+-- 運営の組織は最初から二段階認証を必須にする(docs/specs/0006-account-security.md の U-7。画面からは切れない)
+INSERT INTO organizations.tenants (tenant_id, name, time_zone, mfa_required)
+  VALUES ('<新しい UUID>', '運営(サポート)', 'Asia/Tokyo', true);
 -- 社員1人ごとに(メールは Cognito でログインするアドレス)
 INSERT INTO organizations.users (id, tenant_id, email, name, role)
   VALUES ('<新しい UUID>', '<上の UUID>', 'taro@<自社のドメイン>', '山田 太郎', 'member');
@@ -20,7 +22,9 @@ COMMIT;
 `*.auto.tfvars` の `support_tenant_id` に、作った組織の UUID を入れて apply(API の環境変数 `SUPPORT_TENANT_ID` になる)。
 
 - 社員が辞めたら、その人の行を消す(`DELETE FROM organizations.users WHERE id = …`。同じく文脈を付けて)。代理の最中でも、**次のリクエストから入れない**(関所が毎回「いまも運営の組織の人か」を確かめる)。
-- 手元・プレビューは、種データの「運営(サポート)」(`support@ops.test`)が最初からある。
+- 手元・プレビューは、種データの「運営(サポート)」(`support@ops.test`)が最初からある(必須。開発用ログインでは関所が回さないので、設定しなくても使える)。
+- 社員は初めてログインすると、二段階認証の設定の画面へ回される(運営の組織が必須のため)。設定するまで「サポート」は使えない。
+- すでに運営の組織を作ってあった環境(移行 0009 より前)は、1回だけ `UPDATE organizations.tenants SET mfa_required = true WHERE tenant_id = '<運営の組織>';`(同じく文脈を付けて)。
 
 ## 2. 問い合わせで使う
 
@@ -38,5 +42,6 @@ COMMIT;
 |---|---|
 | 「番号が違うか、期限が切れているか、取り消されています」 | どれかは言わない作り。お客さんに一覧で「有効」かを見てもらい、無ければ新しく許可してもらう |
 | 入れたが、途中で「ログインが切れました」 | 入室の期限か、お客さんが取り消した。社員は自分の組織に戻っている |
+| 「この組織に入るには、先にあなたの二段階認証を設定してください」 | お客さんの組織が二段階認証を必須にしている。社員の「アカウント」で二段階認証を設定する(運営の組織の必須が外れていないかも確かめる) |
 | 書き込みが要る(データを直してほしいと言われた) | 代理ではできない。お客さんに直してもらうか、運営が [db-restore.md](db-restore.md) の形で、記録を残して直す(2人で) |
 | 番号が漏れた・知らない社員が入った | お客さんに許可を取り消してもらう(すぐ効く)。監査ログで、誰が何を見たかを確かめる。疑いがあれば [incident.md](incident.md)・[tenant-data-leak.md](tenant-data-leak.md) |

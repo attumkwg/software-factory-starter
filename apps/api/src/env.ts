@@ -35,5 +35,10 @@ export type AppEnv = {
     tx: TenantTx;
     /** 運営の組織(SUPPORT_TENANT_ID)。社員かどうかの判断に使う。無ければ null(代理ログインを使わない) */
     supportTenantId: string | null;
+    /**
+     * 組織の二段階認証の必須を、関所が効かせるか(Cognito のときだけ。開発用ログインでは設定する道が無い)。
+     * docs/specs/0006-account-security.md
+     */
+    mfaEnforced: boolean;
   };
 };
