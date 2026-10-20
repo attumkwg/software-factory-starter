@@ -3,12 +3,16 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import type { Logger } from "pino";
+import { compressResponse } from "./compress.ts";
 
 // 画面のサービス(SSR)の入口。ALB から「/api/* 以外」が全部ここに来る。
 //
-//   /assets/*        … ビルド済みの JS・CSS(名前にハッシュが入るので1年キャッシュ)
+//   /assets/*        … ビルド済みの JS・CSS(名前にハッシュが入るので1年キャッシュ)。
+//                      ビルドのときに圧縮しておいた .br / .gz を、ブラウザが受け取れる方で返す
+//                      (ALB は圧縮しない。scripts/precompress.mjs)
 //   /healthz /readyz … ECS と ALB の生存確認(API と同じ決まり)
-//   それ以外の GET   … TanStack Start が HTML を描いて返す(loader が API を読む)
+//   それ以外の GET   … TanStack Start が HTML を描いて返す(loader が API を読む)。
+//                      その場で圧縮し、描けた所から順に流す(server/compress.ts)
 //
 // 書き込み(POST など)は受けない。書き込みはブラウザから API へ直接(CSRF の守りを1か所に)。
 // サーバー関数(createServerFn)を使うようにしたら、ここで POST を通すように緩める。
@@ -61,14 +65,15 @@ export function createWebApp(deps: {
       await next();
       if (c.res.ok) c.header("cache-control", "public, max-age=31536000, immutable");
     },
-    serveStatic({ root: clientDir }),
+    serveStatic({ root: clientDir, precompressed: true }),
   );
 
   app.on(["GET", "HEAD"], "*", async (c) => {
     const headers = new Headers(c.req.raw.headers);
     headers.set("x-request-id", c.get("requestId"));
     try {
-      return await ssr(new Request(c.req.raw.url, { method: c.req.method, headers }));
+      const res = await ssr(new Request(c.req.raw.url, { method: c.req.method, headers }));
+      return compressResponse(c.req.raw, res);
     } catch (err) {
       logger.error({ err }, "SSR で失敗");
       return c.text("内部エラーです", 500);

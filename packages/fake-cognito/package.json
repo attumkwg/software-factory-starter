@@ -10,6 +10,7 @@
     "start": "node src/server.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:contract": "vitest run contract"
   },
   "devDependencies": {

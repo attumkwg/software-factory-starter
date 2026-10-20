@@ -5,7 +5,7 @@
 ## コマンド
 
 - `pnpm install` / `pnpm dev`(API 3000 + 画面 5173。先に `docker compose up -d db && pnpm db:migrate && pnpm db:seed`)
-- `pnpm lint`(Biome)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:integration`(Docker が要る)
+- `pnpm lint`(Biome。複雑さ・長さの上限も)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:coverage`(カバレッジの下限。`docs/guides/ci-limits.md`)/ `pnpm test:integration`(Docker が要る)
 - `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 

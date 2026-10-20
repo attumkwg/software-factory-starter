@@ -9,6 +9,8 @@ function setup(ssr: SsrHandler = () => new Response("<html></html>")) {
   const clientDir = mkdtempSync(join(tmpdir(), "web-client-"));
   mkdirSync(join(clientDir, "assets"));
   writeFileSync(join(clientDir, "assets", "app-abc123.js"), "console.log(1)");
+  writeFileSync(join(clientDir, "assets", "app-abc123.js.br"), "br-bytes");
+  writeFileSync(join(clientDir, "assets", "app-abc123.js.gz"), "gz-bytes");
   const lifecycle = { shuttingDown: false };
   const app = createWebApp({ ssr, clientDir, logger: pino({ level: "silent" }), lifecycle });
   return { app, lifecycle };
@@ -28,6 +30,33 @@ describe("画面のサーバー", () => {
     const res = await app.request("/assets/app-abc123.js");
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toContain("immutable");
+  });
+
+  it("ビルドのときに圧縮しておいた JS を、ブラウザが受け取れる方で返す(ALB は圧縮しない)", async () => {
+    const { app } = setup();
+    const br = await app.request("/assets/app-abc123.js", {
+      headers: { "accept-encoding": "gzip, br" },
+    });
+    expect(br.headers.get("content-encoding")).toBe("br");
+    expect(br.headers.get("content-type")).toContain("javascript");
+    expect(br.headers.get("vary")).toContain("Accept-Encoding");
+    expect(await br.text()).toBe("br-bytes");
+    const gz = await app.request("/assets/app-abc123.js", {
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(gz.headers.get("content-encoding")).toBe("gzip");
+    const plain = await app.request("/assets/app-abc123.js");
+    expect(plain.headers.get("content-encoding")).toBeNull();
+    expect(await plain.text()).toBe("console.log(1)");
+  });
+
+  it("SSR の HTML はその場で圧縮する", async () => {
+    const { app } = setup(
+      () => new Response("<p>x</p>".repeat(500), { headers: { "content-type": "text/html" } }),
+    );
+    const res = await app.request("/", { headers: { "accept-encoding": "br" } });
+    expect(res.headers.get("content-encoding")).toBe("br");
+    expect(res.headers.get("x-request-id")).toBeTruthy();
   });
 
   it("SSR に request ID を渡し、応答にも付ける(上から来た ID は引き継ぐ)", async () => {
