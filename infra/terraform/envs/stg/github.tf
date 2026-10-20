@@ -1,6 +1,9 @@
 # GitHub Actions が使う役割(OIDC)。値は GitHub の変数に入れる(README の「本人がやる設定」)。
 #   AWS_STG_DEPLOY_ROLE_ARN … deploy.yml(environment: stg のジョブだけが使える)
-#   AWS_STG_PLAN_ROLE_ARN   … terraform-plan.yml の plan(読むだけ。main からだけ引ける。PR の差分の plan は無い)
+#   AWS_STG_PLAN_ROLE_ARN   … terraform-plan.yml の plan(読むだけ)。PR と main から
+#     PR の版のワークフローでも引けるので、ブランチを作れる人は stg の設定と状態ファイルを読める
+#     (状態ファイルには stg の秘密の値が入る)。stg は試しのデータだけ・本番とアカウントが別、なので
+#     PR の plan はここで受ける。中身(ログの本文・利用者など)は deny_data_reads で読ませない。
 #   AWS_STG_COGNITO_CONTRACT_ROLE_ARN … cognito-contract.yml(stg のユーザープールに試しの人を作って消すだけ)
 #   AWS_STG_RESTORE_DRILL_ROLE_ARN    … restore-drill.yml(stg の DB を一時の DB に時点復元して、確かめて、消すだけ)
 
@@ -26,10 +29,11 @@ module "github_oidc" {
       policy_json = data.aws_iam_policy_document.restore_drill.json
     }
     "${local.name}-plan" = {
-      description         = "terraform-plan.yml: plan only (read). main only, so code from a PR branch never gets this role"
-      subjects            = ["ref:refs/heads/main"]
+      description         = "terraform-plan.yml: plan only (read)"
+      subjects            = ["pull_request", "ref:refs/heads/main"]
       managed_policy_arns = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
       policy_json         = data.aws_iam_policy_document.plan_state.json
+      deny_data_reads     = { except_s3_objects = ["arn:aws:s3:::${var.state_bucket}/${local.env}/*"] }
     }
   }
 }
@@ -84,6 +88,23 @@ data "aws_iam_policy_document" "plan_state" {
     sid       = "StateLock"
     actions   = ["s3:PutObject", "s3:DeleteObject"]
     resources = ["arn:aws:s3:::${var.state_bucket}/${local.env}/*.tflock"]
+  }
+  # Terraform が値を持つ秘密は、plan のときに今の値と比べる(GetSecretValue。ReadOnlyAccess に無い)。
+  # 同じ値は状態ファイルにも入っているので、読める範囲は広がらない
+  statement {
+    sid       = "RefreshManagedSecrets"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.session.arn, module.aurora.database_url_secret_arn, module.ses.smtp_credentials_secret_arn]
+  }
+  statement {
+    sid       = "DecryptManagedSecrets"
+    actions   = ["kms:Decrypt"]
+    resources = [aws_kms_key.app.arn, module.aurora.kms_key_arn]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["secretsmanager.${var.region}.amazonaws.com"]
+    }
   }
 }
 

@@ -13,7 +13,7 @@ description: PR の番号を受け取り、差分を「判断の単位」に分�
 gh pr view <番号> --json title,body,labels,files,additions,deletions,baseRefName,headRefName,author
 gh pr diff <番号>
 gh pr checks <番号>
-gh pr view <番号> --comments   # プレビューの URL など
+gh pr view <番号> --comments   # Terraform の plan のコメント・プレビューの URL など
 ```
 
 - 本文の「人に判断してほしい所」「仕様」「危険度」を読む。仕様(`docs/specs/`)・設計書(`docs/designs/`)・Issue の受け入れ条件があれば読む。
@@ -45,7 +45,7 @@ gh pr view <番号> --comments   # プレビューの URL など
 
 - **権限の表**(`docs/authz/matrix.yaml`)の追加・変更の行。誰に何を許したか、他社が 404 か。
 - **DB の移行**(`apps/api/drizzle/`): どの段(拡張・移し替え・縮小)か・戻せるか・大きい表のロック・新しい表の RLS と FORCE。
-- **Terraform**(`infra/`): 差分から「消える・作り直す」リソースの数と名前を拾う。PR の plan は無い(plan の役割は main からしか引けない。マージのあと `terraform-plan.yml` を main で回す)ので、「plan が無い。マージ後に main の plan で確かめる」と書き、`terraform.yml` の結果と差分(消す・作り直す所)を人が読む。
+- **Terraform**(`infra/`): plan のコメントがあれば「消える・作り直す」リソースの数と名前。無ければ「plan が無い(`terraform-plan.yml` を手で回す)」と書く。
 - **認証・認可**(`apps/api/src/auth/`・`authz/`)。
 - **テナント分離の部品**(`db/tenant.ts`・`authz/middleware.ts`・`0001_rls.sql`・`db/init/`)。
 - **未確定事項の `仮決め`**(設計書の「12. 未確定事項」。PR のブランチで `pnpm decisions`)。

@@ -13,7 +13,7 @@
 | 表の持ち主の DB のパスワード(`app_owner`) | RDS が管理する秘密 `rds!cluster-…` | DB の全部(表を消すことも) | 2.3 |
 | SES の SMTP の資格情報 | `<名前>/ses-smtp`(IAM ユーザーのアクセスキー) | 自分のドメインを名乗って迷惑メールを送る(SES が止まる) | 2.4 |
 | 人の AWS のアクセスキー・コンソールのパスワード | IAM | その人の権限の全部 | 2.5 |
-| `ANTHROPIC_API_KEY` | GitHub の Environment「claude」の Secrets | Claude の API を使われる(費用) | 2.6 |
+| `ANTHROPIC_API_KEY` | GitHub の Environment「claude」の秘密 | Claude の API を使われる(費用) | 2.6 |
 | GitHub の個人のトークン | その人の GitHub | リポジトリの読み書き(main の保護・環境の承認は越えられない) | 2.6 |
 | Sentry の DSN | 画面の HTML(もともと公開) | Sentry に偽の失敗を送られる(枠を使われる) | 2.7(秘密ではないので、悪用されたら) |
 | 利用者のパスワード(Cognito) | Cognito の中 | その人として入れる | 2.8 |

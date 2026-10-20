@@ -10,7 +10,7 @@
 | `ci.yml` | 整形・型・テスト・E2E・検査 | 自動(PR・main) | Actions の分数だけ(下の「無料枠」) | 有効(品質のライン) |
 | `labeler.yml` | 危険度のラベル | 自動(PR) | ほぼ0(数秒) | 有効 |
 | `terraform.yml` | fmt・validate・tflint・Trivy | 自動(infra の PR) | Actions の分数だけ | 有効 |
-| `terraform-plan.yml` | AWS に plan を問い合わせ、実行の要約に出す(main の内容。PR の plan は無い) | 手動 | AWS の読み取り(ほぼ0)+分数 | ここに日付を入れてください |
+| `terraform-plan.yml` | AWS に plan を問い合わせ PR にコメント(PR の plan は stg だけ。prod は main のときだけ) | 手動 | AWS の読み取り(ほぼ0)+分数 | ここに日付を入れてください |
 | `preview.yml` | PR ごとの環境を立てる・消す | 手動 | AWS: 土台 月 約1.2万円+1本24時間で月 約1,000円 | ここに日付を入れてください |
 | `cleanup-previews.yml` | 閉じた PR の環境を毎晩消す | 手動 | ほぼ0(preview と一緒に有効に) | ここに日付を入れてください |
 | `deploy.yml` | main → stg、承認 → prod | 手動 | AWS の stg・prod の月額(getting-started の ④) | ここに日付を入れてください |

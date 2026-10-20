@@ -1,19 +1,22 @@
-# Terraform の plan を AWS に問い合わせて、実行の要約に出す(「何が消えるか」を人が見る)。apply は人がする。
+# Terraform の plan を AWS に問い合わせて、PR にコメントする(「何が消えるか」を人が見る)。apply は人がする。
 # AWS の変数(AWS_*_PLAN_ROLE_ARN・TF_STATE_BUCKET)が無ければ、失敗せずに飛ばす。
 #
-# main の内容でだけ回す。plan 用の役割(OIDC)は main からしか引けないようにしてあるので(infra/terraform/envs/*/github.tf)、
-# PR の差分の plan は無い。infra の PR は terraform.yml(fmt・validate・tflint・Trivy)と人の目で見て、
-# マージのあとに main の plan で「apply で何が起きるか」を確かめてから、人が apply する。
+# PR で plan できるのは stg だけ。prod の plan の役割は main からしか引けない(infra/terraform/envs/prod/github.tf)ので、
+# PR では prod を飛ばす。prod の plan は、マージのあと main で手動で回す(ブランチは main を選ぶ)。
 #
-# いまは手動だけ(Actions → Terraform plan → Run workflow。ブランチは main を選ぶ)。
+# いまは手動だけ(Actions → Terraform plan → Run workflow。PR の番号を入れるとコメントする)。
 name: Terraform plan
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: plan をコメントする PR の番号(空ならログにだけ出す)
+        required: false
+        type: string
   # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
-  # 有効にすると、infra を変えた main への push ごとに AWS の読み取り(ほぼ無料)と Actions の数分を使う。
-  # push:
-  #   branches: [main]
+  # 有効にすると、infra を変えた PR ごとに AWS の読み取り(ほぼ無料)と Actions の数分を使う。
+  # pull_request:
   #   paths:
   #     - "infra/**"
 
@@ -21,8 +24,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: terraform-plan
-  cancel-in-progress: false
+  group: terraform-plan-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
+  cancel-in-progress: true
 
 env:
   TF_VERSION: 1.16.6
@@ -31,13 +34,14 @@ env:
 jobs:
   plan:
     name: plan (${{ matrix.env }})
-    # main だけ(OIDC の役割も main からしか引けない)。手動は書き込める人だけ
-    if: github.ref == 'refs/heads/main'
+    # フォークの PR では動かさない(OIDC の役割を外の人に使わせない)。手動は書き込める人だけ
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
+      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
@@ -49,12 +53,14 @@ jobs:
             role_var: AWS_PROD_PLAN_ROLE_ARN
             tfvars_var: TF_VARS_PROD
     env:
-      ROLE_ARN: ${{ vars[matrix.role_var] }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      # prod の役割は main からしか引けない。PR(や main 以外の手動)では空にして飛ばす
+      ROLE_ARN: ${{ (matrix.env != 'prod' || github.ref == 'refs/heads/main') && vars[matrix.role_var] || '' }}
       STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
     steps:
       - name: AWS が未設定ならスキップ
         if: env.ROLE_ARN == '' || env.STATE_BUCKET == ''
-        run: echo "::notice::${{ matrix.role_var }} か TF_STATE_BUCKET が無いので plan を飛ばしました(README の「本人がやる設定」)"
+        run: echo "::notice::${{ matrix.role_var }} か TF_STATE_BUCKET が無い、または main 以外での prod の plan なので飛ばしました(README の「本人がやる設定」)"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.ROLE_ARN != '' && env.STATE_BUCKET != ''
         with:
@@ -88,11 +94,28 @@ jobs:
           code=$?
           set -e
           cat plan.txt
-          {
-            echo "### 🏗 Terraform plan: \`${{ matrix.env }}\`"
-            grep -E '^(Plan: |No changes\.)' plan.txt || echo "(要約なし)"
-            destroys=$(grep -cE 'will be destroyed|must be replaced' plan.txt || true)
-            if [ "$destroys" -gt 0 ]; then echo; echo "⚠️ 消える・作り直すリソースが ${destroys} 件あります。人が確認してください。"; fi
-            echo; echo "plan の全文は「plan」ステップのログにあります。"
-          } >> "$GITHUB_STEP_SUMMARY"
           if [ "$code" -eq 1 ]; then exit 1; fi
+      - name: plan を PR にコメント
+        if: env.ROLE_ARN != '' && env.STATE_BUCKET != '' && steps.plan.outcome == 'success'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require("node:fs");
+            const env = "${{ matrix.env }}";
+            const text = fs.readFileSync(`infra/terraform/envs/${env}/plan.txt`, "utf8");
+            const summary = (text.match(/Plan: .*|No changes\..*/) ?? ["(要約なし)"])[0];
+            const destroys = (text.match(/will be destroyed|must be replaced/g) ?? []).length;
+            const marker = `<!-- terraform-plan:${env} -->`;
+            const body = [
+              marker,
+              `### 🏗 Terraform plan: \`${env}\``,
+              `**${summary}**${destroys ? `\n\n⚠️ 消える・作り直すリソースが ${destroys} 件あります。人が確認してください。` : ""}`,
+              "<details><summary>plan の全文</summary>\n\n```\n" + text.slice(-60000) + "\n```\n</details>",
+            ].join("\n");
+            const { owner, repo } = context.repo;
+            const issue_number = Number(process.env.PR_NUMBER);
+            if (!issue_number) { core.notice("PR の番号が無いので、コメントせずに終わります(plan の全文はログにあります)"); return; }
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const mine = comments.find((c) => c.body?.startsWith(marker));
+            if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
