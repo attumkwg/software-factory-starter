@@ -5,6 +5,7 @@ import { FakeCognito } from "./fake.ts";
 // 本物と同じかは contract/ が確かめる。
 
 const clientId = "unit-client";
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- 試しのプールの名前で、ユーザー名ではない
 const userPoolId = "local_unitpool";
 // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password
 const PASSWORD = "Unit-Test-1234";
