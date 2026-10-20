@@ -83,36 +83,6 @@
           }
         }
       }
-    },
-    {
-      "includes": ["apps/api/src/authz/middleware.ts"],
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/api/src/auth/routes.ts"],
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noExcessiveLinesPerFunction": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/api/src/auth/routes.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noExcessiveLinesPerFile": "off"
-          }
-        }
-      }
     }
   ],
   "assist": {
