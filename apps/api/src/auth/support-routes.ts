@@ -73,10 +73,12 @@ export function supportSessionRoutes(deps: { db: RootDb; session: SessionConfig 
           });
           return s;
         });
+        // 代理に入っても、ログインした時刻は社員のふつうのログインのまま(12時間は延びない。ADR 0017)
         await writeSession(c, deps.session, {
           userId: actor.userId,
           tenantId: grant.tenantId,
           support: { sessionId: started.sessionId, homeTenantId: actor.tenantId },
+          loggedInAt: c.get("session")?.loggedInAt,
         });
         return c.json(
           {
@@ -110,6 +112,7 @@ export function supportSessionRoutes(deps: { db: RootDb; session: SessionConfig 
         await writeSession(c, deps.session, {
           userId: session.userId,
           tenantId: session.support.homeTenantId,
+          loggedInAt: session.loggedInAt,
         });
         return c.body(null, 204);
       },

@@ -1,10 +1,10 @@
 import { sql } from "drizzle-orm";
 import type { RootDb } from "../db/client.ts";
-import type { Session } from "../env.ts";
+import type { NewSession } from "../env.ts";
 import type { LoginIdentity } from "./providers.ts";
 
 type Row = { user_id: string; tenant_id: string };
-const toSession = (row: Row | undefined): Session | null =>
+const toSession = (row: Row | undefined): NewSession | null =>
   row ? { userId: row.user_id, tenantId: row.tenant_id } : null;
 
 /**
@@ -19,7 +19,7 @@ const toSession = (row: Row | undefined): Session | null =>
 export async function findLogin(
   db: RootDb,
   identity: LoginIdentity,
-): Promise<(Session & { linked: boolean }) | null> {
+): Promise<(NewSession & { linked: boolean }) | null> {
   if (identity.kind === "email") {
     const r = await db.execute<Row>(
       sql`select user_id, tenant_id from auth_find_user_by_email(${identity.email})`,

@@ -105,4 +105,13 @@ describe("設定", () => {
   it("短すぎるセッションの秘密は通さない", () => {
     expect(() => loadConfig({ ...base, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);
   });
+
+  it("ログインは既定で無操作1時間・最長12時間。無操作の方が長い設定は通さない", () => {
+    expect(loadConfig(base).session).toMatchObject({ idleSeconds: 3600, maxSeconds: 43200 });
+    expect(() =>
+      loadConfig({ ...base, SESSION_IDLE_SECONDS: "7200", SESSION_MAX_SECONDS: "3600" }),
+    ).toThrow(
+      "- SESSION_IDLE_SECONDS: SESSION_IDLE_SECONDS は SESSION_MAX_SECONDS 以下にしてください",
+    );
+  });
 });

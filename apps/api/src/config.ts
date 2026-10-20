@@ -17,11 +17,17 @@ const EnvObject = z.object({
   DATABASE_URL: z.string().min(1),
   AUTH_MODE: z.enum(["dev", "cognito"]).default("dev"),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET は32文字以上にしてください"),
-  SESSION_TTL_SECONDS: z.coerce
+  // ログインの有効期間(ADR 0017): 無操作でこの秒数たったら切れる・使い続けてもログインからこの秒数で切れる
+  SESSION_IDLE_SECONDS: z.coerce
     .number()
     .int()
     .positive()
-    .default(8 * 60 * 60),
+    .default(60 * 60),
+  SESSION_MAX_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(12 * 60 * 60),
   COGNITO_REGION: z.string().optional(),
   COGNITO_USER_POOL_ID: z.string().optional(),
   COGNITO_CLIENT_ID: z.string().optional(),
@@ -65,6 +71,17 @@ function envIssues(env: Env): Issue[] {
     ...deployedIssues(env),
     ...sentryIssues(env),
     ...cognitoIssues(env),
+    ...sessionIssues(env),
+  ];
+}
+
+function sessionIssues(env: Env): Issue[] {
+  if (env.SESSION_IDLE_SECONDS <= env.SESSION_MAX_SECONDS) return [];
+  return [
+    {
+      path: "SESSION_IDLE_SECONDS",
+      message: "SESSION_IDLE_SECONDS は SESSION_MAX_SECONDS 以下にしてください",
+    },
   ];
 }
 
@@ -166,7 +183,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
         : { mode: "dev" as const },
     session: {
       secret: e.SESSION_SECRET,
-      ttlSeconds: e.SESSION_TTL_SECONDS,
+      idleSeconds: e.SESSION_IDLE_SECONDS,
+      maxSeconds: e.SESSION_MAX_SECONDS,
       // http の手元とテストだけ Secure を外す
       secureCookie: e.APP_ENV !== "local" && e.APP_ENV !== "test",
     },

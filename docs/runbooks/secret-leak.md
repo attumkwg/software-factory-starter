@@ -102,7 +102,7 @@ aws cognito-idp admin-user-global-sign-out --user-pool-id <プール> --username
 aws cognito-idp admin-reset-user-password --user-pool-id <プール> --username <メールアドレス>
 ```
 
-- アプリの Cookie は Cognito とは別に**最大8時間**使える(サーバー側のセッション保存が無いため)。すぐ追い出すなら 2.1(全員がログアウト)。
+- アプリの Cookie は Cognito とは別に、使い続けていれば**ログインから最大12時間**使える(無操作なら1時間で切れる。サーバー側のセッション保存が無いため。ADR 0017)。すぐ追い出すなら 2.1(全員がログアウト)。
 
 ## 3. 使われたかを調べる(入れ替えた後)
 

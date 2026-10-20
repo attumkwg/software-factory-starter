@@ -3,7 +3,7 @@ import type { Context, MiddlewareHandler, Next } from "hono";
 import { matchedRoutes } from "hono/route";
 import { auditEntryFor } from "../audit/capture.ts";
 import { type AuditEntry, auditActionFor, recordAudit, supportReadAction } from "../audit/index.ts";
-import { type SessionConfig, writeSession } from "../auth/session.ts";
+import { refreshSession, type SessionConfig, writeSession } from "../auth/session.ts";
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
 import { findActiveSupportSession, findRole } from "../domains/organizations/index.ts";
@@ -24,7 +24,8 @@ class SupportEnded extends Error {}
  * 4. 通ったら c.var.tx / c.var.actor をハンドラーに渡す。失敗したらまとめて取り消す。
  * 5. 書き込みの API なら、成功したときに**同じトランザクションで**監査ログに1行(src/audit)。
  *    権限が無くて断ったときも「拒否」として残す(書き込みは取り消すので、別のトランザクションで)。
- * 6. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。
+ * 6. ハンドラーが答えたら、セッションの Cookie を出し直して期限を延ばす(1分に1回まで。auth/session.ts)。
+ * 7. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。
  *    いまも運営の組織の人か・入室が生きているか(終わっていない・期限内・許可が取り消されていない)を毎回 DB で確かめ、
  *    外れていたら Cookie を社員の本来の組織に戻して 401。**読んだことも**お客さんの監査ログに残す。
  */
@@ -52,6 +53,8 @@ export function authorize(deps: Deps): MiddlewareHandler<AppEnv> {
     try {
       await ensureStaffStillActive(deps, c, session);
       await withTenant(deps.db, session.tenantId, (tx) => passInTenant(c, tx, next, gate));
+      // 使っている人の期限を延ばす(無操作1時間・最長12時間。ADR 0017)
+      await refreshSession(c, deps.session, session);
     } catch (e) {
       await handleFailure(deps, c, gate, e);
     }
@@ -159,6 +162,7 @@ async function handleFailure(deps: Deps, c: Context<AppEnv>, gate: Gate, e: unkn
     await writeSession(c, deps.session, {
       userId: session.userId,
       tenantId: support.homeTenantId,
+      loggedInAt: session.loggedInAt,
     });
     deps.logger.info(
       { supportSessionId: support.sessionId },

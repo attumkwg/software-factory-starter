@@ -10,7 +10,14 @@ export type Session = {
   userId: string;
   tenantId: string;
   support?: { sessionId: string; homeTenantId: string };
+  /** ログインした時刻(UNIX 秒)。ここから最長(既定12時間)で切れる(ADR 0017) */
+  loggedInAt: number;
+  /** この Cookie の期限(UNIX 秒)。使っている間は関所が出し直して延ばす */
+  expiresAt: number;
 };
+
+/** これから出すセッション。loggedInAt が無ければ「いまログインした」(auth/session.ts の writeSession) */
+export type NewSession = Omit<Session, "loggedInAt" | "expiresAt"> & { loggedInAt?: number };
 
 /** 認可を通ったあとの「誰が」。代理の社員なら support があり、role は閲覧者に固定。 */
 export type Actor = {
