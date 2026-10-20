@@ -30,6 +30,7 @@ AWS Budgets(費用)─┘                                          │
 | `elb-5xx` | ALB 自身が 5xx(後ろに誰もいない) | 1分に5回 × 2分 | monitoring |
 | `slow` | 応答の p95 が2秒超 | 15分のうち10分 | monitoring |
 | `db-capacity` / `db-cpu` | Aurora が上限の容量に張りつく / CPU が高い | 15分続けて 90% / 80% | monitoring |
+| `db-connections` | DB の接続が多い(台数の増やしすぎ・接続の漏れ) | 10分続けて prod 1,000本 / stg 250本 超 | monitoring |
 | (RDS のイベント) | DB の切り替え・障害・保守の予定 | その都度 | monitoring |
 | `ses-bounce-rate` / `ses-complaint-rate` | メールの評判が落ちている | 5% / 0.1%(SES が止めるのは 10% / 0.5%) | monitoring |
 | `<名前>-monthly`(Budgets) | 費用が月の上限の 80% / 月末の見込みが 100% 超 | その都度 | alerts |
@@ -39,6 +40,29 @@ AWS Budgets(費用)─┘                                          │
 | `cert-expiry` | 証明書の期限まで30日を切った(自動の更新の失敗) | 1日1回見る | monitoring |
 
 **数字(しきい値)は最初の目安**。鳴りすぎたら上げる・鳴らなくて困ったら下げる。変えたら、この表も直す。
+
+### 台数の自動調整(API と画面)
+
+CPU の平均が 60% になるように、ECS が台数を増やし・減らす(増やすのは1分・減らすのは5分の間を空けて)。リクエスト数ではなく CPU で見るのは、blue/green でターゲットグループが入れ替わるため。
+
+| 環境 | API | 画面(SSR) | 決め方 |
+|---|---|---|---|
+| prod | 2〜6台 | 2〜6台 | 最小は AZ ごとに1台。API の上限は DB の接続(6台×10本、入れ替えの間は2倍で120本)が Aurora の上限 1,669本の1割に収まる所 |
+| stg | 1〜2台 | 1〜2台 | 小さく |
+
+上限を上げるときは、DB の接続(`db-connections` のしきい値)と費用(下の 4)を一緒に直す。台数は Terraform も deploy.yml も触らない(`desired_count` は最初の数だけ)。
+
+### DB のログ(遅いクエリ)
+
+Aurora のログは CloudWatch Logs の `/aws/rds/cluster/<名前>/postgresql`(30日で消える・鍵で暗号化)。
+
+- **1秒より遅い SQL**(`log_min_duration_statement`。`modules/aurora` の `slow_query_log_ms`)と、**1秒を超えたロック待ち**を残す。
+- **値は残さない**: SQL の形(`where id = $1`)だけで、渡した値(`$1` の中身)は出さない(`log_parameter_max_length = 0`)。失敗の詳細(`DETAIL: Key (email)=(…)` のように値が入る行)も出さない(`log_error_verbosity = terse`)。失敗の中身はアプリのログで見る。
+- ⚠️ SQL の文字列に値を直に書くと(`sql.raw` など)、その値はログに出る。アプリは値を `$1` で渡す決まり(Semgrep の `no-raw-sql`)。
+- 引き方: `fields @timestamp, @message | filter @message like /duration:/ | sort @timestamp desc | limit 50`
+- **すでに apply した環境に入れるとき**(人がやる。2つ):
+  1. ロググループは RDS が「期限なし」で作っているので、apply の前に Terraform に取り込む: `terraform import 'module.aurora.aws_cloudwatch_log_group.postgresql' /aws/rds/cluster/<名前>/postgresql`(`<名前>` は `sfs-stg` / `sfs-prod`)。取り込まずに apply すると「もうある」で止まる(何も壊れない)。
+  2. DB のパラメータグループを付け替えると、**DB の再起動のあとで**効く(それまで設定は前のまま。apply の時点では止まらない)。stg はいつでも。prod は利用の少ない時間に、予備(reader)を再起動 → 切り替え(`aws rds failover-db-cluster`)→ 元の書き込み側(いまは予備)を再起動、の順。止まるのは切り替えの 30秒ほど(API は 503 を返し、戻る。[runbooks/alarms.md](../runbooks/alarms.md#rds-events) の failover と同じ)。
 
 ## 3. 使い始める(人が1回だけ)
 
@@ -59,6 +83,8 @@ AWS Budgets(費用)─┘                                          │
 | Budgets | 2つまで無料 |
 | 落ちたタスクの記録(ログ) | ほぼ0円(落ちたときだけ書く) |
 | 外形監視(Route 53 のヘルスチェック 2つ・HTTPS) | 約450円 |
+| DB のログ(遅いクエリ・ロック待ち。30日) | ほぼ0円(遅い SQL があるときだけ書く) |
+| 台数の自動調整 | 0円(増えた台数の Fargate の分だけ。[getting-started.md](../getting-started.md) の ④) |
 
 Container Insights(タスクの数・CPU・メモリ)は前から有効(1環境 月 数百円〜)。
 

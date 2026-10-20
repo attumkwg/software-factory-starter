@@ -85,6 +85,14 @@ Aurora が上限の容量(`max_acu`)に張りついている。遅くなり、�
 ## db-cpu
 
 Aurora の CPU が高い。Performance Insights の「上位の SQL」から。索引の抜け・N+1・全件の読み出しが多い。
+遅い SQL は DB のログ(`/aws/rds/cluster/<名前>/postgresql`)にも残る(1秒超。値は伏せてある): `fields @timestamp, @message | filter @message like /duration:/ | sort @timestamp desc | limit 50`
+
+## db-connections
+
+Aurora の接続の数が多い(prod は 1,000本・stg は 250本を超えた。上限は prod 約1,670本・stg 約400本)。上限に届くと、新しい接続が断られて API が 503 になる。
+
+- API の台数を見る(ECS のサービスの「タスク」)。台数 × 10本(プール)+ blue/green の入れ替えの間は2倍。台数の上限(`autoscaling` の `max_count`)が原因なら、上げる前に DB の容量(`max_acu`)と合わせて決める。
+- 台数が少ないのに多い → 接続の漏れ。`select usename, application_name, state, count(*) from pg_stat_activity group by 1,2,3 order by 4 desc;`(コンソールのクエリエディタ)で、誰が持っているか見る。
 
 ## rds-events
 
