@@ -16,5 +16,10 @@ variable "roles" {
     subjects            = list(string)
     policy_json         = optional(string)
     managed_policy_arns = optional(list(string), [])
+    # ReadOnlyAccess を付ける役割(plan)に。設定の読み取りは残し、中身(データ)の読み取りだけを明示で拒む。
+    # except_s3_objects は読んでよい S3 の物(Terraform の状態)
+    deny_data_reads = optional(object({
+      except_s3_objects = list(string)
+    }))
   }))
 }
