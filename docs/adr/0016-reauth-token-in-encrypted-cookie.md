@@ -1,8 +1,8 @@
 # ADR 0016: アカウントを変える前にパスワードを確かめ直し、そこで得た Cognito のアクセストークンは暗号化した短い Cookie で持つ
 
-- 状態: 提案(docs/designs/0006-account-security.md の U-1。人の答え待ち)
+- 状態: 採用(docs/designs/0006-account-security.md の U-1。2026-10-20 承認)
 - 日付: 2026-10-20
-- 決めた人: (未定。AI の仮決め)
+- 決めた人: @attumkwg(AI の案を承認)
 
 ## 背景
 
@@ -25,7 +25,7 @@
 
 ## 決めたこと
 
-**A(仮決め)**。
+**A**(本人の承認)。
 
 - Cookie `__Host-reauth`(手元は `reauth`)・HttpOnly・Secure・SameSite=Strict・Path=/・10分。
 - 中身 `{ userId, accessToken, exp, failures }` を AES-256-GCM で暗号化。鍵は `HKDF-SHA256(SESSION_SECRET, info="reauth-v1")`(セッションの署名とは別の鍵)。
