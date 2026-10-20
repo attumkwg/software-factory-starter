@@ -30,6 +30,7 @@ describe("想定外の失敗を利用者に返す形に直す", () => {
   it.each([
     ["57P01", 503, "service_unavailable"], // DB の再起動・切り替え
     ["57014", 503, "service_unavailable"], // statement_timeout
+    ["25P03", 503, "service_unavailable"], // idle_in_transaction_session_timeout
     ["53300", 503, "service_unavailable"], // 接続の上限
     ["40001", 503, "service_unavailable"], // 直列化の失敗
     ["08006", 503, "service_unavailable"], // 接続の失敗(08 で始まるもの)
@@ -52,6 +53,12 @@ describe("想定外の失敗を利用者に返す形に直す", () => {
     expect(toApiError(new Error("timeout exceeded when trying to connect")).code).toBe(
       "service_unavailable",
     );
+    // 使用中の接続を DB が切った後(トランザクションの放置の時間切れ)に、同じ接続で頼んだ
+    expect(
+      toApiError(
+        drizzleWrapped(new Error("Client has encountered a connection error and is not queryable")),
+      ).code,
+    ).toBe("service_unavailable");
   });
 
   it("Hono の失敗は決まった code に", () => {

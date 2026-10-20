@@ -51,6 +51,16 @@
             "tenant_id",
             "id"
           ]
+        },
+        {
+          "name": "projects_tenant_id_created_at_id_idx",
+          "def": "CREATE INDEX projects_tenant_id_created_at_id_idx ON projects.projects USING btree (tenant_id, created_at, id)",
+          "table": "projects.projects",
+          "columns": [
+            "tenant_id",
+            "created_at",
+            "id"
+          ]
         }
       ],
       "constraints": [
@@ -166,6 +176,17 @@
           "columns": [
             "tenant_id",
             "project_id"
+          ]
+        },
+        {
+          "name": "tasks_tenant_id_project_id_created_at_id_idx",
+          "def": "CREATE INDEX tasks_tenant_id_project_id_created_at_id_idx ON tasks.tasks USING btree (tenant_id, project_id, created_at, id)",
+          "table": "tasks.tasks",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "created_at",
+            "id"
           ]
         }
       ],

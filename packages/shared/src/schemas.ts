@@ -60,6 +60,26 @@ export const UpdateTaskSchema = z
   });
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
 
+// ── 一覧のページング(docs/guides/api-changes.md「一覧は必ずページング」) ──────────
+// 増え続ける一覧は、1回に返す件数に上限を付け、続きは nextCursor で読む(全件を一度に返さない)。
+
+/** 1回に返す件数。limit を渡さなければ default、渡せるのは max まで */
+export const PAGE_LIMIT = { default: 50, max: 100 } as const;
+
+export const ProjectPageSchema = z.object({
+  projects: z.array(ProjectSchema),
+  /** 続きを読むときに cursor に渡す。無ければ終わり */
+  nextCursor: z.string().nullable(),
+});
+export type ProjectPage = z.infer<typeof ProjectPageSchema>;
+
+export const TaskPageSchema = z.object({
+  tasks: z.array(TaskSchema),
+  /** 続きを読むときに cursor に渡す。無ければ終わり */
+  nextCursor: z.string().nullable(),
+});
+export type TaskPage = z.infer<typeof TaskPageSchema>;
+
 /**
  * 失敗の種類。画面・スマホはこの code で分岐する(message は人が読む説明で、変わりうる)。
  * 足すのはよいが、消す・意味を変えるのはしない(古い画面が残るため)。

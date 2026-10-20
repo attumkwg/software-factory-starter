@@ -9,6 +9,7 @@ er:
   format: svg
 exclude:
   - drizzle.__drizzle_migrations
+  - drizzle.concurrent_migrations
 comments:
   - table: organizations.tenants
     tableComment: 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations

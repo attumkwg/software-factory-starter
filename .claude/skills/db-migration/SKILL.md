@@ -38,8 +38,14 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
    - 忘れると結合テスト「全テーブルに RLS」が落ちる
    - **解約の削除の一覧**(`apps/api/src/offboarding/delete-tenant.ts` の `TENANT_TABLES`)に、親より前(子から親の順)に足す。忘れると結合テスト `offboarding.int.test.ts` が落ちる
    - お客さんが持ち出すべき物なら、**書き出し**(`apps/api/src/export/routes.ts` と `ExportSchema`)にも足す(秘密・内部の ID は入れない)
-5. 大きい表の索引は `CREATE INDEX CONCURRENTLY`(その移行はトランザクションの外で流す必要がある。人に相談)。
-6. `pnpm --filter @app/api db:lint`(squawk)を通す。例外が要るなら、その行の上に `-- squawk-ignore <ルール>` と理由を書き、PR で説明する(`.squawk.toml` で全体を外さない)。
+5. **すでにある表への索引は、トランザクションの外で `CONCURRENTLY` で作る**(書き込みを止めない。ADR 0016)。drizzle の移行は全部を1つのトランザクションで流すので、`CREATE INDEX CONCURRENTLY` は `apps/api/drizzle/concurrent/` に置く(`src/db/migrate.ts` が drizzle の移行の後に、1文ずつ流す。流した物は `drizzle.concurrent_migrations`)。見本は `drizzle/concurrent/0008_list_indexes.sql`。
+   - `schema.ts` に `index(...)` を足して `pnpm db:generate` → できた `drizzle/NNNN_*.sql` の `CREATE INDEX` は消して(記録 `meta/` をそろえるためだけに残す)、同じ番号・名前で `drizzle/concurrent/NNNN_*.sql` に `CREATE INDEX CONCURRENTLY IF NOT EXISTS ...` を書く。
+   - 先頭に `SET lock_timeout = '1min';` と `SET statement_timeout = '1h';`(`LOCAL` ではない)。区切りは drizzle と同じ `--> statement-breakpoint`。
+   - 何度流しても同じになる形だけ(`IF NOT EXISTS` / `IF EXISTS`)。途中で落ちて「使えない索引」が残っても、次の移行で消してから作り直す。
+   - 置いてよいのは索引を作る・消すだけ(表・列・制約は drizzle の移行で)。drizzle の移行は先に全部流れるので、ここで作る索引に頼らない。
+   - 新しい表(同じ移行で作る表)への索引は、ふつうに drizzle の移行の中でよい(空なので止まらない)。
+   - 1時間で終わらないほど大きい表は、デプロイの外で人が流す: 同じ SQL を `psql` で1文ずつ流してから `insert into drizzle.concurrent_migrations (name) values ('NNNN_*.sql')`(PR に書いて人に渡す)。
+6. `pnpm --filter @app/api db:lint`(squawk。`drizzle/concurrent/` はトランザクションの外として調べる)を通す。例外が要るなら、その行の上に `-- squawk-ignore <ルール>` と理由を書き、PR で説明する(`.squawk.toml` で全体を外さない)。
    - 表を別のスキーマへ移す(`SET SCHEMA`)・名前を変えるのは、古い版のアプリを止める。本番があるなら段階を踏む(`drizzle/0002_domain_schemas.sql` の注意書き)。
    - drizzle-kit が対話で聞いてくる変更(表の移動・名前の変更)は、SQL を手で書き、`meta/` の記録は空のフォルダに作り直した形を写す(0002 の作り方)。
 7. `pnpm test:integration` で、空の DB から全部の移行が通ることを確かめる。

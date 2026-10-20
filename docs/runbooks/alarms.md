@@ -75,6 +75,8 @@ ALB 自身が 5xx を返している = 後ろに受け取れるタスクがい�
 
 - どの道が遅いか: `fields path, durationMs | filter message = "request" | stats pct(durationMs, 95) as p95, count() by path | sort p95 desc`
 - 全部が遅い → DB([db-capacity](#db-capacity)・[db-cpu](#db-cpu))。1つの道だけ → その道のクエリ(N+1・索引の抜け)。Aurora の Performance Insights で重いクエリが見える。
+- 遅いクエリ(アプリから見て 0.5 秒以上。SQL は `$1` の形で、値は入らない): `fields @timestamp, durationMs, rows, sql, requestId | filter message = "時間のかかったクエリがありました" | sort durationMs desc`。同じ形の SQL を数えるなら `| stats count(), pct(durationMs, 95) by sql`。`requestId` で上の `request` の行(どの道か)とつなぐ。
+- 503 が増えた・「使用中の DB の接続が切れました」が出た → トランザクションを開いたまま 10 秒止まったリクエストがある(DB が切ってロックを放した)。同じ `requestId` の前後の行で、どこで止まったかを見る(外への呼び出しをトランザクションの中でしていないか)。
 
 ## db-capacity
 

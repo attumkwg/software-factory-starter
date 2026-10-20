@@ -26,10 +26,11 @@
 
 ## Indexes
 
-| Name                           | Definition                                                                                     |
-| ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| tasks_pkey                     | CREATE UNIQUE INDEX tasks_pkey ON tasks.tasks USING btree (id)                                 |
-| tasks_tenant_id_project_id_idx | CREATE INDEX tasks_tenant_id_project_id_idx ON tasks.tasks USING btree (tenant_id, project_id) |
+| Name                                         | Definition                                                                                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| tasks_pkey                                   | CREATE UNIQUE INDEX tasks_pkey ON tasks.tasks USING btree (id)                                                               |
+| tasks_tenant_id_project_id_idx               | CREATE INDEX tasks_tenant_id_project_id_idx ON tasks.tasks USING btree (tenant_id, project_id)                               |
+| tasks_tenant_id_project_id_created_at_id_idx | CREATE INDEX tasks_tenant_id_project_id_created_at_id_idx ON tasks.tasks USING btree (tenant_id, project_id, created_at, id) |
 
 ## Relations
 

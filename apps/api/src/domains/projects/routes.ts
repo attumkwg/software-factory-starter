@@ -1,4 +1,4 @@
-import { CreateProjectSchema, IdSchema, ProjectSchema } from "@app/shared";
+import { CreateProjectSchema, IdSchema, ProjectPageSchema, ProjectSchema } from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
 import { scopeOf } from "../../db/scope.ts";
 import { notFound } from "../../errors.ts";
@@ -10,6 +10,7 @@ import {
   json,
   jsonBody,
   notFoundError,
+  PageQuery,
 } from "../../http/common.ts";
 import { createProject, deleteProject, getProject, listProjects } from "./repository.ts";
 
@@ -22,13 +23,15 @@ export const projectRoutes = createRouter()
       method: "get",
       path: "/projects",
       tags: ["projects"],
-      summary: "自分の組織のプロジェクト一覧",
+      summary: "自分の組織のプロジェクト一覧(新しい順。続きは nextCursor を cursor に)",
+      request: { query: PageQuery },
       responses: {
-        200: json(z.object({ projects: z.array(ProjectSchema) }), "一覧"),
+        200: json(ProjectPageSchema, "一覧"),
+        ...badRequestError,
         ...authErrors,
       },
     }),
-    async (c) => c.json({ projects: await listProjects(scopeOf(c)) }, 200),
+    async (c) => c.json(await listProjects(scopeOf(c), c.req.valid("query")), 200),
   )
   .openapi(
     createRoute({

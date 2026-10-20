@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { compress } from "hono/compress";
 import { csrf } from "hono/csrf";
 import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
@@ -68,10 +69,19 @@ export function createApp(deps: AppDeps) {
   const app = new OpenAPIHono<AppEnv>();
 
   app.use("*", requestContext(logger));
+  // JSON を gzip で縮める(ALB は縮めない)。縮めてよい種類(JSON・文字)だけで、SSE(text/event-stream)・
+  // 縮め済み・Cache-Control: no-transform の応答には触らない(hono/compress の決まり)
+  app.use("*", compress());
   app.use("*", secureHeaders());
   app.route("/", healthRoutes({ db, lifecycle, logger }));
 
   // ここから下の /api/* は、全部「本文の大きさ → セッションを読む → 認可の関所」を通る
+  // API の応答はログインした人ごとの中身なので、ブラウザ・途中の経路に残させない。
+  // 自分で Cache-Control を決めた API(あれば)はそのまま。失敗の応答(onError)にも付く
+  app.use("/api/*", async (c, next) => {
+    await next();
+    if (!c.res.headers.has("cache-control")) c.res.headers.set("cache-control", "no-store");
+  });
   app.use(
     "/api/*",
     bodyLimit({

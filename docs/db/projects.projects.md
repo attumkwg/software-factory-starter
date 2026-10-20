@@ -25,10 +25,11 @@
 
 ## Indexes
 
-| Name                      | Definition                                                                                     |
-| ------------------------- | ---------------------------------------------------------------------------------------------- |
-| projects_pkey             | CREATE UNIQUE INDEX projects_pkey ON projects.projects USING btree (id)                        |
-| projects_tenant_id_id_key | CREATE UNIQUE INDEX projects_tenant_id_id_key ON projects.projects USING btree (tenant_id, id) |
+| Name                                 | Definition                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| projects_pkey                        | CREATE UNIQUE INDEX projects_pkey ON projects.projects USING btree (id)                                        |
+| projects_tenant_id_id_key            | CREATE UNIQUE INDEX projects_tenant_id_id_key ON projects.projects USING btree (tenant_id, id)                 |
+| projects_tenant_id_created_at_id_idx | CREATE INDEX projects_tenant_id_created_at_id_idx ON projects.projects USING btree (tenant_id, created_at, id) |
 
 ## Relations
 

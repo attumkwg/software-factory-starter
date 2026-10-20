@@ -1,5 +1,5 @@
-import { ErrorSchema } from "@app/shared";
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { ErrorSchema, PAGE_LIMIT } from "@app/shared";
+import { OpenAPIHono, z as zo } from "@hono/zod-openapi";
 import type { z } from "zod";
 import type { AppEnv } from "../env.ts";
 import { getRequestContext } from "../request-context.ts";
@@ -39,6 +39,15 @@ export const bodyErrors = {
   413: error("本文が大きすぎる(1MB まで)"),
   415: error("本文が JSON ではない"),
 } as const;
+
+/**
+ * 一覧の入力(docs/guides/api-changes.md「一覧は必ずページング」)。続きは前のページの nextCursor を cursor に。
+ * 印の中身の読み方は src/db/paging.ts。
+ */
+export const PageQuery = zo.object({
+  cursor: zo.string().max(200).optional(),
+  limit: zo.coerce.number().int().min(1).max(PAGE_LIMIT.max).default(PAGE_LIMIT.default),
+});
 
 /** ルートを作る入口。入力の検証に失敗したら共通の形で 400 を返す。 */
 export function createRouter() {

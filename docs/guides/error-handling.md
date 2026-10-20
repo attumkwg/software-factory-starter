@@ -17,7 +17,7 @@ API の失敗は必ず `{ error: { code, message, requestId } }` の形で返す
 | `conflict` | 409 | 同時の変更とぶつかった(親が消された・一意の制約) | 知らせて、画面を読み直す |
 | `payload_too_large` | 413 | 本文が 1MB を超える | 「短くしてください」 |
 | `unsupported_media_type` | 415 | 本文が JSON ではない | (画面からは起きない) |
-| `service_unavailable` | 503 | DB の再起動・切り替え・時間切れ・接続の上限。`Retry-After` 付き | 「少し待ってから」 |
+| `service_unavailable` | 503 | DB の再起動・切り替え・時間切れ(1つのクエリ 5 秒・トランザクションの放置 10 秒。`apps/api/src/db/client.ts`)・接続の上限。`Retry-After` 付き | 「少し待ってから」 |
 | `internal` | 500 | それ以外の想定外(こちらのバグ) | 「時間をおいて」+問い合わせ番号 |
 
 ## 2. API(apps/api)
