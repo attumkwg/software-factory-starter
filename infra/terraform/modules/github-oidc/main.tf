@@ -2,7 +2,7 @@
 # 役割はリポジトリ・ブランチ・環境ごとに分ける。プレビュー用の役割は dev アカウントにしか作らない。
 #
 # subjects の例(「repo:<owner>/<repo>:」の後ろ):
-#   pull_request            … PR から(プレビュー・plan)
+#   pull_request            … PR から(プレビュー。dev アカウントの役割だけ。stg / prod の役割には付けない)
 #   environment:stg         … environment: stg のジョブから(stg へのデプロイ)
 #   environment:prod        … environment: prod のジョブから(承認のあと)
 #   ref:refs/heads/main     … main への push から

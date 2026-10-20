@@ -1,0 +1,92 @@
+# 定期の脆弱性チェック。CI(ci.yml)は「その PR の差分」を見るので、コードが動いていない間に見つかった
+# 新しい脆弱性(依存の CVE・使っている Action の既知の脆弱性)は、ここで拾う。
+#   1. Trivy fs … 依存・秘密・設定(Dockerfile・compose)と Terraform。ci.yml の trivy-fs と同じ検査を、いまの最新の DB で
+#   2. zizmor(オンライン版) … ci.yml は --offline。こちらは GitHub に問い合わせて、
+#      既知の脆弱性がある Action・コミットの偽装(impostor commit)・ref の取り違えまで見る
+# 落ちたら Issue を立てる(同じ題名の Issue が開いていれば、コメントを足す)。直し方は各ツールの指摘のとおり
+# (依存や Action は Renovate の PR で上がる)。
+#
+# 要るもの: 無し(AWS も秘密も使わない。GitHub への問い合わせは、このジョブの GITHUB_TOKEN の読み取りだけ)。
+# 費用: Actions の数分だけ。
+name: Vulnerability scan
+
+# いまは手動だけ(Actions → Vulnerability scan → Run workflow)。自動にするときは schedule のコメントを外す。
+on:
+  workflow_dispatch:
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎週 Actions を5分ほど使う(無料枠の中に収まる目安)。
+  # schedule:
+  #   - cron: "0 20 * * 0" # 日本時間 月曜 5:00
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vuln-scan
+  cancel-in-progress: false
+
+env:
+  # ci.yml と同じ版(Renovate がタグとダイジェストを一緒に上げる。renovate.json の customManagers)
+  TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+  ZIZMOR_IMAGE: ghcr.io/zizmorcore/zizmor:1.31.1@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9
+
+jobs:
+  trivy-fs:
+    name: Trivy fs(依存・設定・Terraform)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 依存の脆弱性・秘密・設定(Dockerfile・compose)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE"
+          fs --ignorefile .trivyignore.yaml --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+          --skip-dirs infra .
+      - name: インフラ定義(Terraform)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE"
+          config --severity HIGH,CRITICAL --exit-code 1 infra/terraform
+
+  zizmor-online:
+    name: zizmor(オンライン版)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: zizmor(--offline を付けない。既知の脆弱性・偽装コミット・ref の取り違えも見る)
+        env:
+          ZIZMOR_GITHUB_TOKEN: ${{ github.token }}
+        run: docker run --rm -e ZIZMOR_GITHUB_TOKEN -v "$PWD:/repo" -w /repo "$ZIZMOR_IMAGE" --min-severity medium .github/workflows
+
+  notify:
+    name: 落ちたら Issue を立てる
+    needs: [trivy-fs, zizmor-online]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Issue を立てる(同じ題名の Issue が開いていれば、コメントを足す)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="定期の脆弱性チェックで指摘が出ました"
+          body="$(printf '%s\n\n%s\n%s\n%s' \
+            "実行: $RUN_URL" \
+            "- Trivy fs: 依存の CVE・設定の指摘。直せるものは Renovate の PR か、依存を上げる PR で" \
+            "- zizmor(オンライン): 既知の脆弱性がある Action・偽装コミットの指摘。該当の Action を上げる・外す" \
+            "- 外す指摘は理由つきで(.trivyignore.yaml、またはコメントで zizmor: ignore[…])")"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

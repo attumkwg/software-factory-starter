@@ -1,6 +1,6 @@
 # GitHub Actions が使う役割(OIDC)。値は GitHub の変数に入れる(README の「本人がやる設定」)。
 #   AWS_STG_DEPLOY_ROLE_ARN … deploy.yml(environment: stg のジョブだけが使える)
-#   AWS_STG_PLAN_ROLE_ARN   … terraform.yml の plan(読むだけ)
+#   AWS_STG_PLAN_ROLE_ARN   … terraform-plan.yml の plan(読むだけ。main からだけ引ける。PR の差分の plan は無い)
 #   AWS_STG_COGNITO_CONTRACT_ROLE_ARN … cognito-contract.yml(stg のユーザープールに試しの人を作って消すだけ)
 #   AWS_STG_RESTORE_DRILL_ROLE_ARN    … restore-drill.yml(stg の DB を一時の DB に時点復元して、確かめて、消すだけ)
 
@@ -26,8 +26,8 @@ module "github_oidc" {
       policy_json = data.aws_iam_policy_document.restore_drill.json
     }
     "${local.name}-plan" = {
-      description         = "terraform.yml: plan only (read)"
-      subjects            = ["pull_request", "ref:refs/heads/main"]
+      description         = "terraform-plan.yml: plan only (read). main only, so code from a PR branch never gets this role"
+      subjects            = ["ref:refs/heads/main"]
       managed_policy_arns = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
       policy_json         = data.aws_iam_policy_document.plan_state.json
     }

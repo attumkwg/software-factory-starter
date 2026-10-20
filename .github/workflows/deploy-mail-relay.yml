@@ -22,7 +22,7 @@ env:
 jobs:
   stg:
     name: stg に出す
-    if: vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.MAIL_ECR_REPOSITORY_URL != ''
+    if: github.ref == 'refs/heads/main' && vars.AWS_STG_DEPLOY_ROLE_ARN != '' && vars.MAIL_ECR_REPOSITORY_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -78,7 +78,7 @@ jobs:
   prod:
     name: prod に出す(承認のあと)
     needs: stg
-    if: vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
+    if: github.ref == 'refs/heads/main' && vars.AWS_PROD_DEPLOY_ROLE_ARN != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

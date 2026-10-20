@@ -22,7 +22,7 @@ concurrency:
 env:
   TF_VERSION: 1.16.6
   TFLINT_VERSION: v0.64.0
-  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
   TF_IN_AUTOMATION: "true"
 
 jobs:

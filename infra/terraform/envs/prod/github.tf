@@ -1,6 +1,6 @@
 # GitHub Actions が使う役割(OIDC)。
 #   AWS_PROD_DEPLOY_ROLE_ARN … deploy.yml の prod ジョブ(environment: prod の承認のあとだけ)
-#   AWS_PROD_PLAN_ROLE_ARN   … terraform.yml の plan(読むだけ)
+#   AWS_PROD_PLAN_ROLE_ARN   … terraform-plan.yml の plan(読むだけ。main からだけ引ける。PR の差分の plan は無い)
 # イメージは stg の ECR から引くので、ここには push の権限は無い。
 
 module "github_oidc" {
@@ -15,8 +15,8 @@ module "github_oidc" {
       policy_json = data.aws_iam_policy_document.deploy.json
     }
     "${local.name}-plan" = {
-      description         = "terraform.yml: plan only (read)"
-      subjects            = ["pull_request", "ref:refs/heads/main"]
+      description         = "terraform-plan.yml: plan only (read). main only, so code from a PR branch never gets this role"
+      subjects            = ["ref:refs/heads/main"]
       managed_policy_arns = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
       policy_json         = data.aws_iam_policy_document.plan_state.json
     }

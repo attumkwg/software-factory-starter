@@ -27,7 +27,7 @@
 ## B: PR のコメントで `@claude`
 
 - `.github/workflows/claude.yml`(いまは手動だけ)。自動にすると、PR のコメントに「`@claude` このPRをレビューして。`.claude/skills/review-pr` の手順で」と書くだけで動く。
-- 起動できるのは OWNER / MEMBER だけ(外の人のコメントは読ませない)。
+- 起動できるのは OWNER だけ(外の人のコメントは読ませない)。キーは Environment「claude」の秘密(ブランチは main だけ)。
 - 費用: Claude の API(使った分)+Actions の分数。PR の大きさで変わる。小さな PR で数十円〜数百円の目安。
 - 有効にするやり方は [automation.md](automation.md)。
 

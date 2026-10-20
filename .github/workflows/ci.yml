@@ -16,13 +16,13 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  # 道具の版はここで固定(Renovate が上げる)
-  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
-  SEMGREP_IMAGE: semgrep/semgrep:1.181.0
-  TRIVY_IMAGE: aquasec/trivy:0.76.0
-  ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12
-  ZIZMOR_IMAGE: ghcr.io/zizmorcore/zizmor:1.31.1
-  OASDIFF_IMAGE: tufin/oasdiff:v1.33.0
+  # 道具の版はここで固定(タグ+ダイジェスト。Renovate が両方を上げる。renovate.json の customManagers)
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+  SEMGREP_IMAGE: semgrep/semgrep:1.181.0@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
+  TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+  ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+  ZIZMOR_IMAGE: ghcr.io/zizmorcore/zizmor:1.31.1@sha256:42d409dbb851d4c5d35a058cf042b828bea1e3f2884378c526eb0974780e18d9
+  OASDIFF_IMAGE: tufin/oasdiff:v1.33.0@sha256:6263a96dd2ef0726c54e21fea9b8e1607eac4841add0079324b424c1f52b819c
 
 jobs:
   fast:
@@ -161,7 +161,7 @@ jobs:
             apps/web/playwright-report
             apps/web/playwright-report-cognito
             apps/web/test-results
-          retention-days: 14
+          retention-days: 7
       - name: 失敗したらログ
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.cognito.yml logs

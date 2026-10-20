@@ -188,12 +188,12 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 対象 | 道具 | どこ |
 |---|---|---|
 | 自分のコード | Semgrep CE(公開のルール+自社ルール) | `ci.yml` の semgrep |
-| 依存 | Trivy fs・Renovate | `ci.yml` の trivy-fs・`renovate.json` |
+| 依存 | Trivy fs・Renovate・Dependabot alerts | `ci.yml` の trivy-fs・`vuln-scan.yml`(定期)・`renovate.json` |
 | 秘密情報 | gitleaks(全履歴) | `ci.yml` の gitleaks |
 | イメージ | Trivy image | `ci.yml` の image |
 | インフラ定義 | Trivy config・tflint | `ci.yml`・`terraform.yml` |
 | 移行 | squawk | `ci.yml` の migrations |
-| ワークフロー | actionlint・zizmor | `ci.yml` の workflows |
+| ワークフロー | actionlint・zizmor(PR ごとはオフライン。定期はオンライン) | `ci.yml` の workflows・`vuln-scan.yml` |
 | 動いている画面 | ZAP ベースライン | `preview.yml` |
 | 全 API に変な入力(ロールごと) | Schemathesis | `pnpm security:fuzz`・`security-fuzz.yml` |
 | ログインした状態の API | ZAP API スキャン | `zap-api-scan.yml`(stg) |
@@ -212,13 +212,14 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `ci.yml` | 自動: PR・main | 全部動く(AWS 不要) |
 | `terraform.yml` | 自動: infra を変えた PR | fmt・validate・tflint・Trivy |
 | `labeler.yml` | 自動: PR | 危険度のラベル |
-| `terraform-plan.yml` | 手動 | 飛ばす(notice を出す) |
+| `terraform-plan.yml` | 手動(main の plan。PR の plan は無い) | 飛ばす(notice を出す) |
 | `preview.yml` | 手動(PR の番号を入れる) | 飛ばす(notice を出す) |
 | `cleanup-previews.yml` | 手動 | 飛ばす |
 | `deploy.yml` | 手動 | 飛ばす |
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
 | `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
+| `vuln-scan.yml` | 手動(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版) | 動く(AWS も秘密も要らない) |
 
 日々の進め方は [docs/playbook.md](docs/playbook.md)、Slack から頼む形にしたいときは [docs/guides/slack.md](docs/guides/slack.md)。
 
@@ -232,13 +233,24 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 1. **ブランチ保護(main)**: Settings → Rules → Rulesets → New branch ruleset
    - 対象: `main`。「Require a pull request before merging」(承認 1、**危険度「高」は 2 にしたいので、チームができたら「Require review from Code Owners」+承認2**)
-   - 「Require status checks to pass」: `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image)`・`ワークフローの検査(actionlint・zizmor)`
+   - 「Require status checks to pass」: `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image)`・`ワークフローの検査(actionlint・zizmor)`
    - 「Block force pushes」・「Require linear history」
 2. **ラベル**を作る: `risk:high`・`risk:medium`・`risk:low`・`area:api`・`area:web`・`area:infra`・`kind:feature`・`kind:bug`・`needs-triage`・`dependencies`・`security`(labeler は無いラベルも作るが、色をそろえるなら先に)
-3. **Environments**: `stg`(保護なし)と `prod`(**Required reviewers** に承認する人。「Prevent self-review」もオン)
+3. **Environments**: `stg`(Required reviewers は無し)・`prod`(**Required reviewers** に承認する人。「Prevent self-review」もオン)・`claude`(`@claude` を有効にするときだけ)
+   - **3つとも「Deployment branches and tags」を「Selected branches」の `main` だけにする**(`stg` も `prod` も)。`develop` などの別ブランチは置かない。
+     ワークフロー側(`deploy.yml`・`deploy-mail-relay.yml` の各ジョブは `github.ref == 'refs/heads/main'`)と AWS の役割(OIDC の信頼は `environment:stg` / `environment:prod`)に加えた、GitHub 側の3重目の線。
+     これを外すと、Deploy を別のブランチで手動実行して、そのブランチのコードを本番まで流せてしまう(承認の人が見落とせば通る)。
+   - **秘密は Environment の秘密に入れる**(下の 3 の表)。リポジトリ全体の秘密には入れない。ブランチが main だけなので、別ブランチのワークフローからは読めない。
 4. **Renovate**: GitHub App の Renovate をこのリポジトリに入れる
 5. **Secret scanning の push 保護**: 非公開のリポジトリでは有料(GitHub Advanced Security)。PMF 前は gitleaks で代える
-6. **Actions の設定**: Settings → Actions → General → 「Fork pull request workflows」で、外の人の PR の実行に承認を必須にする
+6. **Actions の全体設定**: Settings → Actions → General
+   - 「Fork pull request workflows」: 外の人の PR の実行に承認を必須にする
+   - 「Workflow permissions」: **Read repository contents and packages permissions**(読み取りだけ)。書き込みが要るジョブは、ワークフローの中で `permissions:` を明示している
+   - 「Allow GitHub Actions to create and approve pull requests」: **オフ**(Actions が PR を承認できると、人の承認が空になる)
+   - 「Artifact and log retention」: **7日**(ZAP のレポートは `zaproxy/action-api-scan` が成果物を作るため、ワークフロー側で日数を決められない。ここで揃える。レポートにはリクエストの中身が入りうる)
+7. **Dependabot alerts を有効にする**: Settings → Advanced Security(または Code security)→ Dependabot alerts。依存の更新の PR は Renovate が出すので、Dependabot security updates と version updates は**オフのまま**(PR が二重になる)
+8. **プレビューは dev アカウントだけ**: PR のプレビューが引く AWS の役割(`AWS_PREVIEW_ROLE_ARN`)は、PR から引ける(OIDC の `pull_request`)ので、PR を書ける人なら誰でも dev の中で動かせる。
+   dev には**本物の秘密・本物のデータを置かない**(プレビューの DB はコンテナの Postgres+種データ)。stg と prod の役割は PR から引けない(plan の役割も main だけ)。
 
 ### 2. AWS アカウントと状態の置き場
 
@@ -278,11 +290,12 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
 
-**Secrets** に入れるのは1つだけ:
+**秘密(Secrets)は Environment の秘密に入れる**(Settings → Environments → 該当の Environment → Environment secrets。リポジトリ全体の Secrets には入れない。Environment のブランチは main だけ):
 
-| 秘密 | 使うワークフロー |
-|---|---|
-| `ANTHROPIC_API_KEY` | claude(`@claude`)。Claude の GitHub App を入れて使う方法もある |
+| 秘密 | 入れる Environment | 使うワークフロー |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | `claude` | claude(`@claude`)。Claude の GitHub App を入れて使う方法もある |
+| `ZAP_SCAN_USERNAME` / `ZAP_SCAN_PASSWORD` | `stg` | zap-api-scan(stg のスキャン用の利用者) |
 
 ### 4. 見張りの知らせを Slack に流す
 
@@ -313,7 +326,7 @@ prod のバックアップの保管庫は **compliance のロック**で、apply
 - **監査ログの「読んだ」記録・消せない S3 への写し・機能フラグ・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
-- **WAF**: ALB / CloudFront の前に。
+- **WAF を「止める」モードにすること**: WAF 自体は入っている(`infra/terraform/modules/waf`。`envs/stg`・`envs/prod` で ALB の前に。CloudFront は使っていない)。いまは `mode = "count"`(数えるだけで止めない)。誤検知が無いのを確かめてから `block` にする。レート制限の値(`rate_limit`)も、実際の通信を見て合わせる。
 - **画面の CSP(Content-Security-Policy)**: SSR が埋め込むスクリプトに nonce を付ける形が要る。いまは他の守りのヘッダー(`X-Frame-Options`・`nosniff` など)だけ。
 
 ## ⚠️ この雛形の注意
