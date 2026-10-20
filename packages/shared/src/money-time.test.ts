@@ -34,6 +34,19 @@ describe("お金", () => {
     expect(multiply(money(-1234, "JPY"), "0.1", "floor").amount).toBe(-124);
   });
 
+  // 丸め方ごとの答えの表(0.5 未満・ちょうど・超え・割り切れる × 正と負)
+  it.each([
+    ["floor", [1, 1, 1, 2, 2, -2, -2, -2, -3, -2]],
+    ["ceil", [2, 2, 2, 3, 2, -1, -1, -1, -2, -2]],
+    ["half_up", [1, 2, 2, 3, 2, -1, -2, -2, -3, -2]],
+    ["half_even", [1, 2, 2, 2, 2, -1, -2, -2, -2, -2]],
+  ] as const)("丸め方 %s の答え", (rounding, expected) => {
+    const amounts = [14, 15, 16, 25, 20, -14, -15, -16, -25, -20];
+    expect(amounts.map((a) => multiply(money(a, "JPY"), "0.1", rounding).amount)).toEqual(expected);
+    // 率が負でも同じ(-1.5 は -1.5)
+    expect(multiply(money(15, "JPY"), "-0.1", rounding).amount).toBe(expected[6]);
+  });
+
   it("インボイス: 明細ごとに丸めると1円ずれる。税率ごとに合計してから1回丸める", () => {
     const lines = [105, 105, 105].map((a) => ({ amount: money(a, "JPY"), rate: "0.1" }));
     const perLine = lines.reduce((s, l) => s + multiply(l.amount, l.rate, "floor").amount, 0); // 10+10+10

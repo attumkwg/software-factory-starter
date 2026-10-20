@@ -43,6 +43,6 @@ IAM の権限・VPC やセキュリティグループの通信・KMS・WAF・Clo
 | stg の本物 | Cognito の設定を変えて apply したとき(いまは手動。有効にすると週1回 月曜 9:00。[automation.md](automation.md)) | Actions → **Cognito contract**(`cognito-contract.yml`)。落ちたら Issue が立つ |
 | 手元から stg の本物 | 気になったとき | `COGNITO_CONTRACT_TARGET=real COGNITO_USER_POOL_ID=… COGNITO_CLIENT_ID=… pnpm --filter @app/fake-cognito test:contract`(stg の資格情報で) |
 
-**本物で落ちたとき**: どのテストが落ちたかを見て、本物の振る舞いに合わせて偽物(`src/fake.ts`)を直す → 偽物でも同じテストが通ることを確かめる → アプリ(`apps/api/src/auth`)がその振る舞いに頼っていれば、アプリも直す。**テストを本物に合わせて書き換えるのは、本物の振る舞いが正しいと確かめてから**。
+**本物で落ちたとき**: どのテストが落ちたかを見て、本物の振る舞いに合わせて偽物(入口ごとの答えは `src/actions/`・人やトークンの中身は `src/pool.ts`)を直す → 偽物でも同じテストが通ることを確かめる → アプリ(`apps/api/src/auth`)がその振る舞いに頼っていれば、アプリも直す。**テストを本物に合わせて書き換えるのは、本物の振る舞いが正しいと確かめてから**。
 
 **アプリが Cognito の新しい振る舞いに頼るとき**(新しい入口・新しい失敗の種類): 先に契約テストに足し、本物で通ることを確かめてから、偽物とアプリを書く。

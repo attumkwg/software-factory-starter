@@ -90,17 +90,36 @@ afterAll(async () => {
   await close?.();
 });
 
-/** 登録して、管理の確認で「確認済み」にした人を作る(本物では確認コードのメールを読めないため) */
-async function confirmedUser(label: string) {
-  const email = emailFor(label);
-  await client.send(
+const signUp = (email: string, password = PASSWORD) =>
+  client.send(
     new SignUpCommand({
       ClientId: clientId,
       Username: email,
-      Password: PASSWORD,
+      Password: password,
       UserAttributes: [{ Name: "email", Value: email }],
     }),
   );
+
+const confirmSignUp = (email: string, code: string) =>
+  client.send(
+    new ConfirmSignUpCommand({ ClientId: clientId, Username: email, ConfirmationCode: code }),
+  );
+
+/** 二段階認証のコードを答える */
+const answerMfa = (session: string | undefined, email: string, code: string) =>
+  client.send(
+    new RespondToAuthChallengeCommand({
+      ClientId: clientId,
+      ChallengeName: "SOFTWARE_TOKEN_MFA",
+      Session: session,
+      ChallengeResponses: { USERNAME: email, SOFTWARE_TOKEN_MFA_CODE: code },
+    }),
+  );
+
+/** 登録して、管理の確認で「確認済み」にした人を作る(本物では確認コードのメールを読めないため) */
+async function confirmedUser(label: string) {
+  const email = emailFor(label);
+  await signUp(email);
   created.push(email);
   await client.send(new AdminConfirmSignUpCommand({ UserPoolId: poolId, Username: email }));
   return email;
@@ -150,7 +169,9 @@ const nextTotpWindow = async () => {
   await new Promise((r) => setTimeout(r, 30_000 - (Date.now() % 30_000) + 500));
 };
 
-describe(`Cognito の契約(${REAL ? "stg の本物" : "偽物"})`, () => {
+const TARGET = REAL ? "stg の本物" : "偽物";
+
+describe(`Cognito の契約(${TARGET}): 設定と登録`, () => {
   it("ユーザープールの設定が cognito-settings.json と同じ(Terraform と偽物が同じ物を読んでいる)", async () => {
     const { UserPool } = await client.send(new DescribeUserPoolCommand({ UserPoolId: poolId }));
     const p = settings.passwordPolicy;
@@ -170,62 +191,25 @@ describe(`Cognito の契約(${REAL ? "stg の本物" : "偽物"})`, () => {
 
   it("決まりを満たさないパスワードの登録は InvalidPasswordException", async () => {
     const email = emailFor("weak");
-    const e = await errorOf(
-      client.send(
-        new SignUpCommand({
-          ClientId: clientId,
-          Username: email,
-          Password: "short",
-          UserAttributes: [{ Name: "email", Value: email }],
-        }),
-      ),
-    );
+    const e = await errorOf(signUp(email, "short"));
     expect(e.name).toBe("InvalidPasswordException");
   });
 
   it("登録すると未確認で、確認コードはメールで送られる。同じメールの2回目は UsernameExistsException", async () => {
     const email = emailFor("signup");
-    const r = await client.send(
-      new SignUpCommand({
-        ClientId: clientId,
-        Username: email,
-        Password: PASSWORD,
-        UserAttributes: [{ Name: "email", Value: email }],
-      }),
-    );
+    const r = await signUp(email);
     created.push(email);
     expect(r.UserConfirmed).toBe(false);
     expect(r.CodeDeliveryDetails).toMatchObject({
       DeliveryMedium: "EMAIL",
       AttributeName: "email",
     });
-    const again = await errorOf(
-      client.send(
-        new SignUpCommand({
-          ClientId: clientId,
-          Username: email,
-          Password: PASSWORD,
-          UserAttributes: [{ Name: "email", Value: email }],
-        }),
-      ),
-    );
+    const again = await errorOf(signUp(email));
     expect(again.name).toBe("UsernameExistsException");
     // 確認前は、パスワードが合っていても UserNotConfirmedException
     expect((await errorOf(signIn(email))).name).toBe("UserNotConfirmedException");
     // 違うコードは CodeMismatchException
-    expect(
-      (
-        await errorOf(
-          client.send(
-            new ConfirmSignUpCommand({
-              ClientId: clientId,
-              Username: email,
-              ConfirmationCode: "000000",
-            }),
-          ),
-        )
-      ).name,
-    ).toBe("CodeMismatchException");
+    expect((await errorOf(confirmSignUp(email, "000000"))).name).toBe("CodeMismatchException");
   });
 
   it("管理の確認では、メールは「確認済み」にならない(アプリは確認済みのメールでしか users と結びつけない)", async () => {
@@ -236,7 +220,9 @@ describe(`Cognito の契約(${REAL ? "stg の本物" : "偽物"})`, () => {
       "false",
     );
   });
+});
 
+describe(`Cognito の契約(${TARGET}): ログインと二段階認証`, () => {
   it("ログインすると、署名つきの ID トークン(発行元・宛先・種類・メール)が返る", async () => {
     const email = await confirmedUser("login");
     const r = await signIn(email);
@@ -261,15 +247,7 @@ describe(`Cognito の契約(${REAL ? "stg の本物" : "偽物"})`, () => {
       new ForgotPasswordCommand({ ClientId: clientId, Username: emailFor("ghost") }),
     );
     expect(r.CodeDeliveryDetails?.DeliveryMedium).toBe("EMAIL");
-    const e = await errorOf(
-      client.send(
-        new ConfirmSignUpCommand({
-          ClientId: clientId,
-          Username: emailFor("ghost2"),
-          ConfirmationCode: "123456",
-        }),
-      ),
-    );
+    const e = await errorOf(confirmSignUp(emailFor("ghost2"), "123456"));
     expect(e.name).toBe("CodeMismatchException");
   });
 
@@ -299,45 +277,17 @@ describe(`Cognito の契約(${REAL ? "stg の本物" : "偽物"})`, () => {
     const challenged = await signIn(email);
     expect(challenged.ChallengeName).toBe("SOFTWARE_TOKEN_MFA");
     expect(challenged.AuthenticationResult).toBeUndefined();
-    const wrong = await errorOf(
-      client.send(
-        new RespondToAuthChallengeCommand({
-          ClientId: clientId,
-          ChallengeName: "SOFTWARE_TOKEN_MFA",
-          Session: challenged.Session,
-          ChallengeResponses: { USERNAME: email, SOFTWARE_TOKEN_MFA_CODE: "000000" },
-        }),
-      ),
-    );
+    const wrong = await errorOf(answerMfa(challenged.Session, email, "000000"));
     expect(wrong.name).toBe("CodeMismatchException");
 
     await nextTotpWindow();
     // 間違えた札では、正しいコードでも通らない(アプリは途中の札を1回きりとして扱う。apps/api の auth/routes.ts)
-    const reused = await errorOf(
-      client.send(
-        new RespondToAuthChallengeCommand({
-          ClientId: clientId,
-          ChallengeName: "SOFTWARE_TOKEN_MFA",
-          Session: challenged.Session,
-          ChallengeResponses: {
-            USERNAME: email,
-            SOFTWARE_TOKEN_MFA_CODE: totp(SecretCode, clock()),
-          },
-        }),
-      ),
-    );
+    const reused = await errorOf(answerMfa(challenged.Session, email, totp(SecretCode, clock())));
     expect(reused.name).toBe("NotAuthorizedException");
 
     await nextTotpWindow();
     const again = await signIn(email);
-    const done = await client.send(
-      new RespondToAuthChallengeCommand({
-        ClientId: clientId,
-        ChallengeName: "SOFTWARE_TOKEN_MFA",
-        Session: again.Session,
-        ChallengeResponses: { USERNAME: email, SOFTWARE_TOKEN_MFA_CODE: totp(SecretCode, clock()) },
-      }),
-    );
+    const done = await answerMfa(again.Session, email, totp(SecretCode, clock()));
     const claims = await verifiedClaims(done.AuthenticationResult?.IdToken ?? "");
     expect(claims).toMatchObject({ token_use: "id", email });
   });
