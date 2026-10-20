@@ -228,9 +228,12 @@ describe("二段階認証", () => {
     expect(pending).toBeDefined();
     expect(res.headers.getSetCookie().find((c) => c.startsWith("mfa="))).toMatch(/HttpOnly/i);
 
+    const before = Math.floor(Date.now() / 1000);
     const done = await post("mfa", { code: totp(secret) }, pending);
     expect(await done.json()).toEqual({ next: "done" });
-    expect(cookie(done, "sid")).toBeDefined();
+    // ログインした時刻は、コードが通った時(12時間はここから。ADR 0017)
+    const [, , , loggedInAt] = decodeURIComponent(cookie(done, "sid") ?? "").split(".");
+    expect(Number(loggedInAt)).toBeGreaterThanOrEqual(before);
   });
 
   it("コードが違えば 400 invalid_code。途中の札は1回で消え、もう一度はパスワードから", async () => {
