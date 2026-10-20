@@ -128,6 +128,8 @@ module "app" {
   image              = "${aws_ecr_repository.this["api"].repository_url}:${var.initial_image_tag}"
   certificate_arn    = aws_acm_certificate_validation.app.certificate_arn
   desired_count      = 1
+  # 1〜2台(stg は小さく)。DB の接続は 2台×10本(入れ替えの間 40本)で、Aurora の上限(max_acu 2 で 約400本)に収まる
+  autoscaling = { min_count = 1, max_count = 2 }
   # stg はすぐ消せるように
   deletion_protection = false
   alarm_topic_arns    = [module.alerts.topic_arn]
@@ -166,6 +168,7 @@ module "web" {
   name                          = "${local.name}-web"
   image                         = "${aws_ecr_repository.this["web"].repository_url}:${var.initial_image_tag}"
   desired_count                 = 1
+  autoscaling                   = { min_count = 1, max_count = 2 }
   alarm_topic_arns              = [module.alerts.topic_arn]
   cluster_arn                   = module.app.cluster_arn
   vpc_id                        = module.network.vpc_id
@@ -289,6 +292,8 @@ module "monitoring" {
   }
   db_cluster_identifier = module.aurora.cluster_identifier
   certificate_arn       = aws_acm_certificate_validation.app.certificate_arn
+  # max_acu 2 の上限 約400本の6割。API の台数の上限(autoscaling の max_count)を上げたら見直す
+  db_connections_threshold = 250
 }
 
 # 外形監視(外から開けるか)。Route 53 の決まりで、アラームはバージニアに置く

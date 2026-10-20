@@ -335,3 +335,33 @@ resource "aws_ecs_service" "this" {
 
   depends_on = [aws_lb_listener_rule.production]
 }
+
+# ── 台数の自動調整(CPU の平均を目標に保つ) ─────────────────────────────────────────
+# SSR は HTML を描く CPU が先に詰まる。リクエスト数で見ないのは API と同じ理由(blue/green で
+# ターゲットグループが入れ替わる)。台数は deploy.yml も Terraform も触らない(desired_count は ignore_changes)。
+
+resource "aws_appautoscaling_target" "this" {
+  count              = var.autoscaling == null ? 0 : 1
+  service_namespace  = "ecs"
+  scalable_dimension = "ecs:service:DesiredCount"
+  resource_id        = "service/${element(split("/", var.cluster_arn), 1)}/${aws_ecs_service.this.name}"
+  min_capacity       = var.autoscaling.min_count
+  max_capacity       = var.autoscaling.max_count
+}
+
+resource "aws_appautoscaling_policy" "cpu" {
+  count              = var.autoscaling == null ? 0 : 1
+  name               = "${var.name}-cpu"
+  policy_type        = "TargetTrackingScaling"
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = var.autoscaling.cpu_target_percent
+    scale_out_cooldown = 60
+    scale_in_cooldown  = 300
+  }
+}

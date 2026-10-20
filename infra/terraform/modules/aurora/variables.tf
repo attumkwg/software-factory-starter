@@ -53,3 +53,15 @@ variable "deletion_protection" {
   type    = bool
   default = true
 }
+
+variable "slow_query_log_ms" {
+  description = "この時間(ミリ秒)より遅い SQL を DB のログに残す。-1 で残さない"
+  type        = number
+  default     = 1000
+}
+
+variable "log_retention_days" {
+  description = "DB のログ(CloudWatch Logs)を残す日数"
+  type        = number
+  default     = 30
+}

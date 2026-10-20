@@ -58,3 +58,9 @@ variable "certificate_arn" {
   description = "画面と API の証明書(ACM)。期限が近づいたら鳴らす"
   type        = string
 }
+
+variable "db_connections_threshold" {
+  description = "DB の接続がこの数を超えたら鳴らす(max_connections の6割ほど)。null なら作らない"
+  type        = number
+  default     = null
+}
