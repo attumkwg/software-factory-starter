@@ -20,6 +20,13 @@ export const MeSchema = z.object({
   support: z.object({ expiresAt: InstantSchema }).optional(),
   /** 運営の組織の人(サポート番号で代理ログインできる)なら true */
   isSupportStaff: z.boolean().optional(),
+  /**
+   * 二段階認証(docs/specs/0006-account-security.md)。setupRequired なら、画面は設定(/account)へ回す
+   * (組織が必須で、本人が未設定。開発用ログイン・代理の最中は false)
+   */
+  mfa: z
+    .object({ enabled: z.boolean(), required: z.boolean(), setupRequired: z.boolean() })
+    .optional(),
 });
 export type Me = z.infer<typeof MeSchema>;
 
@@ -98,6 +105,17 @@ export const ERROR_CODES = [
   "invalid_code", // 確認コード・二段階認証のコードが違う・切れた(400)
   "invalid_password", // パスワードが決まり(cognito-settings.json)を満たさない(400)
   "too_many_requests", // 短い間に試しすぎた(429)。少し待てば通る
+  // アカウントの安全(docs/specs/0006-account-security.md)
+  "mfa_setup_required", // 組織が二段階認証を必須にしていて、まだ設定していない(403)。画面は /account へ
+  "reauth_failed", // 入れ直したパスワードかコードが違う(400。どちらかは言わない)
+  "reauth_required", // パスワードの入れ直しが要る・切れた(400)
+  "mfa_code_required", // 二段階認証が有効なので、コードも要る(400)
+  "email_unavailable", // そのメールアドレスには変えられない(409)
+  "mfa_required_by_organization", // 組織が必須にしているので、二段階認証を外せない(403)
+  "mfa_not_enabled", // 二段階認証がまだ有効でない(409)
+  "mfa_already_enabled", // 二段階認証はもう有効(409)
+  "support_org_requires_mfa", // 運営の組織では必須を切れない(409)
+  "mfa_required_for_support", // 必須の組織に代理で入るには、社員の二段階認証が要る(403)
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -220,6 +238,17 @@ export const ExportSchema = z.object({
   auditEvents: z.array(AuditEventSchema),
   /** サポート番号(のハッシュ)は入れない */
   supportGrants: z.array(SupportGrantSchema),
+  /** メールアドレスの変更の申し込み(docs/specs/0006-account-security.md) */
+  emailChanges: z.array(
+    z.object({
+      id: IdSchema,
+      userId: IdSchema,
+      previousEmail: z.email(),
+      newEmail: z.email(),
+      requestedAt: InstantSchema,
+      confirmedAt: InstantSchema.nullable(),
+    }),
+  ),
 });
 export type ExportData = z.infer<typeof ExportSchema>;
 

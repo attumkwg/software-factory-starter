@@ -12,6 +12,8 @@ type SeedTenant = {
   name: string;
   /** 2社で時間帯を変えておく(時刻の表示が組織ごとになっているかを確かめるため) */
   timeZone: string;
+  /** 二段階認証を必須にするか(運営の組織だけ true。docs/specs/0006-account-security.md の U-7) */
+  mfaRequired?: boolean;
   users: { id: string; email: string; name: string; role: Role }[];
   projects: { id: string; name: string; tasks: string[] }[];
 };
@@ -77,6 +79,8 @@ export const SEED: SeedTenant[] = [
     tenantId: SUPPORT_SEED_TENANT_ID,
     name: "運営(サポート)",
     timeZone: "Asia/Tokyo",
+    // 運営の組織は最初から二段階認証を必須にする(切れない)。開発用ログインでは関所が回さないので使える
+    mfaRequired: true,
     users: [
       {
         id: "0199a000-0000-7000-8000-0000000c0001",
@@ -97,7 +101,12 @@ export async function seed(databaseUrl: string | undefined): Promise<void> {
       await withTenant(db, t.tenantId, async (tx) => {
         await tx
           .insert(tenants)
-          .values({ tenantId: t.tenantId, name: t.name, timeZone: t.timeZone })
+          .values({
+            tenantId: t.tenantId,
+            name: t.name,
+            timeZone: t.timeZone,
+            mfaRequired: t.mfaRequired ?? false,
+          })
           .onConflictDoNothing();
         await tx
           .insert(users)

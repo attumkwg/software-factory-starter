@@ -25,6 +25,37 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   "POST /api/support/end": { action: "support.end", target: "support_session" },
   // データの書き出し(対象は組織全体なので ID は無い)
   "POST /api/exports": { action: "data.export", target: "organization", param: "none" },
+  // 本人のアカウント(docs/specs/0006-account-security.md)。対象はいつも行為者の本人なので ID は無い
+  "POST /api/account/reauth": { action: "account.reauth", target: "user", param: "none" },
+  "POST /api/account/password": {
+    action: "account.password_change",
+    target: "user",
+    param: "none",
+  },
+  "POST /api/account/email": {
+    action: "account.email_change_request",
+    target: "user",
+    param: "none",
+  },
+  "POST /api/account/email/confirm": {
+    action: "account.email_change",
+    target: "user",
+    param: "none",
+  },
+  "POST /api/account/mfa/setup": { action: "account.mfa_setup", target: "user", param: "none" },
+  "POST /api/account/mfa/enable": { action: "account.mfa_enable", target: "user", param: "none" },
+  "POST /api/account/mfa/disable": { action: "account.mfa_disable", target: "user", param: "none" },
+  // 組織の二段階認証の必須。入れる・切るを名前で分ける(details に値を入れない決まりのまま)
+  "POST /api/organization/mfa-requirement": {
+    action: "organization.mfa_require",
+    target: "organization",
+    param: "none",
+  },
+  "DELETE /api/organization/mfa-requirement": {
+    action: "organization.mfa_unrequire",
+    target: "organization",
+    param: "none",
+  },
 };
 
 /** 関所の外(ログインの API など)で、手で記録する物 */

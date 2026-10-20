@@ -39,7 +39,7 @@ async function loggedIn(label: string) {
 
 const getUser = (token: string) => client.send(new GetUserCommand({ AccessToken: token }));
 
-describe(`Cognito の契約(${TARGET}): 本人の操作`, () => {
+describe(`Cognito の契約(${TARGET}): 本人の操作(パスワード)`, () => {
   it("パスワードの変更: 前のパスワードが違えば NotAuthorizedException。変えたら新しいパスワードで入れる", async () => {
     const { email, token } = await loggedIn("chpw");
     const newPassword = "Contract-Changed-5678";
@@ -73,7 +73,9 @@ describe(`Cognito の契約(${TARGET}): 本人の操作`, () => {
     expect((await errorOf(signIn(email))).name).toBe("NotAuthorizedException");
     expect((await signIn(email, newPassword)).AuthenticationResult?.AccessToken).toBeTruthy();
   });
+});
 
+describe(`Cognito の契約(${TARGET}): 本人の操作(メール)`, () => {
   it("メールの変更: 新しいメールに確認コードが行き、確認するまでは古いメールのまま", async () => {
     const { email, token } = await loggedIn("chmail");
     const next = emailFor("chmail-new");
@@ -139,7 +141,9 @@ describe(`Cognito の契約(${TARGET}): 本人の操作`, () => {
     // 本物がどちらの時点で断るかを、ここで記録する(成功なら確認の時点で断る)
     expect(["AliasExistsException", "(成功した)"]).toContain(r.name);
   });
+});
 
+describe(`Cognito の契約(${TARGET}): 本人の操作(トークンと二段階認証)`, () => {
   it("GlobalSignOut の後は、そのアクセストークンで本人の操作ができない", async () => {
     const { token } = await loggedIn("signout");
     expect((await getUser(token)).Username).toBeTruthy();

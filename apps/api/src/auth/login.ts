@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { MANUAL_AUDIT_ACTIONS, recordAudit } from "../audit/index.ts";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import { setMfaEnabled } from "../domains/organizations/index.ts";
 import { ApiError } from "../errors.ts";
 import type { Logger } from "../logger.ts";
 import { findLogin } from "./lookup.ts";
@@ -16,8 +17,17 @@ export type LoginDeps = { db: RootDb; logger: Logger; session: SessionConfig };
 export const loginFailed = () =>
   new ApiError(401, "login_failed", "メールアドレスかパスワードが正しくありません");
 
-/** users の行を引き(初めてなら確認済みのメールで結びつけ)、セッションの Cookie を発行する */
-export async function logIn(deps: LoginDeps, identity: LoginIdentity, c: Context) {
+/**
+ * users の行を引き(初めてなら確認済みのメールで結びつけ)、セッションの Cookie を発行する。
+ * mfa … Cognito のログインで二段階認証のコードを聞かれたか(= Cognito で有効か)。写し(users.mfa_enabled)を合わせる。
+ * 開発用ログインでは undefined(写しに触らない)。
+ */
+export async function logIn(
+  deps: LoginDeps,
+  identity: LoginIdentity,
+  c: Context,
+  opts: { mfa?: boolean } = {},
+) {
   const session = await findLogin(deps.db, identity);
   if (!session) {
     // どの人か(メール・sub)は書かない。確認済みのメールがあったかどうかだけ
@@ -32,14 +42,17 @@ export async function logIn(deps: LoginDeps, identity: LoginIdentity, c: Context
   }
   await writeSession(c, deps.session, session);
   // 入った記録(監査ログ)。失敗したログインは、会社に結びつけられないのでアプリのログだけ
-  await withTenant(deps.db, session.tenantId, (tx) =>
-    recordAudit(tx, {
+  await withTenant(deps.db, session.tenantId, async (tx) => {
+    const scope = { tx, tenantId: session.tenantId, userId: session.userId };
+    // 運営が Cognito で外した(認証アプリを無くした人の回復)なども、次のログインでそろう
+    if (opts.mfa !== undefined) await setMfaEnabled(scope, opts.mfa);
+    await recordAudit(tx, {
       tenantId: session.tenantId,
       actor: { kind: "user", id: session.userId },
       action: MANUAL_AUDIT_ACTIONS.login,
       outcome: "allowed",
-    }),
-  );
+    });
+  });
   if (session.linked) {
     deps.logger.info(
       { userId: session.userId, loginTenantId: session.tenantId },

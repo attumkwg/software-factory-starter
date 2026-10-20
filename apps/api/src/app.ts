@@ -6,14 +6,19 @@ import { csrf } from "hono/csrf";
 import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
 import { auditRoutes } from "./audit/index.ts";
+import { accountRoutes } from "./auth/account-routes.ts";
 import { authenticate } from "./auth/middleware.ts";
-import type { CognitoClient } from "./auth/providers.ts";
+import { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
 import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
-import { organizationRoutes, supportGrantRoutes } from "./domains/organizations/index.ts";
+import {
+  mfaRequirementRoutes,
+  organizationRoutes,
+  supportGrantRoutes,
+} from "./domains/organizations/index.ts";
 import { projectRoutes } from "./domains/projects/index.ts";
 import { taskRoutes } from "./domains/tasks/index.ts";
 import type { AppEnv } from "./env.ts";
@@ -93,24 +98,27 @@ export function createApp(deps: AppDeps) {
   );
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
-  // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う
+  // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う。
+  // 二段階認証の必須を効かせるか(関所と /api/me が使う)
   app.use("/api/*", async (c, next) => {
     c.set("supportTenantId", config.supportTenantId);
+    c.set("mfaEnforced", config.auth.mode === "cognito");
     await next();
   });
   app.use("/api/*", authorize({ db, logger, session: config.session }));
 
+  // Cognito のときだけ(開発用ログインには Cognito が無い)。ログインと本人のアカウントで同じつなぎ方を使う
+  const cognito =
+    config.auth.mode === "cognito" ? (deps.cognito ?? new CognitoClient(config.auth)) : undefined;
   app.route(
     "/api",
-    authRoutes({
-      db,
-      logger,
-      session: config.session,
-      auth: { ...config.auth, cognito: deps.cognito },
-    }),
+    authRoutes({ db, logger, session: config.session, auth: { ...config.auth, cognito } }),
   );
+  // 本人のアカウント(二段階認証・メール・パスワード。docs/specs/0006-account-security.md)
+  if (cognito) app.route("/api", accountRoutes({ db, logger, session: config.session, cognito }));
   // 領域ごとのルート(src/domains/<領域>/routes.ts)
   app.route("/api", organizationRoutes);
+  app.route("/api", mfaRequirementRoutes);
   app.route("/api", supportGrantRoutes());
   // 社員の代理ログイン(組織を切り替えるので認証の側)
   app.route("/api", supportSessionRoutes({ db, session: config.session }));

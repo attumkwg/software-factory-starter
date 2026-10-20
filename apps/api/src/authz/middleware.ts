@@ -6,11 +6,24 @@ import { type AuditEntry, auditActionFor, recordAudit, supportReadAction } from 
 import { refreshSession, type SessionConfig, writeSession } from "../auth/session.ts";
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
-import { findActiveSupportSession, findRole } from "../domains/organizations/index.ts";
+import {
+  type Access,
+  findAccess,
+  findActiveSupportSession,
+} from "../domains/organizations/index.ts";
 import type { AppEnv, Session } from "../env.ts";
 import { ApiError, forbidden, unauthorized } from "../errors.ts";
 import type { Logger } from "../logger.ts";
-import { can, type Permission, PUBLIC, ruleFor, toOpenApiPath } from "./policy.ts";
+import {
+  ALLOWED_DURING_MFA_SETUP,
+  can,
+  NOT_DURING_SUPPORT,
+  OUTSIDE_TRANSACTION,
+  type Permission,
+  PUBLIC,
+  ruleFor,
+  toOpenApiPath,
+} from "./policy.ts";
 
 class Rollback extends Error {}
 class SupportEnded extends Error {}
@@ -25,7 +38,12 @@ class SupportEnded extends Error {}
  * 5. 書き込みの API なら、成功したときに**同じトランザクションで**監査ログに1行(src/audit)。
  *    権限が無くて断ったときも「拒否」として残す(書き込みは取り消すので、別のトランザクションで)。
  * 6. ハンドラーが答えたら、セッションの Cookie を出し直して期限を延ばす(1分に1回まで。auth/session.ts)。
- * 7. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。
+ * 7. パスワードなどを変えた後は、それより前にログインしたセッションを 401 にする(users.sessions_valid_after)。
+ *    組織が二段階認証を必須にしていて本人が未設定なら、設定の API(policy.ts の ALLOWED_DURING_MFA_SETUP)以外は
+ *    403 mfa_setup_required(docs/specs/0006-account-security.md)。
+ * 8. 外(Cognito)を待つ API(policy.ts の OUTSIDE_TRANSACTION)は、確かめた短いトランザクションを閉じてから
+ *    ハンドラーを呼び、監査ログは成功の後に別の短いトランザクションで残す。
+ * 9. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。
  *    いまも運営の組織の人か・入室が生きているか(終わっていない・期限内・許可が取り消されていない)を毎回 DB で確かめ、
  *    外れていたら Cookie を社員の本来の組織に戻して 401。**読んだことも**お客さんの監査ログに残す。
  */
@@ -52,7 +70,8 @@ export function authorize(deps: Deps): MiddlewareHandler<AppEnv> {
     const gate = gateFor(method, path, handler.path, rule, session);
     try {
       await ensureStaffStillActive(deps, c, session);
-      await withTenant(deps.db, session.tenantId, (tx) => passInTenant(c, tx, next, gate));
+      if (OUTSIDE_TRANSACTION.has(rule)) await passOutsideTransaction(deps, c, next, gate);
+      else await withTenant(deps.db, session.tenantId, (tx) => passInTenant(c, tx, next, gate));
       // 使っている人の期限を延ばす(無操作1時間・最長12時間。ADR 0017)
       await refreshSession(c, deps.session, session);
     } catch (e) {
@@ -94,62 +113,106 @@ function gateFor(
   return { method, path, handlerPath, permission, session, audit, actor };
 }
 
-/** 代理の社員が、いまも運営の組織の人か(辞めた・外された人は、入室の期限を待たずに止める) */
+/**
+ * 代理の社員が、いまも運営の組織の人か(辞めた・外された人は、入室の期限を待たずに止める)。
+ * 社員がパスワードなどを変えて、ほかの端末を切っていたら、代理の Cookie も 401。
+ */
 async function ensureStaffStillActive(deps: Deps, c: Context<AppEnv>, session: Session) {
   const support = session.support;
   if (!support) return;
   const supportTenantId = c.get("supportTenantId");
-  const staffRole =
+  const staff =
     supportTenantId === support.homeTenantId
       ? await withTenant(deps.db, support.homeTenantId, (tx) =>
-          findRole(tx, support.homeTenantId, session.userId),
+          findAccess(tx, support.homeTenantId, session.userId),
         )
       : null;
-  if (staffRole !== "admin" && staffRole !== "member") throw new SupportEnded();
+  if (!staff || (staff.role !== "admin" && staff.role !== "member")) throw new SupportEnded();
+  if (endedByChange(staff, session)) throw unauthorized();
 }
 
-/** テナントのトランザクションの中: ロールを引いて確かめ、ハンドラーを呼び、書き込みなら監査ログに残す */
-async function passInTenant(c: Context<AppEnv>, tx: TenantTx, next: Next, gate: Gate) {
-  const { session } = gate;
-  const role = await roleOf(tx, session);
-  if (!role) throw unauthorized();
-  if (!can(role, gate.permission)) throw forbidden();
+/** パスワード・メール・二段階認証を変えて、このセッションより後に「ほかの端末を切った」か */
+function endedByChange(access: Access, session: Session): boolean {
+  const after = access.sessionsValidAfter;
+  return after !== null && session.loggedInAt < Math.floor(after.getTime() / 1000);
+}
 
+const mfaSetupRequired = () =>
+  new ApiError(403, "mfa_setup_required", "この組織では二段階認証の設定が必要です");
+
+/** テナントの中で「通してよいか」を確かめ、c.var.actor を決める */
+async function admit(c: Context<AppEnv>, tx: TenantTx, gate: Gate) {
+  const { session } = gate;
+  const role = await roleOf(c, tx, gate);
+  if (!can(role, gate.permission)) throw forbidden();
   c.set("actor", {
     userId: session.userId,
     tenantId: session.tenantId,
     role,
     ...(session.support ? { support: { sessionId: session.support.sessionId } } : {}),
   });
+}
+
+/** テナントのトランザクションの中: 確かめ、ハンドラーを呼び、書き込みなら監査ログに残す */
+async function passInTenant(c: Context<AppEnv>, tx: TenantTx, next: Next, gate: Gate) {
+  await admit(c, tx, gate);
   c.set("tx", tx);
   await next();
   // ハンドラーが失敗していたら、書いた物を取り消す(監査ログにも残さない。起きていないので)
   if (c.error) throw new Rollback();
-  if (gate.audit && c.res.status < 400) {
-    const entry = await auditEntryFor(c, {
-      handlerPath: gate.handlerPath,
-      audit: gate.audit,
-      tenantId: session.tenantId,
-      actor: gate.actor,
-      outcome: "allowed",
-      extraDetails: session.support ? { route: `${gate.method} ${gate.path}` } : undefined,
-    });
-    await recordAudit(tx, entry);
-  }
+  if (gate.audit && c.res.status < 400) await recordAudit(tx, await allowedEntry(c, gate));
 }
 
-/** そのテナントでのロール。代理の社員は、入室が生きていれば閲覧者に固定 */
-async function roleOf(tx: TenantTx, session: Session): Promise<Role | null> {
+/**
+ * 外を待つ API: 確かめた短いトランザクションを閉じてからハンドラーを呼ぶ(ハンドラーは自分で withTenant を開く)。
+ * 監査ログは、成功の後に別の短いトランザクションで残す。
+ */
+async function passOutsideTransaction(deps: Deps, c: Context<AppEnv>, next: Next, gate: Gate) {
+  const { tenantId } = gate.session;
+  await withTenant(deps.db, tenantId, (tx) => admit(c, tx, gate));
+  await next();
+  if (c.error) throw new Rollback();
+  if (!gate.audit || c.res.status >= 400) return;
+  const entry = await allowedEntry(c, gate);
+  await withTenant(deps.db, tenantId, (tx) => recordAudit(tx, entry));
+}
+
+function allowedEntry(c: Context<AppEnv>, gate: Gate) {
+  return auditEntryFor(c, {
+    handlerPath: gate.handlerPath,
+    audit: gate.audit as AuditAction,
+    tenantId: gate.session.tenantId,
+    actor: gate.actor,
+    outcome: "allowed",
+    extraDetails: gate.session.support ? { route: `${gate.method} ${gate.path}` } : undefined,
+  });
+}
+
+/**
+ * そのテナントでのロール。代理の社員は、入室が生きていれば閲覧者に固定(本人のアカウントの API は使えない)。
+ * ふつうの人は、ほかの端末を切った後のセッションか・二段階認証の設定待ちか、も見る。
+ */
+async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Role> {
+  const { session } = gate;
   const support = session.support;
-  if (!support) return findRole(tx, session.tenantId, session.userId);
-  const active = await findActiveSupportSession(
-    tx,
-    session.tenantId,
-    support.sessionId,
-    session.userId,
-  );
-  if (!active) throw new SupportEnded();
-  return "viewer";
+  if (support) {
+    const active = await findActiveSupportSession(
+      tx,
+      session.tenantId,
+      support.sessionId,
+      session.userId,
+    );
+    if (!active) throw new SupportEnded();
+    if (NOT_DURING_SUPPORT.has(gate.permission)) throw forbidden();
+    return "viewer";
+  }
+  const access = await findAccess(tx, session.tenantId, session.userId);
+  if (!access || endedByChange(access, session)) throw unauthorized();
+  const waitingForMfa = c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled;
+  if (waitingForMfa && !ALLOWED_DURING_MFA_SETUP.has(`${gate.method} ${gate.path}`)) {
+    throw mfaSetupRequired();
+  }
+  return access.role;
 }
 
 /** 失敗の後始末。取り消しだけなら静かに終え、それ以外は投げ直す */

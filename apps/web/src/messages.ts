@@ -28,6 +28,17 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   invalid_code: "コードが違うか、期限が切れています。もう一度確かめてください",
   invalid_password: "パスワードが決まりを満たしていません",
   too_many_requests: "試した回数が多すぎます。しばらく待ってから、もう一度試してください",
+  mfa_setup_required: "この組織では二段階認証が必須です。先に二段階認証を設定してください",
+  // どちらが違ったかは言わない(決まり 2)
+  reauth_failed: "パスワードかコードが正しくありません",
+  reauth_required: "時間がたったので、もう一度パスワードを入れてください",
+  mfa_code_required: "二段階認証のコードも入れてください",
+  email_unavailable: "このメールアドレスには変えられません",
+  mfa_required_by_organization: "この組織では二段階認証が必須なので、外せません",
+  mfa_not_enabled: "二段階認証はまだ設定されていません",
+  mfa_already_enabled: "二段階認証はもう設定されています",
+  support_org_requires_mfa: "運営の組織では、二段階認証の必須を切れません",
+  mfa_required_for_support: "この組織に入るには、先にあなたの二段階認証を設定してください",
 };
 
 /** API まで届かなかったとき・それ以外の想定外。 */

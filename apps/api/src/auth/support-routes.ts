@@ -1,11 +1,13 @@
 import { StartSupportSchema, SupportSessionSchema } from "@app/shared";
 import { createRoute } from "@hono/zod-openapi";
 import { recordAudit } from "../audit/record.ts";
-import type { RootDb } from "../db/client.ts";
+import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
 import {
   endSupportSession,
+  findAccess,
   findContact,
+  findMfaRequired,
   findSupportGrantByCode,
   startSupportSession,
 } from "../domains/organizations/index.ts";
@@ -28,6 +30,25 @@ import { type SessionConfig, writeSession } from "./session.ts";
 // どれが違ったか(番号・期限・取り消し)は言わない
 const invalidSupportCode = () =>
   new ApiError(400, "invalid_code", "番号が違うか、期限が切れているか、取り消されています");
+
+/**
+ * 二段階認証を必須にしている組織には、二段階認証を設定済みの社員しか入れない(docs/specs/0006-account-security.md の U-7)。
+ * 運営の組織も必須なので、ふつうは社員は設定済み。これは運営の組織の必須が外れていたときの二重の守り。
+ */
+async function ensureStaffMfa(
+  db: RootDb,
+  staff: { tx: TenantTx; tenantId: string; userId: string },
+  targetTenantId: string,
+) {
+  const required = await withTenant(db, targetTenantId, (tx) =>
+    findMfaRequired(tx, targetTenantId),
+  );
+  if (!required) return;
+  const me = await findAccess(staff.tx, staff.tenantId, staff.userId);
+  if (!me?.mfaEnabled) {
+    throw new ApiError(403, "mfa_required_for_support", "先に二段階認証を設定してください");
+  }
+}
 
 export function supportSessionRoutes(deps: { db: RootDb; session: SessionConfig }) {
   return createRouter()
@@ -56,6 +77,8 @@ export function supportSessionRoutes(deps: { db: RootDb; session: SessionConfig 
 
         const staff = await findContact(c.get("tx"), actor.tenantId, actor.userId);
         if (!staff) throw forbidden();
+        if (c.get("mfaEnforced"))
+          await ensureStaffMfa(deps.db, { tx: c.get("tx"), ...actor }, grant.tenantId);
         // 見る組織の文脈で、入室とお客さんの監査ログを残す(運営の組織の記録は関所が残す)
         const started = await withTenant(deps.db, grant.tenantId, async (tx) => {
           const s = await startSupportSession(tx, {

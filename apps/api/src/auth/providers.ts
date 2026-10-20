@@ -73,6 +73,16 @@ export class CognitoClient {
     this.#timeoutMs = transport.timeoutMs ?? 5_000;
   }
 
+  /** このプールのアプリクライアント(本人の操作で InitiateAuth を呼ぶとき。cognito-account.ts) */
+  get clientId(): string {
+    return this.#s.clientId;
+  }
+
+  /** Cognito の API を1つ呼ぶ(失敗の直し方は #call と同じ)。本人の操作(cognito-account.ts)から使う */
+  call<T>(action: string, body: Record<string, unknown>): Promise<T> {
+    return this.#call<T>(action, body);
+  }
+
   /** ログアウトの後の行き先(GET /api/auth/options の logoutUrl)。Cognito 側に消す物は無い */
   get logoutUrl(): string {
     return `${this.#s.appUrl}/login`;

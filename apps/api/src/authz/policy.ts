@@ -24,6 +24,11 @@ export const PERMISSIONS = {
   "support:end": ["admin", "member", "viewer"],
   // データの書き出し(docs/specs/0005-offboarding.md)。組織の全データが出るので管理者だけ
   "export:create": ["admin"],
+  // 本人のアカウント(二段階認証・メール・パスワード。docs/specs/0006-account-security.md)。
+  // 対象はいつもセッションの本人だけ。代理の最中は使えない(NOT_DURING_SUPPORT)
+  "account:manage": ["admin", "member", "viewer"],
+  // 組織の二段階認証の必須。管理者だけ
+  "mfa_requirement:manage": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -62,7 +67,43 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "POST /api/support/sessions": "support:start",
   "POST /api/support/end": "support:end",
   "POST /api/exports": "export:create",
+  "GET /api/account": "account:manage",
+  "POST /api/account/reauth": "account:manage",
+  "POST /api/account/password": "account:manage",
+  "POST /api/account/email": "account:manage",
+  "POST /api/account/email/confirm": "account:manage",
+  "POST /api/account/mfa/setup": "account:manage",
+  "POST /api/account/mfa/enable": "account:manage",
+  "POST /api/account/mfa/disable": "account:manage",
+  "GET /api/organization/mfa-requirement": "mfa_requirement:manage",
+  "POST /api/organization/mfa-requirement": "mfa_requirement:manage",
+  "DELETE /api/organization/mfa-requirement": "mfa_requirement:manage",
 };
+
+/**
+ * 社員の代理ログインの最中は使えない権限。代理のロールは閲覧者に固定だが、閲覧者でも持つ権限のうち、
+ * 「本人のアカウント」のように社員自身の物を触る物はここで止める(docs/specs/0006-account-security.md)。
+ */
+export const NOT_DURING_SUPPORT: ReadonlySet<Permission> = new Set(["account:manage"]);
+
+/**
+ * 関所がトランザクションを閉じてからハンドラーを呼ぶ権限。ハンドラーが外(Cognito)を待つので、
+ * その間 DB のトランザクションを開いたままにしない(apps/api/CLAUDE.md の DB の時間切れ)。
+ * ハンドラーは c.var.tx を使わず、Cognito の後に自分で withTenant を開く。
+ */
+export const OUTSIDE_TRANSACTION: ReadonlySet<Permission> = new Set(["account:manage"]);
+
+/**
+ * 組織が二段階認証を必須にしていて、本人がまだ設定していない(設定待ち)の間に通る API。
+ * ほかは 403 mfa_setup_required(画面は /account へ回す)。ログアウトは公開の API なので、ここに無くても通る。
+ */
+export const ALLOWED_DURING_MFA_SETUP: ReadonlySet<string> = new Set([
+  "GET /api/me",
+  "GET /api/account",
+  "POST /api/account/reauth",
+  "POST /api/account/mfa/setup",
+  "POST /api/account/mfa/enable",
+]);
 
 export function can(role: Role, permission: Permission): boolean {
   return (PERMISSIONS[permission] as readonly Role[]).includes(role);
