@@ -41,6 +41,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Biome(整形と lint。関数の複雑さ・長さ、ファイルの長さの上限も)
         run: pnpm lint
+      - name: 危険度「高」の守り(一覧と ask・ラベル・CODEOWNERS がそろっているか・Bash のフック)
+        run: pnpm guards
       - name: 型
         run: pnpm typecheck
       - name: 単体(権限の表の網羅 ① を含む)とカバレッジの下限

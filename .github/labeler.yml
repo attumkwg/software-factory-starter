@@ -20,7 +20,10 @@
           - .claude/hooks/**
           - .semgrep/**
           - .gitleaksignore
+          - .trivyignore.yaml
           - renovate.json
+          - pnpm-workspace.yaml
+          - .npmrc
 
 "risk:medium":
   - changed-files:

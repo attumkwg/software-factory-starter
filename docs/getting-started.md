@@ -83,6 +83,8 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 ルートの README の「本人が手でやる設定」の 1 を順に。要点:
 
+> ⚠️ **非公開のリポジトリを GitHub Free で使うと、ブランチ保護・Environments が使えない**(下の1つ目と3つ目ができない)。AWS と Claude の鍵を入れる前に、公開にするか Pro / Team にする。何が守られて何が守られないかは [guides/local-guards.md](guides/local-guards.md)。
+
 - [ ] **ブランチ保護(main)**: PR 必須・CI のチェック必須・CODEOWNERS の承認。危険度「高」を2人にするならチームを作って CODEOWNERS を書き換える。
 - [ ] **ラベル**: `risk:high` / `risk:medium` / `risk:low` ほか。
 - [ ] **Environments**: `stg`・`prod`(prod に承認する人)。
