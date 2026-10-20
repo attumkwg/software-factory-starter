@@ -20,7 +20,7 @@ import type {
 } from "@app/shared";
 import { PAGE_LIMIT } from "@app/shared";
 import { createIsomorphicFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
+import { appendResponseHeader, getRequest } from "@tanstack/react-start/server";
 
 // API の呼び出し。型は packages/shared の契約をそのまま使う。
 // 認証は HttpOnly の Cookie(同じオリジン)。トークンを localStorage に置かない。
@@ -71,7 +71,22 @@ type Target = {
   timeoutMs: number;
   /** 失敗を記録する(SSR だけ。ブラウザの失敗は画面に出す) */
   report: (failure: Failure) => void;
+  /** API の応答から、ブラウザへ渡す物を写す(SSR だけ。ブラウザは自分で受け取る) */
+  relay: (res: Response) => void;
 };
+
+// API が出し直したセッションの Cookie(使っている間は期限が延びる。ADR 0017)の名前。
+// SSR の応答に写すのはこれだけ(ほかの Cookie は SSR の GET では作られない)。
+const SESSION_COOKIES = ["__Host-sid=", "sid="];
+
+/** SSR で API が返したセッションの Set-Cookie を、画面の応答に写す(画面を開き直すだけでも期限が延びる) */
+function relaySessionCookie(res: Response) {
+  for (const cookie of res.headers.getSetCookie()) {
+    if (SESSION_COOKIES.some((name) => cookie.startsWith(name))) {
+      appendResponseHeader("set-cookie", cookie);
+    }
+  }
+}
 
 // SSR のときに API へ引き継ぐヘッダー。これ以外(Host・Authorization など)は渡さない。
 const FORWARDED_HEADERS = ["cookie", "x-request-id", "traceparent", "x-amzn-trace-id"];
@@ -104,6 +119,7 @@ const target = createIsomorphicFn()
             message: "SSR から API を読めませんでした",
           })}\n`,
         ),
+      relay: relaySessionCookie,
     };
   })
   .client(
@@ -113,6 +129,7 @@ const target = createIsomorphicFn()
       headers: {},
       timeoutMs: 15_000,
       report: () => {},
+      relay: () => {},
     }),
   );
 
@@ -120,7 +137,7 @@ const isApiError = (v: unknown): v is ApiError =>
   typeof v === "object" && v !== null && typeof (v as ApiError).error?.code === "string";
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const { side, base, headers, timeoutMs, report } = target(method);
+  const { side, base, headers, timeoutMs, report, relay } = target(method);
   let res: Response;
   try {
     res = await fetch(`${base}/api${path}`, {
@@ -136,6 +153,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     report({ method, path, reason });
     throw new NetworkError(reason, side, { cause });
   }
+  relay(res);
   if (!res.ok) {
     // ALB が返す 502 / 504 は HTML なので、決まった形でなければ本文は無い扱い
     const parsed = await res.json().catch(() => null);
