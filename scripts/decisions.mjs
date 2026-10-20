@@ -12,6 +12,21 @@ const STATES = ["仮決め", "承認", "変更", "保留", "取り下げ"];
 const strict = process.argv.includes("--strict");
 const today = new Date().toISOString().slice(0, 10);
 
+const isDigits = (s) => s.length > 0 && [...s].every((c) => c >= "0" && c <= "9");
+
+// 「U-1」「U-12」のような番号か
+const isDecisionId = (cell) => cell.startsWith("U-") && isDigits(cell.slice(2));
+
+// 「保留(@名前: 2026-11-30 までに)」から「2026-11-30」を取り出す。無ければ undefined
+const dueDateOf = (state) => {
+  const at = state.indexOf("までに");
+  if (at < 0) return undefined;
+  const date = state.slice(0, at).trimEnd().slice(-10);
+  const [y, m, d] = date.split("-");
+  const ok = y?.length === 4 && m?.length === 2 && d?.length === 2;
+  return ok && isDigits(y) && isDigits(m) && isDigits(d) ? date : undefined;
+};
+
 const open = [];
 const deferred = [];
 const problems = [];
@@ -22,14 +37,16 @@ const files = readdirSync(DIR)
 
 for (const file of files) {
   const path = join(DIR, file);
-  const lines = readFileSync(path, "utf8").split(/\r?\n/);
-  lines.forEach((line, i) => {
-    if (!/^\|\s*U-\d+\s*\|/.test(line)) return;
+  const lines = readFileSync(path, "utf8").split("\n");
+  lines.forEach((raw, i) => {
+    // 正規表現を使わずに読む(Semgrep の regex_dos に当たらないように)
+    const line = raw.trim();
+    if (!line.startsWith("|") || !line.endsWith("|")) return;
     const cells = line
-      .trim()
-      .replace(/^\||\|$/g, "")
+      .slice(1, -1)
       .split("|")
       .map((c) => c.trim());
+    if (!isDecisionId(cells[0])) return;
     const where = `${path}:${i + 1}`;
     if (cells.length !== 7) {
       problems.push(`${where} 列の数が7ではない(${cells.length})`);
@@ -50,7 +67,7 @@ for (const file of files) {
     if (head === "仮決め") open.push(row);
     if (head === "保留") {
       deferred.push(row);
-      const due = state.match(/(\d{4}-\d{2}-\d{2})\s*までに/)?.[1];
+      const due = dueDateOf(state);
       if (!due) problems.push(`${where} ${id} の保留に期限(YYYY-MM-DD までに)が無い`);
       else if (due < today) problems.push(`${where} ${id} の保留の期限(${due})が過ぎた`);
     }
