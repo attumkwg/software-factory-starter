@@ -69,6 +69,11 @@ export async function handleFailure(
     await router.navigate({ to: "/login" });
     return;
   }
+  // 組織が二段階認証を必須にしていて、まだ設定していない → 設定の画面へ(docs/specs/0006-account-security.md)
+  if (e instanceof HttpError && e.code === "mfa_setup_required") {
+    await router.navigate({ to: "/account" });
+    return;
+  }
   const described = describeError(e);
   if (described.shouldReload) await router.invalidate();
   show(described);

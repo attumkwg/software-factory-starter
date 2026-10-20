@@ -15,11 +15,14 @@ comments:
     tableComment: 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations
     columnComments:
       time_zone: 時刻を見せる時間帯・「1日」の区切り(IANA の名前。ADR 0005)
+      mfa_required: 全員に二段階認証を必須にするか(管理者が入れ・切る。運営の組織は最初から true で切れない)
   - table: organizations.users
     tableComment: 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations
     columnComments:
       external_id: 認証の製品(Cognito)側の ID(sub)
       role: admin / member / viewer
+      mfa_enabled: 二段階認証が有効か(正は Cognito。ログインと確かめ直しのたびに写し直す)
+      sessions_valid_after: これより前にログインしたセッションは使えない(パスワードなどを変えて、ほかの端末を切った時刻)
   - table: projects.projects
     tableComment: プロジェクト。タスクのまとまり。docs/domain/projects
     columnComments:
@@ -34,6 +37,11 @@ comments:
       topic: 何が起きたか(領域.出来事。src/outbox/topics.ts)
       locked_until: 送り出しが借りている期限
       dead_at: あきらめた時刻(人が見て直す)
+  - table: organizations.email_changes
+    tableComment: 本人のメールアドレスの変更の申し込み。生きているのは本人の最新・未確認・24時間以内の1件。docs/specs/0006-account-security.md
+    columnComments:
+      previous_email: 申し込んだときのアドレス(変わったら、ここへお知らせを送る)
+      confirmed_at: 確認コードで変わった時刻
   - table: organizations.support_grants
     tableComment: サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md
     columnComments:

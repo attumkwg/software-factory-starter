@@ -108,6 +108,13 @@ export async function seed(databaseUrl: string | undefined): Promise<void> {
             mfaRequired: t.mfaRequired ?? false,
           })
           .onConflictDoNothing();
+        // 運営の組織は、移行 0009 より前に作った手元の DB でも必須にそろえる(必須を足すだけ。切りはしない)
+        if (t.mfaRequired) {
+          await tx
+            .update(tenants)
+            .set({ mfaRequired: true })
+            .where(eq(tenants.tenantId, t.tenantId));
+        }
         await tx
           .insert(users)
           .values(t.users.map((u) => ({ ...u, tenantId: t.tenantId })))

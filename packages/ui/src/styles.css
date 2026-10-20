@@ -371,3 +371,15 @@ body {
 .ui-text-muted {
   color: var(--color-text-muted);
 }
+
+/* QR コード(二段階認証の設定)。周りに4マスの余白(読み取りに要る)。色はテーマで変えない */
+.ui-qrcode {
+  display: block;
+  width: 200px;
+  height: 200px;
+  background: var(--color-qr-light);
+  border-radius: var(--radius-sm);
+}
+.ui-qrcode__dark {
+  fill: var(--color-qr-dark);
+}

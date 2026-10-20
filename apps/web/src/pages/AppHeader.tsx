@@ -4,7 +4,7 @@ import { useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { api } from "../api.ts";
 import { formatDateTime } from "../format.ts";
-import { canOpenSettings, canStartSupport, roleLabel } from "../permissions.ts";
+import { canManageAccount, canOpenSettings, canStartSupport, roleLabel } from "../permissions.ts";
 import { useAction } from "../use-action.ts";
 
 // ログインした後の画面の外枠: 会社名・名前・ロール・ログアウト。
@@ -55,6 +55,8 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
                   {/* 管理者の画面(監査ログ・サポートへの許可・データの書き出し)は「設定」にまとめる */}
                   {canOpenSettings(me) && <Link href="/settings">設定</Link>}
                   {canStartSupport(me) && <Link href="/support">サポート</Link>}
+                  {/* 自分のアカウント(二段階認証・メール・パスワード) */}
+                  {canManageAccount(me) && <Link href="/account">アカウント</Link>}
                 </Inline>
               </nav>
             </Inline>
