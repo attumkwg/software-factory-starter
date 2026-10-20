@@ -67,6 +67,41 @@ describe("設定", () => {
     expect(local.appUrl).toBe("http://localhost:8080");
   });
 
+  // 決まりを全部まとめて破ったときの答え(どの決まりも、この順で全部出る)
+  it("決まりの破れは、まとめて全部・決まった順で出る", () => {
+    const broken = {
+      ...base,
+      APP_ENV: "stg",
+      AUTH_MODE: "cognito",
+      COGNITO_ENDPOINT: "http://fake-cognito:9231/",
+      SENTRY_DSN: "http://public@localhost:9999/1",
+    };
+    expect(() => loadConfig(broken)).toThrow(
+      [
+        "設定が正しくありません:",
+        "- MAIL_SMTP_URL: stg ではメールを送る先(MAIL_SMTP_URL)が要ります",
+        "- APP_URL: stg では画面の URL(APP_URL。メールのリンクに使う)が要ります",
+        "- SENTRY_DSN: SENTRY_DSN は https:// にしてください",
+        "- AUTH_MODE: cognito には COGNITO_REGION / COGNITO_USER_POOL_ID / COGNITO_CLIENT_ID が要ります",
+        "- COGNITO_ENDPOINT: COGNITO_ENDPOINT(偽物の Cognito)は local / test だけで使えます",
+        "- COGNITO_ENDPOINT: COGNITO_ENDPOINT は https:// にしてください",
+        "- COGNITO_ENDPOINT: COGNITO_ENDPOINT の最後に / を付けないでください",
+      ].join("\n"),
+    );
+    expect(() =>
+      loadConfig({ ...base, APP_ENV: "prod", AUTH_MODE: "dev", APP_URL: "https://a.example.com/" }),
+    ).toThrow(
+      [
+        "設定が正しくありません:",
+        "- AUTH_MODE: 開発用ログインは prod では使えません(local / test / preview だけ)",
+        "- MAIL_SMTP_URL: prod ではメールを送る先(MAIL_SMTP_URL)が要ります",
+      ].join("\n"),
+    );
+    expect(() =>
+      loadConfig({ ...base, ...cognito, APP_ENV: "local", APP_URL: "http://localhost:8080/" }),
+    ).toThrow("- APP_URL: APP_URL の最後に / を付けないでください");
+  });
+
   it("短すぎるセッションの秘密は通さない", () => {
     expect(() => loadConfig({ ...base, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);
   });

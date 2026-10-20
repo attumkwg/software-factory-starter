@@ -85,13 +85,7 @@
       }
     },
     {
-      "includes": [
-        "apps/api/src/authz/middleware.ts",
-        "apps/api/src/config.ts",
-        "apps/api/test/unit/domain-boundaries.test.ts",
-        "apps/web/src/use-action.ts",
-        "packages/shared/src/money.ts"
-      ],
+      "includes": ["apps/api/src/authz/middleware.ts"],
       "linter": {
         "rules": {
           "complexity": {
@@ -101,10 +95,7 @@
       }
     },
     {
-      "includes": [
-        "apps/api/src/auth/routes.ts",
-        "packages/fake-cognito/contract/cognito.contract.test.ts"
-      ],
+      "includes": ["apps/api/src/auth/routes.ts"],
       "linter": {
         "rules": {
           "complexity": {
@@ -114,7 +105,7 @@
       }
     },
     {
-      "includes": ["apps/api/src/auth/routes.ts", "packages/fake-cognito/src/fake.ts"],
+      "includes": ["apps/api/src/auth/routes.ts"],
       "linter": {
         "rules": {
           "style": {

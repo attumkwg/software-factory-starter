@@ -145,20 +145,30 @@ function divideRounded(n: bigint, d: bigint, rounding: Rounding): bigint {
   const r = n % d;
   if (r === 0n) return q;
   const negative = n < 0n !== d < 0n;
+  // 余りが半分より小さい(-1)・ちょうど(0)・大きい(1)
   const twice = (r < 0n ? -r : r) * 2n;
   const absD = d < 0n ? -d : d;
-  const awayFromZero = negative ? q - 1n : q + 1n;
+  const half = twice < absD ? -1 : twice === absD ? 0 : 1;
+  const away = roundsAwayFromZero(rounding, negative, half, q % 2n === 0n);
+  return away ? (negative ? q - 1n : q + 1n) : q;
+}
+
+/** 0 の方へ切り捨てた商を、0 から遠い方へ1つ動かすか。 */
+function roundsAwayFromZero(
+  rounding: Rounding,
+  negative: boolean,
+  half: -1 | 0 | 1,
+  quotientIsEven: boolean,
+): boolean {
   switch (rounding) {
     case "floor":
-      return negative ? q - 1n : q;
+      return negative;
     case "ceil":
-      return negative ? q : q + 1n;
+      return !negative;
     case "half_up":
-      return twice >= absD ? awayFromZero : q;
+      return half >= 0;
     case "half_even":
-      if (twice > absD) return awayFromZero;
-      if (twice < absD) return q;
-      return q % 2n === 0n ? q : awayFromZero;
+      return half > 0 || (half === 0 && !quotientIsEven);
   }
 }
 
