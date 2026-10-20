@@ -42,6 +42,8 @@ const getUser = (token: string) => client.send(new GetUserCommand({ AccessToken:
 describe(`Cognito の契約(${TARGET}): 本人の操作(パスワード)`, () => {
   it("パスワードの変更: 前のパスワードが違えば NotAuthorizedException。変えたら新しいパスワードで入れる", async () => {
     const { email, token } = await loggedIn("chpw");
+    // 試しの人の新しいパスワード(終わったら人ごと消す。本物の秘密ではない)
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password
     const newPassword = "Contract-Changed-5678";
     const wrong = await errorOf(
       client.send(

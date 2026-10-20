@@ -5,6 +5,7 @@ import { api } from "../../api.ts";
 import { useAction } from "../../use-action.ts";
 import { FormError, PasswordField, Submit } from "../auth/fields.tsx";
 import { ReauthForm, TotpField } from "./ReauthForm.tsx";
+import { groupSecret } from "./secret.ts";
 
 // 二段階認証(TOTP)を有効・無効にする。有効にする: パスワードを入れ直す → QR と鍵 → 認証アプリのコード。
 // 外す: パスワードといまのコード(組織が必須なら外せない)。
@@ -64,8 +65,7 @@ function Enable() {
 function Scan({ setup }: { setup: MfaSetup }) {
   const action = useAction();
   const [code, setCode] = useState("");
-  // 手で入れるとき読みやすいよう、4文字ずつ区切る
-  const key = setup.secret.match(/.{1,4}/g)?.join(" ") ?? setup.secret;
+  const key = groupSecret(setup.secret);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

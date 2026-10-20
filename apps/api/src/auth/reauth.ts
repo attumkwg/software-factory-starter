@@ -28,7 +28,7 @@ function keyOf(cfg: SessionConfig): Buffer {
 export function sealReauth(cfg: SessionConfig, r: Reauth, now = Date.now()): string {
   const exp = Math.floor(now / 1000) + REAUTH_TTL_SECONDS;
   const iv = randomBytes(IV_BYTES);
-  const cipher = createCipheriv("aes-256-gcm", keyOf(cfg), iv);
+  const cipher = createCipheriv("aes-256-gcm", keyOf(cfg), iv, { authTagLength: TAG_BYTES });
   const body = Buffer.concat([
     cipher.update(JSON.stringify({ ...r, exp }), "utf8"),
     cipher.final(),
@@ -47,7 +47,10 @@ export function openReauth(
     const raw = Buffer.from(sealed, "base64url");
     const iv = raw.subarray(0, IV_BYTES);
     const tag = raw.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
-    const decipher = createDecipheriv("aes-256-gcm", keyOf(cfg), iv);
+    // 認証タグの長さを決めておく(短いタグで通されないように)
+    const decipher = createDecipheriv("aes-256-gcm", keyOf(cfg), iv, {
+      authTagLength: TAG_BYTES,
+    });
     decipher.setAuthTag(tag);
     const text = Buffer.concat([
       decipher.update(raw.subarray(IV_BYTES + TAG_BYTES)),
