@@ -22,6 +22,9 @@ describe("許可リスト", () => {
     expect(isAllowedKey("newEmail")).toBe(false);
     expect(isAllowedKey("requestId")).toBe(true);
     expect(isAllowedKey("eventTenantId")).toBe(true);
+    expect(isAllowedKey("taskIds")).toBe(true);
+    expect(isAllowedKey("Id")).toBe(false);
+    expect(isAllowedKey("user_id")).toBe(false);
   });
 
   it("深い所も同じ決まりで絞る", () => {

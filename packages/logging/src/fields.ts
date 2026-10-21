@@ -69,7 +69,6 @@ export const REDACTED = "[REDACTED]";
 const normalize = (key: string) => key.replace(/_/g, "").toLowerCase();
 const DENIED = new Set(ALWAYS_REDACTED.map(normalize));
 const ALLOWED = new Set(ALLOWED_KEYS);
-const ID_KEY = /^[a-z][A-Za-z]*Ids?$/;
 /** ID の形(UUID・request ID・trace ID・出来事の名前)。メールアドレスや日本語の名前は通らない */
 const ID_VALUE = /^[\w.:-]{1,100}$/;
 /** メールの Message-ID(<task-completed.<出来事の ID>@<アプリのホスト>>。中身はこちらが決めた物だけ) */
@@ -80,8 +79,16 @@ const PATH_WORD = /^[A-Za-z_.-]{1,64}$/;
 const MAX_DEPTH = 4;
 
 export const isDeniedKey = (key: string): boolean => DENIED.has(normalize(key));
+
+const isLetter = (c: string) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
+/** `…Id` / `…Ids` の名前(小文字で始まる英字だけ)。正規表現を使わずに見る(Semgrep の regex_dos に当たらないように) */
+function isIdKey(key: string): boolean {
+  const stem = key.endsWith("Ids") ? key.slice(0, -3) : key.endsWith("Id") ? key.slice(0, -2) : "";
+  const first = stem[0] ?? "";
+  return first >= "a" && first <= "z" && [...stem].every(isLetter);
+}
 export const isAllowedKey = (key: string): boolean =>
-  !isDeniedKey(key) && (ALLOWED.has(key) || ID_KEY.test(key));
+  !isDeniedKey(key) && (ALLOWED.has(key) || isIdKey(key));
 
 /** パスは ID と英字の名前の区切りだけ残す(`/api/projects/<ID>` は残る・`/api/田中` は伏せる) */
 export function scrubPath(path: string): string {
@@ -98,7 +105,7 @@ function idValue(key: string, value: string): string {
 
 function scalar(key: string, value: unknown): unknown {
   if (typeof value !== "string") return value;
-  if (ID_KEY.test(key)) return idValue(key, value);
+  if (isIdKey(key)) return idValue(key, value);
   if (key === "path") return scrubPath(value);
   return scrubText(value, 1000);
 }
