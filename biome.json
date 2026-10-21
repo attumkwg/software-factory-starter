@@ -75,6 +75,50 @@
       }
     },
     {
+      "includes": ["prototypes/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off",
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@app/*", "!@app/ui", "!@app/ui/*"],
+                    "message": "試作から使ってよいのは @app/ui(デザインシステム)だけ。本物の API・DB には触らない"
+                  },
+                  {
+                    "group": [
+                      "@aws-sdk/*",
+                      "aws-sdk",
+                      "@smithy/*",
+                      "pg",
+                      "postgres",
+                      "drizzle-orm",
+                      "drizzle-orm/*",
+                      "@sentry/*",
+                      "dotenv",
+                      "pino"
+                    ],
+                    "message": "試作から AWS・DB・監視・秘密の設定には触らない。値は偽のデータとして src に書く"
+                  },
+                  {
+                    "group": ["**/apps/**", "**/packages/**", "**/.env*"],
+                    "message": "試作のフォルダの外(apps・packages)や .env を読まない"
+                  }
+                ]
+              }
+            }
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off",
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/*.css"],
       "linter": {
         "rules": {

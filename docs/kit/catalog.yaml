@@ -227,6 +227,22 @@ parts:
       - 個人情報保護法 23条
     where: [apps/api/src/logger.ts, apps/api/test/unit/logger.test.ts]
 
+  - id: log-allowlist
+    name: ログの許可リスト(出してよい項目だけ)
+    group: foundation
+    status: 作成中
+    pr: 10
+    removable: false
+    default: 残す
+    what: ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる
+    needed_by: 個人情報を扱うすべて
+    not_needed_by: なし
+    if_removed: 新しい項目を足したとき、個人情報がそのままログに出る
+    depends_on: [logging, column-classification]
+    law:
+      - 個人情報保護法 23条(安全管理措置)
+      - ISMS 8.15(ログ取得)・8.12(データ漏えいの防止)
+
   - id: harness
     name: AI のハーネス(守りの一覧とフック)
     group: foundation
@@ -775,6 +791,7 @@ parts:
     name: 利用規約・プライバシーポリシーの同意
     group: rules
     status: 作成中
+    pr: 8
     removable: true
     default: 残す
     what: 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。同意の記録は監査ログに
@@ -855,7 +872,8 @@ parts:
     remove:
       delete:
         - infra/terraform/modules/preview-env
-        - infra/terraform/envs/preview
+        - infra/terraform/envs/preview/base
+        - infra/terraform/envs/preview/pr
         - .github/workflows/preview.yml
         - .github/workflows/cleanup-previews.yml
       edit:
@@ -908,16 +926,39 @@ parts:
   - id: prototypes
     name: プロトタイプの置き場
     group: dev
-    status: 作成中
-    pr: 9
+    status: あり
     removable: true
     default: 残す
-    what: 本番のラインに乗せずに、画面だけ・使い捨ての形で確かめる置き場(prototypes/)
+    what: 本番のラインに乗せずに、押せる画面だけ・偽のデータの試作を作り(/prototype)、合言葉つきの URL で見せる(S3+CloudFront)
     needed_by: PMF の前で、作らずに確かめたい
-    not_needed_by: 確かめ終わって、作る物が決まった
-    if_removed: 確かめのための物が、本番のコードに混ざる
-    depends_on: []
+    not_needed_by: 確かめ終わって、作る物が決まった(残しても、置き場所は月 0〜数十円)
+    if_removed: 確かめのための物が、本番のコードに混ざる。画面だけで確かめる手が高くなる
+    depends_on: [bets]
     law: []
+    remove:
+      delete:
+        - prototypes
+        - .claude/skills/prototype
+        - .github/workflows/prototypes.yml
+        - infra/terraform/modules/prototype-site
+        - infra/terraform/envs/preview/prototypes
+        - scripts/prototypes-lib.mjs
+        - scripts/prototypes.mjs
+        - scripts/prototypes.test.mjs
+        - docs/guides/prototypes.md
+      edit:
+        - { path: package.json, what: prototypes・prototype:dev を外す }
+        - { path: pnpm-workspace.yaml, what: prototypes/* を外す }
+        - { path: biome.json, what: prototypes/** の決まりを外す }
+        - { path: .github/labeler.yml, what: prototypes/** を外す }
+        - { path: .github/workflows/terraform.yml, what: envs/preview/prototypes を外す }
+        - { path: CLAUDE.md, what: pnpm prototypes と prototypes/ の行を外す }
+        - { path: .claude/skills/kickoff/SKILL.md, what: /prototype へのつなぎを外す }
+        - { path: docs/guides/before-pmf.md, what: 試作の置き場の所を外す }
+        - { path: docs/getting-started.md, what: 費用の表の試作の行を外す }
+      ci:
+        - { file: .github/workflows/ci.yml, job: fast, what: 「試作の守り」の手順を外す }
+      docs: [docs/adr/0020-prototypes-on-s3-cloudfront-passphrase.md]
 
   # ── 進め方 ────────────────────────────────────────────────────────────
   - id: kickoff

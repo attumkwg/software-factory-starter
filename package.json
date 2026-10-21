@@ -29,6 +29,8 @@
     "test:scripts": "node --test scripts/bets.test.mjs",
     "security:fuzz": "node scripts/security-fuzz.mjs",
     "guards": "node scripts/check-guards.mjs",
+    "prototypes": "node scripts/prototypes.mjs",
+    "prototype:dev": "node scripts/prototypes.mjs dev",
     "kit:catalog": "node scripts/kit/catalog.mjs && node --test scripts/kit/kit.test.mjs",
     "kit:readme": "node scripts/kit/readme.mjs"
   },
