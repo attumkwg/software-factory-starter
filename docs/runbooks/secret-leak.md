@@ -113,7 +113,7 @@ aws cognito-idp admin-reset-user-password --user-pool-id <プール> --username 
 | セッションの秘密 | アプリのログで、同じ userId が普段と違う所・時間から使われていないか(`fields @timestamp, userId, route, status | filter userId = "…"`) |
 | SES | 送信の数の急増 |
 
-**お客さんのデータに触れられた疑いがあれば**、[tenant-data-leak.md](tenant-data-leak.md) へ(連絡の期限がある)。
+**お客さんのデータに触れられた疑いがあれば**、[tenant-data-leak.md](tenant-data-leak.md) へ(連絡の期限がある)。**個人データ(利用者の名前・メールなど)に触れられた疑い**なら、[personal-data-breach.md](personal-data-breach.md) で報告が要るかを判定する。秘密を盗んで使った形なら「不正の目的によるおそれ」に当たり、人数に関係なく報告の対象になる。期限は疑いに気づいた日から数える。
 
 ## 4. 漏れた所の後始末
 
