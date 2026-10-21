@@ -102,6 +102,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 | 手元だけ(①〜③) | 0円 | — |
 | stg だけ | 約2.2万〜2.7万円 | NAT(1つ 月 約7千円)・Aurora・ALB・Fargate(API と画面で2つ) |
 | 本番(prod) | 約5.3万〜7.3万円 | NAT(AZ ごとに2つ)・Aurora 2台・Fargate(API 2つ+画面 2つ) |
+| 試作の置き場所(`envs/preview/prototypes`) | 0〜数十円 | CloudFront・S3(無料枠の中がほとんど)。[guides/prototypes.md](guides/prototypes.md) |
 | PR ごとの環境の土台 | 約1.2万円 | NAT・ALB |
 | ┗ PR 1本を24時間立てる | +月 約1,200円 | Fargate Spot(DB・API・画面を1つのタスクに) |
 | 全部(stg+本番+プレビュー) | 約9.5万〜11.5万円 | NAT が合わせて4つ |
