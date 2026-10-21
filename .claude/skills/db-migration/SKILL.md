@@ -24,6 +24,9 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
 
 1. その領域の `apps/api/src/domains/<領域>/schema.ts` を直す(表は領域の Postgres のスキーマに置く。`organizations.table(...)` など。ADR 0004)。
    - お金は `moneyAmount`+`currencyCode`、単価・率は `decimal`、瞬間は `instant`、日付だけは `dateOnly`(`src/db/columns.ts`。ADR 0005)。
+   - **列を足したら、列の分類表 `apps/api/src/db/classification.ts` に1行**(区分 `public` / `internal` / `personal` / `sensitive` と利用目的の一言)。決め方は分類表の先頭。迷ったら重い方(人が入れる自由な文は `personal`)。jsonb の列は中身のキーも書く。無ければ `test/unit/classification.test.ts` が落ちる。続けて `pnpm docs:personal-data`(個人情報の台帳 `docs/db/personal-data.md`)。
+   - **`sensitive`(要配慮個人情報: 病歴・障害・信条・犯罪の経歴など)は、人の確認なしに足さない。** スキーマ `sensitive` の表にしか置けない(テストが落ちる)。そのスキーマが無ければ、先に ADR 0018 の段1(専用のロール・鍵・列ごとの暗号化)の設計書を書いて、人に渡す。実装はそのあと。
+   - `personal` の列を足すと、プライバシーポリシーの「取得する情報と利用目的」が変わりうる。PR の「人に判断してほしい所」に、台帳に増えた行を貼る。
 2. `pnpm db:generate --name <内容>` で移行ファイルを作る(`apps/api/drizzle/`)。
 3. ファイルの先頭に、ロック待ちの上限を入れる:
    ```sql
@@ -54,5 +57,6 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
 ## PR に書くこと
 
 - どの段(①〜⑤)か、次の段はいつか。
+- 足した列の区分(`personal` / `sensitive` があれば、台帳に増えた行をそのまま)。
 - 戻し方(この移行を戻す SQL、またはアプリを前の版に戻しても動く理由)。
 - 大きい表に触るなら、行数の見込みとロックの時間の見込み。
