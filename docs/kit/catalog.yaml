@@ -1,0 +1,966 @@
+# キットの部品のカタログ(いまの正)。
+# 自分のプロダクトに「要るか」を確かめて、要らない部品を消すためのチェックシート。`/tailor` がこれを読む。
+#   pnpm kit:catalog            書式・つながり・消し方のパスが正しいか・土台を消す答えになっていないか・README の生成し忘れ
+#   pnpm kit:catalog --show <id> 1つの部品(頼っている/頼られている を含む)
+#   pnpm kit:readme             README の「使い始めたらやること」をここから作り直す
+# 書き方:
+#   - 部品を足したら、ここに1件足す(消し方は実際のファイルを見て書く。CI がパスの実在を確かめる)。
+#   - removable: false は「土台」。どの答えでも消さない。消し方は書かない。
+#   - status: あり(main にある)/ 作成中(PR が開いている。パスは確かめない)/ 未(まだ無い。足す候補)
+#   - remove の docs は、消さずに頭に「このプロダクトでは消した」と1行足す資料(仕様・ADR は記録なので書き換えない)。
+#   - 法令・認証との関係は「分かる範囲で」。認証を取るとき・法令の判断は専門家と確かめる。
+#     ISMS は ISO/IEC 27001:2022 の附属書 A の番号、SOC 2 は Trust Services Criteria の番号。
+# 考え方: docs/adr/0021-kit-catalog-and-tailoring.md
+
+version: 1
+
+# ── 使い始めたらやること(README の節はここから作る)───────────────────────────────
+start_steps:
+  - title: 何を作るかを決める
+    command: /kickoff
+    does: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める
+    writes: docs/product/plan.md
+    status: あり
+  - title: 部品を選ぶ
+    command: /tailor
+    does: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で
+    writes: docs/product/tailoring.md
+    status: あり
+  - title: 手でやる設定
+    command: null
+    does: GitHub のブランチ保護・Environments・Renovate、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ
+    link: "#-本人が手でやる設定"
+    status: あり
+  - title: 点検を立ち上げる
+    command: /checkup
+    does: 立ち上げの段階でやること(守りが効いているか・取り返せない所)を台帳から1問ずつ。台帳ができるまでは docs/playbook.md の「毎週やること」
+    writes: docs/checkup/todo.yaml
+    link: docs/specs/0007-checkup.md
+    status: 未
+
+# ── /tailor が聞くこと(人に聞くのは4つだけ: どれも事業判断か戻せないリスク)───────────
+questions:
+  - id: audience
+    text: 会社向け(B2B)か、個人向け(B2C)か
+    kind: 戻せないリスク
+    options: [会社向け, 個人向け, まだ分からない]
+    recommended: 会社向け
+    why: データの分け方(組織ごと)は後から変えるのが高い。迷ったら会社向けの形のまま
+  - id: personal-data
+    text: 個人情報・要配慮個人情報(病歴・信条など)を扱うか
+    kind: 戻せないリスク
+    options: [ふつうの個人情報だけ, 要配慮も扱う, ほとんど扱わない]
+    recommended: ふつうの個人情報だけ
+    why: 漏れたときの報告の義務・要配慮は取るときに本人の同意が要る(個人情報保護法 20条2項)
+  - id: money
+    text: お金を扱うか(請求・決済・金額の計算)
+    kind: 事業判断
+    options: [扱わない, 金額を計算する, 決済もする]
+    recommended: 扱わない
+    why: 決済をするなら、カード情報を持たない作り(決済の会社に任せる)と、特定商取引法の表示が要る
+  - id: mail
+    text: 利用者にメールを送るか
+    kind: 事業判断
+    options: [送る, 送らない]
+    recommended: 送る
+    why: ログインの確認のメールは Cognito が送る(この答えに関係なく残る)。ここで聞くのはアプリからのお知らせ
+  - id: search
+    text: 検索(Google など)から人を呼ぶか
+    kind: 事業判断
+    options: [呼ばない, 呼ぶ]
+    recommended: 呼ばない
+    why: ログインの後の画面は検索に載せない。呼ぶなら、公開のページを別に作る
+  - id: mobile
+    text: スマホのアプリを作るか
+    kind: 事業判断
+    options: [ブラウザだけ, スマホのアプリも, スマホのアプリだけ]
+    recommended: ブラウザだけ
+    why: アプリは古い版が残るので、API の項目は足すだけ・消さない(CI の「API の互換」が見張る)
+  - id: certification
+    text: 認証(P マーク・ISMS・SOC 2)を取る予定があるか
+    kind: 事業判断
+    options: [予定なし, P マーク, ISMS, SOC 2]
+    recommended: 予定なし
+    multi: true
+    why: 取るなら、記録(監査ログ・アクセスの見直し・バックアップの訓練)を消さずに残す
+
+# ── 部品の区分 ────────────────────────────────────────────────────────────
+groups:
+  - { id: foundation, name: 土台(消さない) }
+  - { id: business, name: 会社向け }
+  - { id: login, name: ログイン }
+  - { id: contact, name: 連絡 }
+  - { id: watch, name: 見張り }
+  - { id: front, name: 表側(画面) }
+  - { id: personal, name: 個人情報 }
+  - { id: rules, name: 決まりごと }
+  - { id: dev, name: 開発の道具 }
+  - { id: process, name: 進め方 }
+
+parts:
+  # ── 土台(removable: false。どの答えでも消さない)─────────────────────────────
+  - id: tenant-isolation
+    name: テナント分離と RLS
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 全部の表に tenant_id を持ち、DB の RLS とアプリの両方で、他社のデータを読めなくする
+    needed_by: すべて(個人向けでも「1人 = 1組織」として使う)
+    not_needed_by: なし
+    if_removed: 他社のデータが見える事故を、作りで止められなくなる
+    depends_on: []
+    law:
+      - 個人情報保護法 23条(安全管理措置)
+      - ISMS 8.3(情報へのアクセス制限)
+      - SOC 2 CC6.1
+    where: [apps/api/src/db/tenant.ts, apps/api/drizzle/0001_rls.sql, docs/adr/0001-shared-tables-with-rls.md]
+
+  - id: organizations
+    name: 組織と利用者・ロール
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 組織(テナント)と利用者、admin / member / viewer のロール
+    needed_by: すべて。テナント分離と認可がこれを前提にしている
+    not_needed_by: なし(個人向けは「1人 = 1組織」・ロールは admin だけ、として使う)
+    if_removed: テナントもロールも決められなくなる。分け方を変えるなら消すのではなく /design と ADR で作り直す
+    depends_on: [tenant-isolation]
+    law:
+      - ISMS 5.18(アクセス権)
+    where: [apps/api/src/domains/organizations, packages/shared/src/roles.ts]
+
+  - id: authz
+    name: 認可の関所と権限の表
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 全部の API が1か所の関所を通り、表(matrix.yaml)に無い API は既定で拒否する。表の全行をテストで叩く
+    needed_by: すべて
+    not_needed_by: なし
+    if_removed: 権限の書き忘れが、そのまま穴になる
+    depends_on: [organizations]
+    law:
+      - ISMS 5.15(アクセス制御)・8.3
+      - SOC 2 CC6.1・CC6.3
+    where: [apps/api/src/authz, docs/authz/matrix.yaml, apps/api/test/unit/authz-coverage.test.ts]
+
+  - id: login
+    name: 自前のログイン画面と Cognito
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 自前の画面 → API → Cognito でログイン・登録・パスワードの再設定。トークンはサーバーの中だけ。手元とテストは偽物の Cognito
+    needed_by: すべて(ログインが無いと本番に出せない)
+    not_needed_by: なし。別の仕組み(Auth0 など)にするなら、消すのではなく /design と ADR で入れ替える
+    if_removed: 本番でログインできない
+    depends_on: [organizations]
+    law:
+      - ISMS 8.5(セキュアな認証)・5.17(認証情報)
+      - SOC 2 CC6.1
+    where: [apps/api/src/auth, apps/web/src/pages/LoginPage.tsx, packages/fake-cognito, docs/adr/0007-cognito-login-server-side.md]
+
+  - id: secrets
+    name: 秘密の扱い
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る。漏れたときの手順書
+    needed_by: すべて
+    not_needed_by: なし
+    if_removed: 鍵がコードやログに混ざっても気づけない
+    depends_on: []
+    law:
+      - ISMS 5.17(認証情報)・8.24(暗号の利用)
+      - SOC 2 CC6.1
+    where: [.gitleaksignore, docs/runbooks/secret-leak.md]
+
+  - id: backup
+    name: バックアップと戻す訓練
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 消せない保管庫に毎日と毎月。毎月 stg で戻す訓練
+    needed_by: すべて
+    not_needed_by: なし
+    if_removed: 消えたデータ・壊れたデータを戻せない
+    depends_on: []
+    law:
+      - ISMS 8.13(情報のバックアップ)・5.30(事業継続のための ICT の備え)
+      - SOC 2 A1.2・A1.3
+    where: [infra/terraform/modules/backup, .github/workflows/restore-drill.yml, docs/runbooks/db-restore.md]
+
+  - id: ci-checks
+    name: CI の検査
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査
+    needed_by: すべて(AI の PR を人が全部は読まない前提の守り)
+    not_needed_by: なし
+    if_removed: AI の間違いが、そのまま main に入る
+    depends_on: []
+    law:
+      - ISMS 8.25(セキュアな開発のライフサイクル)・8.28・8.29・8.8(技術的脆弱性の管理)
+      - SOC 2 CC8.1・CC7.1
+    where: [.github/workflows/ci.yml, .semgrep/rules.yml, docs/guides/ci-limits.md]
+
+  - id: logging
+    name: ログの決まり
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない)
+    needed_by: すべて
+    not_needed_by: なし
+    if_removed: 障害の原因を追えない・ログに個人情報が混ざる
+    depends_on: []
+    law:
+      - ISMS 8.15(ログ取得)
+      - 個人情報保護法 23条
+    where: [apps/api/src/logger.ts, apps/api/test/unit/logger.test.ts]
+
+  - id: harness
+    name: AI のハーネス(守りの一覧とフック)
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる
+    needed_by: すべて(AI が PR を出す前提のキット)
+    not_needed_by: なし
+    if_removed: AI が認可・移行・CI を黙って書き換えられる
+    depends_on: [ci-checks]
+    law:
+      - ISMS 8.32(変更管理)
+      - SOC 2 CC8.1
+    where: [.claude/hooks/protected-paths.json, scripts/check-guards.mjs, docs/guides/local-guards.md]
+
+  - id: column-classification
+    name: 列の分類表とログ
+    group: foundation
+    status: 作成中
+    pr: 4
+    removable: false
+    default: 残す
+    what: 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする
+    needed_by: 個人情報を扱うすべて
+    not_needed_by: なし
+    if_removed: どこに個人情報があるかが分からず、開示・削除・漏えいの報告に答えられない
+    depends_on: [tenant-isolation]
+    law:
+      - 個人情報保護法 17条(利用目的の特定)・23条
+      - ISMS 5.34(プライバシー及び PII の保護)
+      - P マーク(個人情報の特定)
+
+  # ── 会社向け ────────────────────────────────────────────────────────────
+  - id: audit-log
+    name: 監査ログ
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 誰が・いつ・何をしたかを残し、お客さんの管理者が画面で見られる。書き込みの API は関所が自動で残す
+    needed_by: 会社向け・お客さんに監査や説明の責任がある・認証を取る予定がある
+    not_needed_by: 個人向けで、運営だけが見られればよい(アクセスログで足りる)
+    if_removed: 「誰が消したか」に答えられない。代理ログインの記録の置き場が無くなる(解約の削除の記録は、消し方どおり外す)
+    depends_on: [authz]
+    law:
+      - ISMS 8.15(ログ取得)
+      - SOC 2 CC7.2
+      - P マーク(記録)
+    suggest_remove_when: [audience=個人向け]
+    keep_when: [certification=P マーク, certification=ISMS, certification=SOC 2]
+    remove:
+      delete:
+        - apps/api/src/audit
+        - apps/api/drizzle/0006_audit_log.sql
+        - apps/api/test/unit/audit-coverage.test.ts
+        - apps/api/test/integration/audit.int.test.ts
+        - apps/web/src/pages/AuditPage.tsx
+        - apps/web/src/routes/_app/audit.tsx
+        - apps/web/src/audit-labels.ts
+        - apps/web/src/audit-labels.test.ts
+        - apps/web/e2e/audit.spec.ts
+      edit:
+        - { path: apps/api/src/app.ts, what: auditRoutes の行を消す }
+        - { path: apps/api/src/authz/middleware.ts, what: 書き込みの記録(capture)を外す }
+        - { path: apps/api/src/export/routes.ts, what: 書き出しから auditEvents を外す }
+        - { path: apps/api/src/db/schema.ts, what: audit の表の読み込みを外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.audit_events を外す }
+        - { path: apps/web/src/api.ts, what: 監査ログの呼び出しを外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 監査ログへのリンクを外す }
+        - { path: packages/shared/src/schemas.ts, what: 監査ログの型は残してよい(足すだけの決まり) }
+        - { path: CLAUDE.md, what: 「書き込みの API を足したら actions.ts に1行」を消す }
+      migration: 表 platform.audit_events を消す移行を足す(.claude/skills/db-migration。0006 は書き換えない)
+      matrix: [GET /api/audit-events]
+      docs: [docs/specs/0003-audit-log.md, docs/adr/0013-audit-log.md]
+
+  - id: support-access
+    name: サポートの代理ログイン
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: お客さんの管理者が許可した間だけ、運営の社員がその組織の画面を「見るだけ」で開ける
+    needed_by: 会社向けで、問い合わせに画面を見て答える
+    not_needed_by: 個人向け・問い合わせを画面を見ずに受ける
+    if_removed: 問い合わせのたびに、お客さんに画面の写真を頼むことになる
+    depends_on: [audit-log, organizations, mfa]
+    law:
+      - ISMS 8.2(特権的アクセス権)・5.18
+      - SOC 2 CC6.2
+      - 個人情報保護法 25条(委託先の監督。B2B ではお客さんが委託元)
+    suggest_remove_when: [audience=個人向け]
+    remove:
+      delete:
+        - apps/api/src/auth/support-routes.ts
+        - apps/api/src/domains/organizations/support-routes.ts
+        - apps/api/src/domains/organizations/support.ts
+        - apps/api/test/integration/support-access.int.test.ts
+        - apps/api/test/unit/support.test.ts
+        - apps/web/src/pages/SupportGrantsPage.tsx
+        - apps/web/src/pages/SupportStaffPage.tsx
+        - apps/web/src/routes/_app/support-access.tsx
+        - apps/web/src/routes/_app/support.tsx
+        - apps/web/e2e/support.spec.ts
+        - docs/runbooks/support-access.md
+      edit:
+        - { path: apps/api/src/app.ts, what: supportGrantRoutes・supportSessionRoutes・supportTenantId を外す }
+        - { path: apps/api/src/authz/policy.ts, what: NOT_DURING_SUPPORT と代理の規則を外す }
+        - { path: apps/api/src/auth/session.ts, what: セッションの support の欄を外す }
+        - { path: apps/api/src/config.ts, what: SUPPORT_TENANT_ID を外す }
+        - { path: apps/api/src/domains/organizations/schema.ts, what: support_grants・support_sessions の表を外す }
+        - { path: apps/api/src/domains/organizations/index.ts, what: 代理の書き出しを外す }
+        - { path: apps/api/src/db/seed.ts, what: 運営の組織と support@ops.test を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から support の2つを外す }
+        - { path: apps/api/src/export/routes.ts, what: 書き出しから supportGrants を外す }
+        - { path: apps/web/src/pages/AppHeader.tsx, what: 代理中の帯とリンクを外す }
+        - { path: apps/web/src/permissions.ts, what: 代理の判定を外す }
+        - { path: README.md, what: 「6. サポートの代理ログイン」を消す }
+      migration: 表 organizations.support_grants・support_sessions を消す移行を足す
+      matrix:
+        - GET /api/support-grants
+        - POST /api/support-grants
+        - DELETE /api/support-grants/{grantId}
+        - POST /api/support/sessions
+        - POST /api/support/end
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, what: support_tenant_id を渡す所を消す }
+        - { file: infra/terraform/envs/prod/main.tf, what: support_tenant_id を渡す所を消す }
+      docs: [docs/specs/0004-support-access.md, docs/adr/0014-support-access.md]
+
+  - id: offboarding
+    name: 解約(書き出しと削除)
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 管理者が自社のデータを書き出せる。解約した組織を、試し → 名前の確認つきで丸ごと消すコマンド
+    needed_by: すべて(個人向けでも「退会したら消す」に使える)
+    not_needed_by: なし(消すなら、代わりの消し方を先に決める)
+    if_removed: 解約・退会のときに消せない。「消してほしい」に答えられない
+    depends_on: [tenant-isolation]
+    law:
+      - 個人情報保護法 22条(不要になったら消す努力義務)・35条(利用停止・消去)
+      - ISMS 8.10(情報の削除)
+      - SOC 2 C1.2
+    remove:
+      delete:
+        - apps/api/src/offboarding
+        - apps/api/src/export
+        - apps/api/test/integration/offboarding.int.test.ts
+        - apps/web/e2e/export.spec.ts
+        - docs/runbooks/offboarding.md
+      edit:
+        - { path: apps/api/src/app.ts, what: exportRoutes を外す }
+        - { path: apps/api/src/cli.ts, what: delete-tenant のコマンドを外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 書き出しのボタンを外す }
+        - { path: CLAUDE.md, what: 「tenant_id の表を足したら TENANT_TABLES にも」を消す }
+      matrix: [POST /api/exports]
+      docs: [docs/specs/0005-offboarding.md, docs/adr/0015-offboarding.md]
+
+  - id: mfa-required
+    name: 組織ごとの二段階認証の必須化
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 組織の管理者が「全員に二段階認証を必須にする」を選べる
+    needed_by: 会社向けで、お客さんの情報システムの部署が求める
+    not_needed_by: 個人向け
+    if_removed: お客さんの「全員に二段階認証を」という求めに応えられない
+    depends_on: [mfa, organizations]
+    law:
+      - ISMS 8.5(セキュアな認証)
+    suggest_remove_when: [audience=個人向け]
+    remove:
+      delete:
+        - apps/api/src/domains/organizations/mfa-requirement-routes.ts
+        - apps/api/test/integration/mfa-requirement.int.test.ts
+        - apps/web/src/pages/settings/MfaRequirementCard.tsx
+      edit:
+        - { path: apps/api/src/app.ts, what: mfaRequirementRoutes と mfaEnforced を外す }
+        - { path: apps/api/src/authz/policy.ts, what: 「設定待ち」の関所を外す }
+        - { path: apps/api/src/domains/organizations/index.ts, what: 書き出しを外す }
+        - { path: apps/api/src/domains/organizations/account.ts, what: mfa_required を読む所を外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: カードを外す }
+        - { path: packages/shared/src/account.ts, what: 型は残してよい(足すだけの決まり) }
+      migration: 列 organizations.tenants.mfa_required を、使わなくしてから消す(拡張 → 縮小の縮小)
+      matrix:
+        - GET /api/organization/mfa-requirement
+        - POST /api/organization/mfa-requirement
+        - DELETE /api/organization/mfa-requirement
+
+  - id: invitations
+    name: 招待の画面
+    group: business
+    status: 未
+    removable: true
+    default: 残す
+    what: 管理者が画面から人を招く(いまは SQL で users に行を足す)
+    needed_by: 会社向けで、お客さんが自分で人を足す
+    not_needed_by: 個人向け(本人が登録する)
+    if_removed: まだ無い
+    depends_on: [organizations, login]
+    law: []
+
+  # ── ログイン ────────────────────────────────────────────────────────────
+  - id: mfa
+    name: 二段階認証(本人の設定)
+    group: login
+    status: あり
+    removable: true
+    default: 残す
+    what: 認証アプリ(TOTP)の設定と解除・メールとパスワードの変更のお知らせ
+    needed_by: すべて(本人が選べる二段階認証は、個人向けでも害が無い)
+    not_needed_by: ほぼ無い
+    if_removed: パスワードが漏れたら、そのまま入られる。代理ログインと必須化が使えなくなる
+    depends_on: [login]
+    law:
+      - ISMS 8.5(セキュアな認証)
+      - SOC 2 CC6.1
+    remove:
+      delete:
+        - apps/api/src/auth/pending-mfa.ts
+        - apps/web/src/pages/account/MfaCard.tsx
+        - apps/web/src/pages/account/secret.ts
+        - docs/runbooks/mfa-reset.md
+      edit:
+        - { path: apps/api/src/auth/account-routes.ts, what: mfa の API を外す }
+        - { path: apps/api/src/auth/routes.ts, what: ログインの二段階目を外す }
+        - { path: apps/web/src/pages/AccountPage.tsx, what: カードを外す }
+        - { path: packages/fake-cognito/src/totp.ts, what: 偽物の TOTP は残してよい(契約テストのため) }
+      migration: 列 organizations.users.mfa_enabled を、使わなくしてから消す
+      matrix:
+        - POST /api/auth/mfa
+        - POST /api/account/mfa/setup
+        - POST /api/account/mfa/enable
+        - POST /api/account/mfa/disable
+      docs: [docs/specs/0006-account-security.md]
+
+  # ── 連絡 ──────────────────────────────────────────────────────────────
+  - id: outbox
+    name: アウトボックス(送り待ち)
+    group: contact
+    status: あり
+    removable: true
+    default: 残す
+    what: 外へ送るもの(メール・Slack・索引)を DB のトランザクションと一緒に積み、あとで確実に送る
+    needed_by: 外へ何かを送るすべて
+    not_needed_by: 外へ何も送らない(まれ)
+    if_removed: 「保存したのに送られない」「送ったのに保存されていない」が起きる
+    depends_on: [tenant-isolation]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/outbox
+        - apps/api/drizzle/0004_outbox.sql
+        - apps/api/test/integration/outbox.int.test.ts
+      edit:
+        - { path: apps/api/src/index.ts, what: 送り出しの起動を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.outbox を外す }
+      migration: 表 platform.outbox を消す移行を足す
+      docs: [docs/adr/0006-outbox.md]
+
+  - id: mail
+    name: アプリからのメール(Postfix → SES)
+    group: contact
+    status: あり
+    removable: true
+    default: 残す
+    what: タスクの完了・パスワードや二段階認証の変更のお知らせを送る。本番は Postfix(ECS)→ SES、手元は Mailpit
+    needed_by: 利用者にお知らせを送る
+    not_needed_by: お知らせを送らない(ログインの確認のメールは Cognito が SES で送るので、ses-domain は残る)
+    if_removed: パスワードや二段階認証が変わったとき、本人に知らせられない(乗っ取りに気づけない)
+    depends_on: [outbox]
+    law:
+      - 特定電子メール法(広告のメールを送るなら。お知らせだけなら当たらない)
+    suggest_remove_when: [mail=送らない]
+    remove:
+      delete:
+        - docker/postfix
+        - apps/api/src/mail
+        - apps/api/test/integration/mail.int.test.ts
+        - apps/web/e2e/mail.spec.ts
+        - infra/terraform/modules/mail-relay
+        - .github/workflows/deploy-mail-relay.yml
+        - docs/guides/mail.md
+        - docs/runbooks/mail-not-delivered.md
+      edit:
+        - { path: apps/api/src/index.ts, what: createMailer を外す }
+        - { path: apps/api/src/outbox/handlers.ts, what: メールの宛先を外す }
+        - { path: apps/api/src/domains/tasks/notifications.ts, what: タスク完了のメールを外す }
+        - { path: apps/api/src/domains/organizations/notifications.ts, what: お知らせのメールを外す }
+        - { path: apps/api/src/config.ts, what: MAIL_SMTP_URL・MAIL_FROM を外す }
+        - { path: docker-compose.yml, what: mail と mailpit を外す }
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: mail }
+        - { file: infra/terraform/envs/prod/main.tf, module: mail }
+      ci:
+        - { file: .github/workflows/ci.yml, job: image, what: 行列から mail を外す }
+      docs: [docs/specs/0002-task-completed-mail.md, docs/adr/0008-mail-via-postfix.md]
+
+  # ── 見張り ────────────────────────────────────────────────────────────
+  - id: sentry
+    name: Sentry(失敗の知らせ)
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: error 以上のログを、値を落としてから Sentry に送る(API・画面のサーバー・ブラウザ)
+    needed_by: 本番に出すすべて
+    not_needed_by: まだ本番が無い(DSN を入れなければ送らないので、消さなくてよい)
+    if_removed: 失敗に気づくのが、利用者の問い合わせのあとになる
+    depends_on: [logging]
+    law:
+      - ISMS 8.16(監視活動)
+      - 電気通信事業法の外部送信の決まり(ブラウザから送るので、当たるかを確かめる)
+    remove:
+      delete:
+        - packages/error-reporting
+        - apps/web/src/sentry-browser.ts
+        - apps/web/src/report-error.ts
+        - apps/web/src/report-error.test.ts
+        - apps/web/src/report-hook.ts
+        - docs/runbooks/sentry.md
+      edit:
+        - { path: apps/api/src/logger.ts, what: Sentry への受け渡しを外す }
+        - { path: apps/web/server/index.ts, what: 同上 }
+        - { path: apps/web/src/start.ts, what: ブラウザの初期化を外す }
+        - { path: infra/terraform/envs/stg/main.tf, what: sentry_environment を外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: sentry_environment を外す }
+      docs: [docs/adr/0011-sentry-from-logs.md]
+
+  - id: alarms
+    name: アラームと知らせ・費用の警報
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: 5xx・遅さ・DB・証明書のアラーム、月の費用の警報を SNS → Slack(とメール)へ
+    needed_by: AWS に出すすべて
+    not_needed_by: まだ AWS に出していない(Slack をつながないだけなら、変数を空にすればよい)
+    if_removed: 落ちても、請求が膨らんでも気づかない。ECS の自動の戻しも 5xx のアラームを使う
+    depends_on: []
+    law:
+      - ISMS 8.16(監視活動)
+      - SOC 2 CC7.2
+    remove:
+      delete: [infra/terraform/modules/monitoring, docs/runbooks/alarms.md]
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: monitoring }
+        - { file: infra/terraform/envs/prod/main.tf, module: monitoring }
+      docs: [docs/guides/monitoring.md, docs/adr/0010-alerts-to-slack.md]
+
+  - id: uptime
+    name: 外形監視
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: 外から本番が開けるかを Route 53 のヘルスチェックで見る
+    needed_by: 本番に出すすべて
+    not_needed_by: まだ本番が無い
+    if_removed: DNS や証明書の失敗など、中のアラームでは見えない止まりに気づかない
+    depends_on: [alarms]
+    law:
+      - ISMS 8.16
+      - SOC 2 A1.1
+    remove:
+      delete: [infra/terraform/modules/uptime]
+      edit:
+        - { path: infra/terraform/envs/stg/main.tf, what: alerts の extra_topic_arns から外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: 同上 }
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: uptime }
+        - { file: infra/terraform/envs/prod/main.tf, module: uptime }
+      docs: [docs/guides/monitoring.md]
+
+  - id: waf
+    name: WAF
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める)
+    needed_by: インターネットに出すすべて
+    not_needed_by: 社内だけで使う(VPN の中)
+    if_removed: 総当たり・大量アクセスを手前で止められない
+    depends_on: []
+    law:
+      - ISMS 8.20(ネットワークのセキュリティ)
+      - SOC 2 CC6.6
+    remove:
+      delete: [infra/terraform/modules/waf]
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: waf }
+        - { file: infra/terraform/envs/prod/main.tf, module: waf }
+      docs: [docs/security.md]
+
+  - id: security-baseline
+    name: GuardDuty と Security Hub
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる
+    needed_by: AWS に出すすべて
+    not_needed_by: まだ AWS に出していない
+    if_removed: 鍵が盗まれて使われても気づかない
+    depends_on: [alarms]
+    law:
+      - ISMS 8.16
+      - SOC 2 CC7.2
+    remove:
+      delete: [infra/terraform/modules/security-baseline]
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: security_baseline }
+        - { file: infra/terraform/envs/prod/main.tf, module: security_baseline }
+      docs: [docs/security.md]
+
+  # ── 表側(画面)─────────────────────────────────────────────────────────
+  - id: web
+    name: 画面(SSR)とデザインシステム
+    group: front
+    status: あり
+    removable: true
+    default: 残す
+    what: TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス
+    needed_by: ブラウザで使うすべて(スマホのアプリだけでも、管理者の画面に使える)
+    not_needed_by: API だけを出す・スマホのアプリだけで、管理の画面も要らない
+    if_removed: 画面の E2E(2社・ロール)が無くなる。テナント分離の確かめが API のテストだけになる
+    depends_on: [authz]
+    law: []
+    remove:
+      delete:
+        - apps/web
+        - packages/ui
+        - infra/terraform/modules/web-service
+        - docs/design-system.md
+        - .semgrep/design
+      edit:
+        - { path: docker-compose.yml, what: web を外し、ALB の代わりを API だけに }
+        - { path: docker/alb.Caddyfile, what: 画面への振り分けを外す }
+        - { path: .github/workflows/deploy.yml, what: 画面のデプロイを外す }
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: web }
+        - { file: infra/terraform/envs/prod/main.tf, module: web }
+      ci:
+        - { file: .github/workflows/ci.yml, job: e2e }
+        - { file: .github/workflows/ci.yml, job: image, what: 行列から web を外す }
+      docs: [docs/adr/0002-design-system-react-aria.md, docs/adr/0003-ssr-tanstack-start-separate-service.md]
+
+  - id: noindex-mobile
+    name: 検索に載せない(noindex)とスマホの幅の E2E
+    group: front
+    status: 作成中
+    pr: 6
+    removable: true
+    default: 残す
+    what: ログインの後の画面を検索に載せない(noindex・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る
+    needed_by: ログインして使う画面のすべて
+    not_needed_by: なし(公開のページを検索に載せたいなら、そのページだけ別に作る)
+    if_removed: 利用者の画面の URL が検索に出ることがある
+    depends_on: [web]
+    law: []
+
+  - id: seo
+    name: 公開のページと SEO の型
+    group: front
+    status: 未
+    removable: true
+    default: 消す
+    what: 検索から人を呼ぶための公開のページ(説明・料金・ブログ)の型
+    needed_by: 検索から人を呼ぶ
+    not_needed_by: 紹介・営業で人を呼ぶ
+    if_removed: まだ無い
+    depends_on: [web]
+    law: []
+
+  # ── 個人情報 ───────────────────────────────────────────────────────────
+  - id: breach-runbook
+    name: 個人データが漏れたときの手順書
+    group: personal
+    status: あり
+    removable: true
+    default: 残す
+    what: 委員会への報告(速報3〜5日・確報30日 / 60日)と本人への通知、B2B のお客さんへの知らせの段取り
+    needed_by: 個人情報を扱うすべて(1件でも)
+    not_needed_by: 個人情報をまったく扱わない(まれ。メールアドレスも個人情報)
+    if_removed: 期限のある報告に間に合わない
+    depends_on: []
+    law:
+      - 個人情報保護法 26条(漏えい等の報告・本人への通知)
+      - ISMS 5.24〜5.26(インシデント管理)
+      - P マーク(緊急事態への対応)
+    remove:
+      delete: [docs/runbooks/personal-data-breach.md]
+      edit:
+        - { path: docs/runbooks/incident.md, what: 漏えいの手順書へのリンクを外す }
+        - { path: docs/runbooks/tenant-data-leak.md, what: 同上 }
+        - { path: docs/runbooks/secret-leak.md, what: 同上 }
+
+  - id: sensitive-isolation
+    name: 要配慮個人情報を分けて置く
+    group: personal
+    status: 作成中
+    pr: 4
+    removable: true
+    default: 残す
+    what: 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(分けるまでは列を足せない)
+    needed_by: 要配慮個人情報を扱う
+    not_needed_by: 要配慮個人情報を扱わない(足せない決まりのまま残しておけば、間違って足すのを止められる)
+    if_removed: 要配慮の列が、ふつうの表に混ざる
+    depends_on: [column-classification]
+    law:
+      - 個人情報保護法 2条3項・20条2項(要配慮個人情報の取得には同意)
+      - P マーク
+
+  - id: person-deletion
+    name: 1人分の削除と開示
+    group: personal
+    status: 未
+    removable: true
+    default: 残す
+    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)
+    needed_by: 個人向け・個人情報を扱うすべて
+    not_needed_by: なし
+    if_removed: まだ無い(いまは手で SQL を書くことになる)
+    depends_on: [column-classification, offboarding]
+    law:
+      - 個人情報保護法 33条(開示)・35条(利用停止・消去)
+
+  # ── 決まりごと ─────────────────────────────────────────────────────────
+  - id: terms-consent
+    name: 利用規約・プライバシーポリシーの同意
+    group: rules
+    status: 作成中
+    removable: true
+    default: 残す
+    what: 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。同意の記録は監査ログに
+    needed_by: 外の人に使ってもらうすべて
+    not_needed_by: 社内だけで使う
+    if_removed: 規約を変えたことを知らせた・同意をもらった記録が残らない
+    depends_on: [login, audit-log]
+    law:
+      - 民法 548条の2〜4(定型約款。変更は効力の日と内容を前もって知らせる)
+      - 個人情報保護法 21条(利用目的の通知・公表)
+      - P マーク(同意の記録)
+
+  - id: certification-prep
+    name: 認証の準備(P マーク・ISMS・SOC 2)
+    group: rules
+    status: 未
+    removable: true
+    default: 消す
+    what: 認証で求められる記録と規程の型(アクセスの見直し・委託先の管理・教育の記録)
+    needed_by: 認証を取る予定がある
+    not_needed_by: 予定なし
+    if_removed: まだ無い
+    depends_on: [audit-log, backup]
+    law:
+      - P マーク(JIS Q 15001)
+      - ISMS(ISO/IEC 27001)
+      - SOC 2
+
+  - id: billing
+    name: 請求と決済
+    group: rules
+    status: 未
+    removable: true
+    default: 消す
+    what: 料金の計算・請求・決済の会社(Stripe など)とのつなぎ。カード情報は持たない
+    needed_by: アプリの中でお金を受け取る
+    not_needed_by: お金を扱わない・請求書を手で出す
+    if_removed: まだ無い
+    depends_on: [money]
+    law:
+      - 特定商取引法(個人向けに売るなら表示が要る)
+      - 割賦販売法(カード情報を持たない作りにする)
+
+  - id: money
+    name: お金と時刻の計算
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: 金額は最小単位の整数・時刻は組織のタイムゾーン、の計算を1か所に(packages/shared の money.ts・time.ts)
+    needed_by: 金額か日付を扱うすべて(時刻はほぼ全部)
+    not_needed_by: 金額を扱わない(money.ts だけ消してよい。time.ts は残す)
+    if_removed: 金額の丸め・タイムゾーンの間違いが、画面ごとにばらばらに出る
+    depends_on: []
+    law: []
+    remove:
+      delete: [packages/shared/src/money.ts]
+      edit:
+        - { path: packages/shared/src/index.ts, what: money.ts の書き出しを外す }
+        - { path: packages/shared/src/money-time.test.ts, what: お金のテストを外す }
+        - { path: apps/api/src/db/columns.ts, what: moneyAmount を外す }
+      docs: [docs/adr/0005-money-and-time.md]
+
+  # ── 開発の道具 ─────────────────────────────────────────────────────────
+  - id: preview-env
+    name: PR ごとのプレビュー環境
+    group: dev
+    status: あり
+    removable: true
+    default: 残す
+    what: PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す
+    needed_by: 画面をレビューする人がいる・AWS の dev アカウントがある
+    not_needed_by: 1人で手元の docker compose で見れば足りる
+    if_removed: レビューする人が、手元で動かさないと画面を見られない
+    depends_on: [ci-checks]
+    law:
+      - ISMS 8.31(開発・テスト・本番の環境の分離)
+    remove:
+      delete:
+        - infra/terraform/modules/preview-env
+        - infra/terraform/envs/preview
+        - .github/workflows/preview.yml
+        - .github/workflows/cleanup-previews.yml
+      edit:
+        - { path: .github/pull_request_template.md, what: 「プレビュー」の欄を外す }
+        - { path: docs/guides/automation.md, what: プレビューの行を外す }
+        - { path: README.md, what: 「PR ごとのプレビュー環境」の表と変数を外す }
+
+  - id: claude-actions
+    name: GitHub の上の Claude(背景エージェント)
+    group: dev
+    status: あり
+    removable: true
+    default: 残す
+    what: Issue と PR の @claude で、GitHub の上で Claude が作業する(いまは手動。API キーが要る)
+    needed_by: 手元の Claude Code の外からも頼みたい
+    not_needed_by: 手元の Claude Code だけで足りる
+    if_removed: Issue から直接 AI に頼めない
+    depends_on: [harness]
+    law: []
+    remove:
+      delete: [.github/workflows/claude.yml]
+      edit:
+        - { path: docs/guides/automation.md, what: claude の行を外す }
+
+  - id: dynamic-scans
+    name: 攻撃の形の検査(Schemathesis・ZAP)
+    group: dev
+    status: あり
+    removable: true
+    default: 残す
+    what: 全部の API に変な入力をロールごとに投げる・動いている画面と API を ZAP で叩く(手動)
+    needed_by: インターネットに出すすべて
+    not_needed_by: なし(手動なので、残してもお金はかからない)
+    if_removed: 型や権限の表では見えない穴(500・入力の取りこぼし)を見つけられない
+    depends_on: [ci-checks]
+    law:
+      - ISMS 8.29(開発と受け入れのセキュリティテスト)
+      - SOC 2 CC7.1
+    remove:
+      delete:
+        - .github/workflows/security-fuzz.yml
+        - .github/workflows/zap-api-scan.yml
+        - scripts/security-fuzz.mjs
+      edit:
+        - { path: package.json, what: security:fuzz を外す }
+      ci:
+        - { file: .github/workflows/preview.yml, job: zap }
+      docs: [docs/security.md]
+
+  - id: prototypes
+    name: プロトタイプの置き場
+    group: dev
+    status: 作成中
+    removable: true
+    default: 残す
+    what: 本番のラインに乗せずに、画面だけ・使い捨ての形で確かめる置き場(prototypes/)
+    needed_by: PMF の前で、作らずに確かめたい
+    not_needed_by: 確かめ終わって、作る物が決まった
+    if_removed: 確かめのための物が、本番のコードに混ざる
+    depends_on: []
+    law: []
+
+  # ── 進め方 ────────────────────────────────────────────────────────────
+  - id: kickoff
+    name: 始め方の計画(/kickoff)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決めて計画にする
+    needed_by: PMF の前
+    not_needed_by: 作る物も売り先も決まっている(それでも残して害は無い)
+    if_removed: 作る前に確かめる段取りが無くなる
+    depends_on: []
+    law: []
+    remove:
+      delete: [.claude/skills/kickoff, docs/guides/before-pmf.md, docs/product/_template.md]
+      edit:
+        - { path: docs/getting-started.md, what: 「⓪ 何を作るかを決める」を外す }
+
+  - id: bets
+    name: 機能ごとの賭け(/bet)
+    group: process
+    status: 作成中
+    pr: 5
+    removable: true
+    default: 残す
+    what: 機能ごとに「何を賭けて・何が分かったら続けるか」を書き、小さく確かめながら進める
+    needed_by: PMF の前後で、作る物の当たり外れが大きい
+    not_needed_by: 作る物が決まっている受託
+    if_removed: 作った機能が効いたかを振り返れない
+    depends_on: [kickoff]
+    law: []
+
+  - id: ledger
+    name: 資産と費用の台帳(/ledger)
+    group: process
+    status: 未
+    removable: true
+    default: 残す
+    what: 作った物(資産)とかかったお金を1つの台帳にする
+    needed_by: お金と時間の使い方を説明する相手がいる
+    not_needed_by: 1人で試している間
+    if_removed: まだ無い
+    depends_on: [bets]
+    law: []
+
+  - id: checkup
+    name: 点検(/checkup)
+    group: process
+    status: 未
+    removable: true
+    default: 残す
+    what: 段階ごと・毎週の点検を台帳にし、担当者に知らせて1問ずつ答えてもらう(仕様と設計は承認済み)
+    needed_by: すべて(守りが今も効いているかを、詳しくない人でも回すため)
+    not_needed_by: なし
+    if_removed: まだ無い
+    depends_on: [harness]
+    law:
+      - ISMS 9.1(監視・測定)・5.36(順守の確認)
