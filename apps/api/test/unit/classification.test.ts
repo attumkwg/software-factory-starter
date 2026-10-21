@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { ALWAYS_REDACTED, isAllowedKey, isDeniedKey } from "@app/logging";
 import { is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
@@ -133,5 +134,30 @@ describe("個人情報の台帳(docs/db/personal-data.md)", () => {
   it("分類表から作り直した物と同じ", () => {
     const current = readFileSync(LEDGER_PATH, "utf8").replace(/\r\n/g, "\n");
     expect(current, "pnpm docs:personal-data で作り直してください").toBe(renderLedger());
+  });
+});
+
+describe("ログの部品(@app/logging)と分類表", () => {
+  // personal / sensitive の列とキーの名前(列は snake_case と camelCase の両方)
+  const camel = (s: string) => s.replace(/_([a-z0-9])/g, (_m, c: string) => c.toUpperCase());
+  const personalNames = Object.entries(COLUMN_CLASSIFICATION).flatMap(([path, c]) => {
+    const column = path.split(".")[2] ?? path;
+    const own = c.class === "personal" || c.class === "sensitive" ? [column, camel(column)] : [];
+    const keys = Object.entries(c.keys ?? {})
+      .filter(([, k]) => k.class === "personal" || k.class === "sensitive")
+      .map(([key]) => key);
+    return [...own, ...keys];
+  });
+
+  it("個人情報の列の名前は、ログでどの深さにあっても伏せる名前に入っている", () => {
+    const missing = [...new Set(personalNames)].filter((n) => !isDeniedKey(n));
+    expect(
+      missing,
+      `packages/logging/src/fields.ts の ALWAYS_REDACTED に足してください(いま ${ALWAYS_REDACTED.length} 件)`,
+    ).toEqual([]);
+  });
+
+  it("個人情報の列の名前は、許可リストに入っていない", () => {
+    expect(personalNames.filter((n) => isAllowedKey(n))).toEqual([]);
   });
 });

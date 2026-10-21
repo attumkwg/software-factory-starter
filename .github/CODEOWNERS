@@ -17,6 +17,9 @@
 /apps/api/test/unit/classification.test.ts @attumkwg
 /apps/api/src/logger.ts             @attumkwg
 /packages/error-reporting/          @attumkwg
+/packages/logging/                  @attumkwg
+/apps/web/server/logger.ts          @attumkwg
+/apps/api/test/integration/personal-data-logs.int.test.ts @attumkwg
 
 # ── 危険度「高」: DB の移行 ──
 /apps/api/drizzle/                  @attumkwg

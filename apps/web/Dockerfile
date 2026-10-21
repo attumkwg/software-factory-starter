@@ -9,12 +9,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/error-reporting/package.json packages/error-reporting/
+COPY packages/logging/package.json packages/logging/
 COPY packages/shared/package.json packages/shared/
 COPY packages/ui/package.json packages/ui/
 # 画面と、画面が使うパッケージの依存だけを入れる
 RUN pnpm install --frozen-lockfile --filter "@app/web..."
 COPY tsconfig.base.json ./
 COPY packages/error-reporting packages/error-reporting
+COPY packages/logging packages/logging
 COPY packages/shared packages/shared
 COPY packages/ui packages/ui
 COPY apps/web apps/web

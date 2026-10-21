@@ -26,6 +26,9 @@ importers:
       '@app/error-reporting':
         specifier: workspace:*
         version: link:../../packages/error-reporting
+      '@app/logging':
+        specifier: workspace:*
+        version: link:../../packages/logging
       '@app/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -102,6 +105,9 @@ importers:
       '@app/error-reporting':
         specifier: workspace:*
         version: link:../../packages/error-reporting
+      '@app/logging':
+        specifier: workspace:*
+        version: link:../../packages/logging
       '@app/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -182,6 +188,22 @@ importers:
       '@aws-sdk/client-cognito-identity-provider':
         specifier: 3.1152.0
         version: 3.1152.0
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      vitest:
+        specifier: 5.0.4
+        version: 5.0.4(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.4)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/logging:
+    dependencies:
+      '@app/error-reporting':
+        specifier: workspace:*
+        version: link:../error-reporting
+      pino:
+        specifier: 10.4.0
+        version: 10.4.0
+    devDependencies:
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2

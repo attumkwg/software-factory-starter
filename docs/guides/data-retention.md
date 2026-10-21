@@ -14,8 +14,12 @@
 | AWS Backup の保管庫(毎月) | DB の写し | 消せない | **365日** | 同上。「先月末に戻したい」に答えるため |
 | Cognito | ログインのメール・パスワード(のハッシュ)・二段階認証 | 手順書の 3 で消す | — | |
 | CloudWatch Logs(DB のログ) | 遅い SQL の形・ロック待ち・失敗の種類。**渡した値・失敗の詳細(値が入る)は出さない設定** | 消さない | **30日**(`modules/aurora` の `log_retention_days`) | 期限で自動で消える |
-| CloudWatch Logs(アプリのログ) | ID(組織・利用者・リクエスト)・失敗の種類。**題名・本文・メールアドレスは出さない決まり** | 消さない | **90日**(prod の `log_retention_days`) | 期限で自動で消える |
+| CloudWatch Logs(API のログ) | ID(組織・利用者・リクエスト)・失敗の種類。**出してよい項目だけを出す(許可リスト)**。題名・本文・メールアドレスは伏せ、失敗の文の値も伏せる(`packages/logging`・結合テスト `personal-data-logs.int.test.ts`) | 消さない | **90日**(prod の `log_retention_days`) | 期限で自動で消える |
 | Sentry | 失敗の種類・スタック・ID(値は伏せる) | 消さない | Sentry のプランの保存期間(既定 90日) | 同上 |
+| CloudWatch Logs(画面のサーバーのログ) | API と同じ部品・同じ決まり(許可リスト。`packages/logging`) | 消さない | **90日**(prod の `log_retention_days`) | 期限で自動で消える |
+| CloudWatch Logs(メールの中継のログ) | 送った・送れなかった・やり直しの記録(キューの ID・Message-ID・相手のサーバーの答え)。**宛先・送り元のメールアドレスは伏せてから出す**(`docker/postfix/entrypoint.sh`) | 消さない | **30日**(`modules/mail-relay` の `log_retention_days`) | 期限で自動で消える |
+| 送り待ち(メールの中継の EFS) | まだ渡せていないメール(**宛先・件名・本文が入る**) | 消さない | 渡せたらすぐ消える。渡せなければ**最長5日**でやり直しをやめて消す(`maximal_queue_lifetime`)。バックアップは取らない | Postfix が自動で消す |
+| CloudWatch Logs(WAF のログ) | 来たリクエストの IP・URL(**検索の値が入る**)・ヘッダー(Cookie と Authorization は伏せる)・止めたかどうか | 消さない | **30日**(`modules/waf` の `log_retention_days`) | 期限で自動で消える |
 | 送ったメール | 相手の受信箱にある物 | 消せない | — | こちらの手を離れている |
 | 書き出したファイル | お客さんの手元 | 消せない | — | お客さんの物 |
 

@@ -106,7 +106,7 @@ API・画面のサーバー: logger.error / fatal ─┬→ 標準出力(CloudWa
 | `requestId`・`tenantId`・`traceId`・API の `code`・環境・版(git の SHA) | Cookie・ヘッダー |
 | **そのリクエストのログを開くリンク**(Contexts の logs。Logs Insights・前後15分) | パンくず・ローカル変数・ログのほかの項目 |
 
-- **値の落とし方**(`packages/error-reporting/src/scrub.ts`): ログの1行から決めた項目だけを拾い、失敗の文からメールアドレス・`key=value` の値・引用符の中・6桁以上の数字・URL の `?` 以降を伏せる。Sentry は外の会社なので、自分の AWS の中のログより一段きつく絞る。Sentry の自動の仕組み(v11 は既定でヘッダー・Cookie・本文・利用者を集める)は全部切ってある。
+- **値の落とし方**(`packages/error-reporting/src/scrub.ts`): ログの1行から決めた項目だけを拾い、失敗の文からメールアドレス・`key=value` の値・引用符の中・6桁以上の数字・URL の `?` 以降を伏せる。Sentry は外の会社なので、自分の AWS の中のログより一段きつく絞る。自分の AWS の中のログ(CloudWatch)も、出してよい項目だけ(許可リスト。`packages/logging`・ADR 0019)。Sentry の自動の仕組み(v11 は既定でヘッダー・Cookie・本文・利用者を集める)は全部切ってある。
 - **送る数の上限**: 1つのプロセスで1分に30件・同じ失敗は3件まで(DB の再起動で同じ失敗が大量に出ても、Sentry の無料の枠を使い切らない)。ログには全部残る。
 - **送らないもの**: 4xx(利用者の側)・409(warn)。画面のサーバーが「API に届かない」はログだけ(API 側の Sentry とアラームで分かる。二重に数えない)。
 - **版**: deploy.yml がタスク定義に `SENTRY_RELEASE`(git の SHA)を入れる。Sentry で「この版から増えた」が分かる。

@@ -30,7 +30,7 @@ export const outbox = platform.table(
     sentAt: timestamp("sent_at", { withTimezone: true }),
     /** 何度やってもだめで、あきらめた(人が見て直す) */
     deadAt: timestamp("dead_at", { withTimezone: true }),
-    /** 最後の失敗の種類と文(payload は入れない) */
+    /** 最後の失敗の種類と文(payload は入れない。値は伏せてから書く) */
     lastError: text("last_error"),
   },
   (t) => [

@@ -26,7 +26,8 @@ API の失敗は必ず `{ error: { code, message, requestId } }` の形で返す
   - 決まった失敗は `errors.ts` の関数(`notFound()` など)を投げる。
   - DB の失敗は SQLSTATE で振り分け済み(待てば通る → 503、読み直せば通る → 409、それ以外 → 500)。新しい制約を足して、その違反を利用者に伝えたいときは `errors.ts` に足す。
 - **ログ**: 5xx は `error`、409 は `warn`、ほかの 4xx は残さない(アクセスログに status が出る)。
-  - 失敗は `logger.error({ err }, "…")` の形で渡す。`err` は `serializeError` を通り、**SQL のパラメータ・DB の detail(値が入る)を落とす**。`err.message` を自分で文字列にしてログに入れない(落とせなくなる)。
+  - 失敗は `logger.error({ err }, "…")` の形で渡す。`err` は `serializeError` を通り、**SQL のパラメータ・DB の detail(値が入る)を落とす**。ほかの失敗の文(SMTP の宛先・pg の値)も伏せ字を通す(日本語の並びも伏せる。`packages/logging`)。`err.message` を自分で文字列にしてログに入れない(落とせなくなる)。
+  - ログの項目は許可リスト(ADR 0019)。`…Id`・状態・件数・時間だけが出て、知らない名前は `[REDACTED]` になる。
 - **プロセスを落とさない**: DB の接続が切れても(`pool.on("error")`)、記録だけして次の接続を作る。DB に届かないときは5秒で諦めて 503。
 - **落とすべきときは落とす**: どこにも受け止められなかった失敗(`uncaughtException` / `unhandledRejection`)は、状態が壊れているかもしれないので JSON で1行残して止まる。ECS が新しいタスクを立てる。
 - **外の仕組み(Cognito など)に届かない**のは、「利用者が間違えた(401)」と混ぜずに 503 にする。混ぜると障害に気づけない。
