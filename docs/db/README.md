@@ -2,17 +2,19 @@
 
 ## Tables
 
-| Name                                                                | Columns | Comment                                                                                                                                             | Type       |
-| ------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| [projects.projects](projects.projects.md)                           | 5       | プロジェクト。タスクのまとまり。docs/domain/projects                                                                                                | BASE TABLE |
-| [tasks.tasks](tasks.tasks.md)                                       | 7       | タスク。プロジェクトの中のやること。docs/domain/tasks                                                                                               | BASE TABLE |
-| [organizations.tenants](organizations.tenants.md)                   | 5       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations                                                                   | BASE TABLE |
-| [organizations.users](organizations.users.md)                       | 9       | 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations                                                           | BASE TABLE |
-| [platform.outbox](platform.outbox.md)                               | 11      | 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md                     | BASE TABLE |
-| [platform.audit_events](platform.audit_events.md)                   | 11      | 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013                      | BASE TABLE |
-| [organizations.support_grants](organizations.support_grants.md)     | 8       | サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md | BASE TABLE |
-| [organizations.support_sessions](organizations.support_sessions.md) | 9       | 社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる                                 | BASE TABLE |
-| [organizations.email_changes](organizations.email_changes.md)       | 7       | 本人のメールアドレスの変更の申し込み。生きているのは本人の最新・未確認・24時間以内の1件。docs/specs/0006-account-security.md                        | BASE TABLE |
+| Name                                                                | Columns | Comment                                                                                                                                                    | Type       |
+| ------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| [projects.projects](projects.projects.md)                           | 5       | プロジェクト。タスクのまとまり。docs/domain/projects                                                                                                       | BASE TABLE |
+| [tasks.tasks](tasks.tasks.md)                                       | 7       | タスク。プロジェクトの中のやること。docs/domain/tasks                                                                                                      | BASE TABLE |
+| [organizations.tenants](organizations.tenants.md)                   | 5       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations                                                                          | BASE TABLE |
+| [organizations.users](organizations.users.md)                       | 9       | 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations                                                                  | BASE TABLE |
+| [platform.outbox](platform.outbox.md)                               | 11      | 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md                            | BASE TABLE |
+| [platform.audit_events](platform.audit_events.md)                   | 11      | 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013                             | BASE TABLE |
+| [organizations.support_grants](organizations.support_grants.md)     | 8       | サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md        | BASE TABLE |
+| [organizations.support_sessions](organizations.support_sessions.md) | 9       | 社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる                                        | BASE TABLE |
+| [organizations.email_changes](organizations.email_changes.md)       | 7       | 本人のメールアドレスの変更の申し込み。生きているのは本人の最新・未確認・24時間以内の1件。docs/specs/0006-account-security.md                               | BASE TABLE |
+| [legal.consents](legal.consents.md)                                 | 8       | 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0008-legal-consent.md | BASE TABLE |
+| [legal.notices](legal.notices.md)                                   | 6       | 規約の変更のお知らせのメールを送ると決めた記録(運営のコマンド legal-notify が足す)。周知の証拠と、2回送らない守り。docs/runbooks/legal-notice.md           | BASE TABLE |
 
 ## Stored procedures and functions
 
@@ -28,6 +30,7 @@
 | platform.audit_events_append_only    | trigger    |                                                                  | FUNCTION |
 | public.support_find_grant            | record     | p_code_hash text                                                 | FUNCTION |
 | public.auth_email_in_use             | bool       | p_email text, p_user_id uuid                                     | FUNCTION |
+| public.legal_notice_tenants          | uuid       |                                                                  | FUNCTION |
 
 ## Enums
 

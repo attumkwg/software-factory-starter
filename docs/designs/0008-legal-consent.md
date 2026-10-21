@@ -70,7 +70,7 @@ sequenceDiagram
   - `apps/api/drizzle/0010_legal_consent.sql`(新・危険度「高」)
   - `apps/api/src/cli.ts` … `legal-notify`
   - `apps/web/src/legal/`(新)… 本文の Markdown(見出しだけ)と、Markdown を部品に直す小さな関数
-  - `apps/web/src/routes/legal/`(新・公開)・`routes/_app/legal/accept.tsx`(新)・`pages/LegalDocumentPage.tsx`・`pages/LegalAcceptPage.tsx`・`pages/AppHeader.tsx`(帯)・`pages/SignUpPage.tsx`(チェック)
+  - `apps/web/src/routes/legal/$document/`(新・公開。`index.tsx` = いまの版・`$version.tsx` = 版を選ぶ)・`routes/_app/legal/accept.tsx`(新)・`pages/LegalDocumentPage.tsx`・`pages/LegalAcceptPage.tsx`・`pages/AppHeader.tsx`(帯)・`pages/SignUpPage.tsx`(チェック)
 - 新しい依存: **無い**(Markdown の描画は、見出し・段落・箇条だけを読む小さな関数を自前で書く。ライブラリは画面の JS の大きさの上限に当たる)。`packages/ui` に段落の部品 `Text` を足す(画面ごとの CSS を書かない決まりのため)。
 - infra は変えない(メールは既存の Postfix・コマンドは既存のイメージの `cli.js`)。
 
@@ -88,7 +88,7 @@ sequenceDiagram
 | `tenant_id` | `uuid not null` → `organizations.tenants` | RLS の分け目 |
 | `user_id` | `uuid not null`(`(tenant_id, user_id)` → `organizations.users`) | 同意した人 |
 | `document` | `text not null` | `terms` / `privacy`(`@app/shared` の `LEGAL_DOCUMENTS`。種類を足すとき移行が要らないよう enum にしない。アプリが Zod で確かめる) |
-| `version` | `integer not null` | 版(1から) |
+| `version` | `bigint not null` | 版(1から。squawk の決まりで bigint) |
 | `capacity` | `text not null` | `organization`(組織として。利用規約の管理者)/ `individual`(本人として) |
 | `source` | `text not null` | どの画面から: `sign_up`(登録)/ `acceptance`(同意の画面・帯から前もって) |
 | `accepted_at` | `timestamptz not null default now()` | 同意した時刻(ADR 0005) |
@@ -266,19 +266,19 @@ Sentry: 新しい物は無い。登録の確認のあとの同意の記録が失
 | 2つ目からは30日以上あける | 2.(`LEGAL_NOTICE_DAYS`) | `legal.test.ts`(29日の版で落ちる関数のテスト+実際の一覧が通る) |
 | ひな形は見出しだけ | 6.(本文の描画) | `documents.test.ts`(見出しと「(ここに書く)」だけ) |
 | いまの版の本文・版・効力の日が読める(未ログインでも) | 1.・8.(画面) | `apps/web/e2e/legal.spec.ts`(未ログインで `/legal/terms`) |
-| 前の版・次の版も読める・履歴が並ぶ・公開前は出ない | 2.・6. | `legal.test.ts`(`publishedVersions` が公開前を出さない)・`apps/web/src/legal/markdown.test.ts`(描画) |
-| 登録の画面にリンクとチェック・チェックしないと進めない | 8.(画面) | `apps/web/src/pages/auth/sign-up-consent.test.ts`(送る版)・E2E は Cognito の組でだけ(`e2e/sign-up.spec.ts` があれば足す・無ければ結合で) |
+| 前の版・次の版も読める・履歴が並ぶ・公開前は出ない | 2.・6. | `legal.test.ts`(`publishedVersions` が公開前を出さない)・`apps/web/src/legal/markdown.test.ts`(描画)・E2E `legal.spec.ts`(履歴・無い版は 404) |
+| 登録の画面にリンクとチェック・チェックしないと進めない | 9.(画面) | E2E `cognito-auth.spec.ts`(Cognito の組。リンクがある・チェックするまで「登録する」が押せない) |
 | 確認コードの後に、見せた版への同意を記録 | 3.・6.(登録の確認) | `test/integration/legal-consent.int.test.ts`(偽物の Cognito で登録 → 確認 → `legal.consents` に `sign_up`) |
 | 確認コードが違う・アプリにいない人は記録しない・答えは同じ | 6.(登録の確認) | legal-consent.int(違うコード → 記録なし・いない人 → 200 で記録なし) |
-| 同意し直しが要る版が効いたら同意の画面へ・ほかの API は 403 | 6.(関所) | legal-consent.int(版の一覧を差し替えたアプリで `GET /api/projects` が 403 `terms_acceptance_required`・`GET /api/me` は 200 で pending)・`test/unit/legal-gate.test.ts`・E2E(同意していない種データの人 → 同意の画面) |
-| 同意の画面に版・効力の日・要約・リンク・同意して元の画面へ | 8.(画面) | E2E(同意する → 元の画面) |
+| 同意し直しが要る版が効いたら同意の画面へ・ほかの API は 403 | 6.(関所) | legal-consent.int(版の一覧を差し替えたアプリで `GET /api/projects` が 403 `terms_acceptance_required`・`GET /api/me` は 200 で pending)・`apps/web/src/use-action.test.ts`(403 で同意の画面へ)・E2E `legal.spec.ts`(同意していない種データの人 → 同意の画面・API も 403) |
+| 同意の画面に版・効力の日・要約・リンク・同意して元の画面へ | 9.(画面) | `apps/web/src/legal/accept.test.ts`(並べる版・組織として)・E2E `legal.spec.ts`(チェックするまで押せない・同意する → 元の画面) |
 | 同意しない人はログアウトだけ | 6.(同意しない人) | E2E(ログアウトのボタンがある)・legal-consent.int(書き出しも 403) |
 | 管理者の利用規約は組織として・メンバーと閲覧者は本人として | 6.(capacity) | legal-consent.int(admin → `organization`・member → `individual`・privacy は admin でも `individual`) |
 | 消せない記録・監査ログ | 2.(権限)・3.(監査ログ) | `rls.int.test.ts`(`app_rw` で UPDATE / DELETE が拒否される)・`audit-coverage.test.ts`・legal-consent.int(`legal.consent`) |
 | 同じ版に2回同意しても記録は1つ | 2.(一意) | legal-consent.int |
-| 予告中の版があれば帯 | 6.(お知らせ)・8. | `legal.test.ts`(upcoming)・legal-consent.int(`me.legal.upcoming`)・E2E は版の一覧を差し替えられないので単体と結合で |
+| 予告中の版があれば帯 | 6.(お知らせ)・9. | `legal.test.ts`(upcoming)・legal-consent.int(`me.legal.upcoming`)・E2E `legal.spec.ts`(予告が無いときは帯が出ない。予告中の版は E2E の一覧を差し替えられないので単体と結合で) |
 | 帯から前もって同意 → 効力の日に止まらない | 6. | legal-consent.int(予告中の版に同意 → 時計を進めた一覧で pending なし) |
-| お知らせのメール(試し → 送る・全員に1通・2回送らない・記録) | 5.(コマンド) | `test/integration/legal-notify.int.test.ts`(試しは数えるだけ・送ると行と出来事・2回目は0件・運営の組織は飛ばす)・`mail.int.test.ts`(Mailpit に届く) |
+| お知らせのメール(試し → 送る・全員に1通・2回送らない・記録) | 5.(コマンド) | `test/integration/legal-notify.int.test.ts`(試しは数えるだけ・送ると行と出来事・2回目は0件・運営の組織は飛ばす・受け手が宛先と本文と Message-ID を組み立てる)・`rls.int.test.ts`(アプリはお知らせを足せない・組織の一覧の関数を呼べない) |
 | 同意し直しが要らない版は知らせるだけ | 6. | `legal.test.ts`(reconsent でない版は pending にならない) |
 | 代理の社員は回されない・代わりに同意できない | 6.(対象外)・3.(`NOT_DURING_SUPPORT`) | `support-access.int.test.ts`(代理で `POST /api/legal/consents` が 403・pending の組織でも代理は 200) |
 | 運営の組織は回されない | 6.(対象外) | legal-consent.int(運営の組織の人は pending でも 200) |
@@ -338,7 +338,7 @@ Sentry: 新しい物は無い。登録の確認のあとの同意の記録が失
 
 画面(`apps/web`):
 
-- `routes/legal/terms.tsx`・`routes/legal/privacy.tsx`(いまの版)・`routes/legal/$document.$version.tsx`(版を選ぶ。無い・公開前は 404)→ `pages/LegalDocumentPage.tsx`。上に文書の名前(h1)・版・効力の日(`format.ts`。組織の時間帯が無いので日本時間の日付)・「次の版があります(○月○日から)」・本文・下に履歴(版・効力の日・要約・リンク)。ログイン無しで読める(`_app` の外)。
+- `routes/legal/$document/index.tsx`(いまの版)・`routes/legal/$document/$version.tsx`(版を選ぶ。無い文書・無い版・公開前は 404)→ `pages/LegalDocumentPage.tsx`。上に文書の名前(h1)・版・効力の日(`format.ts`。組織の時間帯が無いので日本時間の日付)・「次の版があります(○月○日から)」・本文・下に履歴(版・効力の日・要約・リンク)。ログイン無しで読める(`_app` の外)。
 - `routes/_app/legal/accept.tsx` → `pages/LegalAcceptPage.tsx`。pending と、まだ同意していない reconsent の upcoming を並べる(文書ごとに版・効力の日・要約・本文へのリンク(新しいタブ))。チェック「上の内容に同意します」(管理者で利用規約を含むなら「組織を代表して同意します」)→「同意する」(`useAction`)→ 元の画面(`returnTo`)へ。下に「同意しない場合」とログアウト。
 - `_app.tsx` の `beforeLoad`: `me.legal?.pending.length` で、`/legal/accept` 以外なら `/legal/accept?returnTo=…` へ(二段階認証の設定待ちより先)。
 - `use-action.ts` / `api.ts`: 403 `terms_acceptance_required` を受けたら `/legal/accept` へ。
@@ -391,6 +391,10 @@ Sentry: 新しい物は無い。登録の確認のあとの同意の記録が失
 - **Markdown は見出し・段落・箇条だけを自前で読む** — ライブラリは画面の JS の大きさに響く。規約は見出しと段落と箇条で足りる。HTML として差し込まないので安全。
 - **段落の部品 `Text` を `packages/ui` に足す** — 画面ごとの CSS を書かない決まり。`Muted` は薄い色なので本文に合わない。
 - **書き出しに同意の記録を入れ、お知らせの記録は入れない** — 同意はお客さんの組織のデータ。お知らせは運営の記録。
+- **`.dockerignore` に規約の本文だけの例外を足す** — `**/*.md` を外しているので、そのままでは本番の画面のイメージに本文が入らない(E2E で見つかった)。
+- **`Checkbox` に `strikeWhenSelected` を足す(既定は今までどおり線を入れる)** — 同意のチェックに線が入ると「取り消した」に見える。
+- **組織の領域に `listUserIds`・`findTimeZone` を足す** — お知らせのコマンド(組織の全員)とメールの日時(組織の時間帯)に要る。ほかの領域の表は `index.ts` を通して読む決まり。
+- **E2E の Cognito の補助は、Origin を `E2E_BASE_URL` から作る** — ポートを変えた別の組でも流せるように(既定の 8080 のままなら今までと同じ)。
 - **実装は1つの PR(危険度「高」)** — 関所・移行・登録の確認が互いに頼り合い、分けると途中の状態(記録はあるが関所が無い)がマージされる。コミットを「共有の一覧 / DB と API / 関所 / コマンドとメール / 画面 / E2E」に分ける。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
@@ -409,3 +413,4 @@ Sentry: 新しい物は無い。登録の確認のあとの同意の記録が失
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-22 | 実装して分かったこと | 設計 | 2.(`version` は bigint。squawk の prefer-bigint)・1. と 9.(本文の画面のファイルの置き方)・7.(テストの置き場所を実物に合わせた)・11.(下の4つを足した) | 実装の PR と同時に直した |

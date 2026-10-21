@@ -1013,6 +1013,246 @@
           ]
         }
       ]
+    },
+    {
+      "name": "legal.consents",
+      "type": "BASE TABLE",
+      "comment": "利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0008-legal-consent.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "document",
+          "type": "text",
+          "nullable": false,
+          "comment": "terms / privacy"
+        },
+        {
+          "name": "version",
+          "type": "bigint",
+          "nullable": false,
+          "comment": "文書ごとの版(1, 2, 3 …)"
+        },
+        {
+          "name": "capacity",
+          "type": "text",
+          "nullable": false,
+          "comment": "organization(利用規約を管理者が。契約者として)/ individual(本人として)"
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "nullable": false,
+          "comment": "どの画面から(sign_up = 登録 / acceptance = 同意の画面)"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "comment": "同意した時刻(同じ版への2回目は記録しない)"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "consents_pkey",
+          "def": "CREATE UNIQUE INDEX consents_pkey ON legal.consents USING btree (id)",
+          "table": "legal.consents",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "consents_user_version_key",
+          "def": "CREATE UNIQUE INDEX consents_user_version_key ON legal.consents USING btree (tenant_id, user_id, document, version)",
+          "table": "legal.consents",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "document",
+            "version"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "consents_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "legal.consents",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "consents_user_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)",
+          "table": "legal.consents",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "consents_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "legal.consents",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "consents_user_version_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, user_id, document, version)",
+          "table": "legal.consents",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "document",
+            "version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "legal.notices",
+      "type": "BASE TABLE",
+      "comment": "規約の変更のお知らせのメールを送ると決めた記録(運営のコマンド legal-notify が足す)。周知の証拠と、2回送らない守り。docs/runbooks/legal-notice.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "document",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "comment": "送ると決めた時刻(Postfix に渡した時刻は platform.outbox の sent_at)"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "notices_pkey",
+          "def": "CREATE UNIQUE INDEX notices_pkey ON legal.notices USING btree (id)",
+          "table": "legal.notices",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "notices_user_version_key",
+          "def": "CREATE UNIQUE INDEX notices_user_version_key ON legal.notices USING btree (tenant_id, user_id, document, version)",
+          "table": "legal.notices",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "document",
+            "version"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "notices_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "legal.notices",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "notices_user_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)",
+          "table": "legal.notices",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "notices_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "legal.notices",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "notices_user_version_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, user_id, document, version)",
+          "table": "legal.notices",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "document",
+            "version"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -1194,6 +1434,62 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "legal.consents",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "legal.consents",
+      "columns": [
+        "tenant_id",
+        "user_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "legal.notices",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "legal.notices",
+      "columns": [
+        "tenant_id",
+        "user_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
     }
   ],
   "functions": [
@@ -1255,6 +1551,12 @@
       "name": "public.auth_email_in_use",
       "return_type": "bool",
       "arguments": "p_email text, p_user_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.legal_notice_tenants",
+      "return_type": "uuid",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],
