@@ -24,6 +24,8 @@
     "openapi": "pnpm --filter @app/api openapi",
     "docs:db": "node scripts/docs-db.mjs",
     "decisions": "node scripts/decisions.mjs",
+    "bets": "node scripts/bets.mjs",
+    "test:scripts": "node --test scripts/bets.test.mjs",
     "security:fuzz": "node scripts/security-fuzz.mjs",
     "guards": "node scripts/check-guards.mjs"
   },

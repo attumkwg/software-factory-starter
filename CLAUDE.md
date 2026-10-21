@@ -21,6 +21,7 @@
 - `packages/error-reporting` … error 以上のログを Sentry に送る(値を落としてから)。Sentry を直接呼ばず、`logger.error({ err }, "…")` で残す。`docs/guides/monitoring.md`
 - `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
 - `docs/product/plan.md` … 始め方の計画(誰の困りごと・確かめ方・合格と撤退の線)。`/kickoff` が書く。考え方は `docs/guides/before-pmf.md`
+- `docs/product/bets/` … 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。`/bet` が書き、`pnpm bets` が確かめる。PR の本文に「取り組み」と「作業の種類」。`docs/guides/bets-and-assets.md`
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ)/ `docs/adr` 設計判断 / `docs/runbooks` 手順(障害のときの入口は `incident.md`)
 - `docs/review-viewpoints.md` … 設計とレビューの観点(共通の8つ+このプロダクト特有)。人が気づいた観点は足していく。使い方は `docs/guides/human-review.md`
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
@@ -29,7 +30,7 @@
 
 - 仕様(Issue の受け入れ条件か `docs/specs/`)の無い変更はしない。分からなければ PR で「人に判断してほしい所」に書く。
 - 1 Issue = 1 PR。PR テンプレートの欄(危険度・テスト結果・判断してほしい所)を全部埋める。
-- 何を作るか・作る前に何を確かめるか → `/kickoff`。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
+- 何を作るか・作る前に何を確かめるか → `/kickoff`。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
 - **人に聞くのは4つだけ**: 事業判断・利用者の挙動・他チームとの契約や制約・戻せないリスク。それ以外は聞かずに決め、設計書の「決めたこと」に理由を書く。4つに当たる判断は止まらずに仮に決め、設計書の「未確定事項」に `仮決め` で残す(人の答えなしに `承認` にしない)。`仮決め` が残る PR はマージに回さない(`pnpm decisions --strict`)。
 - **誤りは、入った工程から作り直す**(ナレッジ → 要求 → 設計 → 実装 → テスト)。上流の誤りをコードだけで継ぎ当てない(`/rework`)。
 - CI が落ちたら直すのは2回まで。3回目は止めて、PR に状況を書いて人に渡す。
