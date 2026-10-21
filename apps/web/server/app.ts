@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
@@ -11,6 +13,9 @@ import { compressResponse } from "./compress.ts";
 //                      ビルドのときに圧縮しておいた .br / .gz を、ブラウザが受け取れる方で返す
 //                      (ALB は圧縮しない。scripts/precompress.mjs)
 //   /healthz /readyz … ECS と ALB の生存確認(API と同じ決まり)
+//   /robots.txt      … 検索の決まり。本番以外は全部お断り(下の「検索に載せない」)
+//   /favicon.svg など … public/ に置いた物(ビルドで dist/client の直下に並ぶ)。1日キャッシュ。
+//                      拡張子のあるパスで、置いた物に無いものは SSR に回さずに 404(/favicon.ico・/wp-login.php など)
 //   それ以外の GET   … TanStack Start が HTML を描いて返す(loader が API を読む)。
 //                      その場で圧縮し、描けた所から順に流す(server/compress.ts)
 //
@@ -46,6 +51,27 @@ const SECURE_HEADERS = secureHeaders({
   },
 });
 
+// 検索に載せない(X-Robots-Tag)。業務の画面なので、既定は全部の応答に付ける。
+// 外してよいのは、本番(APP_ENV=prod)で、ここに書いたパスのページだけ(例: "/login"・"/sign-up")。
+// プレビュー(pr-N.preview.<domain>)・stg・手元は、URL が漏れても載らないように一覧に関わらず全部付ける。
+// 何を載せるかは事業の判断(docs/designs/0008-web-noindex-mobile.md の U-1)
+export const INDEXABLE_PATHS: readonly string[] = [];
+const NOINDEX = "noindex, nofollow";
+// 本番は、検索の仕組みが X-Robots-Tag を読めるように辿るのは許す(Disallow にすると noindex が読まれず、
+// よそのリンクから URL だけが載ることがある)。API は画面ではないので辿らせない
+const ROBOTS_PROD = "User-agent: *\nDisallow: /api/\n";
+const ROBOTS_OTHERS = "User-agent: *\nDisallow: /\n";
+// 拡張子のある最後の区切り(/favicon.ico など)。画面のパス(/projects/<UUID> など)には「.」を使わない
+const HAS_EXTENSION = /\/[^/]*\.[^/]+$/;
+
+// public/ から来た物の一覧(dist/client の直下のファイル。前もって圧縮した .br / .gz は除く)
+function publicFilesIn(clientDir: string): Set<string> {
+  const names = readdirSync(clientDir).filter(
+    (name) => !/\.(br|gz)$/.test(name) && statSync(join(clientDir, name)).isFile(),
+  );
+  return new Set(names.map((name) => `/${name}`));
+}
+
 const requestIdFrom = (incoming: string | undefined) =>
   incoming && REQUEST_ID.test(incoming) ? incoming : randomUUID();
 
@@ -62,8 +88,14 @@ export function createWebApp(deps: {
   clientDir: string;
   logger: Logger;
   lifecycle: Lifecycle;
+  /** APP_ENV(local / test / preview / stg / prod)。無ければ本番ではない扱い */
+  appEnv?: string;
+  indexablePaths?: readonly string[];
 }) {
   const { ssr, clientDir, logger, lifecycle } = deps;
+  const isProd = deps.appEnv === "prod";
+  const indexable = new Set(isProd ? (deps.indexablePaths ?? INDEXABLE_PATHS) : []);
+  const publicFiles = publicFilesIn(clientDir);
   const app = new Hono<{ Variables: { requestId: string } }>();
 
   app.get("/healthz", (c) => c.json({ ok: true }));
@@ -90,6 +122,14 @@ export function createWebApp(deps: {
     );
   });
   app.use("*", SECURE_HEADERS);
+  app.use("*", async (c, next) => {
+    await next();
+    if (!indexable.has(c.req.path)) c.header("x-robots-tag", NOINDEX);
+  });
+
+  app.get("/robots.txt", (c) =>
+    c.text(isProd ? ROBOTS_PROD : ROBOTS_OTHERS, 200, { "cache-control": "public, max-age=3600" }),
+  );
 
   app.use(
     "/assets/*",
@@ -99,6 +139,17 @@ export function createWebApp(deps: {
     },
     serveStatic({ root: clientDir, precompressed: true }),
   );
+
+  const servePublic = serveStatic({ root: clientDir, precompressed: true });
+  app.on(["GET", "HEAD"], "*", async (c, next) => {
+    if (publicFiles.has(c.req.path)) {
+      const res = await servePublic(c, next);
+      if (res?.ok) res.headers.set("cache-control", "public, max-age=86400");
+      return res;
+    }
+    if (HAS_EXTENSION.test(c.req.path)) return c.text("Not Found", 404);
+    return next();
+  });
 
   app.on(["GET", "HEAD"], "*", async (c) => {
     const headers = new Headers(c.req.raw.headers);
