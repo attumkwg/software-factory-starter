@@ -1,3 +1,4 @@
+import { LEGAL_VERSIONS, type LegalVersion } from "@app/shared";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -14,6 +15,7 @@ import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
+import { legalRoutes } from "./domains/legal/index.ts";
 import {
   mfaRequirementRoutes,
   organizationRoutes,
@@ -35,6 +37,8 @@ export type AppDeps = {
   lifecycle?: Lifecycle;
   /** テスト用: 偽物の Cognito につないだ物に差し替える */
   cognito?: CognitoClient;
+  /** テスト用: 規約の版の一覧を差し替える(「効力の日が来た」「予告中」を作る)。既定は LEGAL_VERSIONS */
+  legalVersions?: readonly LegalVersion[];
 };
 
 /**
@@ -99,10 +103,12 @@ export function createApp(deps: AppDeps) {
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
   // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う。
-  // 二段階認証の必須を効かせるか(関所と /api/me が使う)
+  // 二段階認証の必須を効かせるか(関所と /api/me が使う)。規約の版の一覧(関所と同意の API が使う)
+  const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
   app.use("/api/*", async (c, next) => {
     c.set("supportTenantId", config.supportTenantId);
     c.set("mfaEnforced", config.auth.mode === "cognito");
+    c.set("legalVersions", legalVersions);
     await next();
   });
   app.use("/api/*", authorize({ db, logger, session: config.session }));
@@ -124,6 +130,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", supportSessionRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
+  app.route("/api", legalRoutes);
   // 共通の仕組み(領域ではない)
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes);

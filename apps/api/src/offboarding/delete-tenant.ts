@@ -16,6 +16,8 @@ import { withTenant } from "../db/tenant.ts";
  * (無ければ結合テスト offboarding.int.test.ts が落ちる)。
  */
 export const TENANT_TABLES = [
+  "legal.notices",
+  "legal.consents",
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",

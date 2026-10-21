@@ -1,4 +1,4 @@
-import type { Role } from "@app/shared";
+import type { LegalStatus, LegalVersion, Role } from "@app/shared";
 import type { TenantTx } from "./db/client.ts";
 
 /**
@@ -40,5 +40,12 @@ export type AppEnv = {
      * docs/specs/0006-account-security.md
      */
     mfaEnforced: boolean;
+    /** 利用規約・プライバシーポリシーの版の一覧(既定は @app/shared の LEGAL_VERSIONS。結合テストが差し替える) */
+    legalVersions: readonly LegalVersion[];
+    /**
+     * 本人の同意の状態(関所が引いて置く。GET /api/me が返す)。代理の最中・運営の組織の人は無い。
+     * docs/specs/0008-legal-consent.md
+     */
+    legalStatus?: LegalStatus;
   };
 };

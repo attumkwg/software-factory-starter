@@ -1,7 +1,8 @@
-import type { Role } from "@app/shared";
+import { currentVersion, LEGAL_DOCUMENTS, type Role } from "@app/shared";
 import { eq } from "drizzle-orm";
+import { capacityOf } from "../domains/legal/index.ts";
 import { createDb } from "./client.ts";
-import { projects, tasks, tenants, users } from "./schema.ts";
+import { consents, projects, tasks, tenants, users } from "./schema.ts";
 import { withTenant } from "./tenant.ts";
 
 // 開発・プレビュー・E2E 用の種データ。**必ず2社**作る(自社と他社で漏れを確かめるため)。
@@ -14,7 +15,11 @@ type SeedTenant = {
   timeZone: string;
   /** 二段階認証を必須にするか(運営の組織だけ true。docs/specs/0006-account-security.md の U-7) */
   mfaRequired?: boolean;
-  users: { id: string; email: string; name: string; role: Role }[];
+  /**
+   * notConsented … 利用規約・プライバシーポリシーに同意していない人(docs/specs/0008-legal-consent.md)。
+   * ほかの人は、種データを入れた時のいまの版に同意済みにする(でないと、手元と E2E の全員が最初に同意の画面へ回される)
+   */
+  users: { id: string; email: string; name: string; role: Role; notConsented?: boolean }[];
   projects: { id: string; name: string; tasks: string[] }[];
 };
 
@@ -44,6 +49,14 @@ export const SEED: SeedTenant[] = [
         email: "viewer@acme.test",
         name: "Acme 閲覧者",
         role: "viewer",
+      },
+      {
+        // 規約にまだ同意していない人(E2E の「同意の画面」で使う。同意すると、次からはふつうに使える)
+        id: "0199a000-0000-7000-8000-0000000a0004",
+        email: "newcomer@acme.test",
+        name: "Acme 新しい人",
+        role: "member",
+        notConsented: true,
       },
     ],
     projects: [
@@ -93,6 +106,23 @@ export const SEED: SeedTenant[] = [
   },
 ];
 
+/** 種データの人の同意(いまの版。source は同意の画面と同じ扱い) */
+function seedConsents(t: SeedTenant) {
+  const now = new Date();
+  return t.users
+    .filter((u) => !u.notConsented)
+    .flatMap((u) =>
+      LEGAL_DOCUMENTS.flatMap((document) => {
+        const version = currentVersion(document, now)?.version;
+        if (version === undefined) return [];
+        const capacity = capacityOf(u.role, document);
+        return [
+          { tenantId: t.tenantId, userId: u.id, document, version, capacity, source: "acceptance" },
+        ];
+      }),
+    );
+}
+
 /** 何度流しても同じ結果になる(すでにあれば飛ばす)。接続は表の持ち主でもよい(FORCE RLS なので文脈は要る)。 */
 export async function seed(databaseUrl: string | undefined): Promise<void> {
   const { db, pool } = createDb(databaseUrl);
@@ -117,8 +147,9 @@ export async function seed(databaseUrl: string | undefined): Promise<void> {
         }
         await tx
           .insert(users)
-          .values(t.users.map((u) => ({ ...u, tenantId: t.tenantId })))
+          .values(t.users.map(({ notConsented: _, ...u }) => ({ ...u, tenantId: t.tenantId })))
           .onConflictDoNothing();
+        await tx.insert(consents).values(seedConsents(t)).onConflictDoNothing();
         const owner = t.users[0];
         if (!owner) return;
         for (const p of t.projects) {

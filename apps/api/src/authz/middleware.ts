@@ -1,4 +1,4 @@
-import type { Role } from "@app/shared";
+import { type LegalStatus, legalStatus, type Role } from "@app/shared";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { matchedRoutes } from "hono/route";
 import { auditEntryFor } from "../audit/capture.ts";
@@ -6,6 +6,7 @@ import { type AuditEntry, auditActionFor, recordAudit, supportReadAction } from 
 import { refreshSession, type SessionConfig, writeSession } from "../auth/session.ts";
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import { findAcceptedVersions } from "../domains/legal/index.ts";
 import {
   type Access,
   findAccess,
@@ -16,6 +17,7 @@ import { ApiError, forbidden, unauthorized } from "../errors.ts";
 import type { Logger } from "../logger.ts";
 import {
   ALLOWED_DURING_MFA_SETUP,
+  ALLOWED_DURING_TERMS_ACCEPTANCE,
   can,
   NOT_DURING_SUPPORT,
   OUTSIDE_TRANSACTION,
@@ -41,6 +43,8 @@ class SupportEnded extends Error {}
  * 7. パスワードなどを変えた後は、それより前にログインしたセッションを 401 にする(users.sessions_valid_after)。
  *    組織が二段階認証を必須にしていて本人が未設定なら、設定の API(policy.ts の ALLOWED_DURING_MFA_SETUP)以外は
  *    403 mfa_setup_required(docs/specs/0006-account-security.md)。
+ *    同意し直しが要る規約の版に同意していなければ、同意の API(policy.ts の ALLOWED_DURING_TERMS_ACCEPTANCE)以外は
+ *    403 terms_acceptance_required(docs/specs/0008-legal-consent.md)。代理の社員・運営の組織の人は対象外。
  * 8. 外(Cognito)を待つ API(policy.ts の OUTSIDE_TRANSACTION)は、確かめた短いトランザクションを閉じてから
  *    ハンドラーを呼び、監査ログは成功の後に別の短いトランザクションで残す。
  * 9. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。
@@ -139,6 +143,34 @@ function endedByChange(access: Access, session: Session): boolean {
 
 const mfaSetupRequired = () =>
   new ApiError(403, "mfa_setup_required", "この組織では二段階認証の設定が必要です");
+const termsAcceptanceRequired = () =>
+  new ApiError(
+    403,
+    "terms_acceptance_required",
+    "この画面を使うには、利用規約などへの同意が必要です",
+  );
+
+/** 同意待ち・二段階認証の設定待ちの間でも通る API か(どちらかの一覧にあれば、どちらの待ちでも通す) */
+function allowedWhileWaiting(gate: Gate): boolean {
+  const key = `${gate.method} ${gate.path}`;
+  return ALLOWED_DURING_TERMS_ACCEPTANCE.has(key) || ALLOWED_DURING_MFA_SETUP.has(key);
+}
+
+/**
+ * 本人の規約への同意の状態を引き、c.var.legalStatus に置く(GET /api/me が返す)。
+ * 運営の組織の人は対象外(運営そのもので、規約の当事者ではない)。代理の社員はここに来ない。
+ */
+async function legalStatusOf(
+  c: Context<AppEnv>,
+  tx: TenantTx,
+  session: Session,
+): Promise<LegalStatus | undefined> {
+  if (session.tenantId === c.get("supportTenantId")) return undefined;
+  const accepted = await findAcceptedVersions(tx, session.tenantId, session.userId);
+  const status = legalStatus(accepted, new Date(), c.get("legalVersions"));
+  c.set("legalStatus", status);
+  return status;
+}
 
 /** テナントの中で「通してよいか」を確かめ、c.var.actor を決める */
 async function admit(c: Context<AppEnv>, tx: TenantTx, gate: Gate) {
@@ -190,7 +222,7 @@ function allowedEntry(c: Context<AppEnv>, gate: Gate) {
 
 /**
  * そのテナントでのロール。代理の社員は、入室が生きていれば閲覧者に固定(本人のアカウントの API は使えない)。
- * ふつうの人は、ほかの端末を切った後のセッションか・二段階認証の設定待ちか、も見る。
+ * ふつうの人は、ほかの端末を切った後のセッションか・規約の同意待ちか・二段階認証の設定待ちか、も見る。
  */
 async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Role> {
   const { session } = gate;
@@ -208,10 +240,11 @@ async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Rol
   }
   const access = await findAccess(tx, session.tenantId, session.userId);
   if (!access || endedByChange(access, session)) throw unauthorized();
+  const legal = await legalStatusOf(c, tx, session);
   const waitingForMfa = c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled;
-  if (waitingForMfa && !ALLOWED_DURING_MFA_SETUP.has(`${gate.method} ${gate.path}`)) {
-    throw mfaSetupRequired();
-  }
+  // 止める理由は同意を先に(画面も同意 → 二段階認証の設定の順に回す)
+  if (legal?.pending.length && !allowedWhileWaiting(gate)) throw termsAcceptanceRequired();
+  if (waitingForMfa && !allowedWhileWaiting(gate)) throw mfaSetupRequired();
   return access.role;
 }
 

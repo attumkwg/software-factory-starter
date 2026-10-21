@@ -71,6 +71,13 @@
       "when": 1792501818051,
       "tag": "0009_account_security",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792596508209,
+      "tag": "0010_legal_consent",
+      "breakpoints": true
     }
   ]
 }

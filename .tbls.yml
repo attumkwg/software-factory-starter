@@ -37,6 +37,18 @@ comments:
       topic: 何が起きたか(領域.出来事。src/outbox/topics.ts)
       locked_until: 送り出しが借りている期限
       dead_at: あきらめた時刻(人が見て直す)
+  - table: legal.consents
+    tableComment: 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0008-legal-consent.md
+    columnComments:
+      document: terms / privacy
+      version: 文書ごとの版(1, 2, 3 …)
+      capacity: organization(利用規約を管理者が。契約者として)/ individual(本人として)
+      source: どの画面から(sign_up = 登録 / acceptance = 同意の画面)
+      accepted_at: 同意した時刻(同じ版への2回目は記録しない)
+  - table: legal.notices
+    tableComment: 規約の変更のお知らせのメールを送ると決めた記録(運営のコマンド legal-notify が足す)。周知の証拠と、2回送らない守り。docs/runbooks/legal-notice.md
+    columnComments:
+      created_at: 送ると決めた時刻(Postfix に渡した時刻は platform.outbox の sent_at)
   - table: organizations.email_changes
     tableComment: 本人のメールアドレスの変更の申し込み。生きているのは本人の最新・未確認・24時間以内の1件。docs/specs/0006-account-security.md
     columnComments:

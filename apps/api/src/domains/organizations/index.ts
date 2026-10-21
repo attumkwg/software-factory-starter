@@ -19,7 +19,14 @@ export {
   accountNoticeMail,
   emailChangedMail,
 } from "./notifications.ts";
-export { exportOrganization, findContact, findRole, findUserNames } from "./repository.ts";
+export {
+  exportOrganization,
+  findContact,
+  findRole,
+  findTimeZone,
+  findUserNames,
+  listUserIds,
+} from "./repository.ts";
 export { organizationRoutes } from "./routes.ts";
 export {
   endSupportSession,

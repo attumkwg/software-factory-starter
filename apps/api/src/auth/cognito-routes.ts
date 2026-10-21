@@ -16,6 +16,7 @@ import type { Logger } from "../logger.ts";
 import { type LoginDeps, logIn, loginFailed } from "./login.ts";
 import { takePendingMfa, writePendingMfa } from "./pending-mfa.ts";
 import { type AuthResult, type CognitoClient, CognitoError } from "./providers.ts";
+import { recordSignUpConsents } from "./sign-up-consent.ts";
 
 // Cognito のときだけの入口: ログイン・二段階認証・登録・確認コード・パスワードの再設定。
 
@@ -113,7 +114,7 @@ const resetPasswordRoute = authRoute(
 
 export function addCognitoRoutes(router: Router, deps: LoginDeps, idp: CognitoClient) {
   addSignInRoutes(router, deps, idp);
-  addAccountRoutes(router, deps.logger, idp);
+  addAccountRoutes(router, deps, idp);
 }
 
 /** ログインと二段階認証 */
@@ -157,7 +158,8 @@ function addSignInRoutes(router: Router, deps: LoginDeps, idp: CognitoClient) {
 }
 
 /** 登録・確認コード・パスワードの再設定 */
-function addAccountRoutes(router: Router, logger: Logger, idp: CognitoClient) {
+function addAccountRoutes(router: Router, deps: LoginDeps, idp: CognitoClient) {
+  const { logger } = deps;
   router
     .openapi(signUpRoute, async (c) => {
       const { email, password } = c.req.valid("json");
@@ -175,8 +177,10 @@ function addAccountRoutes(router: Router, logger: Logger, idp: CognitoClient) {
       return c.json({ next: "confirm" as const }, 200);
     })
     .openapi(confirmSignUpRoute, async (c) => {
-      const { email, code } = c.req.valid("json");
+      const { email, code, consents } = c.req.valid("json");
       await ask(logger, "confirm_sign_up", () => idp.confirmSignUp(email, code));
+      // 確認コードが通った(メールの持ち主)後でだけ、登録の画面で同意した版を記録する
+      await recordSignUpConsents(deps, c, email, consents);
       return c.json({ next: "login" as const }, 200);
     })
     .openapi(resendCodeRoute, async (c) => {

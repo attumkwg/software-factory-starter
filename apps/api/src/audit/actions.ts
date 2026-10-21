@@ -56,12 +56,16 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
     target: "organization",
     param: "none",
   },
+  // 利用規約・プライバシーポリシーへの同意(docs/specs/0008-legal-consent.md)。どの版かは legal.consents の行
+  "POST /api/legal/consents": { action: "legal.consent", target: "user", param: "none" },
 };
 
 /** 関所の外(ログインの API など)で、手で記録する物 */
 export const MANUAL_AUDIT_ACTIONS = {
   login: "auth.login",
   logout: "auth.logout",
+  // 登録の確認(公開の API)のあとに、登録の画面で同意した版を記録したとき
+  signUpConsent: "legal.consent",
 } as const;
 
 /**

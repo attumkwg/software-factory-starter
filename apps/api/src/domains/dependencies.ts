@@ -5,4 +5,6 @@ export const DOMAIN_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = 
   organizations: [],
   projects: ["organizations"],
   tasks: ["organizations", "projects"],
+  // 規約と同意(docs/specs/0008-legal-consent.md)。同意する人・お知らせの宛先は組織の領域の人
+  legal: ["organizations"],
 };

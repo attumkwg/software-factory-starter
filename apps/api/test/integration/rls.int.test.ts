@@ -142,6 +142,31 @@ describe("行の分離", () => {
     }
   });
 
+  it("同意の記録はアプリから直せない・消せない(足すだけ)。お知らせの記録は足せない", async () => {
+    // docs/specs/0008-legal-consent.md: 権限は SELECT・INSERT だけ(お知らせは SELECT だけ)
+    for (const stmt of [
+      "update legal.consents set version = 99",
+      "delete from legal.consents",
+      "delete from legal.notices",
+    ]) {
+      await expect(asTenant(a.tenantId, (c) => c.query(stmt))).rejects.toThrow(/permission denied/);
+    }
+    await expect(
+      asTenant(a.tenantId, (c) =>
+        c.query(
+          "insert into legal.notices (id, tenant_id, user_id, document, version) values (gen_random_uuid(), $1, $2, 'terms', 1)",
+          [a.tenantId, a.users.admin.id],
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it("お知らせのコマンド用の組織の一覧(legal_notice_tenants)は、アプリからは呼べない", async () => {
+    await expect(app.query("select * from legal_notice_tenants()")).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
   it("アプリは users を直接全社分は読めない(ログイン用の関数は ID の組しか返さない)", async () => {
     const leaked = await asTenant(
       a.tenantId,
