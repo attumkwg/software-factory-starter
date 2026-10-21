@@ -32,8 +32,12 @@ description: 新しい API(エンドポイント)を足すときの手順。ル�
    - `admin` / `member` / `viewer` / `anonymous` の答えを全部書く。
    - パスに ID があれば `other_tenant: 404` を必ず書く。
    - 書き込みなら `body` を書く。
-8. **テスト**: 一覧なら、続きの印をたどって抜けも重なりも無く最後まで読めること・上限を超える `limit` が 400 になることも(`performance.int.test.ts` が見本)。表に足せば `authz-matrix.int.test.ts` が自動で全ロールを叩く。そのうえで、業務の決まり(入力の境界・2社の分離)を `test/integration/` に足す。**テストは必ず2社**。
-9. **確かめる**: `pnpm turbo run typecheck test --affected` と `pnpm test:integration`。
+8. **個人情報**: 返す値・ログに出す項目・出来事の中身を、列の分類表(`apps/api/src/db/classification.ts`。台帳は `docs/db/personal-data.md`)で確かめる。
+   - `personal` / `sensitive` の値は、ログ・監査ログの `details`・出来事の中身(`enqueue`)に入れない。ログは `{ taskId }` のような ID と数だけ。出来事は ID だけ(受け手が DB から読み直す)。
+   - パスに新しい ID(`{fooId}`)を足したら、分類表の `platform.audit_events.details` の keys に足す。出来事の中身のキーを足したら `platform.outbox.payload` の keys に足す(無ければ `classification.test.ts` が落ちる)。
+   - `sensitive` の値を返す API は、この手順だけで足さない(ADR 0018。人の確認が要る)。
+9. **テスト**: 一覧なら、続きの印をたどって抜けも重なりも無く最後まで読めること・上限を超える `limit` が 400 になることも(`performance.int.test.ts` が見本)。表に足せば `authz-matrix.int.test.ts` が自動で全ロールを叩く。そのうえで、業務の決まり(入力の境界・2社の分離)を `test/integration/` に足す。**テストは必ず2社**。
+10. **確かめる**: `pnpm turbo run typecheck test --affected` と `pnpm test:integration`。
 
 ## PR に書くこと
 

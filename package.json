@@ -23,6 +23,7 @@
     "db:generate": "pnpm --filter @app/api db:generate",
     "openapi": "pnpm --filter @app/api openapi",
     "docs:db": "node scripts/docs-db.mjs",
+    "docs:personal-data": "pnpm --filter @app/api docs:personal-data",
     "decisions": "node scripts/decisions.mjs",
     "security:fuzz": "node scripts/security-fuzz.mjs",
     "guards": "node scripts/check-guards.mjs"
