@@ -36,6 +36,7 @@
       - any-glob-to-any-file:
           - apps/**
           - packages/**
+          - prototypes/**
           - pnpm-lock.yaml
           - package.json
 
