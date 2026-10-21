@@ -5,14 +5,25 @@ import { pino } from "pino";
 import { describe, expect, it } from "vitest";
 import { createWebApp, type SsrHandler } from "./app.ts";
 
-function setup(ssr: SsrHandler = () => new Response("<html></html>")) {
+function setup(
+  ssr: SsrHandler = () => new Response("<html></html>"),
+  env: { appEnv?: string; indexablePaths?: string[] } = {},
+) {
   const clientDir = mkdtempSync(join(tmpdir(), "web-client-"));
   mkdirSync(join(clientDir, "assets"));
   writeFileSync(join(clientDir, "assets", "app-abc123.js"), "console.log(1)");
   writeFileSync(join(clientDir, "assets", "app-abc123.js.br"), "br-bytes");
   writeFileSync(join(clientDir, "assets", "app-abc123.js.gz"), "gz-bytes");
+  // public/ に置いた物(ビルドで dist/client の直下に並ぶ)
+  writeFileSync(join(clientDir, "favicon.svg"), "<svg></svg>");
   const lifecycle = { shuttingDown: false };
-  const app = createWebApp({ ssr, clientDir, logger: pino({ level: "silent" }), lifecycle });
+  const app = createWebApp({
+    ssr,
+    clientDir,
+    logger: pino({ level: "silent" }),
+    lifecycle,
+    ...env,
+  });
   return { app, lifecycle };
 }
 
@@ -116,5 +127,75 @@ describe("画面のサーバー", () => {
     const res = await app.request("/");
     expect(res.status).toBe(500);
     expect(await res.text()).not.toContain("hunter2");
+  });
+});
+
+describe("検索に載せない", () => {
+  it.each([undefined, "local", "preview", "stg"])(
+    "本番以外(%s)は、公開してよいページの一覧に関わらず全部に noindex",
+    async (appEnv) => {
+      const { app } = setup(undefined, { appEnv, indexablePaths: ["/login"] });
+      for (const path of ["/login", "/projects", "/assets/app-abc123.js", "/favicon.svg"]) {
+        expect((await app.request(path)).headers.get("x-robots-tag"), path).toBe(
+          "noindex, nofollow",
+        );
+      }
+    },
+  );
+
+  it("本番も既定は全部に noindex(ログイン後の画面を含む)", async () => {
+    const { app } = setup(undefined, { appEnv: "prod" });
+    for (const path of ["/", "/login", "/projects/1", "/audit"]) {
+      expect((await app.request(path)).headers.get("x-robots-tag"), path).toBe("noindex, nofollow");
+    }
+  });
+
+  it("本番で一覧に書いたページだけは外す(ほかは付いたまま)", async () => {
+    const { app } = setup(undefined, { appEnv: "prod", indexablePaths: ["/login"] });
+    expect((await app.request("/login")).headers.get("x-robots-tag")).toBeNull();
+    expect((await app.request("/projects")).headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("SSR の転送(302)と失敗(500)にも付く", async () => {
+    const redirect = setup(() => Response.redirect("http://web/login", 302)).app;
+    expect((await redirect.request("/projects")).headers.get("x-robots-tag")).toBe(
+      "noindex, nofollow",
+    );
+    const broken = setup(() => {
+      throw new Error("x");
+    }).app;
+    expect((await broken.request("/")).headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("robots.txt: 本番以外は全部お断り・本番は API だけお断り", async () => {
+    for (const appEnv of [undefined, "local", "preview", "stg"]) {
+      const res = await setup(undefined, { appEnv }).app.request("/robots.txt");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/plain");
+      expect(await res.text()).toBe("User-agent: *\nDisallow: /\n");
+    }
+    const prod = await setup(undefined, { appEnv: "prod" }).app.request("/robots.txt");
+    expect(await prod.text()).toBe("User-agent: *\nDisallow: /api/\n");
+  });
+});
+
+describe("public/ の物", () => {
+  it("favicon は SSR に回さずに返す。無い物は SSR に回さずに 404", async () => {
+    let called = 0;
+    const { app } = setup(() => {
+      called += 1;
+      return new Response("<html></html>");
+    });
+    const icon = await app.request("/favicon.svg");
+    expect(icon.status).toBe(200);
+    expect(icon.headers.get("content-type")).toContain("image/svg+xml");
+    expect(icon.headers.get("cache-control")).toBe("public, max-age=86400");
+    for (const path of ["/favicon.ico", "/apple-touch-icon.png", "/wp-login.php"]) {
+      expect((await app.request(path)).status, path).toBe(404);
+    }
+    expect(called).toBe(0);
+    // 拡張子の無いパスは、これまでどおり SSR が描く(存在しない画面の 404 も SSR が決める)
+    await app.request("/no-such");
+    expect(called).toBe(1);
   });
 });

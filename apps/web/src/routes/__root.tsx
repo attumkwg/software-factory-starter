@@ -12,7 +12,11 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Tasks" },
     ],
-    links: [{ rel: "stylesheet", href: uiCss }],
+    links: [
+      { rel: "stylesheet", href: uiCss },
+      // public/favicon.svg(画面のサーバーがそのまま返す。server/app.ts)
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+    ],
   }),
   component: RootDocument,
 });

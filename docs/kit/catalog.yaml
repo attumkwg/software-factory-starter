@@ -246,11 +246,10 @@ parts:
   - id: column-classification
     name: 列の分類表とログ
     group: foundation
-    status: 作成中
-    pr: 4
+    status: あり
     removable: false
     default: 残す
-    what: 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする
+    what: 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする。台帳(docs/db/personal-data.md)はここから作る
     needed_by: 個人情報を扱うすべて
     not_needed_by: なし
     if_removed: どこに個人情報があるかが分からず、開示・削除・漏えいの報告に答えられない
@@ -259,6 +258,11 @@ parts:
       - 個人情報保護法 17条(利用目的の特定)・23条
       - ISMS 5.34(プライバシー及び PII の保護)
       - P マーク(個人情報の特定)
+    where:
+      - apps/api/src/db/classification.ts
+      - apps/api/test/unit/classification.test.ts
+      - docs/db/personal-data.md
+      - docs/adr/0018-sensitive-data-isolation.md
 
   # ── 会社向け ────────────────────────────────────────────────────────────
   - id: audit-log
@@ -681,16 +685,24 @@ parts:
   - id: noindex-mobile
     name: 検索に載せない(noindex)とスマホの幅の E2E
     group: front
-    status: 作成中
-    pr: 6
+    status: あり
     removable: true
     default: 残す
-    what: ログインの後の画面を検索に載せない(noindex・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る
+    what: 本番以外と、ログインの後の画面を検索に載せない(X-Robots-Tag・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る
     needed_by: ログインして使う画面のすべて
     not_needed_by: なし(公開のページを検索に載せたいなら、そのページだけ別に作る)
-    if_removed: 利用者の画面の URL が検索に出ることがある
+    if_removed: 利用者の画面の URL や stg・プレビューが検索に出ることがある。スマホの幅で崩れても気づかない
     depends_on: [web]
     law: []
+    remove:
+      delete: [apps/web/e2e/not-found.spec.ts]
+      edit:
+        - { path: apps/web/server/app.ts, what: x-robots-tag と /robots.txt を外す(載せるページを決めるのは公開のページの側で) }
+        - { path: apps/web/server/index.ts, what: appEnv を外す }
+        - { path: apps/web/server/app.test.ts, what: 検索の決まりのテストを外す }
+        - { path: apps/web/playwright.config.ts, what: スマホの幅(mobile)の組を外す }
+        - { path: apps/web/e2e/helpers.ts, what: 横のはみ出しの確かめを外す }
+      docs: [docs/specs/0008-web-noindex-mobile.md, docs/designs/0008-web-noindex-mobile.md]
 
   - id: seo
     name: 公開のページと SEO の型
@@ -731,18 +743,18 @@ parts:
   - id: sensitive-isolation
     name: 要配慮個人情報を分けて置く
     group: personal
-    status: 作成中
-    pr: 4
+    status: 未
     removable: true
-    default: 残す
-    what: 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(分けるまでは列を足せない)
+    default: 消す
+    what: 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている
     needed_by: 要配慮個人情報を扱う
-    not_needed_by: 要配慮個人情報を扱わない(足せない決まりのまま残しておけば、間違って足すのを止められる)
-    if_removed: 要配慮の列が、ふつうの表に混ざる
+    not_needed_by: 要配慮個人情報を扱わない(足せない守りは土台に残るので、間違って足すことは止まる)
+    if_removed: まだ無い
     depends_on: [column-classification]
     law:
       - 個人情報保護法 2条3項・20条2項(要配慮個人情報の取得には同意)
       - P マーク
+    keep_when: [personal-data=要配慮も扱う]
 
   - id: person-deletion
     name: 1人分の削除と開示
@@ -897,6 +909,7 @@ parts:
     name: プロトタイプの置き場
     group: dev
     status: 作成中
+    pr: 9
     removable: true
     default: 残す
     what: 本番のラインに乗せずに、画面だけ・使い捨ての形で確かめる置き場(prototypes/)
@@ -927,16 +940,33 @@ parts:
   - id: bets
     name: 機能ごとの賭け(/bet)
     group: process
-    status: 作成中
-    pr: 5
+    status: あり
     removable: true
     default: 残す
-    what: 機能ごとに「何を賭けて・何が分かったら続けるか」を書き、小さく確かめながら進める
+    what: 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く
     needed_by: PMF の前後で、作る物の当たり外れが大きい
     not_needed_by: 作る物が決まっている受託
-    if_removed: 作った機能が効いたかを振り返れない
+    if_removed: 作った機能が効いたかを振り返れない。資産と費用を分ける元(PR の取り組み)が無くなる
     depends_on: [kickoff]
     law: []
+    remove:
+      delete:
+        - .claude/skills/bet
+        - docs/guides/bets-and-assets.md
+        - docs/product/bets
+        - scripts/bets-lib.mjs
+        - scripts/bets.mjs
+        - scripts/bets.test.mjs
+        - .github/workflows/pr-work.yml
+      edit:
+        - { path: package.json, what: bets・test:scripts を外す }
+        - { path: .github/pull_request_template.md, what: 「🎯 取り組み」の欄を外す }
+        - { path: CLAUDE.md, what: /bet の行を外す }
+        - { path: .claude/skills/new-feature/SKILL.md, what: 賭けの ID から始める所を外す }
+        - { path: .claude/skills/kickoff/SKILL.md, what: /bet へのつなぎを外す }
+        - { path: docs/playbook.md, what: 賭けの振り返りを外す }
+      ci:
+        - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順を外す }
 
   - id: ledger
     name: 資産と費用の台帳(/ledger)

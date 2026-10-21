@@ -24,7 +24,10 @@ export type TableProps<T extends { id: string }> = {
   emptyMessage?: string;
 };
 
-/** 表。矢印キーで行と列を動ける。 */
+/**
+ * 表。矢印キーで行と列を動ける。
+ * 列が幅に入りきらないとき(スマホ)は、画面全体ではなく表の枠の中で横に動く。
+ */
 export function Table<T extends { id: string }>({
   label,
   columns,
@@ -32,24 +35,26 @@ export function Table<T extends { id: string }>({
   emptyMessage = "まだありません",
 }: TableProps<T>) {
   return (
-    <AriaTable aria-label={label} className="ui-table">
-      <AriaTableHeader columns={columns}>
-        {(col) => (
-          <AriaColumn id={col.id} isRowHeader={col.isRowHeader} className="ui-table__column">
-            {col.header}
-          </AriaColumn>
-        )}
-      </AriaTableHeader>
-      <AriaTableBody
-        items={rows}
-        renderEmptyState={() => <p className="ui-text-muted">{emptyMessage}</p>}
-      >
-        {(row) => (
-          <AriaRow id={row.id} columns={columns} className="ui-table__row">
-            {(col) => <AriaCell className="ui-table__cell">{col.cell(row)}</AriaCell>}
-          </AriaRow>
-        )}
-      </AriaTableBody>
-    </AriaTable>
+    <div className="ui-table-scroll">
+      <AriaTable aria-label={label} className="ui-table">
+        <AriaTableHeader columns={columns}>
+          {(col) => (
+            <AriaColumn id={col.id} isRowHeader={col.isRowHeader} className="ui-table__column">
+              {col.header}
+            </AriaColumn>
+          )}
+        </AriaTableHeader>
+        <AriaTableBody
+          items={rows}
+          renderEmptyState={() => <p className="ui-text-muted">{emptyMessage}</p>}
+        >
+          {(row) => (
+            <AriaRow id={row.id} columns={columns} className="ui-table__row">
+              {(col) => <AriaCell className="ui-table__cell">{col.cell(row)}</AriaCell>}
+            </AriaRow>
+          )}
+        </AriaTableBody>
+      </AriaTable>
+    </div>
   );
 }

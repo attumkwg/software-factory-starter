@@ -17,6 +17,8 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - 描くとき(コンポーネントの本体)に `window` / `document` / `localStorage` を触らない。サーバーには無い。要るなら `useEffect` の中か `<ClientOnly>`。
 - 日時は `src/format.ts` を通す(サーバーは UTC なので、そのまま出すと読み込み直後に表示がずれる)。
 - 画面のサーバーは、HTML に `Cache-Control: no-store`・HSTS(1年)・Permissions-Policy を付ける(`server/app.ts`)。カメラ・位置などのブラウザの機能を使うようにしたら、Permissions-Policy から外す。
+- 検索に載せない: 全部の応答に `X-Robots-Tag: noindex, nofollow`(本番も既定は全部)。本番で載せたいページだけ `INDEXABLE_PATHS` に足す。`robots.txt` も `server/app.ts` が返す。
+- favicon などの静的なファイルは `public/` に置く(画面のサーバーがそのまま返す)。画面の URL に `.` を使わない(拡張子のあるパスは SSR に回さずに 404)。
 - 秘密を画面のコードに書かない。`VITE_` で始まる環境変数はブラウザに出る。画面のサーバーは秘密を持たない決まり。
 
 ## 見た目・API・認可
@@ -30,6 +32,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 
 - E2E(`e2e/`)は種データの2社(Acme / Globex)を使う。要素は役割と名前で取る(`getByRole` / `getByLabel`)。
 - 大事な流れを変えたら E2E を1本足すか直す(目安: 大事な流れ5本程度まで)。
+- `expectAccessible` は axe(WCAG 2.2 AA まで)と「横にはみ出していない」を見る。スマホの組(幅 320px)は主な流れだけ流す(`playwright.config.ts` の `MOBILE_SPECS`)。表や入力の画面を足したら、そこに足すか考える。
 - 本番の Node サーバー(`server/`)を変えたら `server/app.test.ts` も直す。
 
 ## 速さ

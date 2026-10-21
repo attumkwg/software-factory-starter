@@ -43,6 +43,10 @@ jobs:
         run: pnpm lint
       - name: 危険度「高」の守り(一覧と ask・ラベル・CODEOWNERS がそろっているか・Bash のフック)
         run: pnpm guards
+      - name: 賭けの記録(線を先に決めたか・段階を飛ばしていないか)と、その検査のテスト
+        run: |
+          pnpm bets
+          pnpm test:scripts
       - name: 部品のカタログ(書式・つながり・消し方のパスの実在・土台を消す答え・README の生成し忘れ)
         run: pnpm kit:catalog
       - name: 型
