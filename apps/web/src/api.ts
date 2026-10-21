@@ -198,7 +198,7 @@ export const api = {
     request<AuthNext>("POST", "/auth/reset-password", { email, code, password }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/me"),
-  // 利用規約・プライバシーポリシーへの同意(docs/specs/0008-legal-consent.md)
+  // 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)
   acceptLegal: (consents: LegalVersionRef[]) =>
     request<void>("POST", "/legal/consents", { consents }),
   listProjects: async (): Promise<{ projects: Project[] }> => ({

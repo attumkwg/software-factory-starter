@@ -56,7 +56,7 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
     target: "organization",
     param: "none",
   },
-  // 利用規約・プライバシーポリシーへの同意(docs/specs/0008-legal-consent.md)。どの版かは legal.consents の行
+  // 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)。どの版かは legal.consents の行
   "POST /api/legal/consents": { action: "legal.consent", target: "user", param: "none" },
 };
 

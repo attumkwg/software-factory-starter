@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectAccessible, loginAs } from "./helpers.ts";
 
-// 利用規約・プライバシーポリシー(docs/specs/0008-legal-consent.md)。
+// 利用規約・プライバシーポリシー(docs/specs/0009-legal-consent.md)。
 // 種データの newcomer@acme.test は、まだ同意していない人(同意すると次からはふつうに使える)。
 // 同意は消せないので、同意の流れは1回の起動で1度だけ通る(手元で流し直すときは docker compose down -v で DB を作り直す)。
 

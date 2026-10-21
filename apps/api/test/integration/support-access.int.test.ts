@@ -118,7 +118,7 @@ describe("社員が番号で入る", () => {
   });
 
   it("お客さんの代わりに規約に同意できない(403)。規約の関所の対象外(me に legal が無い)", async () => {
-    // docs/specs/0008-legal-consent.md: 代理の社員は見るだけ。NOT_DURING_SUPPORT
+    // docs/specs/0009-legal-consent.md: 代理の社員は見るだけ。NOT_DURING_SUPPORT
     const res = await call(app, "POST", "/api/legal/consents", {
       cookie: support,
       body: { consents: [{ document: "terms", version: 1 }] },

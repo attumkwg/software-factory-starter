@@ -143,7 +143,7 @@ describe("行の分離", () => {
   });
 
   it("同意の記録はアプリから直せない・消せない(足すだけ)。お知らせの記録は足せない", async () => {
-    // docs/specs/0008-legal-consent.md: 権限は SELECT・INSERT だけ(お知らせは SELECT だけ)
+    // docs/specs/0009-legal-consent.md: 権限は SELECT・INSERT だけ(お知らせは SELECT だけ)
     for (const stmt of [
       "update legal.consents set version = 99",
       "delete from legal.consents",

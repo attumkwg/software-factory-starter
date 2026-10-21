@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { legalBody, legalBodyPath, legalBodyPaths } from "./documents.ts";
 import { parseMarkdown } from "./markdown.ts";
 
-// 公開した版の本文は変えない(docs/specs/0008-legal-consent.md)。直すときは新しい版のファイルを足し、
+// 公開した版の本文は変えない(docs/specs/0009-legal-consent.md)。直すときは新しい版のファイルを足し、
 // @app/shared の LEGAL_VERSIONS に1行(sha256 はこのテストが落ちたときの文に出る)。
 
 describe("規約の本文", () => {

@@ -11,7 +11,7 @@ import type { TenantTx } from "../../db/client.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { consents } from "./schema.ts";
 
-// 同意の記録の読み書き(docs/specs/0008-legal-consent.md)。足すだけ(直す・消すは無い)。
+// 同意の記録の読み書き(docs/specs/0009-legal-consent.md)。足すだけ(直す・消すは無い)。
 
 export type ConsentSource = "sign_up" | "acceptance";
 export type ConsentCapacity = "organization" | "individual";

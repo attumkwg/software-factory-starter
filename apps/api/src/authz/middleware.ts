@@ -44,7 +44,7 @@ class SupportEnded extends Error {}
  *    組織が二段階認証を必須にしていて本人が未設定なら、設定の API(policy.ts の ALLOWED_DURING_MFA_SETUP)以外は
  *    403 mfa_setup_required(docs/specs/0006-account-security.md)。
  *    同意し直しが要る規約の版に同意していなければ、同意の API(policy.ts の ALLOWED_DURING_TERMS_ACCEPTANCE)以外は
- *    403 terms_acceptance_required(docs/specs/0008-legal-consent.md)。代理の社員・運営の組織の人は対象外。
+ *    403 terms_acceptance_required(docs/specs/0009-legal-consent.md)。代理の社員・運営の組織の人は対象外。
  * 8. 外(Cognito)を待つ API(policy.ts の OUTSIDE_TRANSACTION)は、確かめた短いトランザクションを閉じてから
  *    ハンドラーを呼び、監査ログは成功の後に別の短いトランザクションで残す。
  * 9. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。

@@ -16,7 +16,7 @@ import { useSubmit } from "./auth/use-submit.ts";
 // 誰でも登録できる。アプリに入れるのは、組織の管理者が users に足した人だけ(ADR 0007)。
 // もう登録されているメールでも同じ答え(登録の有無が分からない)。
 // 利用規約とプライバシーポリシーのいまの版への同意のチェックが要る。記録は確認コードが通った後に API が残す
-// (docs/specs/0008-legal-consent.md)。
+// (docs/specs/0009-legal-consent.md)。
 
 /** 登録の画面で見せる版(いま効いている版) */
 function shownVersions(): LegalVersionRef[] {

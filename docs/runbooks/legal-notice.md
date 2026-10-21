@@ -1,6 +1,6 @@
 # 規約の変更のお知らせのメールを送る
 
-> 仕様: [specs/0008](../specs/0008-legal-consent.md)・版を足す手順: [guides/legal-documents.md](../guides/legal-documents.md)。
+> 仕様: [specs/0009](../specs/0009-legal-consent.md)・版を足す手順: [guides/legal-documents.md](../guides/legal-documents.md)。
 > **本番の DB に書く操作**(お知らせの記録と送信待ちを足す)。人が打つ。AI は打たない。
 
 ## いつ

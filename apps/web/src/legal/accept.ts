@@ -1,6 +1,6 @@
 import { LEGAL_VERSIONS, type LegalVersion, type LegalVersionRef, type Me } from "@app/shared";
 
-// 同意の画面に並べる版(docs/specs/0008-legal-consent.md):
+// 同意の画面に並べる版(docs/specs/0009-legal-consent.md):
 //   いま同意が要る版(pending)と、前もって同意できる「同意し直しの」予告中の版(まだ同意していない物)。
 
 export type AcceptItem = LegalVersion & { required: boolean };

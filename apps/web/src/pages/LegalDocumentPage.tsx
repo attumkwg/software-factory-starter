@@ -3,7 +3,7 @@ import { Alert, Card, Heading, Link, List, Muted, Page, Stack, Text } from "@app
 import { formatDateTime } from "../format.ts";
 import { parseMarkdown } from "../legal/markdown.ts";
 
-// 規約の本文の画面(ログイン無しで読める。docs/specs/0008-legal-consent.md)。
+// 規約の本文の画面(ログイン無しで読める。docs/specs/0009-legal-consent.md)。
 // 上に文書の名前・版・効力の日、本文、下に変更の履歴。時刻は組織が分からないので既定の時間帯(日本)で出す。
 
 export type LegalDocumentView = {

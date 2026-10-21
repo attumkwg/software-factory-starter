@@ -50,7 +50,7 @@ export async function findContact(
   return row ?? null;
 }
 
-/** 組織の全員の ID(運営のコマンドが、組織の全員にお知らせを積むときに使う。docs/specs/0008-legal-consent.md) */
+/** 組織の全員の ID(運営のコマンドが、組織の全員にお知らせを積むときに使う。docs/specs/0009-legal-consent.md) */
 export async function listUserIds(tx: TenantTx, tenantId: string): Promise<string[]> {
   const rows = await tx
     .select({ id: users.id })

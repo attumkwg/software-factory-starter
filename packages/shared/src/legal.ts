@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { InstantSchema } from "./time.ts";
 
-// 利用規約・プライバシーポリシーの版(docs/specs/0008-legal-consent.md・ADR 0019)。
+// 利用規約・プライバシーポリシーの版(docs/specs/0009-legal-consent.md・ADR 0019)。
 // 本文は apps/web/src/legal/<文書>/v<版>.md。**版を足すのは PR で**(手順は docs/guides/legal-documents.md)。
 // 画面(本文・登録・帯)と API(関所・同意の検証)が、この一覧を同じに見る。
 //
@@ -20,7 +20,7 @@ export const LEGAL_DOCUMENT_TITLES: Readonly<Record<LegalDocument, string>> = {
   privacy: "プライバシーポリシー",
 };
 
-/** 2つ目からの版で、公開から効力までにあける日数(docs/designs/0008-legal-consent.md の U-2) */
+/** 2つ目からの版で、公開から効力までにあける日数(docs/designs/0009-legal-consent.md の U-2) */
 export const LEGAL_NOTICE_DAYS = 30;
 
 export type LegalVersion = {

@@ -13,7 +13,7 @@
 | [organizations.support_grants](organizations.support_grants.md)     | 8       | サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md        | BASE TABLE |
 | [organizations.support_sessions](organizations.support_sessions.md) | 9       | 社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる                                        | BASE TABLE |
 | [organizations.email_changes](organizations.email_changes.md)       | 7       | 本人のメールアドレスの変更の申し込み。生きているのは本人の最新・未確認・24時間以内の1件。docs/specs/0006-account-security.md                               | BASE TABLE |
-| [legal.consents](legal.consents.md)                                 | 8       | 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0008-legal-consent.md | BASE TABLE |
+| [legal.consents](legal.consents.md)                                 | 8       | 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0009-legal-consent.md | BASE TABLE |
 | [legal.notices](legal.notices.md)                                   | 6       | 規約の変更のお知らせのメールを送ると決めた記録(運営のコマンド legal-notify が足す)。周知の証拠と、2回送らない守り。docs/runbooks/legal-notice.md           | BASE TABLE |
 
 ## Stored procedures and functions

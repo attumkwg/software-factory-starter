@@ -2,7 +2,7 @@ import { LEGAL_DOCUMENT_TITLES, type Me } from "@app/shared";
 import { Alert, Inline, Link, Stack } from "@app/ui";
 import { formatDate } from "../format.ts";
 
-// 規約の変更の予告の帯(docs/specs/0008-legal-consent.md)。公開済みでまだ効いていない版のうち、まだ同意していない版ごとに1行。
+// 規約の変更の予告の帯(docs/specs/0009-legal-consent.md)。公開済みでまだ効いていない版のうち、まだ同意していない版ごとに1行。
 // 効力の日が来たら消える(同意し直しの版なら、同意の画面に変わる)。閉じられない(予告の期間だけ出る)。
 export function LegalNotices({ me }: { me: Me }) {
   const notices = (me.legal?.upcoming ?? []).filter((u) => !u.accepted);

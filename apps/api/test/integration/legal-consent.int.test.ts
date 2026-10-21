@@ -12,7 +12,7 @@ import {
   type TenantFixture,
 } from "../helpers/fixtures.ts";
 
-// 利用規約・プライバシーポリシーの同意(docs/specs/0008-legal-consent.md)。開発用ログインで通す(登録だけ偽物の Cognito)。
+// 利用規約・プライバシーポリシーの同意(docs/specs/0009-legal-consent.md)。開発用ログインで通す(登録だけ偽物の Cognito)。
 // 「効力の日が来た」「予告中」は、版の一覧を差し替えたアプリで作る(時計は止めない)。
 
 const owner = createDb(inject("ownerUrl"));

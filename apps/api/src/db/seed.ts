@@ -16,7 +16,7 @@ type SeedTenant = {
   /** 二段階認証を必須にするか(運営の組織だけ true。docs/specs/0006-account-security.md の U-7) */
   mfaRequired?: boolean;
   /**
-   * notConsented … 利用規約・プライバシーポリシーに同意していない人(docs/specs/0008-legal-consent.md)。
+   * notConsented … 利用規約・プライバシーポリシーに同意していない人(docs/specs/0009-legal-consent.md)。
    * ほかの人は、種データを入れた時のいまの版に同意済みにする(でないと、手元と E2E の全員が最初に同意の画面へ回される)
    */
   users: { id: string; email: string; name: string; role: Role; notConsented?: boolean }[];

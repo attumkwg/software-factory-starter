@@ -1,9 +1,9 @@
 # 利用規約・プライバシーポリシーの版を足す
 
 > ⚠️ **このキットは仕組みだけを持つ。規約の文面・何を「同意し直し」にするか・予告の日数は、法務の確認を経て決める。**
-> 下の「法令の要点」は一次資料の要旨だけで、条文そのものはまだ確かめていない(設計書 `docs/designs/0008-legal-consent.md` の U-7)。
+> 下の「法令の要点」は一次資料の要旨だけで、条文そのものはまだ確かめていない(設計書 `docs/designs/0009-legal-consent.md` の U-7)。
 >
-> 決めた理由は [ADR 0019](../adr/0019-legal-documents-and-consent.md)、仕様は [specs/0008](../specs/0008-legal-consent.md)。お知らせのメールの送り方は [runbooks/legal-notice.md](../runbooks/legal-notice.md)。
+> 決めた理由は [ADR 0019](../adr/0019-legal-documents-and-consent.md)、仕様は [specs/0009](../specs/0009-legal-consent.md)。お知らせのメールの送り方は [runbooks/legal-notice.md](../runbooks/legal-notice.md)。
 
 ## 仕組み
 

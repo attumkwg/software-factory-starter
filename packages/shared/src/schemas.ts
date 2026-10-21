@@ -29,7 +29,7 @@ export const MeSchema = z.object({
     .object({ enabled: z.boolean(), required: z.boolean(), setupRequired: z.boolean() })
     .optional(),
   /**
-   * 利用規約・プライバシーポリシーへの同意(docs/specs/0008-legal-consent.md)。pending があれば、画面は同意の画面
+   * 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)。pending があれば、画面は同意の画面
    * (/legal/accept)へ回す。upcoming は帯。代理の最中・運営の組織の人には無い(関所の対象外)
    */
   legal: LegalStatusSchema.optional(),
@@ -122,7 +122,7 @@ export const ERROR_CODES = [
   "mfa_already_enabled", // 二段階認証はもう有効(409)
   "support_org_requires_mfa", // 運営の組織では必須を切れない(409)
   "mfa_required_for_support", // 必須の組織に代理で入るには、社員の二段階認証が要る(403)
-  // 規約と同意(docs/specs/0008-legal-consent.md)
+  // 規約と同意(docs/specs/0009-legal-consent.md)
   "terms_acceptance_required", // 同意し直しが要る規約の版に、まだ同意していない(403)。画面は /legal/accept へ
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
@@ -257,7 +257,7 @@ export const ExportSchema = z.object({
       confirmedAt: InstantSchema.nullable(),
     }),
   ),
-  /** 利用規約・プライバシーポリシーへの同意の記録(docs/specs/0008-legal-consent.md) */
+  /** 利用規約・プライバシーポリシーへの同意の記録(docs/specs/0009-legal-consent.md) */
   legalConsents: z.array(
     z.object({
       userId: IdSchema,

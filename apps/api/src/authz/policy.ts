@@ -29,7 +29,7 @@ export const PERMISSIONS = {
   "account:manage": ["admin", "member", "viewer"],
   // 組織の二段階認証の必須。管理者だけ
   "mfa_requirement:manage": ["admin"],
-  // 利用規約・プライバシーポリシーに同意する(docs/specs/0008-legal-consent.md)。対象はいつもセッションの本人だけ。
+  // 利用規約・プライバシーポリシーに同意する(docs/specs/0009-legal-consent.md)。対象はいつもセッションの本人だけ。
   // 管理者の利用規約の同意は「組織として」(ロールで決まる)。代理の最中は使えない(NOT_DURING_SUPPORT)
   "legal:accept": ["admin", "member", "viewer"],
 } as const satisfies Record<string, readonly Role[]>;
@@ -90,7 +90,7 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
  */
 export const NOT_DURING_SUPPORT: ReadonlySet<Permission> = new Set([
   "account:manage",
-  // 社員がお客さんの代わりに規約に同意しない(docs/specs/0008-legal-consent.md)
+  // 社員がお客さんの代わりに規約に同意しない(docs/specs/0009-legal-consent.md)
   "legal:accept",
 ]);
 
@@ -114,7 +114,7 @@ export const ALLOWED_DURING_MFA_SETUP: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * 同意し直しが要る版に、まだ同意していない(同意待ち)の間に通る API(docs/specs/0008-legal-consent.md)。
+ * 同意し直しが要る版に、まだ同意していない(同意待ち)の間に通る API(docs/specs/0009-legal-consent.md)。
  * ほかは 403 terms_acceptance_required(画面は /legal/accept へ回す)。ログアウトは公開の API なので、ここに無くても通る。
  * 同意待ちと二段階認証の設定待ちの両方にかかる人が行き詰まらないよう、関所は「どちらかの一覧にある API」を
  * どちらの待ちでも通す(画面は同意 → 二段階認証の設定、の順に回す)。

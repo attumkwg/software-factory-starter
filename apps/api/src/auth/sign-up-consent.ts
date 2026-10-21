@@ -9,7 +9,7 @@ import type { LoginDeps } from "./login.ts";
 import { findLogin } from "./lookup.ts";
 
 /**
- * 登録の画面で同意した版を記録する(docs/specs/0008-legal-consent.md)。**確認コードが通った後にだけ呼ぶ**
+ * 登録の画面で同意した版を記録する(docs/specs/0009-legal-consent.md)。**確認コードが通った後にだけ呼ぶ**
  * (メールの持ち主だと分かってから。他人のメールで登録を始めても、その人の同意にはならない)。
  *
  * - アプリにいない人(users に行が無い)・同意できない版は飛ばす。答えは変えない(いるかいないかを言わない)

@@ -44,7 +44,7 @@ export type AppEnv = {
     legalVersions: readonly LegalVersion[];
     /**
      * 本人の同意の状態(関所が引いて置く。GET /api/me が返す)。代理の最中・運営の組織の人は無い。
-     * docs/specs/0008-legal-consent.md
+     * docs/specs/0009-legal-consent.md
      */
     legalStatus?: LegalStatus;
   };

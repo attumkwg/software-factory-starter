@@ -38,7 +38,7 @@ comments:
       locked_until: 送り出しが借りている期限
       dead_at: あきらめた時刻(人が見て直す)
   - table: legal.consents
-    tableComment: 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0008-legal-consent.md
+    tableComment: 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0009-legal-consent.md
     columnComments:
       document: terms / privacy
       version: 文書ごとの版(1, 2, 3 …)

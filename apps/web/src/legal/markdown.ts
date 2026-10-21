@@ -1,4 +1,4 @@
-// 規約の本文(Markdown)を、画面の部品で描くための塊に分ける(docs/specs/0008-legal-consent.md)。
+// 規約の本文(Markdown)を、画面の部品で描くための塊に分ける(docs/specs/0009-legal-consent.md)。
 // 読むのは「## 見出し」「空行で区切った段落」「- 箇条」だけ。ほかの書き方(表・リンク・強調)は文字のまま出す。
 // HTML として差し込まない(dangerouslySetInnerHTML を使わない)。<!-- --> の注意書きは画面に出さない。
 // ライブラリを入れないのは、画面の JS の大きさの上限(docs/guides/ci-limits.md)に響くため。

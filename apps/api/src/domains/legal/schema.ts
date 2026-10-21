@@ -2,7 +2,7 @@ import { bigint, foreignKey, pgSchema, text, unique, uuid } from "drizzle-orm/pg
 import { id, instant } from "../../db/columns.ts";
 import { tenants, users } from "../organizations/schema.ts";
 
-// 領域「規約と同意」(docs/specs/0008-legal-consent.md・ADR 0019)。Postgres のスキーマ legal に置く。
+// 領域「規約と同意」(docs/specs/0009-legal-consent.md・ADR 0019)。Postgres のスキーマ legal に置く。
 // 文書と版の一覧は @app/shared の LEGAL_VERSIONS(本文は画面のリポジトリの Markdown)。ここは記録だけ。
 // どちらの表も**足すだけ**(アプリの接続ユーザーは SELECT・INSERT だけ。消すのは解約のコマンドだけ)。
 

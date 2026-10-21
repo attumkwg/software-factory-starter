@@ -42,7 +42,7 @@ test("登録 → メールの確認コード → ログイン → 開こうと�
   await expectAccessible(page);
 
   await page.getByLabel("メールアドレス").fill(email);
-  // 利用規約とプライバシーポリシーに同意しないと登録できない(docs/specs/0008-legal-consent.md)
+  // 利用規約とプライバシーポリシーに同意しないと登録できない(docs/specs/0009-legal-consent.md)
   await expect(page.getByRole("link", { name: "利用規約を読む(新しいタブ)" })).toBeVisible();
   await expect(page.getByRole("button", { name: "登録する" })).toBeDisabled();
   await page.getByText("利用規約とプライバシーポリシーに同意します").click();

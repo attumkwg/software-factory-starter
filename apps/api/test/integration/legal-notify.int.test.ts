@@ -6,7 +6,7 @@ import { notifyLegalChange } from "../../src/domains/legal/index.ts";
 import { createCognitoApp, eventsOf } from "../helpers/cognito.ts";
 import { createTenantFixture, type TenantFixture } from "../helpers/fixtures.ts";
 
-// 規約の変更のお知らせ(運営のコマンド legal-notify の中身。docs/specs/0008-legal-consent.md・docs/runbooks/legal-notice.md)。
+// 規約の変更のお知らせ(運営のコマンド legal-notify の中身。docs/specs/0009-legal-consent.md・docs/runbooks/legal-notice.md)。
 // 試し → 送る(お知らせの行と出来事)→ 2回目は0件 → 受け手がメールを組み立てる。
 
 const owner = createDb(inject("ownerUrl"));

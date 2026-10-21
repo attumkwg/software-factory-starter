@@ -69,7 +69,7 @@ export async function handleFailure(
     await router.navigate({ to: "/login" });
     return;
   }
-  // 同意し直しが要る規約の版に、まだ同意していない → 同意の画面へ(docs/specs/0008-legal-consent.md)
+  // 同意し直しが要る規約の版に、まだ同意していない → 同意の画面へ(docs/specs/0009-legal-consent.md)
   if (e instanceof HttpError && e.code === "terms_acceptance_required") {
     await router.navigate({ to: "/legal/accept" });
     return;

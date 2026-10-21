@@ -19,7 +19,7 @@ export type TenantFixture = {
 };
 
 /**
- * consented … 3人とも、いまの版の利用規約・プライバシーポリシーに同意済みにする(既定。docs/specs/0008-legal-consent.md)。
+ * consented … 3人とも、いまの版の利用規約・プライバシーポリシーに同意済みにする(既定。docs/specs/0009-legal-consent.md)。
  * false なら誰も同意していない(同意の画面・関所のテスト用)。
  */
 export async function createTenantFixture(

@@ -42,7 +42,7 @@ export const ConfirmSignUpSchema = z.object({
   email: Email,
   code: Code,
   /**
-   * 登録の画面で同意した版(docs/specs/0008-legal-consent.md)。確認コードが通り、アプリに登録されている人なら記録する。
+   * 登録の画面で同意した版(docs/specs/0009-legal-consent.md)。確認コードが通り、アプリに登録されている人なら記録する。
    * 無ければ記録しない(次のログインで同意の画面が出る)
    */
   consents: z.array(LegalVersionRefSchema).max(LEGAL_DOCUMENTS.length).optional(),

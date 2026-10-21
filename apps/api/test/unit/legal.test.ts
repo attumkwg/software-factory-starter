@@ -9,7 +9,7 @@ import {
 } from "../../src/authz/policy.ts";
 import { capacityOf, noticeProblem } from "../../src/domains/legal/index.ts";
 
-// 規約と同意(docs/specs/0008-legal-consent.md)の、DB の要らない決まり。流れは legal-consent.int.test.ts。
+// 規約と同意(docs/specs/0009-legal-consent.md)の、DB の要らない決まり。流れは legal-consent.int.test.ts。
 
 describe("組織としてか本人としてか(capacity)", () => {
   it("利用規約を管理者が同意したら組織として。ほかは本人として", () => {

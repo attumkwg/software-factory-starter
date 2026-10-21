@@ -7,7 +7,7 @@ import { formatDateTime } from "../format.ts";
 import { acceptItems, agreesForOrganization } from "../legal/accept.ts";
 import { useAction } from "../use-action.ts";
 
-// 同意の画面(docs/specs/0008-legal-consent.md)。同意し直しが要る版に同意していない人は、どの画面を開いてもここへ回される
+// 同意の画面(docs/specs/0009-legal-consent.md)。同意し直しが要る版に同意していない人は、どの画面を開いてもここへ回される
 // (守りは API の関所。403 terms_acceptance_required)。帯の「前もって同意する」からも来る。
 // 同意しない人はログアウトだけできる(画面の上のボタン)。
 

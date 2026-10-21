@@ -6,7 +6,7 @@ import type { OutboxEvent, OutboxPayload } from "../../outbox/index.ts";
 import { findContact, findTimeZone } from "../organizations/index.ts";
 import { notices } from "./schema.ts";
 
-// 規約の変更のお知らせ(docs/specs/0008-legal-consent.md)。運営のコマンド legal-notify が積んだ出来事を、
+// 規約の変更のお知らせ(docs/specs/0009-legal-consent.md)。運営のコマンド legal-notify が積んだ出来事を、
 // アウトボックスの受け手(outbox/handlers.ts)が送る直前にここで組み立てる(出来事の中身はお知らせの ID だけ)。
 
 export type NoMail = { skip: string };

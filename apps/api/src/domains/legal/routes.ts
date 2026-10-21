@@ -5,7 +5,7 @@ import { badRequest } from "../../errors.ts";
 import { authErrors, bodyErrors, createRouter, jsonBody } from "../../http/common.ts";
 import { recordConsents } from "./repository.ts";
 
-// 利用規約・プライバシーポリシーへの同意(docs/specs/0008-legal-consent.md)。権限は policy.ts の legal:accept。
+// 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)。権限は policy.ts の legal:accept。
 // 同意が要る間(関所の 403 terms_acceptance_required)でも、この API は通る。
 
 export const legalRoutes = createRouter().openapi(
