@@ -1,3 +1,4 @@
+import { serializeError as serializeLogError } from "@app/logging";
 import type { ErrorCode } from "@app/shared";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
@@ -132,30 +133,17 @@ export function toApiError(err: unknown): ApiError {
 // ログに残す形。**値(SQL のパラメータ・行の中身)を出さない**。
 //   Drizzle の失敗は message に「params: 題名, メールアドレス…」を含み、スタックの1行目にも同じ文が入る。
 //   Postgres の失敗は detail に「Key (email)=(a@example.com)」のような値を含む。
-// 残すのは: 種類・message(値を除く)・code・制約や表の名前・スタックの行(at ...)・原因(cause)。
+//   ほかのライブラリの失敗の文にも値が入る(SMTP の「550 <アドレス>」・pg の「invalid input syntax: "値"」)。
+// 残すのは: 種類・message(値を伏せた物)・code・制約や表の名前・スタックの行(at ...)・原因(cause)。
+// 形は画面のサーバーと同じ @app/logging の serializeError。ここでは DB の項目と SQL の形を足すだけ。
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SAFE_DB_FIELDS = ["code", "severity", "table", "column", "constraint", "routine"] as const;
 
-export function serializeError(err: unknown, depth = 0): Record<string, unknown> {
-  if (!(err instanceof Error)) {
-    return { type: typeof err, message: "(Error ではない値が投げられた)" };
-  }
-  const e = err as Error & Record<string, unknown>;
-  const out: Record<string, unknown> = { type: e.constructor?.name || e.name || "Error" };
-
-  // DrizzleQueryError: query(プレースホルダーの $1 だけで値は無い)を残し、params は捨てる
-  out.message = typeof e.query === "string" ? `Failed query: ${e.query}` : e.message;
-  for (const key of SAFE_DB_FIELDS) {
-    if (typeof e[key] === "string") out[key] = e[key];
-  }
-  // スタックの1行目は message と同じ(params が入る)なので、「at ...」の行だけを残す
-  if (typeof e.stack === "string") {
-    out.stack = e.stack
-      .split("\n")
-      .filter((line) => line.trimStart().startsWith("at "))
-      .join("\n");
-  }
-  if (e.cause !== undefined && depth < 3) out.cause = serializeError(e.cause, depth + 1);
-  return out;
+export function serializeError(err: unknown): Record<string, unknown> {
+  return serializeLogError(err, {
+    safeFields: SAFE_DB_FIELDS,
+    // DrizzleQueryError: query(プレースホルダーの $1 だけで値は無い)を残し、params は捨てる
+    messageOf: (e) => (typeof e.query === "string" ? `Failed query: ${e.query}` : e.message),
+  });
 }

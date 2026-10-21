@@ -20,6 +20,7 @@
 - `apps/api/src/audit` … 監査ログ(誰が・いつ・何を)。書き込みの API は認可の関所が自動で記録する。**書き込みの API を足したら `actions.ts` に名前を1行**(無ければ CI が落ちる)。記録は足すだけ
 - `apps/api/src/offboarding` … 解約の削除のコマンド(`delete-tenant`。試し → `--execute --confirm-name`)。`tenant_id` の表を足したら `TENANT_TABLES` にも。手順は `docs/runbooks/offboarding.md`
 - `apps/api/src/db/classification.ts` … 列の分類表(全部の列に `public` / `internal` / `personal` / `sensitive` と目的)。**列を足したら1行**(無ければ CI が落ちる)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ(ADR 0018)。台帳は `docs/db/personal-data.md`
+- `packages/logging` … API と画面のサーバーのログの部品。**出してよい項目だけ出す**(許可リスト。知らない名前は `[REDACTED]`)。ログに新しい名前を出すなら `ALLOWED_KEYS` に足す(人の確認)。ADR 0019
 - `packages/error-reporting` … error 以上のログを Sentry に送る(値を落としてから)。Sentry を直接呼ばず、`logger.error({ err }, "…")` で残す。`docs/guides/monitoring.md`
 - `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
 - `prototypes/<賭けの ID>-<名前>/` … 確かめるための試作(押せる画面だけ・偽のデータ・捨てる物)。`/prototype` が作り、`pnpm prototype:dev <ID>` で手元に開く。本物の API・DB・AWS・秘密を読むと CI が落ちる(`pnpm prototypes`)。`docs/guides/prototypes.md`

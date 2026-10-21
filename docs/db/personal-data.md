@@ -17,7 +17,6 @@
 | `organizations.tenants` | `name` | **personal** | 組織の名前を画面に出す(個人事業主なら人の名前になる) |
 | `organizations.users` | `email` | **personal** | ログインとお知らせの宛先 |
 | `organizations.users` | `name` | **personal** | 画面に出す名前 |
-| `platform.outbox` | `last_error` | **personal** | 最後の失敗の文(人が見て直す)。生の文なので宛先などの値が入りうる |
 | `projects.projects` | `name` | **personal** | お客さんが入れた名前(自由な文なので個人情報が入りうる) |
 | `tasks.tasks` | `title` | **personal** | お客さんが入れた題名(自由な文なので個人情報が入りうる) |
 
@@ -127,7 +126,7 @@
 | `attempts` | internal | 試した回数 |
 | `sent_at` | internal | 送れた時刻 |
 | `dead_at` | internal | あきらめた時刻 |
-| `last_error` | **personal** | 最後の失敗の文(人が見て直す)。生の文なので宛先などの値が入りうる |
+| `last_error` | internal | 最後の失敗の種類と文(人が見て直す)。値は伏せてから書く(relay.ts の scrubMessage) |
 
 ### `projects.projects`
 

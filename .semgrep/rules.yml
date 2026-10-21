@@ -53,6 +53,80 @@ rules:
           metavariable: $OBJ
           regex: ^(?!(err|error|e|message|msg)$)
 
+  # 丸ごと渡す以外の形で、個人情報がログに入るもの(2026-10-21 の点検。docs/specs/0008-personal-data.md の B)。
+  # ログの部品(@app/logging)は許可リストで止めるが、名前を許可リストに足されたら素通りするので、書く所でも止める
+  - id: no-spread-in-logging
+    message: >-
+      ログの項目に行やオブジェクトを広げて(...row)渡さない。中の項目(名前・題名・メール)が全部出る。
+      要る ID だけを { taskId: row.id } の形で書く。
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+      # テストは、伏せられるかを確かめるために、わざと個人情報らしい値を渡す
+      exclude: ["*.test.ts", "*.int.test.ts"]
+    patterns:
+      - pattern-either:
+          - pattern: "$LOG.$LEVEL({..., ...$X, ...}, ...)"
+      - metavariable-regex:
+          metavariable: $LOG
+          regex: (?i)^(logger|log|deps\.logger|this\.logger|this\.#deps\.logger|opts\.logger|c\.var\.logger)$
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(trace|debug|info|warn|error|fatal)$
+
+  - id: no-personal-field-logging
+    message: >-
+      ログに個人情報の項目(名前・メール・題名など。列の分類表 apps/api/src/db/classification.ts の personal / sensitive)を渡さない。
+      渡すのは ID と数だけ(例 { taskId: task.id })。
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+      # テストは、伏せられるかを確かめるために、わざと個人情報らしい値を渡す
+      exclude: ["*.test.ts", "*.int.test.ts"]
+    patterns:
+      - pattern-either:
+          # 名前が個人情報(previousEmail・staff_name なども)
+          - patterns:
+              - pattern: "$LOG.$LEVEL({..., $K: $V, ...}, ...)"
+              - metavariable-regex:
+                  metavariable: $K
+                  # hasVerifiedEmail などの「has / is で始まる真偽」はよい
+                  regex: (?i)^(?!has|is).*(name|e_?mail|title|phone|tel|address|birth|body|content|password|token)
+          # 値が個人情報の属性(body.title・user.email など)
+          - patterns:
+              - pattern: "$LOG.$LEVEL({..., $K: $V, ...}, ...)"
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: (?i).*\.(name|\w*e_?mail|title|phone|address|body|content|password|\w*token)$
+      - metavariable-regex:
+          metavariable: $LOG
+          regex: (?i)^(logger|log|deps\.logger|this\.logger|this\.#deps\.logger|opts\.logger|c\.var\.logger)$
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(trace|debug|info|warn|error|fatal)$
+
+  - id: no-template-in-log-message
+    message: >-
+      ログの文に値を埋め込まない(`${...}`)。文はコードに書いた固定の文にし、ID は { taskId } の項目で渡す。
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+      # テストは、伏せられるかを確かめるために、わざと個人情報らしい値を渡す
+      exclude: ["*.test.ts", "*.int.test.ts"]
+    patterns:
+      - pattern-either:
+          - pattern: "$LOG.$LEVEL(`...${$X}...`)"
+          - pattern: "$LOG.$LEVEL($O, `...${$X}...`)"
+      - metavariable-regex:
+          metavariable: $LOG
+          regex: (?i)^(logger|log|deps\.logger|this\.logger|this\.#deps\.logger|opts\.logger|c\.var\.logger)$
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(trace|debug|info|warn|error|fatal)$
+
   - id: tenant-from-request
     message: >-
       テナントをリクエストの値(ヘッダー・URL・本文)から決めない。テナントはセッションから
@@ -129,6 +203,8 @@ rules:
     languages: [typescript]
     paths:
       include: ["/apps/", "/packages/"]
+      # テストは、伏せられるかを確かめるために、わざと個人情報らしい値を渡す
+      exclude: ["*.test.ts", "*.int.test.ts"]
     pattern-either:
       # その場所の時計で年・月・日・時を読む / 書く
       - pattern-regex: \.(get|set)(FullYear|Month|Date|Day|Hours|Minutes)\(

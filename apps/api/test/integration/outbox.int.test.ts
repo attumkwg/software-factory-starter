@@ -132,7 +132,8 @@ describe("アウトボックス", () => {
       sql`select dead_at is not null as dead, last_error from platform.outbox
           where tenant_id = ${b.tenantId} order by created_at desc limit 1`,
     );
-    expect(rows[0]).toMatchObject({ dead: true, last_error: "Error: 宛先が止まっている" });
+    // 失敗の文は値を伏せてから残す(日本語の並びは利用者の値でありうるので伏せる。種類は残る)
+    expect(rows[0]).toMatchObject({ dead: true, last_error: "Error: […]" });
   });
 
   it("アプリの接続ユーザーは、出来事を直接読めない(他社の出来事が見えない)", async () => {

@@ -55,8 +55,15 @@ fi
 pc "queue_directory = /var/spool/postfix" "data_directory = /var/spool/postfix/data"
 # 渡せないときは5日までやり直す(SES の一時的な止まり・流量の上限に耐える)
 pc "maximal_queue_lifetime = 5d" "bounce_queue_lifetime = 1d"
-# ログは標準出力へ(CloudWatch Logs / docker compose logs)
-pc "maillog_file = /dev/stdout"
+# ログは標準出力へ(CloudWatch Logs / docker compose logs)。メールアドレス(to=<…>・from=<…>)は伏せてから出す
+# (docs/specs/0008-personal-data.md の B)。Postfix は名前付きのパイプに書き、sed が置き換えて標準出力へ流す
+# (<> で読み書きの両方で開く: 書く側が開き直しても、sed が終わりと見なして止まらないように)
+logpipe=/run/postfix/maillog.pipe
+rm -f "$logpipe"
+mkfifo -m 600 "$logpipe"
+# message-id の行だけはそのまま(アプリが決めた <出来事.ID@ホスト> で、API のログの messageId と突き合わせる)
+sed -u -E '/: message-id=</!s/[^][<>()[:space:],;:"]+@[^][<>()[:space:],;:"]+/[email]/g' <> "$logpipe" &
+pc "maillog_file_prefixes = /var, /dev/stdout, /run/postfix" "maillog_file = ${logpipe}"
 # コンテナの中では chroot しない(chroot の中に要るファイルを用意しないため)
 postconf -c "$conf" -F '*/*/chroot = n'
 

@@ -140,7 +140,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "platform.outbox.attempts": internal("試した回数"),
   "platform.outbox.sent_at": internal("送れた時刻"),
   "platform.outbox.dead_at": internal("あきらめた時刻"),
-  "platform.outbox.last_error": personal(
-    "最後の失敗の文(人が見て直す)。生の文なので宛先などの値が入りうる",
+  "platform.outbox.last_error": internal(
+    "最後の失敗の種類と文(人が見て直す)。値は伏せてから書く(relay.ts の scrubMessage)",
   ),
 };

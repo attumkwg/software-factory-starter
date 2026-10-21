@@ -10,12 +10,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/error-reporting/package.json packages/error-reporting/
+COPY packages/logging/package.json packages/logging/
 COPY packages/shared/package.json packages/shared/
 COPY packages/ui/package.json packages/ui/
 # API と、API が使うパッケージの依存だけを入れる
 RUN pnpm install --frozen-lockfile --filter "@app/api..."
 COPY tsconfig.base.json ./
 COPY packages/error-reporting packages/error-reporting
+COPY packages/logging packages/logging
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 RUN pnpm --filter @app/api build
