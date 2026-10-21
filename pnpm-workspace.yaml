@@ -1,6 +1,8 @@
 packages:
   - apps/*
   - packages/*
+  # 確かめるための試作(捨てる物。本物の API・DB・秘密には触らない)。docs/guides/prototypes.md
+  - prototypes/*
 
 # 依存のインストール時にスクリプトを動かしてよいものだけを明示する(サプライチェーン対策)
 onlyBuiltDependencies:

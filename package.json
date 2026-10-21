@@ -28,7 +28,9 @@
     "bets": "node scripts/bets.mjs",
     "test:scripts": "node --test scripts/bets.test.mjs",
     "security:fuzz": "node scripts/security-fuzz.mjs",
-    "guards": "node scripts/check-guards.mjs"
+    "guards": "node scripts/check-guards.mjs",
+    "prototypes": "node scripts/prototypes.mjs",
+    "prototype:dev": "node scripts/prototypes.mjs dev"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
