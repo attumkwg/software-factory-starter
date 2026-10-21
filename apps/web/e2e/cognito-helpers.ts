@@ -52,7 +52,7 @@ export async function newCode(email: string, before: string[]): Promise<string> 
 /** 画面を通さずに、登録と確認だけ済ませる(API を画面と同じ形で叩く) */
 export async function register(request: APIRequestContext, email: string) {
   await forget(email);
-  const headers = { origin: "http://localhost:8080" };
+  const headers = { origin: new URL(process.env.E2E_BASE_URL ?? "http://localhost:8080").origin };
   const before = await messageIds(email);
   await request.post("/api/auth/sign-up", { data: { email, password: PASSWORD }, headers });
   const code = await newCode(email, before);

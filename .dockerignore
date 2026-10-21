@@ -10,5 +10,7 @@
 infra
 docs
 **/*.md
+# 規約の本文は画面のビルドが取り込む(docs/specs/0008-legal-consent.md)。外すと本番の画面に本文が出ない
+!apps/web/src/legal/**/*.md
 **/.env
 **/.env.*
