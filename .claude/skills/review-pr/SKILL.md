@@ -78,7 +78,8 @@ gh pr view <番号> --comments   # Terraform の plan のコメント・プレ�
 - [ ] **テナント**: ルートとリポジトリは `scopeOf(c)` / `c.var.tx` だけを使い、`tenantId` でも絞っているか。リクエストの値でテナントを決めていないか
 - [ ] **権限**: 新しい API が `policy.ts` と `matrix.yaml` の両方にあるか。ルートの中で `role` を見て分岐していないか
 - [ ] **N+1**: ループの中でクエリを投げていないか(`for` / `map` の中の `await s.tx...` や、リポジトリの関数の呼び出し)。一覧で件数が増えると遅くなる所
-- [ ] **ログの個人情報**: `logger.*` にオブジェクトを丸ごと・メール・名前・トークンを渡していないか(Semgrep が止めない形も目で見る)
+- [ ] **ログの個人情報**: `logger.*`・監査ログの `details`・出来事の中身(`enqueue`)に、列の分類表(`apps/api/src/db/classification.ts`)で `personal` / `sensitive` の値を渡していないか。オブジェクトを丸ごと・トークンも(Semgrep が止めない形も目で見る)
+- [ ] **列の分類**: 足した列の区分が中身に合っているか(人が入れる自由な文が `internal` になっていないか)。`personal` が増えたら台帳(`docs/db/personal-data.md`)の差分を「人に判断してほしい所」に出す。`sensitive` が増えたら、人の確認が要ると書く(ADR 0018)
 - [ ] **入力**: 本文は `jsonBody` で、Zod のスキーマ(`packages/shared`)で検証しているか。他社の物・無い物は 404 か
 - [ ] **画面**: `@app/ui` の部品だけを使っているか
 

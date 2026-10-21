@@ -21,6 +21,7 @@
 | よそのサイトへ飛ばす | ログインの後の戻り先はアプリの中のパスだけ(`safeReturnTo`) | 単体「戻り先」 |
 | 偽物の Cognito を本番で | 入口を変える設定(`COGNITO_ENDPOINT`)は local / test だけ | 単体(設定) |
 | 共有の PC で前の人の画面が見える | 画面の HTML は `Cache-Control: no-store`(ブラウザにも途中にも残さない)。HSTS は1年(http に落とさせない)。使わないブラウザの機能(カメラ・マイク・位置など)は Permissions-Policy で止める。CSP は見送り(SSR が埋め込むスクリプトに nonce が要る) | 単体(`apps/web/server/app.test.ts`) |
+| プレビュー・stg・ログインの後ろの画面が検索に載る | 画面のサーバーが全部の応答に `X-Robots-Tag: noindex, nofollow`(本番も既定は全部。外すのは本番で一覧に書いたパスだけ)。`robots.txt` は本番以外 `Disallow: /`。拡張子のあるパスの探り(`/wp-login.php` など)は SSR に回さずに 404 | 単体(`apps/web/server/app.test.ts`)・E2E `not-found.spec.ts` |
 | 偽物が本物とずれる | 同じ契約テストを、偽物には PR ごと・stg の本物には手動で(有効にすると週1回)。落ちたら Issue | `cognito-contract.yml` |
 
 - 次の一歩: 管理者の二段階認証を必須に(グループで分ける)・二段階認証の設定の画面・こちら側の流量の上限(IP ごと)・Cognito の不正対策(Plus)・パスキー。
@@ -31,12 +32,13 @@
 |---|---|---|---|
 | 権限の表 ① | OpenAPI の全 API が `docs/authz/matrix.yaml` にあるか | 表そのものの誤り(人が見る) | `ci.yml` 単体 |
 | 権限の表 ② | 表の全行を admin・member・viewer・他社・未ログインで実際に叩く | 表に無い組み合わせ(自分の物だけ、など) | `ci.yml` 結合 |
+| 列の分類 | DB の全部の列(drizzle と本物の DB)に区分と目的があるか・要配慮(`sensitive`)がスキーマ `sensitive` の外に無いか・監査ログと出来事の中身に個人情報のキーが無いか(`apps/api/src/db/classification.ts`。ADR 0018) | 区分そのものの誤り(人が見る) | `ci.yml` 単体・結合 |
 | RLS と2社 | 全テーブルの RLS・接続ユーザーが持ち主でないか・2社が混ざらないか | RLS の外(キャッシュ・ファイル・ログ) | `ci.yml` 結合 |
 | Semgrep | 公開のルール+自社ルール(テナントの文脈・生の SQL・ログ・本文の検証・画面の色) | ルールに書いていない形の穴 | `ci.yml` |
 | gitleaks | 全履歴から秘密の値らしいもの | 形の決まっていない秘密・暗号化された秘密 | `ci.yml` |
 | Trivy | 依存とイメージの既知の脆弱性・Dockerfile と Terraform の設定 | まだ知られていない脆弱性・自分のコードの穴 | `ci.yml`・`terraform.yml` |
 | squawk | 移行の、本番を止める書き方 | 移行の中身の正しさ(データが合っているか) | `ci.yml` |
-| axe | 画面のアクセシビリティ(色・ラベル・名前) | キーボードだけで最後まで使えるか | `ci.yml` E2E |
+| axe | 画面のアクセシビリティ(色・ラベル・名前・押す所の大きさ。WCAG 2.2 AA まで)と、スマホの幅(320px)で横にはみ出さないか | キーボードだけで最後まで使えるか・iPhone(WebKit)での見え方 | `ci.yml` E2E |
 | actionlint・zizmor | ワークフローの書き方と危ない設定(権限・資格情報・トリガー) | 動かしたときの中身 | `ci.yml` |
 
 ## 手で回す検査(いまは手動。お金と負荷があるため)

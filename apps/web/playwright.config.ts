@@ -6,6 +6,12 @@ import { defineConfig, devices } from "@playwright/test";
 // それ以外(既定)… 開発用ログインで、ふだんの流れを全部流す
 const cognito = process.env.E2E_AUTH === "cognito";
 
+// スマホの組。幅は WCAG の reflow(1.4.10)の 320px(いちばん狭いスマホ。ここで横にはみ出さなければ広い端末も大丈夫)。
+// CI に入れてあるのは Chromium だけなので、Chromium の端末(Pixel 7)の設定に幅だけ重ねる(iPhone は WebKit が要る)。
+// 時間を倍にしないよう、主な流れ(ログイン → プロジェクト → タスク・列の多い表・無い画面)だけを流す。
+// 決めた理由は docs/designs/0008-web-noindex-mobile.md
+const MOBILE_SPECS = ["task-flow.spec.ts", "audit.spec.ts", "not-found.spec.ts"];
+
 export default defineConfig({
   testDir: "./e2e",
   ...(cognito ? { testMatch: "cognito-*.spec.ts" } : { testIgnore: "cognito-*.spec.ts" }),
@@ -20,5 +26,16 @@ export default defineConfig({
     video: "retain-on-failure",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    ...(cognito
+      ? []
+      : [
+          {
+            name: "mobile",
+            use: { ...devices["Pixel 7"], viewport: { width: 320, height: 720 } },
+            testMatch: MOBILE_SPECS,
+          },
+        ]),
+  ],
 });
