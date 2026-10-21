@@ -1,0 +1,34 @@
+# PR の本文の「🎯 取り組み」と「作業の種類」が埋まっているか(docs/guides/bets-and-assets.md)。
+# 本文を直したときにも流すので、CI(ci.yml)とは別にする(重い検査を本文の直しで流し直さない)。
+# 本文は env で渡して標準入力から読む(式を run に直接書くと、本文で命令を差し込まれる)。
+name: PR の取り組み
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-work-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  work:
+    name: 取り組みと作業の種類(PR の本文)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # 依存は要らない(node の標準だけ)。ボット(Renovate など)の PR で空なら「保守」とみなす
+      - name: PR の本文を確かめる
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: printf '%s' "$PR_BODY" | node scripts/bets.mjs --pr-body --author "$PR_AUTHOR"
