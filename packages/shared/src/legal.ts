@@ -164,6 +164,10 @@ export function legalStatus(
   return { pending, upcoming };
 }
 
+/** 16進(小文字)の64文字か。正規表現を使わずに見る(Semgrep の regex_dos に当たらないように) */
+const isSha256Hex = (s: string) =>
+  s.length === 64 && [...s].every((ch) => "0123456789abcdef".includes(ch));
+
 /** 1つの版の決まりに合わない所。index は文書の中で何番目か(0 から) */
 function versionProblems(v: LegalVersion, index: number): string[] {
   const name = `${v.document} の版 ${v.version}`;
@@ -177,7 +181,7 @@ function versionProblems(v: LegalVersion, index: number): string[] {
       index > 0 && days >= 0 && days < LEGAL_NOTICE_DAYS,
       `公開から効力まで ${LEGAL_NOTICE_DAYS} 日以上あける(いま ${days} 日)`,
     ],
-    [!/^[0-9a-f]{64}$/.test(v.sha256), "sha256 は16進の64文字"],
+    [!isSha256Hex(v.sha256), "sha256 は16進の64文字"],
   ];
   return checks.filter(([bad]) => bad).map(([, problem]) => `${name}: ${problem}`);
 }

@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { createDb } from "../../src/db/client.ts";
 import { withTenant } from "../../src/db/tenant.ts";
-import { notifyLegalChange } from "../../src/domains/legal/index.ts";
+import { notifyLegalChange } from "../../src/legal-notify/notify.ts";
 import { createCognitoApp, eventsOf } from "../helpers/cognito.ts";
 import { createTenantFixture, type TenantFixture } from "../helpers/fixtures.ts";
 
