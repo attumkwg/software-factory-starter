@@ -2,4 +2,5 @@
 # 足すときは「本物の秘密ではない」ことを PR で人が確かめる(危険度「高」)。
 
 # 結合テスト用のセッションの秘密(固定の文字列。どこでも使っていない)。後のコミットで乱数っぽくない値に変えた
-ddc64f2285c9b533864c1d5a076a52c4a15b9d32:apps/api/test/helpers/fixtures.ts:generic-api-key:59
+# 2026-10-21 にリポジトリを作り直し(作者のメールを書き換え)、コミットの ID が ddc64f2 から変わった
+bf67bcd53352914a6d0394e001f2585f0ba28da4:apps/api/test/helpers/fixtures.ts:generic-api-key:59

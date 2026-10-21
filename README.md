@@ -1,5 +1,7 @@
 # software-factory-starter
 
+> 🚧 **作成中です。** 一通りそろったら MIT ライセンスで公開します。それまでは読む・参考にするのは自由ですが、コードの複製・改変・再配布はご遠慮ください。
+
 AI エージェント前提でゼロから作るプロダクトの **動く雛形+設定一式**(TypeScript・AWS・Terraform・GitHub Actions)。
 
 題材は小さな **マルチテナントの TODO アプリ**(組織 → プロジェクト → タスク。ロールは admin / member / viewer)。
