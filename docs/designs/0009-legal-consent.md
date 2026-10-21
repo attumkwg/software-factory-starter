@@ -63,7 +63,8 @@ sequenceDiagram
 - **登録の同意は確認コードが通った後に記録する**(メールの持ち主だと分かってから)。
 - 置き場所:
   - `packages/shared/src/legal.ts`(新)… 文書の種類・版の一覧・`legalStatus()`・取り決め(Zod)
-  - `apps/api/src/domains/legal/`(新)… `schema.ts`・`repository.ts`・`routes.ts`(`POST /api/legal/consents`)・`notifications.ts`(お知らせのメール)・`notify.ts`(コマンドの中身)・`index.ts`
+  - `apps/api/src/domains/legal/`(新)… `schema.ts`・`repository.ts`・`routes.ts`(`POST /api/legal/consents`)・`notifications.ts`(お知らせのメール)・`notify.ts`(1つの組織の中で数える・積む)・`index.ts`
+  - `apps/api/src/legal-notify/notify.ts`(新)… 組織を順に回すコマンドの中身(接続プールを使うので領域の外。`src/offboarding` と同じ置き方)
   - `apps/api/src/domains/dependencies.ts` … `legal: ["organizations"]`
   - `apps/api/src/authz/middleware.ts`・`policy.ts` … 関所(危険度「高」)
   - `apps/api/src/auth/cognito-routes.ts` … 登録の確認のあとに同意を記録(危険度「高」)
@@ -391,6 +392,7 @@ Sentry: 新しい物は無い。登録の確認のあとの同意の記録が失
 - **Markdown は見出し・段落・箇条だけを自前で読む** — ライブラリは画面の JS の大きさに響く。規約は見出しと段落と箇条で足りる。HTML として差し込まないので安全。
 - **段落の部品 `Text` を `packages/ui` に足す** — 画面ごとの CSS を書かない決まり。`Muted` は薄い色なので本文に合わない。
 - **書き出しに同意の記録を入れ、お知らせの記録は入れない** — 同意はお客さんの組織のデータ。お知らせは運営の記録。
+- **組織を順に回す所(`notifyLegalChange`)は `src/legal-notify` に置く** — 領域の中で接続プール(`withTenant(db, …)`)を使うと Semgrep の `tenant-scoped-db-only` が止める(CI で見つかった)。組織の中の読み書きは領域 legal の関数に任せる。
 - **`.dockerignore` に規約の本文だけの例外を足す** — `**/*.md` を外しているので、そのままでは本番の画面のイメージに本文が入らない(E2E で見つかった)。
 - **`Checkbox` に `strikeWhenSelected` を足す(既定は今までどおり線を入れる)** — 同意のチェックに線が入ると「取り消した」に見える。
 - **組織の領域に `listUserIds`・`findTimeZone` を足す** — お知らせのコマンド(組織の全員)とメールの日時(組織の時間帯)に要る。ほかの領域の表は `index.ts` を通して読む決まり。
