@@ -35,7 +35,7 @@
 
 ## GitHub Actions の無料枠と、止め方
 
-非公開のリポジトリは、Actions に使える時間に無料の枠があります(2026年10月時点、[GitHub の公式の説明](https://docs.github.com/en/billing/concepts/product-billing/github-actions))。
+公開のリポジトリは、標準の実行環境なら Actions は無料で上限がありません。非公開のリポジトリは、Actions に使える時間に無料の枠があります(2026年10月時点、[GitHub の公式の説明](https://docs.github.com/en/billing/concepts/product-billing/github-actions))。
 
 | プラン | 1か月の無料の分数 | 成果物の置き場 | 超えたとき |
 |---|---|---|---|
