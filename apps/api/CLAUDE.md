@@ -13,6 +13,7 @@
 - リポジトリは RLS に頼り切らず、`tenantId` でも絞る(層を重ねる)。
 - 他社の物・無い物は 404。権限が無ければ 403。ログインしていなければ 401。
 - 失敗は投げるだけ(`errors.ts` の関数)。ルートで try/catch して形を作らない。`onError` が code に直し、ログは `logger.error({ err }, "…")` の形だけ(SQL の値が落ちる)。error 以上のログはそのまま Sentry にも行くので、Sentry を直接呼ばない。決まりは `docs/guides/error-handling.md`。
+- **個人情報**: 列を足したら `src/db/classification.ts` に区分と目的を1行(`personal` / `sensitive` の値はログ・監査ログ・出来事の中身に入れない)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ置ける(ADR 0018)。
 - 入力は Zod で検証(`@app/shared` のスキーマを使う)。`sql.raw` は使わない。
 - **一覧は必ずページング**(全件を返さない)。`?cursor=&limit=`(`http/common.ts` の `PageQuery`)と `{ …, nextCursor }`。並びは「作った時刻+ID」で、同じ並びの索引を張る(`src/db/paging.ts`・`docs/guides/api-changes.md`)。
 - DB の時間切れ(`src/db/client.ts` の `DB_TIMEOUTS`): 1つのクエリ 5 秒・トランザクションを開いたまま DB に何も頼まない時間 10 秒。**トランザクションの中で外(Cognito・メール・HTTP)を待たない**(認可の関所がリクエストごとに開いているので、ハンドラーの中は全部トランザクションの中)。0.5 秒を超えたクエリは warn のログに出る。
