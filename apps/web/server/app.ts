@@ -61,8 +61,9 @@ const NOINDEX = "noindex, nofollow";
 // よそのリンクから URL だけが載ることがある)。API は画面ではないので辿らせない
 const ROBOTS_PROD = "User-agent: *\nDisallow: /api/\n";
 const ROBOTS_OTHERS = "User-agent: *\nDisallow: /\n";
-// 拡張子のある最後の区切り(/favicon.ico など)。画面のパス(/projects/<UUID> など)には「.」を使わない
-const HAS_EXTENSION = /\/[^/]*\.[^/]+$/;
+// 最後の区切りに拡張子がある(/favicon.ico など)。画面のパス(/projects/<UUID> など)には「.」を使わない。
+// 利用者が送る値なので、正規表現を使わずに見る(Semgrep の regex_dos に当たらないように)
+const hasExtension = (path: string) => path.slice(path.lastIndexOf("/") + 1).includes(".");
 
 // public/ から来た物の一覧(dist/client の直下のファイル。前もって圧縮した .br / .gz は除く)
 function publicFilesIn(clientDir: string): Set<string> {
@@ -147,7 +148,7 @@ export function createWebApp(deps: {
       if (res?.ok) res.headers.set("cache-control", "public, max-age=86400");
       return res;
     }
-    if (HAS_EXTENSION.test(c.req.path)) return c.text("Not Found", 404);
+    if (hasExtension(c.req.path)) return c.text("Not Found", 404);
     return next();
   });
 
