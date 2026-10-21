@@ -64,10 +64,19 @@ export function FormError({ message }: { message: string | null }) {
   return message ? <Alert>{message}</Alert> : null;
 }
 
-export function Submit({ pending, children }: { pending: boolean; children: string }) {
+/** 送るボタン。isDisabled … 送る前に足りない物がある(同意のチェックなど) */
+export function Submit({
+  pending,
+  isDisabled = false,
+  children,
+}: {
+  pending: boolean;
+  isDisabled?: boolean;
+  children: string;
+}) {
   return (
     <div>
-      <Button type="submit" variant="primary" isDisabled={pending}>
+      <Button type="submit" variant="primary" isDisabled={pending || isDisabled}>
         {children}
       </Button>
     </div>

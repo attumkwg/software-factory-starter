@@ -39,6 +39,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   mfa_already_enabled: "二段階認証はもう設定されています",
   support_org_requires_mfa: "運営の組織では、二段階認証の必須を切れません",
   mfa_required_for_support: "この組織に入るには、先にあなたの二段階認証を設定してください",
+  terms_acceptance_required: "続けるには、利用規約などへの同意が必要です",
 };
 
 /** API まで届かなかったとき・それ以外の想定外。 */

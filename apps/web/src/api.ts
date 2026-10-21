@@ -9,6 +9,7 @@ import type {
   CreateSupportGrant,
   CreateTask,
   ExportData,
+  LegalVersionRef,
   Me,
   MfaRequirement,
   MfaSetup,
@@ -188,14 +189,18 @@ export const api = {
   answerMfa: (code: string) => request<AuthNext>("POST", "/auth/mfa", { code }),
   signUp: (email: string, password: string) =>
     request<AuthNext>("POST", "/auth/sign-up", { email, password }),
-  confirmSignUp: (email: string, code: string) =>
-    request<AuthNext>("POST", "/auth/confirm-sign-up", { email, code }),
+  // consents … 登録の画面で同意した版(確認コードが通った後に API が記録する)
+  confirmSignUp: (email: string, code: string, consents?: LegalVersionRef[]) =>
+    request<AuthNext>("POST", "/auth/confirm-sign-up", { email, code, consents }),
   resendCode: (email: string) => request<AuthNext>("POST", "/auth/resend-code", { email }),
   forgotPassword: (email: string) => request<AuthNext>("POST", "/auth/forgot-password", { email }),
   resetPassword: (email: string, code: string, password: string) =>
     request<AuthNext>("POST", "/auth/reset-password", { email, code, password }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/me"),
+  // 利用規約・プライバシーポリシーへの同意(docs/specs/0008-legal-consent.md)
+  acceptLegal: (consents: LegalVersionRef[]) =>
+    request<void>("POST", "/legal/consents", { consents }),
   listProjects: async (): Promise<{ projects: Project[] }> => ({
     projects: await readPages<ProjectPage, Project>("/projects", (p) => p.projects),
   }),

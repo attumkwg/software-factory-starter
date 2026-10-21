@@ -5,7 +5,7 @@ export { Badge, type BadgeTone } from "./components/Badge.tsx";
 export { Button, type ButtonProps } from "./components/Button.tsx";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox.tsx";
 export { ConfirmDialog, type ConfirmDialogProps } from "./components/ConfirmDialog.tsx";
-export { Card, Heading, Inline, List, Muted, Page, Stack } from "./components/Layout.tsx";
+export { Card, Heading, Inline, List, Muted, Page, Stack, Text } from "./components/Layout.tsx";
 export { Link, type LinkProps, LinkRouterProvider } from "./components/Link.tsx";
 export { QrCode } from "./components/QrCode.tsx";
 export { Select, type SelectOption, type SelectProps } from "./components/Select.tsx";

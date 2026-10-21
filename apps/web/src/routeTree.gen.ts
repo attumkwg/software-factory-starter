@@ -19,7 +19,10 @@ import { Route as AppAuditRouteImport } from './routes/_app/audit'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSupportRouteImport } from './routes/_app/support'
 import { Route as AppSupportAccessRouteImport } from './routes/_app/support-access'
+import { Route as AppLegalAcceptRouteImport } from './routes/_app/legal/accept'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects/$projectId'
+import { Route as LegalDocumentIndexRouteImport } from './routes/legal/$document/index'
+import { Route as LegalDocumentVersionRouteImport } from './routes/legal/$document/$version'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -70,10 +73,25 @@ const AppSupportAccessRoute = AppSupportAccessRouteImport.update({
   path: '/support-access',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLegalAcceptRoute = AppLegalAcceptRouteImport.update({
+  id: '/legal/accept',
+  path: '/legal/accept',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
   getParentRoute: () => AppRoute,
+} as any)
+const LegalDocumentIndexRoute = LegalDocumentIndexRouteImport.update({
+  id: '/legal/$document/',
+  path: '/legal/$document/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalDocumentVersionRoute = LegalDocumentVersionRouteImport.update({
+  id: '/legal/$document/$version',
+  path: '/legal/$document/$version',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -86,7 +104,10 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
   '/support-access': typeof AppSupportAccessRoute
+  '/legal/accept': typeof AppLegalAcceptRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/legal/$document/$version': typeof LegalDocumentVersionRoute
+  '/legal/$document/': typeof LegalDocumentIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
@@ -98,7 +119,10 @@ export interface FileRoutesByTo {
   '/support': typeof AppSupportRoute
   '/support-access': typeof AppSupportAccessRoute
   '/': typeof AppIndexRoute
+  '/legal/accept': typeof AppLegalAcceptRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/legal/$document/$version': typeof LegalDocumentVersionRoute
+  '/legal/$document': typeof LegalDocumentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,7 +136,10 @@ export interface FileRoutesById {
   '/_app/support': typeof AppSupportRoute
   '/_app/support-access': typeof AppSupportAccessRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/legal/accept': typeof AppLegalAcceptRoute
   '/_app/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/legal/$document/$version': typeof LegalDocumentVersionRoute
+  '/legal/$document/': typeof LegalDocumentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,7 +153,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/support'
     | '/support-access'
+    | '/legal/accept'
     | '/projects/$projectId'
+    | '/legal/$document/$version'
+    | '/legal/$document/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
@@ -138,7 +168,10 @@ export interface FileRouteTypes {
     | '/support'
     | '/support-access'
     | '/'
+    | '/legal/accept'
     | '/projects/$projectId'
+    | '/legal/$document/$version'
+    | '/legal/$document'
   id:
     | '__root__'
     | '/_app'
@@ -151,7 +184,10 @@ export interface FileRouteTypes {
     | '/_app/support'
     | '/_app/support-access'
     | '/_app/'
+    | '/_app/legal/accept'
     | '/_app/projects/$projectId'
+    | '/legal/$document/$version'
+    | '/legal/$document/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,6 +195,8 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   SignUpRoute: typeof SignUpRoute
+  LegalDocumentVersionRoute: typeof LegalDocumentVersionRoute
+  LegalDocumentIndexRoute: typeof LegalDocumentIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -233,12 +271,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSupportAccessRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/legal/accept': {
+      id: '/_app/legal/accept'
+      path: '/legal/accept'
+      fullPath: '/legal/accept'
+      preLoaderRoute: typeof AppLegalAcceptRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/projects/$projectId': {
       id: '/_app/projects/$projectId'
       path: '/projects/$projectId'
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof AppProjectsProjectIdRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/legal/$document/': {
+      id: '/legal/$document/'
+      path: '/legal/$document'
+      fullPath: '/legal/$document/'
+      preLoaderRoute: typeof LegalDocumentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/$document/$version': {
+      id: '/legal/$document/$version'
+      path: '/legal/$document/$version'
+      fullPath: '/legal/$document/$version'
+      preLoaderRoute: typeof LegalDocumentVersionRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -250,6 +309,7 @@ interface AppRouteChildren {
   AppSupportRoute: typeof AppSupportRoute
   AppSupportAccessRoute: typeof AppSupportAccessRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppLegalAcceptRoute: typeof AppLegalAcceptRoute
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
 }
 
@@ -260,6 +320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSupportRoute: AppSupportRoute,
   AppSupportAccessRoute: AppSupportAccessRoute,
   AppIndexRoute: AppIndexRoute,
+  AppLegalAcceptRoute: AppLegalAcceptRoute,
   AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
 }
 
@@ -270,6 +331,8 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   SignUpRoute: SignUpRoute,
+  LegalDocumentVersionRoute: LegalDocumentVersionRoute,
+  LegalDocumentIndexRoute: LegalDocumentIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

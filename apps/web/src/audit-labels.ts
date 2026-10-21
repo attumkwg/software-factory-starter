@@ -25,6 +25,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "account.mfa_disable": "二段階認証を外した",
   "organization.mfa_require": "二段階認証を全員に必須にした",
   "organization.mfa_unrequire": "二段階認証の必須を切った",
+  "legal.consent": "利用規約などに同意した",
 };
 
 const TARGET_LABELS: Record<string, string> = {
