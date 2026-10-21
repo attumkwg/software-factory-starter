@@ -235,23 +235,38 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ### 1. GitHub のリポジトリ設定
 
+> 🧍 **1人の間**と 👥 **人が増えたら**(レビューできる人が2人以上)で変わる所は、両方を書いた。人が増えたら 🧍 の所を 👥 に切り替える。
+>
+> 🌐 **公開か非公開か**でも使える物が変わる。非公開+Free では 1 と 3 ができない(表は [docs/guides/local-guards.md](docs/guides/local-guards.md))。
+
 1. **ブランチ保護(main)**: Settings → Rules → Rulesets → New branch ruleset
-   - 対象: `main`。「Require a pull request before merging」(承認 1、**危険度「高」は 2 にしたいので、チームができたら「Require review from Code Owners」+承認2**)
-   - 「Require status checks to pass」: `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`
-   - 「Block force pushes」・「Require linear history」
+   - 対象: `main`(Include default branch)。**Bypass list は空**(持ち主も例外にしない)
+   - 「Require a pull request before merging」
+     - 🧍 1人の間: **Required approvals は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェック(下)と手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
+     - 👥 人が増えたら: 承認 1・「Require review from Code Owners」・「Dismiss stale pull request approvals when new commits are pushed」をオン。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2 にする
+   - 「Require status checks to pass」と「Require branches to be up to date before merging」(並べて出した PR が、合わさって main を赤くするのを防ぐ): `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`
+   - 「Restrict deletions」・「Block force pushes」・「Require linear history」
+   - ⚠️ 「Require linear history」にすると、**マージは Squash か Rebase だけ**になる(「Create a merge commit」は使えない)。Settings → General → Pull Requests で「Allow merge commits」をオフにしておくと、ボタンで迷わない
 2. **ラベル**を作る: `risk:high`・`risk:medium`・`risk:low`・`area:api`・`area:web`・`area:infra`・`kind:feature`・`kind:bug`・`needs-triage`・`dependencies`・`security`(labeler は無いラベルも作るが、色をそろえるなら先に)
 3. **Environments**(Settings → Environments)。**どれも「Deployment branches and tags」を「Selected branches and tags」にして `main` だけを足す**。ワークフローの中でも main 以外は飛ばすが、ブランチのワークフローは書き換えられるので、GitHub の側でも止める(これが本当の守り):
-   - `stg`(承認なし)と `prod`(**Required reviewers** に承認する人。「Prevent self-review」もオン)。deploy・deploy-mail-relay が使う。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
+   - `stg`(承認なし)と `prod`(**Required reviewers** に承認する人)。deploy・deploy-mail-relay が使う。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
+     - 🧍 1人の間: prod の承認する人は自分。**「Prevent self-review」はオフ**(オンだと、自分でマージしたデプロイを誰も承認できない)。承認は「本番に出す前に一度止まって見る」ための一手間として使う
+     - 👥 人が増えたら: 承認する人を2人以上にして「Prevent self-review」をオン(マージした本人が本番を通せないように)
+     - 🔒 非公開のリポジトリでは、Pro / Team でも承認する人を置けない(公開か Enterprise だけ)
    - `claude`: 秘密 `ANTHROPIC_API_KEY` を**ここに**置く(下の 3. の表)。claude.yml が使う
    - `zap`: 秘密 `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD` を**ここに**置く。zap-api-scan.yml が使う
-4. **Renovate**: GitHub App の Renovate をこのリポジトリに入れる
-5. **Secret scanning の push 保護**: 非公開のリポジトリでは有料(GitHub Advanced Security)。PMF 前は gitleaks で代える
+4. **Renovate**: https://github.com/apps/renovate → Install(入っていれば Configure)→ 自分のアカウント → 「Only select repositories」でこのリポジトリだけ → Install。Mend の画面に移ったら GitHub でサインインして規約に同意する
+   - `renovate.json` があるので、最初の設定の PR は出ずにそのまま動く。更新の PR は毎週月曜の朝9時前に最大5本(出てから3日たった版だけ)。脆弱性の直しはいつでも。自動マージはしない
+5. **Secret scanning と push 保護**(秘密を含む push をその場で止める)
+   - 🌐 公開: **無料**。Settings → Advanced Security で「Secret Protection」(Secret scanning)と「Push protection」をオンにする。CI の gitleaks も外さない(履歴の全部を毎回見る・`.gitleaksignore` で理由つきに除外できる)
+   - 🔒 非公開: 有料(GitHub Secret Protection)。PMF 前は CI の gitleaks で代える
 6. **Actions の設定**: Settings → Actions → General
-   - 「Fork pull request workflows」で、外の人の PR の実行に承認を必須にする
+   - 「Approval for running fork pull request workflows from contributors」を **Require approval for all external contributors** にする(外の人の PR の実行は、毎回人が中身を見てから。公開だと誰でも PR を出せる)
    - 「Workflow permissions」を **Read repository contents and packages permissions**(読み取りだけ)にする。書き込みが要るワークフローは、ファイルの中で `permissions:` を1つずつ足してある
    - 「Allow GitHub Actions to create and approve pull requests」を**オフ**にする(AI や Actions が自分の PR を承認できないように)
    - 「Artifact and log retention」を**7日**にする(ZAP のレポートは `zaproxy/action-api-scan` が成果物を作るので、ワークフローから日数を決められない。レポートにはリクエストの中身が入りうる)
 7. **Dependabot alerts**: Settings → Advanced Security(または Code security)→ 「Dependabot alerts」を有効にする(依存の脆弱性の知らせ。直す PR は Renovate が出すので、Dependabot の security updates はオフのままでよい)
+   - 🌐 公開なら「Private vulnerability reporting」もオンにする(外の人が脆弱性を Issue に書かずに、非公開で知らせられる)
 8. **プレビューは dev アカウントだけ**: PR のプレビューが引く AWS の役割(`AWS_PREVIEW_ROLE_ARN`)は、PR の版のワークフローからも引ける(OIDC の `pull_request`)ので、PR を書ける人なら dev の中で動かせる。dev には**本物の秘密・本物のデータを置かない**(プレビューの DB はコンテナの Postgres+種データ)。prod の役割は PR から引けない
 
 ### 2. AWS アカウントと状態の置き場
