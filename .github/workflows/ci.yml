@@ -47,6 +47,8 @@ jobs:
         run: |
           pnpm bets
           pnpm test:scripts
+      - name: 部品のカタログ(書式・つながり・消し方のパスの実在・土台を消す答え・README の生成し忘れ)
+        run: pnpm kit:catalog
       - name: 型
         run: pnpm typecheck
       - name: 単体(権限の表の網羅 ① を含む)とカバレッジの下限
