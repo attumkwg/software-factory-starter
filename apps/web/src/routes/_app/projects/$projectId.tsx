@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { api, HttpError } from "../../../api.ts";
+import { pageHead } from "../../../head.ts";
 import { type TaskFilter, TasksPage, toTaskFilter } from "../../../pages/TasksPage.tsx";
 
 export const Route = createFileRoute("/_app/projects/$projectId")({
@@ -21,9 +22,7 @@ export const Route = createFileRoute("/_app/projects/$projectId")({
       throw e;
     }
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.project.name ?? "プロジェクト"} | Tasks` }],
-  }),
+  head: ({ loaderData }) => pageHead({ title: loaderData?.project.name ?? "プロジェクト" }),
   component: TasksRoute,
 });
 

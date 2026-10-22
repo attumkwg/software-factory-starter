@@ -280,6 +280,8 @@ body {
   border: 1px solid currentColor;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
+  /* 札は短い言葉。狭い列(スマホの表)でも1文字ずつ折り返さない */
+  white-space: nowrap;
 }
 .ui-badge--neutral {
   color: var(--color-text-muted);

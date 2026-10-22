@@ -58,7 +58,7 @@
 |---|---|---|
 | 生の色・直書きのスタイル・画面の CSS | Semgrep(`.semgrep/design/`、テストつき) | 毎 PR(`ci.yml`) |
 | 色のコントラスト・ラベル・名前の漏れ・押す所の大きさ | axe(E2E の各画面。WCAG 2.2 AA まで) | 毎 PR(`ci.yml` の E2E) |
-| スマホの幅で横にはみ出さない | E2E の `expectAccessible`(`scrollWidth <= clientWidth`)。スマホの組(幅 320px)は主な流れだけ(`playwright.config.ts`) | 毎 PR(`ci.yml` の E2E) |
+| スマホの幅で横にはみ出さない | E2E の `expectAccessible`(`scrollWidth <= clientWidth`)。スマホの組(幅 320px)は主な流れと、表・入力の画面を見て回る `narrow-screens.spec.ts`(`playwright.config.ts`) | 毎 PR(`ci.yml` の E2E) |
 | キーボードだけで使えるか・読み上げの順番 | 人が触る | 危険度「中」以上の画面の変更 |
 
 ## 部品の見本(Storybook など)

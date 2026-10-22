@@ -711,14 +711,14 @@ parts:
     depends_on: [web]
     law: []
     remove:
-      delete: [apps/web/e2e/not-found.spec.ts]
+      delete: [apps/web/e2e/not-found.spec.ts, apps/web/e2e/narrow-screens.spec.ts]
       edit:
         - { path: apps/web/server/app.ts, what: x-robots-tag と /robots.txt を外す(載せるページを決めるのは公開のページの側で) }
         - { path: apps/web/server/index.ts, what: appEnv を外す }
         - { path: apps/web/server/app.test.ts, what: 検索の決まりのテストを外す }
         - { path: apps/web/playwright.config.ts, what: スマホの幅(mobile)の組を外す }
         - { path: apps/web/e2e/helpers.ts, what: 横のはみ出しの確かめを外す }
-      docs: [docs/specs/0008-web-noindex-mobile.md, docs/designs/0008-web-noindex-mobile.md]
+      docs: [docs/specs/0008-web-noindex-mobile.md, docs/designs/0008-web-noindex-mobile.md, docs/designs/0010-web-head-ogp.md]
 
   - id: seo
     name: 公開のページと SEO の型
