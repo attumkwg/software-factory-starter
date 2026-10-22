@@ -4,7 +4,7 @@ import { openReauth, REAUTH_TTL_SECONDS, sealReauth } from "../../src/auth/reaut
 import type { SessionConfig } from "../../src/auth/session.ts";
 import { maskEmail } from "../../src/domains/organizations/notifications.ts";
 
-// 確かめ直しの札(ADR 0016): 暗号化・本人に結びつく・10分で切れる・書き換えられない
+// 確かめ直しの札(ADR 0023): 暗号化・本人に結びつく・10分で切れる・書き換えられない
 
 const cfg: SessionConfig = {
   secret: "s".repeat(32),
