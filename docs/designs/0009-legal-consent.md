@@ -115,7 +115,7 @@ sequenceDiagram
 組織の一覧を引く関数(コマンド用): `public.legal_notice_tenants()` → `setof uuid`。SECURITY DEFINER・持ち主は `app_auth`(0001 の型)。`app_auth` に `organizations.tenants` の `tenant_id` だけを読む権限とポリシーを足す。**実行できるのは移行の持ち主(コマンドの接続)だけ**(`app_rw` には渡さない)。行そのもの(名前など)は返さない。
 
 - 解約で消す一覧(`TENANT_TABLES`)に `legal.notices`・`legal.consents` を足す(`organizations.users` より前)。書き出し(`ExportData`)に `legalConsents`(文書・版・組織としてか・画面・時刻・人の ID)を足す(足すだけの項目)。お知らせの記録は書き出さない(運営の記録)。
-- 個人データ: 「誰が・いつ同意したか」は個人に結びつく(人の ID と時刻)。メール・名前・IP は持たない。列の分類表(PR #4「列の分類表」)がマージされたら、2つの表の列を分類に足す(実装の PR に書く)。
+- 個人データ: 「誰が・いつ同意したか」は個人に結びつく(人の ID と時刻)。メール・名前・IP は持たない。2つの表の列は、列の分類表(`apps/api/src/db/classification.ts`)に載せる(実装の PR #11 で足した)。
 - 表の説明書(`docs/db/legal.consents.md`・`docs/db/legal.notices.md`)は実装の PR で `pnpm docs:db`。領域の説明 `docs/domain/legal/README.md` も実装の PR で(`/update-domain-docs`)。
 
 版の一覧(DB ではないが、データの形として。`packages/shared/src/legal.ts`):
