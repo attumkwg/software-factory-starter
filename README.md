@@ -148,7 +148,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 土台(消さない) | 🔒 自前のログイン画面と Cognito `login` | 自前の画面 → API → Cognito でログイン・登録・パスワードの再設定。トークンはサーバーの中だけ。手元とテストは偽物の Cognito | 残す | あり |
 | 土台(消さない) | 🔒 秘密の扱い `secrets` | 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る。漏れたときの手順書 | 残す | あり |
 | 土台(消さない) | 🔒 バックアップと戻す訓練 `backup` | 消せない保管庫に毎日と毎月。毎月 stg で戻す訓練 | 残す | あり |
-| 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査 | 残す | あり |
+| 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)・ADR の番号の重なり | 残す | あり |
 | 土台(消さない) | 🔒 ログの決まり `logging` | 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない) | 残す | あり |
 | 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | 作成中(PR #10) |
 | 土台(消さない) | 🔒 AI のハーネス(守りの一覧とフック) `harness` | 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる | 残す | あり |

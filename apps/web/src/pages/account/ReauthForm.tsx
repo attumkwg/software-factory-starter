@@ -6,7 +6,7 @@ import { CodeField, FormError, PasswordField, Submit } from "../auth/fields.tsx"
 
 /**
  * パスワード(と、二段階認証が有効ならいまのコード)を入れ直す。通ると10分だけ、大事な所を変えられる
- * (札は JS から読めない Cookie。ADR 0016)。
+ * (札は JS から読めない Cookie。ADR 0023)。
  */
 export function ReauthForm(props: { mfaEnabled: boolean; onDone: () => void | Promise<void> }) {
   const action = useAction();
