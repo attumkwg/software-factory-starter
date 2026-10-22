@@ -295,8 +295,9 @@ items:
     verify: auto
     check: coverage-total
     severity: normal
-    status: open
-    history: []
+    status: done
+    history:
+      - { on: 2026-10-22, by: pnpm checkup, result: pass, note: PR 15 で API のカバレッジを単体と結合を合わせて測るようにした }
     source: 2026-10-20 の点検
     review_by: 2027-04-20
 
