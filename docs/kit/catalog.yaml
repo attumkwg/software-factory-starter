@@ -32,11 +32,11 @@ start_steps:
     link: "#-本人が手でやる設定"
     status: あり
   - title: 点検を立ち上げる
-    command: /checkup
-    does: 立ち上げの段階でやること(守りが効いているか・取り返せない所)を台帳から1問ずつ。台帳ができるまでは docs/playbook.md の「毎週やること」
+    command: pnpm checkup
+    does: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめる。1問ずつ答える /checkup は作成中
     writes: docs/checkup/todo.yaml
-    link: docs/specs/0007-checkup.md
-    status: 未
+    link: docs/checkup/README.md
+    status: 作成中
 
 # ── /tailor が聞くこと(人に聞くのは4つだけ: どれも事業判断か戻せないリスク)───────────
 questions:
@@ -994,6 +994,7 @@ parts:
         - { path: CLAUDE.md, what: /cve と pnpm vulns の所を外す }
         - { path: docs/security.md, what: /cve の行を外す }
         - { path: docs/playbook.md, what: 脆弱性の行を外す }
+        - { path: scripts/checkup/checks/vulns.mjs, what: 消し、台帳(docs/checkup/todo.yaml)の w-vuln を引退(retired)にする(点検を残すとき) }
 
   - id: prototypes
     name: プロトタイプの置き場
@@ -1097,13 +1098,20 @@ parts:
   - id: checkup
     name: 点検(/checkup)
     group: process
-    status: 未
+    status: 作成中
     removable: true
     default: 残す
-    what: 段階ごと・毎週の点検を台帳にし、担当者に知らせて1問ずつ答えてもらう(仕様と設計は承認済み)
+    what: 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。担当者への知らせと1問ずつの /checkup は続きの PR で
     needed_by: すべて(守りが今も効いているかを、詳しくない人でも回すため)
     not_needed_by: なし
-    if_removed: まだ無い
-    depends_on: [harness]
+    if_removed: 守りが外れても・段階でやることが来ても、詳しい人が自分で見に行くまで気づかない
+    depends_on: [harness, cve-triage]
     law:
       - ISMS 9.1(監視・測定)・5.36(順守の確認)
+    where: [docs/checkup/todo.yaml, docs/checkup/README.md, scripts/checkup/run.mjs, docs/designs/0007-checkup.md]
+    remove:
+      delete: [docs/checkup, scripts/checkup]
+      edit:
+        - { path: package.json, what: checkup を外す・test:scripts から scripts/checkup/*.test.mjs を外す }
+        - { path: docs/playbook.md, what: 点検の台帳を指す1行を外す }
+      docs: [docs/specs/0007-checkup.md, docs/designs/0007-checkup.md]

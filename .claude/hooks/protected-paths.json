@@ -21,6 +21,7 @@
     ".claude/settings.json",
     ".claude/hooks/**",
     ".semgrep/**",
+    "scripts/checkup/**",
     ".gitleaksignore",
     ".trivyignore.yaml",
     "renovate.json",
