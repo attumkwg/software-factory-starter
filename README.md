@@ -290,7 +290,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
 | `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
-| `vuln-scan.yml` | 手動(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版) | 動く(AWS も秘密も要らない) |
+| `vuln-scan.yml` | 自動: 毎週月曜 5:00・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
 
 `ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。
 
