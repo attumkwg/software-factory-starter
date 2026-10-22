@@ -1,4 +1,4 @@
-import { Button, Heading, Muted, Page, Stack } from "@app/ui";
+import { Button, Heading, Link, Muted, Page, Stack } from "@app/ui";
 import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { describeError } from "../errors.ts";
@@ -42,6 +42,8 @@ export function NotFoundPage() {
         <Stack gap={2}>
           <Heading level={1}>ページが見つかりません</Heading>
           <Muted>URL を確かめてください。</Muted>
+          {/* 戻る先が無いと行き止まりになる(ログイン前ならログインの画面へ回る) */}
+          <Link href="/">最初の画面へ</Link>
         </Stack>
       </main>
     </Page>

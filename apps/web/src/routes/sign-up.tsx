@@ -1,6 +1,7 @@
 import { safeReturnTo } from "@app/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { api } from "../api.ts";
+import { pageHead, SITE_NAME } from "../head.ts";
 import { SignUpPage } from "../pages/SignUpPage.tsx";
 
 export const Route = createFileRoute("/sign-up")({
@@ -13,7 +14,12 @@ export const Route = createFileRoute("/sign-up")({
     const options = await api.authOptions();
     if (options.method !== "cognito") throw redirect({ to: "/login" });
   },
-  head: () => ({ meta: [{ title: "登録 | Tasks" }] }),
+  head: () =>
+    pageHead({
+      title: "登録",
+      description: `${SITE_NAME} のアカウントを、メールアドレスとパスワードで作ります。`,
+      path: "/sign-up",
+    }),
   component: SignUpRoute,
 });
 

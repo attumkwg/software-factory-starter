@@ -76,6 +76,8 @@ services:
       # SSR から API を読む先(ECS では Service Connect の http://api:3000)
       API_INTERNAL_URL: http://api:3000
       LOG_LEVEL: info
+      # 画面の URL(OGP の og:url に使う。apps/web/src/head.ts)。API の APP_URL と同じ値
+      APP_URL: http://localhost:8080
     depends_on:
       api:
         condition: service_healthy
