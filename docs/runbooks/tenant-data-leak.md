@@ -26,7 +26,7 @@ fields @timestamp, tenantId, path, status
 | filter tenantId = "<報告した人の tenantId>" and path like /<相手の ID>/
 ```
 
-見る所の順番(security.md 4.2):
+見る所の順番(漏れ方の一覧は docs/security.md の L-1〜L-9):
 
 1. API: リポジトリで `tenant_id` の絞り忘れ → それでも RLS が止めるはず。止まっていなければ **RLS が外れている**(移行・接続ユーザー)
 2. 接続ユーザー: `select rolsuper, rolbypassrls from pg_roles where rolname = current_user` が false か、表の持ち主でつないでいないか

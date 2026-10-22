@@ -1,7 +1,7 @@
 # 背景エージェント(ハーネスの第2層): Issue や PR で「@claude」と書くと、Claude Code が動いて
 # 実装して PR を出す・レビューに答える。
 #
-# 守り(security.md 0.3):
+# 守り(docs/security.md の AI-1〜AI-5):
 # - 起動できるのはリポジトリの持ち主(OWNER)だけ。外の人や他のメンバーが書いた文章は「データ」で、
 #   そのまま AI に渡すと中の指示に従ってしまう(プロンプトインジェクション)。
 # - API キーはリポジトリ全体の秘密に置かず、Environment「claude」の秘密に置く。Environment の

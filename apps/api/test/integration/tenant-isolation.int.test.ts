@@ -8,7 +8,7 @@ import {
   type TenantFixture,
 } from "../helpers/fixtures.ts";
 
-// API を通して「2社が混ざらない」ことを確かめる(security.md 4.4: テストは必ず2社で)。
+// API を通して「2社が混ざらない」ことを確かめる(docs/security.md の V-1: テストは必ず2社で)。
 
 const owner = createDb(inject("ownerUrl"));
 const { app, pool } = createTestApp(inject("appUrl"));

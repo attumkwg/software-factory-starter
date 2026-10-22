@@ -1,4 +1,4 @@
-# 自社専用の検査ルール(security.md 1.2 の③)。見つかった穴は「テスト+ルール」にして二度と出さない。
+# 自社専用の検査ルール(docs/security.md の D-3)。見つかった穴は「テスト+ルール」にして二度と出さない。
 # 手元: docker run --rm -v "$PWD:/src" semgrep/semgrep semgrep scan --config .semgrep --error
 rules:
   - id: tenant-scoped-db-only
@@ -130,7 +130,7 @@ rules:
   - id: tenant-from-request
     message: >-
       テナントをリクエストの値(ヘッダー・URL・本文)から決めない。テナントはセッションから
-      (c.var.actor.tenantId / scopeOf(c))。security.md 4.3 の 1
+      (c.var.actor.tenantId / scopeOf(c))。docs/security.md の T-1
     severity: ERROR
     languages: [typescript]
     paths:

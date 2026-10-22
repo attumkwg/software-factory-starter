@@ -2,7 +2,7 @@
 
 - 状態: 採用
 - 日付: 2026-10-22
-- 決めた人: @attumkwg(本人の決定 2026-10-22。設計は docs/designs/0009-legal-consent.md)
+- 決めた人: @attumkwg(作者の決定 2026-10-22。設計は docs/designs/0009-legal-consent.md)
 
 ## 背景
 
