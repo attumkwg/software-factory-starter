@@ -1099,6 +1099,7 @@ parts:
     name: 点検(/checkup)
     group: process
     status: 作成中
+    pr: 18
     removable: true
     default: 残す
     what: 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。担当者への知らせと1問ずつの /checkup は続きの PR で
