@@ -8,12 +8,12 @@
 
 | 部品 | 使う所 | 気をつけること |
 |---|---|---|
-| `Button` | 押す操作 | `variant`: primary(1画面に1つ)/ secondary / danger(戻せない)/ ghost(文字だけ) |
+| `Button` | 押す操作 | `variant`: primary(1画面に1つ)/ secondary / danger(戻せない)/ ghost(文字だけ)。`size="sm"` は高さ約 32px(押す所の下限 24px は満たす。これより小さくしない) |
 | `Link` | ページの移動 | 本物の `<a href>`(新しいタブで開ける・SSR でも辿れる)。保存や削除には使わず `Button` |
-| `TextField` | 1行の入力 | `label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage`。パスワードは `type="password"` と `autoComplete`(`current-password` / `new-password`)、コードは `inputMode="numeric"` と `autoComplete="one-time-code"` |
+| `TextField` | 1行の入力 | 幅は 16rem まで、狭い画面では親の幅まで縮む(`min(16rem, 100%)`)。`label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage`。パスワードは `type="password"` と `autoComplete`(`current-password` / `new-password`)、コードは `inputMode="numeric"` と `autoComplete="one-time-code"` |
 | `Select` | 選択肢から1つ | 選択肢は `{ id, label }` の配列 |
 | `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク)。同意のチェックのように線が要らなければ `strikeWhenSelected={false}` |
-| `Table` | 一覧(列がある) | `label` で表の名前。行の名前にする列に `isRowHeader` |
+| `Table` | 一覧(列がある) | `label` で表の名前。行の名前にする列に `isRowHeader`。列が入りきらないとき(スマホ)は、表の枠(`.ui-table-scroll`)の中で横に動く。画面全体は横にはみ出さない |
 | `List` | 一覧(列が無い) | `label` で一覧の名前 |
 | `ConfirmDialog` | 消すなどの前の確認 | 戻せない操作は `isDestructive`(赤いボタン)。Esc で閉じる。実行中は二度押せない(失敗は呼ぶ側の `useAction` で) |
 | `ToastProvider` / `useToast` | 操作の結果を短く知らせる | 読み上げにも届く。大事なエラーはトーストにせず画面に残す |
@@ -30,6 +30,7 @@
 2. 見た目は部品の props(`variant`・`size`・`gap`・`tone`)で決める。`style={...}` や `className` を画面で書かない。
 3. 足りないときは、画面で工夫せずに `packages/ui` に部品か props を足す(下の手順)。
 4. ボタン・入力・一覧には、必ず見える名前か `aria-label` を付ける(E2E の axe が確かめる)。
+5. **幅 320px(いちばん狭いスマホ)で、画面全体が横にはみ出さない。** 部品に固定の幅を付けるときは `min(<幅>, 100%)` にする。中身が広くなる物(表など)は、部品の中に横に動く枠を持つ。押す所は 24px 以上(WCAG 2.2)。
 
 ## 部品を足す手順
 
@@ -56,7 +57,8 @@
 | 何を | どうやって | いつ |
 |---|---|---|
 | 生の色・直書きのスタイル・画面の CSS | Semgrep(`.semgrep/design/`、テストつき) | 毎 PR(`ci.yml`) |
-| 色のコントラスト・ラベル・名前の漏れ | axe(E2E の各画面) | 毎 PR(`ci.yml` の E2E) |
+| 色のコントラスト・ラベル・名前の漏れ・押す所の大きさ | axe(E2E の各画面。WCAG 2.2 AA まで) | 毎 PR(`ci.yml` の E2E) |
+| スマホの幅で横にはみ出さない | E2E の `expectAccessible`(`scrollWidth <= clientWidth`)。スマホの組(幅 320px)は主な流れだけ(`playwright.config.ts`) | 毎 PR(`ci.yml` の E2E) |
 | キーボードだけで使えるか・読み上げの順番 | 人が触る | 危険度「中」以上の画面の変更 |
 
 ## 部品の見本(Storybook など)

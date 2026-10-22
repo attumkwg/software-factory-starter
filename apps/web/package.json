@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@app/error-reporting": "workspace:*",
+    "@app/logging": "workspace:*",
     "@app/shared": "workspace:*",
     "@app/ui": "workspace:*",
     "@tanstack/react-router": "1.170.44",

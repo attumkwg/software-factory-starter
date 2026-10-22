@@ -120,6 +120,74 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ---
 
+<!-- kit:readme:start -->
+## 🧰 使い始めたらやること
+
+> この節は [docs/kit/catalog.yaml](docs/kit/catalog.yaml)(部品のカタログ)から `pnpm kit:readme` で作る。手で直さない。
+
+| # | やること | どうやって | 残る物 | 状態 |
+|---|---|---|---|---|
+| ① | 何を作るかを決める | `/kickoff`: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める | `docs/product/plan.md` | あり |
+| ② | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
+| ③ | 手でやる設定 | GitHub のブランチ保護・Environments・Renovate、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
+| ④ | 点検を立ち上げる | `/checkup`: 立ち上げの段階でやること(守りが効いているか・取り返せない所)を台帳から1問ずつ。台帳ができるまでは docs/playbook.md の「毎週やること」 | `docs/checkup/todo.yaml`・[手順](docs/specs/0007-checkup.md) | 未 |
+
+### 部品の一覧(`/tailor` で残す・消すを決める)
+
+`/tailor` が聞くこと: 会社向け(B2B)か、個人向け(B2C)か/個人情報・要配慮個人情報(病歴・信条など)を扱うか/お金を扱うか(請求・決済・金額の計算)/利用者にメールを送るか/検索(Google など)から人を呼ぶか/スマホのアプリを作るか/認証(P マーク・ISMS・SOC 2)を取る予定があるか。
+
+- 🔒 は土台。どの答えでも消さない。
+- 既定は、迷ったときのおすすめ。**迷ったら残す**(消すのは後からでもできる。足し直すほうが高い)。
+- 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
+
+| 区分 | 部品 | 何をするか | 既定 | 状態 |
+|---|---|---|---|---|
+| 土台(消さない) | 🔒 テナント分離と RLS `tenant-isolation` | 全部の表に tenant_id を持ち、DB の RLS とアプリの両方で、他社のデータを読めなくする | 残す | あり |
+| 土台(消さない) | 🔒 組織と利用者・ロール `organizations` | 組織(テナント)と利用者、admin / member / viewer のロール | 残す | あり |
+| 土台(消さない) | 🔒 認可の関所と権限の表 `authz` | 全部の API が1か所の関所を通り、表(matrix.yaml)に無い API は既定で拒否する。表の全行をテストで叩く | 残す | あり |
+| 土台(消さない) | 🔒 自前のログイン画面と Cognito `login` | 自前の画面 → API → Cognito でログイン・登録・パスワードの再設定。トークンはサーバーの中だけ。手元とテストは偽物の Cognito | 残す | あり |
+| 土台(消さない) | 🔒 秘密の扱い `secrets` | 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る。漏れたときの手順書 | 残す | あり |
+| 土台(消さない) | 🔒 バックアップと戻す訓練 `backup` | 消せない保管庫に毎日と毎月。毎月 stg で戻す訓練 | 残す | あり |
+| 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査 | 残す | あり |
+| 土台(消さない) | 🔒 ログの決まり `logging` | 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない) | 残す | あり |
+| 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | 作成中(PR #10) |
+| 土台(消さない) | 🔒 AI のハーネス(守りの一覧とフック) `harness` | 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる | 残す | あり |
+| 土台(消さない) | 🔒 列の分類表とログ `column-classification` | 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする。台帳(docs/db/personal-data.md)はここから作る | 残す | あり |
+| 会社向け | 監査ログ `audit-log` | 誰が・いつ・何をしたかを残し、お客さんの管理者が画面で見られる。書き込みの API は関所が自動で残す | 残す | あり |
+| 会社向け | サポートの代理ログイン `support-access` | お客さんの管理者が許可した間だけ、運営の社員がその組織の画面を「見るだけ」で開ける | 残す | あり |
+| 会社向け | 解約(書き出しと削除) `offboarding` | 管理者が自社のデータを書き出せる。解約した組織を、試し → 名前の確認つきで丸ごと消すコマンド | 残す | あり |
+| 会社向け | 組織ごとの二段階認証の必須化 `mfa-required` | 組織の管理者が「全員に二段階認証を必須にする」を選べる | 残す | あり |
+| 会社向け | 招待の画面 `invitations` | 管理者が画面から人を招く(いまは SQL で users に行を足す) | 残す | 未 |
+| ログイン | 二段階認証(本人の設定) `mfa` | 認証アプリ(TOTP)の設定と解除・メールとパスワードの変更のお知らせ | 残す | あり |
+| 連絡 | アウトボックス(送り待ち) `outbox` | 外へ送るもの(メール・Slack・索引)を DB のトランザクションと一緒に積み、あとで確実に送る | 残す | あり |
+| 連絡 | アプリからのメール(Postfix → SES) `mail` | タスクの完了・パスワードや二段階認証の変更のお知らせを送る。本番は Postfix(ECS)→ SES、手元は Mailpit | 残す | あり |
+| 見張り | Sentry(失敗の知らせ) `sentry` | error 以上のログを、値を落としてから Sentry に送る(API・画面のサーバー・ブラウザ) | 残す | あり |
+| 見張り | アラームと知らせ・費用の警報 `alarms` | 5xx・遅さ・DB・証明書のアラーム、月の費用の警報を SNS → Slack(とメール)へ | 残す | あり |
+| 見張り | 外形監視 `uptime` | 外から本番が開けるかを Route 53 のヘルスチェックで見る | 残す | あり |
+| 見張り | WAF `waf` | ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める) | 残す | あり |
+| 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
+| 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
+| 表側(画面) | 検索に載せない(noindex)とスマホの幅の E2E `noindex-mobile` | 本番以外と、ログインの後の画面を検索に載せない(X-Robots-Tag・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る | 残す | あり |
+| 表側(画面) | 公開のページと SEO の型 `seo` | 検索から人を呼ぶための公開のページ(説明・料金・ブログ)の型 | 消す | 未 |
+| 個人情報 | 個人データが漏れたときの手順書 `breach-runbook` | 委員会への報告(速報3〜5日・確報30日 / 60日)と本人への通知、B2B のお客さんへの知らせの段取り | 残す | あり |
+| 個人情報 | 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている | 消す | 未 |
+| 個人情報 | 1人分の削除と開示 `person-deletion` | 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別) | 残す | 未 |
+| 決まりごと | 利用規約・プライバシーポリシーの同意 `terms-consent` | 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。同意の記録は監査ログに | 残す | 作成中(PR #8) |
+| 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 認証で求められる記録と規程の型(アクセスの見直し・委託先の管理・教育の記録) | 消す | 未 |
+| 決まりごと | 請求と決済 `billing` | 料金の計算・請求・決済の会社(Stripe など)とのつなぎ。カード情報は持たない | 消す | 未 |
+| 決まりごと | お金と時刻の計算 `money` | 金額は最小単位の整数・時刻は組織のタイムゾーン、の計算を1か所に(packages/shared の money.ts・time.ts) | 残す | あり |
+| 開発の道具 | PR ごとのプレビュー環境 `preview-env` | PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す | 残す | あり |
+| 開発の道具 | GitHub の上の Claude(背景エージェント) `claude-actions` | Issue と PR の @claude で、GitHub の上で Claude が作業する(いまは手動。API キーが要る) | 残す | あり |
+| 開発の道具 | 攻撃の形の検査(Schemathesis・ZAP) `dynamic-scans` | 全部の API に変な入力をロールごとに投げる・動いている画面と API を ZAP で叩く(手動) | 残す | あり |
+| 開発の道具 | プロトタイプの置き場 `prototypes` | 本番のラインに乗せずに、押せる画面だけ・偽のデータの試作を作り(/prototype)、合言葉つきの URL で見せる(S3+CloudFront) | 残す | あり |
+| 進め方 | 始め方の計画(/kickoff) `kickoff` | 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決めて計画にする | 残す | あり |
+| 進め方 | 機能ごとの賭け(/bet) `bets` | 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く | 残す | あり |
+| 進め方 | 資産と費用の台帳(/ledger) `ledger` | 作った物(資産)とかかったお金を1つの台帳にする | 残す | 未 |
+| 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳にし、担当者に知らせて1問ずつ答えてもらう(仕様と設計は承認済み) | 残す | 未 |
+<!-- kit:readme:end -->
+
+---
+
 ## 🧭 設計(my-life の docs/software-factory)との対応
 
 ### 7工程
@@ -244,7 +312,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
    - 「Require a pull request before merging」
      - 🧍 1人の間: **Required approvals は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェック(下)と手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
      - 👥 人が増えたら: 承認 1・「Require review from Code Owners」・「Dismiss stale pull request approvals when new commits are pushed」をオン。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2 にする
-   - 「Require status checks to pass」と「Require branches to be up to date before merging」(並べて出した PR が、合わさって main を赤くするのを防ぐ): `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`
+   - 「Require status checks to pass」と「Require branches to be up to date before merging」(並べて出した PR が、合わさって main を赤くするのを防ぐ): `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`・`取り組みと作業の種類(PR の本文)`(PR の本文の「🎯 取り組み」。マージキューを使うなら、キューの中では流れないのでここから外す)
    - 「Restrict deletions」・「Block force pushes」・「Require linear history」
    - ⚠️ 「Require linear history」にすると、**マージは Squash か Rebase だけ**になる(「Create a merge commit」は使えない)。Settings → General → Pull Requests で「Allow merge commits」をオフにしておくと、ボタンで迷わない
 2. **ラベル**を作る: `risk:high`・`risk:medium`・`risk:low`・`area:api`・`area:web`・`area:infra`・`kind:feature`・`kind:bug`・`needs-triage`・`dependencies`・`security`(labeler は無いラベルも作るが、色をそろえるなら先に)

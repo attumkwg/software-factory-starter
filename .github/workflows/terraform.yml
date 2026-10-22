@@ -41,7 +41,7 @@ jobs:
         run: terraform fmt -check -recursive -diff infra/terraform
       - name: validate(状態につながずに)
         run: |
-          for dir in infra/terraform/envs/stg infra/terraform/envs/prod infra/terraform/envs/preview/base infra/terraform/envs/preview/pr; do
+          for dir in infra/terraform/envs/stg infra/terraform/envs/prod infra/terraform/envs/preview/base infra/terraform/envs/preview/pr infra/terraform/envs/preview/prototypes; do
             echo "::group::$dir"
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate

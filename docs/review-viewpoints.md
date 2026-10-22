@@ -26,7 +26,8 @@
 | 解約で消す一覧 | `tenant_id` の表を足したら `TENANT_TABLES` と書き出しにも | `offboarding.int.test.ts` | 2026-10(解約) |
 | サポートの代理ログイン | 代理の社員に書き込みを許していないか | `support-access.int.test.ts`・`support.test.ts` | 2026-10(代理ログイン) |
 | 一覧のページングと索引 | 一覧が全件を返していないか(`cursor`・`limit`・`nextCursor`)。並びと同じ索引があるか。すでにある表の索引は `drizzle/concurrent/` で | `performance.int.test.ts`(上限・最後まで読める・実行計画に Sort が無い)・squawk | 2026-10(速さの点検) |
-| ログの個人情報 | オブジェクトを丸ごと・メール・名前・トークンを渡していないか | Semgrep・`logger.test.ts` | 最初から |
+| ログの個人情報 | オブジェクトを丸ごと・メール・名前・トークンを渡していないか。分類表で `personal` / `sensitive` の値を、ログ・監査ログの `details`・出来事の中身に入れていないか | ログの部品の許可リスト(`packages/logging`)・Semgrep(丸ごと・広げる・個人情報の名前・文への埋め込み)・`personal-data-logs.int.test.ts`(全 API を目印で叩く)・`classification.test.ts` | 最初から |
+| 列の分類(個人情報の台帳) | 足した列に区分と目的があるか。自由な文が `internal` になっていないか。`sensitive` はスキーマ `sensitive` だけ(ADR 0018) | `classification.test.ts`・`classification.int.test.ts`(DB の全部の列) | 2026-10(3回目の点検) |
 | 画面の部品 | `@app/ui` の部品だけを使っているか | (目で見る) | 最初から |
 
 ## 隠す物(人に出さない)

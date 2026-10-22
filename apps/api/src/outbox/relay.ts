@@ -1,3 +1,4 @@
+import { scrubErrorText } from "@app/logging";
 import { sql } from "drizzle-orm";
 import type { RootDb } from "../db/client.ts";
 import type { Logger } from "../logger.ts";
@@ -75,7 +76,6 @@ export async function relayOnce(opts: RelayOptions): Promise<number> {
       attempts: row.attempts,
       createdAt: new Date(row.created_at),
     };
-    const log = { eventId: event.id, topic: event.topic, eventTenantId: event.tenantId };
     const handler = handlers[event.topic];
     try {
       if (!handler) throw new Error(`宛先がありません: ${event.topic}`);
@@ -84,14 +84,24 @@ export async function relayOnce(opts: RelayOptions): Promise<number> {
       sent++;
     } catch (err) {
       const dead = event.attempts >= maxAttempts || !handler;
-      const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-      await db.execute(
-        sql`select outbox_mark_failed(${event.id}, ${message.slice(0, 500)}, ${backoffSeconds(event.attempts)}, ${dead})`,
+      // 失敗の文には値が入る(SMTP の「550 <宛先>」など)。ログの失敗の文と同じ伏せ字をかけてから残す(人が表を見て直す)
+      const message = scrubErrorText(
+        err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        500,
       );
-      if (dead)
-        logger.error({ ...log, err, attempts: event.attempts }, "送れないのであきらめました");
-      else
-        logger.warn({ ...log, err, attempts: event.attempts }, "送れなかったので後でやり直します");
+      await db.execute(
+        sql`select outbox_mark_failed(${event.id}, ${message}, ${backoffSeconds(event.attempts)}, ${dead})`,
+      );
+      logger[dead ? "error" : "warn"](
+        {
+          err,
+          eventId: event.id,
+          topic: event.topic,
+          eventTenantId: event.tenantId,
+          attempts: event.attempts,
+        },
+        dead ? "送れないのであきらめました" : "送れなかったので後でやり直します",
+      );
     }
   }
   return sent;

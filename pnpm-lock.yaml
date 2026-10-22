@@ -20,12 +20,18 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
 
   apps/api:
     dependencies:
       '@app/error-reporting':
         specifier: workspace:*
         version: link:../../packages/error-reporting
+      '@app/logging':
+        specifier: workspace:*
+        version: link:../../packages/logging
       '@app/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -102,6 +108,9 @@ importers:
       '@app/error-reporting':
         specifier: workspace:*
         version: link:../../packages/error-reporting
+      '@app/logging':
+        specifier: workspace:*
+        version: link:../../packages/logging
       '@app/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -189,6 +198,22 @@ importers:
         specifier: 5.0.4
         version: 5.0.4(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.4)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  packages/logging:
+    dependencies:
+      '@app/error-reporting':
+        specifier: workspace:*
+        version: link:../error-reporting
+      pino:
+        specifier: 10.4.0
+        version: 10.4.0
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      vitest:
+        specifier: 5.0.4
+        version: 5.0.4(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.4)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
   packages/shared:
     dependencies:
       zod:
@@ -220,6 +245,31 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
+
+  prototypes/B-0002-morning-digest:
+    dependencies:
+      '@app/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: 19.3.0
+        version: 19.3.0(react@19.3.0)
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 6.1.2
+        version: 6.1.2(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      vite:
+        specifier: 8.3.4
+        version: 8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
 packages:
 

@@ -117,7 +117,8 @@ body {
   font: inherit;
   color: var(--color-text);
   background: var(--color-bg);
-  min-width: 16rem;
+  /* 広い画面では 16rem まで。狭い画面(スマホ)では親の幅まで縮む */
+  min-width: min(16rem, 100%);
 }
 .ui-input[data-invalid] {
   border-color: var(--color-danger);
@@ -198,6 +199,11 @@ body {
 }
 
 /* ── 表 ── */
+/* 列が入りきらないときは、この枠の中で横に動く(画面全体を横にはみ出させない) */
+.ui-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
 .ui-table {
   width: 100%;
   border-collapse: collapse;
