@@ -1,6 +1,7 @@
 import { safeReturnTo } from "@app/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { api } from "../api.ts";
+import { pageHead, SITE_NAME } from "../head.ts";
 import { type LoginNotice, LoginPage } from "../pages/LoginPage.tsx";
 
 type LoginSearch = { notice?: LoginNotice; returnTo?: string };
@@ -19,7 +20,12 @@ export const Route = createFileRoute("/login")({
     if (me) throw redirect({ href: safeReturnTo(search.returnTo) });
   },
   loader: () => api.authOptions(),
-  head: () => ({ meta: [{ title: "ログイン | Tasks" }] }),
+  head: () =>
+    pageHead({
+      title: "ログイン",
+      description: `${SITE_NAME} にログインして、組織のプロジェクトとタスクを開きます。`,
+      path: "/login",
+    }),
   component: LoginRoute,
 });
 

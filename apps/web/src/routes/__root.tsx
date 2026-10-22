@@ -2,6 +2,7 @@ import { LinkRouterProvider, ToastProvider } from "@app/ui";
 import uiCss from "@app/ui/styles.css?url";
 import { createRootRoute, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { pageHead, siteOrigin } from "../head.ts";
 import { reportingConfig, startBrowserReporting } from "../report-error.ts";
 
 // すべての画面の外枠(<html> から)。SSR で HTML を作り、ブラウザで同じものに命を吹き込む(hydration)。
@@ -10,12 +11,15 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tasks" },
+      // 既定の title・説明・OGP。画面ごとの head(pageHead)が上書きする。検索に載せるかは server/app.ts が決める
+      ...pageHead().meta,
     ],
     links: [
       { rel: "stylesheet", href: uiCss },
       // public/favicon.svg(画面のサーバーがそのまま返す。server/app.ts)
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      // ホーム画面に置いたときのアイコン(iOS は SVG を使わない)
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   component: RootDocument,
@@ -25,6 +29,8 @@ function RootDocument() {
   const router = useRouter();
   // 失敗を Sentry に送る設定(DSN が無ければ何もしない)。サーバーで描いた値をブラウザが読む
   const reporting = reportingConfig();
+  // og:url の元(APP_URL)。サーバーで描いた値をブラウザが読む(head.ts)
+  const appUrl = siteOrigin();
   useEffect(() => startBrowserReporting(), []);
   return (
     <html
@@ -32,6 +38,7 @@ function RootDocument() {
       data-sentry-dsn={reporting.dsn}
       data-env={reporting.environment}
       data-release={reporting.release}
+      data-app-url={appUrl}
     >
       <head>
         <HeadContent />
