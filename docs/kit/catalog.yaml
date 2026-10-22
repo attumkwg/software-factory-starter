@@ -966,6 +966,35 @@ parts:
         - { file: .github/workflows/preview.yml, job: zap }
       docs: [docs/security.md]
 
+  - id: cve-triage
+    name: 脆弱性の精査と対応方針(/cve)
+    group: dev
+    status: あり
+    removable: true
+    default: 残す
+    what: Dependabot の通知・Trivy・OSV・基盤と主な依存の発表を集め、関係あるかを6段で精査し、期限つきの直し方を決める。記録(docs/security/vulns.md)と通知の突き合わせは pnpm vulns
+    needed_by: 依存を使うすべて(通知を人が読んで判断する手間と、急ぐべき穴の見落としを減らす)
+    not_needed_by: なし(手で呼ぶだけなので、残してもお金はかからない)
+    if_removed: 通知が来ても「関係あるか・いつまでに直すか」を人が毎回調べる。届く穴を公開の Issue に書いてしまう
+    depends_on: [ci-checks]
+    law:
+      - ISMS 8.8(技術的脆弱性の管理)
+      - SOC 2 CC7.1
+    remove:
+      delete:
+        - .claude/skills/cve
+        - docs/guides/vulnerabilities.md
+        - docs/security/vulns.md
+        - scripts/vulns-lib.mjs
+        - scripts/vulns.mjs
+        - scripts/vulns.test.mjs
+      edit:
+        - { path: package.json, what: vulns を外す・test:scripts から vulns.test.mjs を外す }
+        - { path: .github/workflows/vuln-scan.yml, what: Issue の本文の /cve の2行と、頭のコメントの /cve を外す }
+        - { path: CLAUDE.md, what: /cve と pnpm vulns の所を外す }
+        - { path: docs/security.md, what: /cve の行を外す }
+        - { path: docs/playbook.md, what: 脆弱性の行を外す }
+
   - id: prototypes
     name: プロトタイプの置き場
     group: dev
@@ -1043,14 +1072,14 @@ parts:
         - scripts/bets.test.mjs
         - .github/workflows/pr-work.yml
       edit:
-        - { path: package.json, what: bets・test:scripts を外す }
+        - { path: package.json, what: bets を外す・test:scripts から bets.test.mjs を外す }
         - { path: .github/pull_request_template.md, what: 「🎯 取り組み」の欄を外す }
         - { path: CLAUDE.md, what: /bet の行を外す }
         - { path: .claude/skills/new-feature/SKILL.md, what: 賭けの ID から始める所を外す }
         - { path: .claude/skills/kickoff/SKILL.md, what: /bet へのつなぎを外す }
         - { path: docs/playbook.md, what: 賭けの振り返りを外す }
       ci:
-        - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順を外す }
+        - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
 
   - id: ledger
     name: 資産と費用の台帳(/ledger)
