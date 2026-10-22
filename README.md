@@ -328,6 +328,8 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
    - `zap`: 秘密 `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD` を**ここに**置く。zap-api-scan.yml が使う
 4. **Renovate**: https://github.com/apps/renovate → Install(入っていれば Configure)→ 自分のアカウント → 「Only select repositories」でこのリポジトリだけ → Install。Mend の画面に移ったら GitHub でサインインして規約に同意する
    - `renovate.json` があるので、最初の設定の PR は出ずにそのまま動く。更新の PR は毎週月曜の朝9時前に最大5本(出てから3日たった版だけ)。脆弱性の直しはいつでも。自動マージはしない
+   - 大きい版は PR にならず、Dependency Dashboard の Issue の「Pending Approval」に並ぶ。上げるときにチェックを入れる(Node と Postgres は PR の本文の ⚠️ のとおり、Renovate が読めない所も同じ PR で直す)
+   - Mend の画面(https://developer.mend.io)でリポジトリの Mode が「Silent」だと、動いても PR も Dependency Dashboard も出ない。入れた後に Dashboard の Issue が出なければ、Settings で Silent を外す
 5. **Secret scanning と push 保護**(秘密を含む push をその場で止める)
    - 🌐 公開: **無料**。Settings → Advanced Security で「Secret Protection」(Secret scanning)と「Push protection」をオンにする。CI の gitleaks も外さない(履歴の全部を毎回見る・`.gitleaksignore` で理由つきに除外できる)
    - 🔒 非公開: 有料(GitHub Secret Protection)。PMF 前は CI の gitleaks で代える
