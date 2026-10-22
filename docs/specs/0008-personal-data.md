@@ -1,6 +1,6 @@
 # 仕様: 個人情報を、置き場所とログで最初から守る
 
-> 状態: 下書き(作者 @attumkwg の希望から AI が書いた。承認待ち)
+> 状態: 承認済み(作者 @attumkwg の希望から AI が書いた。@attumkwg 2026-10-22 に設計書の未確定事項と一緒に承認)
 > 設計: [docs/designs/0008-personal-data.md](../designs/0008-personal-data.md)
 > 判断の記録: [ADR 0018](../adr/0018-sensitive-data-isolation.md)(要配慮個人情報を分けて置く段階)
 
