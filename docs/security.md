@@ -37,7 +37,7 @@
 | RLS と2社 | 全テーブルの RLS・接続ユーザーが持ち主でないか・2社が混ざらないか | RLS の外(キャッシュ・ファイル・ログ) | `ci.yml` 結合 |
 | Semgrep | 公開のルール+自社ルール(テナントの文脈・生の SQL・ログ・本文の検証・画面の色) | ルールに書いていない形の穴 | `ci.yml` |
 | gitleaks | 全履歴から秘密の値らしいもの | 形の決まっていない秘密・暗号化された秘密 | `ci.yml` |
-| Trivy | 依存とイメージの既知の脆弱性・Dockerfile と Terraform の設定 | まだ知られていない脆弱性・自分のコードの穴 | `ci.yml`・`terraform.yml` |
+| Trivy | 依存とイメージの既知の脆弱性(HIGH 以上)・Dockerfile と Terraform の設定 | まだ知られていない脆弱性・自分のコードの穴・中以下・「うちに届くか」(→ 下の `/cve`) | `ci.yml`・`terraform.yml` |
 | squawk | 移行の、本番を止める書き方 | 移行の中身の正しさ(データが合っているか) | `ci.yml` |
 | axe | 画面のアクセシビリティ(色・ラベル・名前・押す所の大きさ。WCAG 2.2 AA まで)と、スマホの幅(320px)で横にはみ出さないか | キーボードだけで最後まで使えるか・iPhone(WebKit)での見え方 | `ci.yml` E2E |
 | actionlint・zizmor | ワークフローの書き方と危ない設定(権限・資格情報・トリガー) | 動かしたときの中身 | `ci.yml` |
@@ -50,6 +50,7 @@
 | ZAP ベースライン | プレビューの画面を外から受け身で見る(ヘッダー・Cookie の設定など) | ログインの後ろ・API の中身 | `preview.yml` |
 | ZAP API スキャン | stg にログインして、OpenAPI の全 API に攻撃の型を送る | 複数の手順をまたぐ攻撃・業務の穴 | `zap-api-scan.yml` |
 | `/security-review` | Claude Code がブランチの変更を読み、認可漏れ・注入などを探す | 仕様に依存する業務の穴は苦手 | 下の「危険度『高』の PR で」 |
+| `/cve`・`pnpm vulns` | Dependabot の通知・Trivy・OSV・基盤と主な依存の発表を集め、関係あるかを6段で精査し、期限つきの直し方を決める。記録と通知の突き合わせ | まだ発表されていない脆弱性・自分のコードの穴 | [guides/vulnerabilities.md](guides/vulnerabilities.md)(記録は [security/vulns.md](security/vulns.md)) |
 
 ### 例: Schemathesis が見つけた穴を、テストとルールにした
 

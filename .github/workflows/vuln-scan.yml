@@ -4,7 +4,7 @@
 #   2. zizmor(オンライン版) … ci.yml は --offline。こちらは GitHub に問い合わせて、
 #      既知の脆弱性がある Action・コミットの偽装(impostor commit)・ref の取り違えまで見る
 # 落ちたら Issue を立てる(同じ題名の Issue が開いていれば、コメントを足す)。直し方は各ツールの指摘のとおり
-# (依存や Action は Renovate の PR で上がる)。
+# (依存や Action は Renovate の PR で上がる)。関係あるか・期限と直し方は /cve で精査する(docs/guides/vulnerabilities.md)。
 #
 # 要るもの: 無し(AWS も秘密も使わない。GitHub への問い合わせは、このジョブの GITHUB_TOKEN の読み取りだけ)。
 # 費用: Actions の数分だけ。
@@ -79,11 +79,13 @@ jobs:
         run: |
           set -euo pipefail
           title="定期の脆弱性チェックで指摘が出ました"
-          body="$(printf '%s\n\n%s\n%s\n%s' \
+          body="$(printf '%s\n\n%s\n%s\n%s\n\n%s\n%s' \
             "実行: $RUN_URL" \
             "- Trivy fs: 依存の CVE・設定の指摘。直せるものは Renovate の PR か、依存を上げる PR で" \
             "- zizmor(オンライン): 既知の脆弱性がある Action・偽装コミットの指摘。該当の Action を上げる・外す" \
-            "- 外す指摘は理由つきで(.trivyignore.yaml、またはコメントで zizmor: ignore[…])")"
+            "- 外す指摘は理由つきで(.trivyignore.yaml、またはコメントで zizmor: ignore[…])" \
+            "関係あるか・いつまでにどう直すかは、Claude Code で /cve(引数なし)を打って精査する(docs/guides/vulnerabilities.md)。" \
+            "届く・まだ直していない穴の中身は、この Issue に書かない(公開のリポジトリなら誰でも読める。非公開の Security Advisory の下書きへ)")"
           num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
           if [ -n "$num" ]; then
             gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
