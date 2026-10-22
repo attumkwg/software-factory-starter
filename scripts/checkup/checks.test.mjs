@@ -5,7 +5,7 @@ import { check as envs } from "./checks/github-environments.mjs";
 import { check as plan } from "./checks/github-plan.mjs";
 import { check as protection } from "./checks/github-protection.mjs";
 import { check as both } from "./checks/protection-and-envs.mjs";
-import { check as secrets } from "./checks/secret-scanning.mjs";
+import { check as scanAlerts } from "./checks/secret-scanning.mjs";
 import { check as features } from "./checks/security-features.mjs";
 import { check as vulns } from "./checks/vulns.mjs";
 import { err, fakeCtx, ok } from "./fake-context.mjs";
@@ -127,15 +127,15 @@ test("dep-alerts: 両方オンで合格・オフを出す・管理者でなけ�
 
 test("w-secrets: 0件で合格・見つけ物は件数だけ出す(中身は出さない)・オフは不合格", async () => {
   const path = "secret-scanning/alerts";
-  assert.equal((await secrets(fakeCtx({ api: { [path]: ok([]) } }))).result, "pass");
-  const found = await secrets(
+  assert.equal((await scanAlerts(fakeCtx({ api: { [path]: ok([]) } }))).result, "pass");
+  const found = await scanAlerts(
     fakeCtx({ api: { [path]: ok([{ secret: "AKIA-SECRET-VALUE", secret_type: "aws" }]) } }),
   );
   assert.equal(found.result, "fail");
   assert.match(found.note, /1件/);
   assert.doesNotMatch(found.note, /AKIA|aws/);
-  assert.equal((await secrets(fakeCtx({ api: { [path]: err(404) } }))).result, "fail");
-  assert.equal((await secrets(fakeCtx({}))).result, "unknown");
+  assert.equal((await scanAlerts(fakeCtx({ api: { [path]: err(404) } }))).result, "fail");
+  assert.equal((await scanAlerts(fakeCtx({}))).result, "unknown");
 });
 
 const RECORD = [
