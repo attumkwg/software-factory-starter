@@ -11,6 +11,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - 絞り込みなど「共有・再読み込みで残したい状態」は URL の search に持つ(`validateSearch`)。**メールアドレスなどの個人の情報は URL に載せない**(履歴・ログに残る。ログイン・登録は画面の中で段を進める)。
 - ログイン・登録・再設定の画面(`pages/LoginPage.tsx` など)は `pages/auth/` の入力欄と `useSubmit` を使う。文は `messages.ts` の固定の文(どこが違ったか・登録の有無を言わない)。
 - `src/routeTree.gen.ts` は自動で作られる。手で直さない(`pnpm dev` か `pnpm build` で作り直す)。
+- title・説明・OGP は route の `head` で `pageHead({ title, description, path })`(`src/head.ts`)。公開の画面(ログイン無しで開ける)は `description` と `path`(og:url)も渡す。ログインの後ろの画面は `title` だけ。プロダクトの名前と既定の説明は `head.ts` の1か所。`<meta name="robots">` は書かない(検索の決まりは画面のサーバー)。
 
 ## SSR で気をつけること
 
@@ -20,6 +21,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - 画面のサーバーのログは `server/logger.ts`(API と同じ部品 `@app/logging`。出してよい項目だけ。ADR 0019)。失敗は `logger.error({ err }, "…")` の形で渡す。
 - 検索に載せない: 全部の応答に `X-Robots-Tag: noindex, nofollow`(本番も既定は全部)。本番で載せたいページだけ `INDEXABLE_PATHS` に足す。`robots.txt` も `server/app.ts` が返す。
 - favicon などの静的なファイルは `public/` に置く(画面のサーバーがそのまま返す)。画面の URL に `.` を使わない(拡張子のあるパスは SSR に回さずに 404)。
+- OGP の `og:url` は環境変数 `APP_URL`(API と同じ名前)から作る。無ければ出さない。要求の Host ヘッダーから URL を作らない。
 - 秘密を画面のコードに書かない。`VITE_` で始まる環境変数はブラウザに出る。画面のサーバーは秘密を持たない決まり。
 
 ## 見た目・API・認可
@@ -33,7 +35,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 
 - E2E(`e2e/`)は種データの2社(Acme / Globex)を使う。要素は役割と名前で取る(`getByRole` / `getByLabel`)。
 - 大事な流れを変えたら E2E を1本足すか直す(目安: 大事な流れ5本程度まで)。
-- `expectAccessible` は axe(WCAG 2.2 AA まで)と「横にはみ出していない」を見る。スマホの組(幅 320px)は主な流れだけ流す(`playwright.config.ts` の `MOBILE_SPECS`)。表や入力の画面を足したら、そこに足すか考える。
+- `expectAccessible` は axe(WCAG 2.2 AA まで)と「横にはみ出していない」を見る。スマホの組(幅 320px)は主な流れだけ流す(`playwright.config.ts` の `MOBILE_SPECS`)。表や入力の画面を足したら、見るだけで回る `e2e/narrow-screens.spec.ts` に足す(書き込む E2E をスマホの組に足すと、同じ人で2回書き込んで食い違う)。
 - 本番の Node サーバー(`server/`)を変えたら `server/app.test.ts` も直す。
 
 ## 速さ

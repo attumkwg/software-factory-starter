@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { api } from "../../api.ts";
+import { pageHead } from "../../head.ts";
 import { AuditPage } from "../../pages/AuditPage.tsx";
 
 // 監査ログ(管理者だけ。守りは API 側: admin 以外は 403 → 画面の受け皿が「権限がありません」)
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/_app/audit")({
       : {},
   loaderDeps: ({ search }) => ({ before: search.before }),
   loader: ({ deps }) => api.listAuditEvents(deps.before),
-  head: () => ({ meta: [{ title: "監査ログ | Tasks" }] }),
+  head: () => pageHead({ title: "監査ログ" }),
   component: AuditRoute,
 });
 
