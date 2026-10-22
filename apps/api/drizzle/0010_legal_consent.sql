@@ -1,7 +1,7 @@
 -- 長いロック待ちで本番を止めない(squawk: require-lock-timeout / require-statement-timeout)
 SET LOCAL lock_timeout = '5s';--> statement-breakpoint
 SET LOCAL statement_timeout = '60s';--> statement-breakpoint
--- 利用規約・プライバシーポリシーの同意(docs/specs/0009-legal-consent.md・docs/designs/0009-legal-consent.md の 2・ADR 0019)。
+-- 利用規約・プライバシーポリシーの同意(docs/specs/0009-legal-consent.md・docs/designs/0009-legal-consent.md の 2・ADR 0022)。
 -- 危険度「高」(RLS と権限)。段: ① 拡張(新しいスキーマと表を足すだけ。前の版のアプリは読まないので、そのまま動く)。縮小は無い。
 --
 -- 1. 表は drizzle-kit が作った形(src/domains/legal/schema.ts)。

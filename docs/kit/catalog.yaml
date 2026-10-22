@@ -845,7 +845,7 @@ parts:
         - { path: packages/shared/src/legal.ts, what: 型と版の一覧は残してよい(足すだけの決まり) }
       migration: スキーマ legal(表 legal.consents・legal.notices)を消す移行を足す(.claude/skills/db-migration。0010 は書き換えない)
       matrix: [POST /api/legal/consents]
-      docs: [docs/specs/0009-legal-consent.md, docs/adr/0019-legal-documents-and-consent.md, docs/guides/legal-documents.md]
+      docs: [docs/specs/0009-legal-consent.md, docs/adr/0022-legal-documents-and-consent.md, docs/guides/legal-documents.md]
 
   - id: certification-prep
     name: 認証の準備(P マーク・ISMS・SOC 2)
