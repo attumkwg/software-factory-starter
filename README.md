@@ -179,6 +179,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 開発の道具 | PR ごとのプレビュー環境 `preview-env` | PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す | 残す | あり |
 | 開発の道具 | GitHub の上の Claude(背景エージェント) `claude-actions` | Issue と PR の @claude で、GitHub の上で Claude が作業する(いまは手動。API キーが要る) | 残す | あり |
 | 開発の道具 | 攻撃の形の検査(Schemathesis・ZAP) `dynamic-scans` | 全部の API に変な入力をロールごとに投げる・動いている画面と API を ZAP で叩く(手動) | 残す | あり |
+| 開発の道具 | 脆弱性の精査と対応方針(/cve) `cve-triage` | Dependabot の通知・Trivy・OSV・基盤と主な依存の発表を集め、関係あるかを6段で精査し、期限つきの直し方を決める。記録(docs/security/vulns.md)と通知の突き合わせは pnpm vulns | 残す | あり |
 | 開発の道具 | プロトタイプの置き場 `prototypes` | 本番のラインに乗せずに、押せる画面だけ・偽のデータの試作を作り(/prototype)、合言葉つきの URL で見せる(S3+CloudFront) | 残す | あり |
 | 進め方 | 始め方の計画(/kickoff) `kickoff` | 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決めて計画にする | 残す | あり |
 | 進め方 | 機能ごとの賭け(/bet) `bets` | 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く | 残す | あり |
@@ -216,7 +217,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | 層 | この雛形のどこ |
 |---|---|
-| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート)・`.devcontainer/` |
+| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート / 脆弱性の精査 `/cve`)・`.devcontainer/` |
 | ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。OWNER / MEMBER だけが起動できる) |
 | ③ 自前のファクトリー | まだ作らない(PR が週に数十件を超えてから) |
 
@@ -258,7 +259,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 対象 | 道具 | どこ |
 |---|---|---|
 | 自分のコード | Semgrep CE(公開のルール+自社ルール) | `ci.yml` の semgrep |
-| 依存 | Trivy fs・Renovate・Dependabot alerts | `ci.yml` の trivy-fs・`vuln-scan.yml`(定期)・`renovate.json` |
+| 依存 | Trivy fs・Renovate・Dependabot alerts・精査と対応方針(`/cve`) | `ci.yml` の trivy-fs・`vuln-scan.yml`(定期)・`renovate.json`・`pnpm vulns`([docs/guides/vulnerabilities.md](docs/guides/vulnerabilities.md)) |
 | 秘密情報 | gitleaks(全履歴) | `ci.yml` の gitleaks |
 | イメージ | Trivy image | `ci.yml` の image |
 | インフラ定義 | Trivy config・tflint | `ci.yml`・`terraform.yml` |
@@ -289,7 +290,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
 | `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
-| `vuln-scan.yml` | 手動(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版) | 動く(AWS も秘密も要らない) |
+| `vuln-scan.yml` | 自動: 毎週月曜 5:00・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
 
 `ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。
 
