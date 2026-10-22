@@ -1,3 +1,4 @@
+import { currentVersion } from "@app/shared";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { createDb } from "../../src/db/client.ts";
 import {
@@ -29,11 +30,15 @@ afterAll(async () => {
 });
 
 function fill(template: string, self: TenantFixture): string {
-  return template
-    .replaceAll("{projectId}", self.projectId)
-    .replaceAll("{taskId}", self.taskId)
-    .replaceAll("{grantId}", self.supportGrantId)
-    .replaceAll("{adminEmail}", self.users.admin.email);
+  return (
+    template
+      .replaceAll("{projectId}", self.projectId)
+      .replaceAll("{taskId}", self.taskId)
+      .replaceAll("{grantId}", self.supportGrantId)
+      .replaceAll("{adminEmail}", self.users.admin.email)
+      // いまの利用規約の版(数のまま入れる。版を足しても表を直さずに済むように)
+      .replaceAll('"{currentTermsVersion}"', String(currentVersion("terms", new Date())?.version))
+  );
 }
 
 const fillBody = (body: unknown, self: TenantFixture): unknown =>

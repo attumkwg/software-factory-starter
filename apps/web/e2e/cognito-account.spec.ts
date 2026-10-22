@@ -82,7 +82,7 @@ test("運営の組織は必須: 社員は設定の画面へ回される。設定
   await expect(admin.getByRole("heading", { name: "プロジェクト" })).toBeVisible();
   const grant = await admin.request.post("/api/support-grants", {
     data: { hours: 1 },
-    headers: { origin: "http://localhost:8080" },
+    headers: { origin: new URL(process.env.E2E_BASE_URL ?? "http://localhost:8080").origin },
   });
   const { code } = (await grant.json()) as { code: string };
   await admin.close();

@@ -190,7 +190,7 @@ body {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
-.ui-checkbox[data-selected] .ui-checkbox__label {
+.ui-checkbox--strike[data-selected] .ui-checkbox__label {
   color: var(--color-text-muted);
   text-decoration: line-through;
 }
@@ -376,6 +376,11 @@ body {
 }
 .ui-text-muted {
   color: var(--color-text-muted);
+}
+/* 本文の段落(規約の本文など)。余白は並べる側(Stack)が決める */
+.ui-text {
+  margin: 0;
+  line-height: 1.8;
 }
 
 /* QR コード(二段階認証の設定)。周りに4マスの余白(読み取りに要る)。色はテーマで変えない */

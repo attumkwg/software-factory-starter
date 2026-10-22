@@ -117,6 +117,17 @@ describe("社員が番号で入る", () => {
     expect((await call(app, "GET", "/api/audit-events", { cookie: support })).status).toBe(403);
   });
 
+  it("お客さんの代わりに規約に同意できない(403)。規約の関所の対象外(me に legal が無い)", async () => {
+    // docs/specs/0009-legal-consent.md: 代理の社員は見るだけ。NOT_DURING_SUPPORT
+    const res = await call(app, "POST", "/api/legal/consents", {
+      cookie: support,
+      body: { consents: [{ document: "terms", version: 1 }] },
+    });
+    expect(res.status).toBe(403);
+    const me = (await (await call(app, "GET", "/api/me", { cookie: support })).json()) as Me;
+    expect(me.legal).toBeUndefined();
+  });
+
   it("入った・見た・拒否が、お客さんの監査ログに「サポート」として残る", async () => {
     await call(app, "GET", `/api/projects/${a.projectId}`, { cookie: support });
     const events = await auditOf(aAdmin);

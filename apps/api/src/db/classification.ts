@@ -96,6 +96,23 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "tasks.tasks.created_at": internal("作った時刻(一覧の並び)"),
   "tasks.tasks.updated_at": internal("直した時刻"),
 
+  // ── 規約と同意(legal。docs/specs/0009-legal-consent.md) ──
+  "legal.consents.id": internal("同意の記録の ID"),
+  "legal.consents.tenant_id": internal("組織"),
+  "legal.consents.user_id": internal("同意した人の ID"),
+  "legal.consents.document": pub("どの文書か(terms / privacy)"),
+  "legal.consents.version": internal("同意した版(施行日の数字)"),
+  "legal.consents.capacity": pub("組織としてか本人としてか(organization / individual)"),
+  "legal.consents.source": pub("どの画面で同意したか(sign_up / acceptance)"),
+  "legal.consents.accepted_at": internal("同意した時刻(同意の証拠)"),
+
+  "legal.notices.id": internal("お知らせの ID(送信待ちの出来事が指す)"),
+  "legal.notices.tenant_id": internal("組織"),
+  "legal.notices.user_id": internal("お知らせを送る相手の ID(宛先は送る直前に DB から読む)"),
+  "legal.notices.document": pub("どの文書の変更か(terms / privacy)"),
+  "legal.notices.version": internal("知らせた版(施行日の数字)"),
+  "legal.notices.created_at": internal("送ると決めた時刻(周知の証拠)"),
+
   // ── 共通の仕組み(platform) ──
   "platform.audit_events.id": internal("記録の ID(時刻の順)"),
   "platform.audit_events.tenant_id": internal("組織"),
@@ -132,6 +149,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       completedBy: internal("完了にした人の ID"),
       userId: internal("お知らせを送る相手の ID(宛先は送る直前に DB から読む)"),
       emailChangeId: internal("メールアドレスの変更の ID(古いアドレスは表から読む)"),
+      noticeId: internal("規約の変更のお知らせの ID(宛先と版は表から読む)"),
     },
   },
   "platform.outbox.created_at": internal("積んだ時刻"),

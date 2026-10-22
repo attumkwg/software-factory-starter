@@ -1,5 +1,6 @@
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import { legalChangeMail } from "../domains/legal/index.ts";
 import {
   type AccountNotice,
   accountNoticeMail,
@@ -63,6 +64,10 @@ export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, O
     "organizations.email_changed": (event) => {
       const payload = OUTBOX_TOPICS["organizations.email_changed"].parse(event.payload);
       return sendIn(event, (tx) => emailChangedMail(tx, event, payload, appUrl));
+    },
+    "legal.change_notified": (event) => {
+      const payload = OUTBOX_TOPICS["legal.change_notified"].parse(event.payload);
+      return sendIn(event, (tx) => legalChangeMail(tx, event, payload, appUrl));
     },
     "tasks.task_completed": async (event) => {
       const payload = OUTBOX_TOPICS["tasks.task_completed"].parse(event.payload);

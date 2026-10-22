@@ -50,6 +50,25 @@ export async function findContact(
   return row ?? null;
 }
 
+/** 組織の全員の ID(運営のコマンドが、組織の全員にお知らせを積むときに使う。docs/specs/0009-legal-consent.md) */
+export async function listUserIds(tx: TenantTx, tenantId: string): Promise<string[]> {
+  const rows = await tx
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.tenantId, tenantId))
+    .orderBy(asc(users.createdAt), asc(users.id));
+  return rows.map((r) => r.id);
+}
+
+/** 組織の時間帯(メールに日時を書くとき。ADR 0005)。組織が無ければ null */
+export async function findTimeZone(tx: TenantTx, tenantId: string): Promise<string | null> {
+  const [row] = await tx
+    .select({ timeZone: tenants.timeZone })
+    .from(tenants)
+    .where(eq(tenants.tenantId, tenantId));
+  return row?.timeZone ?? null;
+}
+
 /** 監査ログの画面に「誰が」を名前で出すため。自社の人だけ(いない人・消された人は返らない)。 */
 export async function findUserNames(
   tx: TenantTx,

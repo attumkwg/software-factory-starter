@@ -12,7 +12,7 @@
 | `Link` | ページの移動 | 本物の `<a href>`(新しいタブで開ける・SSR でも辿れる)。保存や削除には使わず `Button` |
 | `TextField` | 1行の入力 | 幅は 16rem まで、狭い画面では親の幅まで縮む(`min(16rem, 100%)`)。`label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage`。パスワードは `type="password"` と `autoComplete`(`current-password` / `new-password`)、コードは `inputMode="numeric"` と `autoComplete="one-time-code"` |
 | `Select` | 選択肢から1つ | 選択肢は `{ id, label }` の配列 |
-| `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク) |
+| `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク)。同意のチェックのように線が要らなければ `strikeWhenSelected={false}` |
 | `Table` | 一覧(列がある) | `label` で表の名前。行の名前にする列に `isRowHeader`。列が入りきらないとき(スマホ)は、表の枠(`.ui-table-scroll`)の中で横に動く。画面全体は横にはみ出さない |
 | `List` | 一覧(列が無い) | `label` で一覧の名前 |
 | `ConfirmDialog` | 消すなどの前の確認 | 戻せない操作は `isDestructive`(赤いボタン)。Esc で閉じる。実行中は二度押せない(失敗は呼ぶ側の `useAction` で) |
@@ -20,7 +20,7 @@
 | `Alert` | 画面に残すお知らせ(ログインの失敗など) | トーストと違って消えない。`danger` は出たときに読み上げる。色だけでなく文で伝える |
 | `Badge` | ロール・状態の札 | 色だけで意味を伝えない(必ず文字) |
 | `QrCode` | 二段階認証の設定(認証アプリに読ませる) | ブラウザの中で描く(外のサービスに値を送らない)。読めない人のため、同じ値を文字でも出す。暗いテーマでも黒地にしない(`--color-qr-*`) |
-| `Page` / `Stack` / `Inline` / `Card` / `Heading` / `Muted` | 並べる・囲む・見出し | 間は `gap`(余白のトークン)。見出しは文書の構造に合わせて `level` |
+| `Page` / `Stack` / `Inline` / `Card` / `Heading` / `Text` / `Muted` | 並べる・囲む・見出し・段落 | 間は `gap`(余白のトークン)。見出しは文書の構造に合わせて `level` |
 
 使い方の例は `apps/web/src/pages/` を見る。`Link` は `apps/web/src/routes/__root.tsx` の `LinkRouterProvider` でルーターにつないである。
 

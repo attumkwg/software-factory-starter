@@ -2,6 +2,7 @@ import { EXPORT_FORMAT, type ExportData, ExportSchema } from "@app/shared";
 import { createRoute } from "@hono/zod-openapi";
 import { exportAuditEvents } from "../audit/index.ts";
 import { scopeOf } from "../db/scope.ts";
+import { exportLegalConsents } from "../domains/legal/index.ts";
 import {
   exportEmailChanges,
   exportOrganization,
@@ -37,6 +38,7 @@ export const exportRoutes = createRouter().openapi(
       auditEvents: await exportAuditEvents(s),
       supportGrants: await exportSupportGrants(s),
       emailChanges: await exportEmailChanges(s),
+      legalConsents: await exportLegalConsents(s),
     };
     const date = data.exportedAt.slice(0, 10);
     c.header("content-disposition", `attachment; filename="export-${date}.json"`);

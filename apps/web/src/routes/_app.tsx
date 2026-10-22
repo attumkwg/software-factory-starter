@@ -16,6 +16,14 @@ export const Route = createFileRoute("/_app")({
         throw redirect({ to: "/login", search: { returnTo: location.href } });
       throw e;
     }
+    // 同意し直しが要る規約の版に、まだ同意していない → 同意の画面へ(ほかの API も 403。守りは API 側)。
+    // 二段階認証の設定待ちより先(docs/specs/0009-legal-consent.md)
+    if (me.legal?.pending.length) {
+      if (location.pathname !== "/legal/accept") {
+        throw redirect({ to: "/legal/accept", search: { returnTo: location.href } });
+      }
+      return { me };
+    }
     // 組織が二段階認証を必須にしていて、まだ設定していない → 設定の画面へ(ほかの API も 403。守りは API 側)
     if (me.mfa?.setupRequired && location.pathname !== "/account") {
       throw redirect({ to: "/account" });

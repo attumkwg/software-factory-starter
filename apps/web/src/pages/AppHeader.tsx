@@ -6,6 +6,7 @@ import { api } from "../api.ts";
 import { formatDateTime } from "../format.ts";
 import { canManageAccount, canOpenSettings, canStartSupport, roleLabel } from "../permissions.ts";
 import { useAction } from "../use-action.ts";
+import { LegalLinks, LegalNotices } from "./LegalNotices.tsx";
 
 // ログインした後の画面の外枠: 会社名・名前・ロール・ログアウト。
 export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
@@ -83,7 +84,11 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
             </Button>
           </Inline>
         </header>
+        <LegalNotices me={me} />
         <main>{children}</main>
+        <footer>
+          <LegalLinks />
+        </footer>
       </Stack>
     </Page>
   );

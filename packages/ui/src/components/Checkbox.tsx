@@ -6,13 +6,21 @@ export type CheckboxProps = {
   isSelected: boolean;
   onChange: (isSelected: boolean) => void;
   isDisabled?: boolean;
+  /** 選んだら文字に線を入れるか(完了のタスクなど)。同意のチェックのように線が要らないなら false */
+  strikeWhenSelected?: boolean;
 };
 
-/** チェック。選んだら文字に線が入る(完了のタスクなど)。 */
-export function Checkbox({ children, isSelected, onChange, isDisabled }: CheckboxProps) {
+/** チェック。既定では、選んだら文字に線が入る(完了のタスクなど)。 */
+export function Checkbox({
+  children,
+  isSelected,
+  onChange,
+  isDisabled,
+  strikeWhenSelected = true,
+}: CheckboxProps) {
   return (
     <AriaCheckbox
-      className="ui-checkbox"
+      className={strikeWhenSelected ? "ui-checkbox ui-checkbox--strike" : "ui-checkbox"}
       isSelected={isSelected}
       onChange={onChange}
       isDisabled={isDisabled}

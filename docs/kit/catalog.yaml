@@ -790,19 +790,62 @@ parts:
   - id: terms-consent
     name: 利用規約・プライバシーポリシーの同意
     group: rules
-    status: 作成中
-    pr: 8
+    status: あり
     removable: true
     default: 残す
-    what: 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。同意の記録は監査ログに
+    what: 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。登録の画面での同意・変更のお知らせのメール(運営のコマンド legal-notify)も。同意の記録は監査ログに
     needed_by: 外の人に使ってもらうすべて
     not_needed_by: 社内だけで使う
     if_removed: 規約を変えたことを知らせた・同意をもらった記録が残らない
-    depends_on: [login, audit-log]
+    depends_on: [login, audit-log, outbox]
     law:
       - 民法 548条の2〜4(定型約款。変更は効力の日と内容を前もって知らせる)
       - 個人情報保護法 21条(利用目的の通知・公表)
       - P マーク(同意の記録)
+    where:
+      - apps/api/src/domains/legal
+      - packages/shared/src/legal.ts
+      - apps/web/src/legal
+      - docs/guides/legal-documents.md
+    remove:
+      delete:
+        - apps/api/src/domains/legal
+        - apps/api/src/legal-notify
+        - apps/api/src/auth/sign-up-consent.ts
+        - apps/api/test/unit/legal.test.ts
+        - apps/api/test/integration/legal-consent.int.test.ts
+        - apps/api/test/integration/legal-notify.int.test.ts
+        - apps/web/src/legal
+        - apps/web/src/pages/LegalAcceptPage.tsx
+        - apps/web/src/pages/LegalDocumentPage.tsx
+        - apps/web/src/pages/LegalNotices.tsx
+        - apps/web/src/routes/_app/legal
+        - apps/web/src/routes/legal
+        - apps/web/e2e/legal.spec.ts
+        - docs/runbooks/legal-notice.md
+      edit:
+        - { path: apps/api/src/app.ts, what: legalRoutes と legalVersions を外す }
+        - { path: apps/api/src/authz/middleware.ts, what: 同意待ちの関所(legalStatusOf・terms_acceptance_required)を外す }
+        - { path: apps/api/src/authz/policy.ts, what: legal:accept と同意待ちの間に通る API の一覧を外す }
+        - { path: apps/api/src/auth/cognito-routes.ts, what: 登録の確認で同意を記録する所を外す }
+        - { path: apps/api/src/cli.ts, what: legal-notify のコマンドを外す }
+        - { path: apps/api/src/db/schema.ts, what: legal の表の読み込みを外す }
+        - { path: apps/api/src/db/seed.ts, what: 同意の種データを外す }
+        - { path: apps/api/src/db/classification.ts, what: legal.consents・legal.notices の行と noticeId を外す }
+        - { path: apps/api/src/domains/dependencies.ts, what: legal の行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: legal.consent を外す }
+        - { path: apps/api/src/outbox/topics.ts, what: legal.change_notified を外す }
+        - { path: apps/api/src/outbox/handlers.ts, what: legal.change_notified の受け手を外す }
+        - { path: apps/api/src/export/routes.ts, what: 書き出しから legalConsents を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から legal.notices・legal.consents を外す }
+        - { path: apps/web/src/routes/_app.tsx, what: 同意の画面へ回す所を外す }
+        - { path: apps/web/src/pages/AppHeader.tsx, what: LegalNotices・LegalLinks を外す }
+        - { path: apps/web/src/pages/SignUpPage.tsx, what: 同意のチェックを外す }
+        - { path: apps/web/src/api.ts, what: acceptLegal と confirmSignUp の consents を外す }
+        - { path: packages/shared/src/legal.ts, what: 型と版の一覧は残してよい(足すだけの決まり) }
+      migration: スキーマ legal(表 legal.consents・legal.notices)を消す移行を足す(.claude/skills/db-migration。0010 は書き換えない)
+      matrix: [POST /api/legal/consents]
+      docs: [docs/specs/0009-legal-consent.md, docs/adr/0022-legal-documents-and-consent.md, docs/guides/legal-documents.md]
 
   - id: certification-prep
     name: 認証の準備(P マーク・ISMS・SOC 2)

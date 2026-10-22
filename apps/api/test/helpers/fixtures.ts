@@ -1,10 +1,11 @@
-import type { Role } from "@app/shared";
+import { currentVersion, LEGAL_DOCUMENTS, type LegalVersion, type Role } from "@app/shared";
 import { v7 as uuidv7 } from "uuid";
 import { createApp } from "../../src/app.ts";
 import { loadConfig } from "../../src/config.ts";
 import { createDb, type RootDb } from "../../src/db/client.ts";
-import { projects, supportGrants, tasks, tenants, users } from "../../src/db/schema.ts";
+import { consents, projects, supportGrants, tasks, tenants, users } from "../../src/db/schema.ts";
 import { withTenant } from "../../src/db/tenant.ts";
+import { capacityOf } from "../../src/domains/legal/index.ts";
 import { createLogger } from "../../src/logger.ts";
 
 /** 1社ぶんのテスト用データ。テストは必ず2社以上で書く(自社と他社)。 */
@@ -17,7 +18,15 @@ export type TenantFixture = {
   supportGrantId: string;
 };
 
-export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise<TenantFixture> {
+/**
+ * consented … 3人とも、いまの版の利用規約・プライバシーポリシーに同意済みにする(既定。docs/specs/0009-legal-consent.md)。
+ * false なら誰も同意していない(同意の画面・関所のテスト用)。
+ */
+export async function createTenantFixture(
+  ownerDb: RootDb,
+  label = "t",
+  opts: { consented?: boolean } = {},
+): Promise<TenantFixture> {
   const tenantId = uuidv7();
   const suffix = tenantId.slice(-12);
   const mk = (role: Role) => ({ id: uuidv7(), email: `${role}-${suffix}@${label}.test`, role });
@@ -39,6 +48,18 @@ export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise
       .insert(projects)
       .values({ id: projectId, tenantId, name: "最初の計画", createdBy: admin.id });
     await tx.insert(tasks).values({ id: taskId, tenantId, projectId, title: "最初のタスク" });
+    if (opts.consented ?? true) {
+      const now = new Date();
+      const rows = [admin, member, viewer].flatMap((u) =>
+        LEGAL_DOCUMENTS.flatMap((document) => {
+          const version = currentVersion(document, now)?.version;
+          if (version === undefined) return [];
+          const capacity = capacityOf(u.role, document);
+          return [{ tenantId, userId: u.id, document, version, capacity, source: "acceptance" }];
+        }),
+      );
+      if (rows.length > 0) await tx.insert(consents).values(rows);
+    }
     await tx.insert(supportGrants).values({
       id: supportGrantId,
       tenantId,
@@ -62,7 +83,11 @@ export async function createTenantFixture(ownerDb: RootDb, label = "t"): Promise
 }
 
 /** アプリの接続ユーザー(RLS がかかる)で組み立てた、本物と同じアプリ。env で設定を足せる */
-export function createTestApp(appUrl: string, env: Record<string, string> = {}) {
+export function createTestApp(
+  appUrl: string,
+  env: Record<string, string> = {},
+  opts: { legalVersions?: readonly LegalVersion[] } = {},
+) {
   const { db, pool } = createDb(appUrl);
   const config = loadConfig({
     APP_ENV: "test",
@@ -71,7 +96,13 @@ export function createTestApp(appUrl: string, env: Record<string, string> = {}) 
     ...env,
   });
   const lifecycle = { shuttingDown: false };
-  const app = createApp({ config, db, logger: createLogger({ level: "silent" }), lifecycle });
+  const app = createApp({
+    config,
+    db,
+    logger: createLogger({ level: "silent" }),
+    lifecycle,
+    ...(opts.legalVersions ? { legalVersions: opts.legalVersions } : {}),
+  });
   return { app, pool, lifecycle };
 }
 

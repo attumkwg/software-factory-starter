@@ -45,6 +45,11 @@ export function Heading({ level, children }: { level: 1 | 2; children: ReactNode
   return <Tag className={cx("ui-heading", `ui-heading--${level}`)}>{children}</Tag>;
 }
 
+/** 本文の段落(規約の本文など)。 */
+export function Text({ children }: { children: ReactNode }) {
+  return <p className="ui-text">{children}</p>;
+}
+
 /** 補足の文字(薄い色)。 */
 export function Muted({ children }: { children: ReactNode }) {
   return <p className="ui-text-muted">{children}</p>;

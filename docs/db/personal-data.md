@@ -22,6 +22,30 @@
 
 ## 全部の列
 
+### `legal.consents`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 同意の記録の ID |
+| `tenant_id` | internal | 組織 |
+| `user_id` | internal | 同意した人の ID |
+| `document` | public | どの文書か(terms / privacy) |
+| `version` | internal | 同意した版(施行日の数字) |
+| `capacity` | public | 組織としてか本人としてか(organization / individual) |
+| `source` | public | どの画面で同意したか(sign_up / acceptance) |
+| `accepted_at` | internal | 同意した時刻(同意の証拠) |
+
+### `legal.notices`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | お知らせの ID(送信待ちの出来事が指す) |
+| `tenant_id` | internal | 組織 |
+| `user_id` | internal | お知らせを送る相手の ID(宛先は送る直前に DB から読む) |
+| `document` | public | どの文書の変更か(terms / privacy) |
+| `version` | internal | 知らせた版(施行日の数字) |
+| `created_at` | internal | 送ると決めた時刻(周知の証拠) |
+
 ### `organizations.email_changes`
 
 | 列 | 区分 | 利用目的 |
@@ -120,6 +144,7 @@
 | `payload` の `completedBy` | internal | 完了にした人の ID |
 | `payload` の `userId` | internal | お知らせを送る相手の ID(宛先は送る直前に DB から読む) |
 | `payload` の `emailChangeId` | internal | メールアドレスの変更の ID(古いアドレスは表から読む) |
+| `payload` の `noticeId` | internal | 規約の変更のお知らせの ID(宛先と版は表から読む) |
 | `created_at` | internal | 積んだ時刻 |
 | `available_at` | internal | 送ってよい時刻 |
 | `locked_until` | internal | 送り出しが借りている期限 |

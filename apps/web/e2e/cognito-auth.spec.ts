@@ -25,7 +25,10 @@ test("登録 → メールの確認コード → ログイン → 開こうと�
   await forget(email);
   const tokens: string[] = [];
   page.on("response", async (res) => {
-    if (res.url().startsWith("http://localhost:8080") && res.status() < 300) {
+    if (
+      res.url().startsWith(new URL(process.env.E2E_BASE_URL ?? "http://localhost:8080").origin) &&
+      res.status() < 300
+    ) {
       const body = await res.text().catch(() => "");
       if (/eyJ[\w-]+\.[\w-]+\./.test(body)) tokens.push(res.url());
     }
@@ -39,6 +42,10 @@ test("登録 → メールの確認コード → ログイン → 開こうと�
   await expectAccessible(page);
 
   await page.getByLabel("メールアドレス").fill(email);
+  // 利用規約とプライバシーポリシーに同意しないと登録できない(docs/specs/0009-legal-consent.md)
+  await expect(page.getByRole("link", { name: "利用規約を読む(新しいタブ)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登録する" })).toBeDisabled();
+  await page.getByText("利用規約とプライバシーポリシーに同意します").click();
   // 決まりを満たさないパスワードは、送る前に画面で知らせる
   await page.getByLabel("新しいパスワード").fill("short");
   await page.getByRole("button", { name: "登録する" }).click();

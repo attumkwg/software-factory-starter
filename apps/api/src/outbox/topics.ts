@@ -17,6 +17,8 @@ export const OUTBOX_TOPICS = {
   "organizations.mfa_disabled": z.object({ userId: IdSchema }),
   // 宛先は古いアドレス(email_changes.previous_email)
   "organizations.email_changed": z.object({ emailChangeId: IdSchema }),
+  // 規約の変更のお知らせ(docs/specs/0009-legal-consent.md)。宛先・版は legal.notices の行から読む
+  "legal.change_notified": z.object({ noticeId: IdSchema }),
 } as const;
 
 export type OutboxTopic = keyof typeof OUTBOX_TOPICS;

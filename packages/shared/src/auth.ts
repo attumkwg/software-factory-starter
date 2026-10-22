@@ -1,5 +1,6 @@
 import { z } from "zod";
 import settings from "./cognito-settings.json" with { type: "json" };
+import { LEGAL_DOCUMENTS, LegalVersionRefSchema } from "./legal.ts";
 
 // ログイン・登録の画面と API の取り決め。Cognito の設定の正は cognito-settings.json(Terraform と偽物の Cognito も読む)。
 
@@ -37,7 +38,15 @@ const Code = z.string().regex(/^\d{6}$/, "数字6桁");
 
 export const LoginSchema = z.object({ email: Email, password: Password });
 export const SignUpSchema = z.object({ email: Email, password: Password });
-export const ConfirmSignUpSchema = z.object({ email: Email, code: Code });
+export const ConfirmSignUpSchema = z.object({
+  email: Email,
+  code: Code,
+  /**
+   * 登録の画面で同意した版(docs/specs/0009-legal-consent.md)。確認コードが通り、アプリに登録されている人なら記録する。
+   * 無ければ記録しない(次のログインで同意の画面が出る)
+   */
+  consents: z.array(LegalVersionRefSchema).max(LEGAL_DOCUMENTS.length).optional(),
+});
 export const ResendCodeSchema = z.object({ email: Email });
 export const MfaSchema = z.object({ code: Code });
 export const ForgotPasswordSchema = z.object({ email: Email });

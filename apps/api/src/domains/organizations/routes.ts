@@ -34,6 +34,11 @@ export const organizationRoutes = createRouter().openapi(
       required: access.mfaRequired,
       setupRequired: c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled,
     };
-    return c.json({ ...me, isSupportStaff: supportTenantId === me.tenantId, mfa }, 200);
+    // 規約の同意(関所が引いて置いた物。docs/specs/0009-legal-consent.md)。pending なら画面は /legal/accept へ回す
+    const legal = c.get("legalStatus");
+    return c.json(
+      { ...me, isSupportStaff: supportTenantId === me.tenantId, mfa, ...(legal ? { legal } : {}) },
+      200,
+    );
   },
 );

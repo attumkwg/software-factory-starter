@@ -33,6 +33,14 @@ describe("書き込みの失敗の受け止め(useAction)", () => {
     expect(show).not.toHaveBeenCalled();
   });
 
+  it("規約の同意し直しが要る(403 terms_acceptance_required)なら、同意の画面へ回す", async () => {
+    const router = fakeRouter();
+    const show = vi.fn();
+    await handleFailure(httpError(403, "terms_acceptance_required"), router as never, show);
+    expect(router.navigate).toHaveBeenCalledWith({ to: "/legal/accept" });
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it("読み直せば直るもの(404・409)は読み直してから文を出す", async () => {
     const router = fakeRouter();
     const show = vi.fn();
