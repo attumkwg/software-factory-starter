@@ -201,7 +201,7 @@ parts:
     status: あり
     removable: false
     default: 残す
-    what: 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査
+    what: 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)・ADR の番号の重なり
     needed_by: すべて(AI の PR を人が全部は読まない前提の守り)
     not_needed_by: なし
     if_removed: AI の間違いが、そのまま main に入る
@@ -209,7 +209,7 @@ parts:
     law:
       - ISMS 8.25(セキュアな開発のライフサイクル)・8.28・8.29・8.8(技術的脆弱性の管理)
       - SOC 2 CC8.1・CC7.1
-    where: [.github/workflows/ci.yml, .semgrep/rules.yml, docs/guides/ci-limits.md, scripts/self-contained.mjs]
+    where: [.github/workflows/ci.yml, .semgrep/rules.yml, docs/guides/ci-limits.md, scripts/decisions.mjs, scripts/adr.mjs, scripts/self-contained.mjs]
 
   - id: logging
     name: ログの決まり

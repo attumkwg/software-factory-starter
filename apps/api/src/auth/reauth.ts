@@ -3,7 +3,7 @@ import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { SessionConfig } from "./session.ts";
 
-// 確かめ直しの札(ADR 0016)。パスワード(と二段階認証のコード)を入れ直して得た Cognito のアクセストークンを、
+// 確かめ直しの札(ADR 0023)。パスワード(と二段階認証のコード)を入れ直して得た Cognito のアクセストークンを、
 // 二段階認証の設定(鍵 → コード)とメールの変更(申し込み → 確認コード)の間だけ持つ。
 //   - AES-256-GCM で暗号化した HttpOnly Cookie(JS から読めない・鍵が無ければ中身も見えない)。10分・SameSite=Strict
 //   - 鍵は SESSION_SECRET から HKDF で作る(セッションの署名の鍵とは別)

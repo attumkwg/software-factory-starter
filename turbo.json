@@ -18,6 +18,10 @@
     "test:coverage": {
       "outputs": ["coverage/**"]
     },
+    "@app/api#test:coverage": {
+      "cache": false,
+      "outputs": ["coverage/**"]
+    },
     "test:integration": {
       "cache": false,
       "outputs": []

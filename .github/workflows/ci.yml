@@ -51,10 +51,16 @@ jobs:
           pnpm test:scripts
       - name: 部品のカタログ(書式・つながり・消し方のパスの実在・土台を消す答え・README の生成し忘れ)
         run: pnpm kit:catalog
+      - name: 設計書の未確定事項(仮決めが残っていない・書き方・保留の期限)と ADR の番号(重なり・見出し)
+        run: |
+          pnpm decisions --strict
+          pnpm adr
       - name: 型
         run: pnpm typecheck
-      - name: 単体(権限の表の網羅 ① を含む)とカバレッジの下限
-        run: pnpm test:coverage
+      - name: 単体(権限の表の網羅 ① を含む)とカバレッジの下限(API の下限は結合のジョブで、単体と合わせて見る)
+        run: |
+          pnpm turbo run test:coverage --filter='!@app/api'
+          pnpm --filter @app/api test
       - name: 試作の守り(本物の API・DB・AWS・秘密を読まない・noindex・閉じた賭けの残り)と、その検査のテスト
         run: |
           pnpm prototypes
@@ -78,8 +84,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Testcontainers で結合テスト
-        run: pnpm test:integration
+      # 結合テストがあるのは API だけ。API の test:coverage は単体と結合を一緒に流し、合わせた値で下限を見る
+      #(単体だけだと DB を使う所が入らない。単体は数秒なので、二度流しても時間はほぼ増えない)
+      - name: Testcontainers で結合テスト(API は単体と合わせたカバレッジの下限も)
+        run: pnpm --filter @app/api test:coverage
 
   api-compat:
     name: API の互換(oasdiff。項目は足すだけ)
