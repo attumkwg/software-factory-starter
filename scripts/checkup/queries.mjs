@@ -8,6 +8,19 @@ export const renovatePrs = (ctx, extra) => {
 };
 
 /**
+ * Dependency Dashboard(Renovate の Issue)の「承認待ち」に並んだ更新の名前。
+ * renovate.json で大きい版は承認制(dependencyDashboardApproval)なので、PR にならずここに溜まる
+ */
+export function pendingApprovals(ctx) {
+  const q = `repo:${ctx.repo} is:issue is:open author:app/renovate in:title "Dependency Dashboard"`;
+  const res = ctx.gh(`search/issues?q=${encodeURIComponent(q)}&per_page=1`);
+  if (!res.ok) return res;
+  const body = res.data?.items?.[0]?.body ?? "";
+  const names = [...body.matchAll(/<!-- approve-branch=[^>]*-->(.*)/g)].map((m) => m[1].trim());
+  return { ok: true, data: names };
+}
+
+/**
  * ワークフロー(.github/workflows/<file>)が一度でも成功したか。
  * since(YYYY-MM-DD)を渡すと、その日より後の成功だけを数える。
  */

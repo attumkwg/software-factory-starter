@@ -34,15 +34,30 @@ test("w-renovate: 7日より長く開いている・14日来ていない・一�
   assert.equal((await flow(fakeCtx({ gh: search([]) }))).result, "fail");
 });
 
-test("major-backlog: 30日より長く開いた更新があれば不合格・Renovate が動いていなければ unknown", async () => {
-  const gh = (old) => ({
-    "search/issues": (path) =>
-      path.includes("is:open")
+test("major-backlog: 30日より長く開いた更新・承認待ちの大きい版があれば不合格・Renovate が動いていなければ unknown", async () => {
+  const dashboard = (lines) =>
+    [
+      "## Pending Approval",
+      "",
+      ...lines,
+      " - [ ] <!-- approve-all-pending-prs -->🔐 **Create all**",
+    ].join("\n");
+  const gh = (old, approvals = []) => ({
+    "search/issues": (path) => {
+      if (path.includes("is:issue"))
+        return ok({ total_count: 1, items: [{ body: dashboard(approvals) }] });
+      return path.includes("is:open")
         ? ok({ total_count: old, items: [] })
-        : ok({ total_count: 3, items: [] }),
+        : ok({ total_count: 3, items: [] });
+    },
   });
   assert.equal((await major(fakeCtx({ gh: gh(0) }))).result, "pass");
   assert.equal((await major(fakeCtx({ gh: gh(2) }))).result, "fail");
+  const waiting = await major(
+    fakeCtx({ gh: gh(0, [" - [ ] <!-- approve-branch=renovate/pnpm-12.x -->Update pnpm to v12"]) }),
+  );
+  assert.equal(waiting.result, "fail");
+  assert.match(waiting.note, /承認待ちの大きい版が 1件\(Update pnpm to v12\)/);
   assert.equal((await major(fakeCtx({ gh: search([]) }))).result, "unknown");
 });
 

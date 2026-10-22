@@ -4,14 +4,23 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests",
     "docker:pinDigests",
-    ":semanticCommitsDisabled"
+    ":semanticCommitsDisabled",
+    ":pinAllExceptPeerDependencies"
   ],
   "timezone": "Asia/Tokyo",
   "schedule": ["before 9am on monday"],
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
   "labels": ["dependencies"],
-  "rangeStrategy": "pin",
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/tests/**",
+    "**/__fixtures__/**"
+  ],
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 9am on the first day of the month"]
@@ -45,6 +54,17 @@
       "depNameTemplate": "terraform-linters/tflint",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "結合テストの Postgres(Testcontainers の `new PostgreSqlContainer(\"postgres:17-alpine\")`)。docker-compose の postgres と同じ版・同じダイジェストにそろえる。config:recommended は test/ を読まないので、ignorePaths から test/ だけ外している",
+      "managerFilePatterns": ["/^apps/api/test/integration/global-setup\\.ts$/"],
+      "matchStrings": [
+        "new PostgreSqlContainer\\(\"(?<depName>postgres):(?<currentValue>[^\"@]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?\"\\)"
+      ],
+      "autoReplaceStringTemplate": "new PostgreSqlContainer(\"{{depName}}:{{newValue}}{{#if newDigest}}@{{newDigest}}{{/if}}\")",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -61,9 +81,10 @@
       "addLabels": ["risk:medium"]
     },
     {
-      "description": "大きい版の更新・インフラ・CI は人が2人で見る(危険度: 高)",
+      "description": "大きい版の更新は、Dependency Dashboard でチェックを入れたときだけ PR にする(危険度: 高。人が2人で見る)",
       "matchUpdateTypes": ["major"],
-      "addLabels": ["risk:high"]
+      "addLabels": ["risk:high"],
+      "dependencyDashboardApproval": true
     },
     {
       "matchManagers": [
@@ -80,6 +101,40 @@
       "matchManagers": ["terraform"],
       "matchPackageNames": ["hashicorp/aws"],
       "groupName": "terraform aws provider"
+    },
+    {
+      "description": "Terraform の版の幅(モジュールの `~> 6.0`・`required_version` の `>= 1.10`)は固定しない。固定は .terraform.lock.hcl に任せ、幅の中の更新はロックファイルだけ上げる",
+      "matchManagers": ["terraform"],
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "description": "Node.js の本体(.node-version・Dockerfile の node・engines)は1本にまとめて上げる",
+      "matchPackageNames": ["node"],
+      "groupName": "node runtime"
+    },
+    {
+      "description": "Node.js の大きい版は @types/node も同じ PR で。Renovate が読めない所(distroless の nodejs24-debian13 の名前)は同じ PR で手で直す",
+      "matchPackageNames": ["node", "@types/node"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "node runtime (major)",
+      "prBodyNotes": [
+        "⚠️ 同じ PR で手で直す: apps/api/Dockerfile・apps/web/Dockerfile の `gcr.io/distroless/nodejs24-debian13` の数字(Renovate は名前の中の版を上げない)。CI の setup-node は .node-version を読むので直さなくてよい"
+      ]
+    },
+    {
+      "description": "Postgres は docker-compose と結合テストを1本にまとめる。本番の Aurora と同じ大きい版に置く",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "groupName": "postgres"
+    },
+    {
+      "description": "Postgres の大きい版は、Aurora がその版に上がってから承認する(Aurora の版は Renovate が読めない)",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "matchUpdateTypes": ["major"],
+      "prBodyNotes": [
+        "⚠️ 先に本番の Aurora をこの大きい版に上げる: infra/terraform/modules/aurora/variables.tf の `engine_version`(パラメータグループの family も変わる)。Aurora が古いままならマージしない"
+      ]
     }
   ],
   "vulnerabilityAlerts": { "labels": ["security"], "minimumReleaseAge": null }
