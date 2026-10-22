@@ -15,10 +15,12 @@
     "db:migrate": "tsx --env-file-if-exists=.env src/cli.ts migrate",
     "db:seed": "tsx --env-file-if-exists=.env src/cli.ts seed",
     "db:lint": "squawk --config=.squawk.toml drizzle/*.sql && squawk --config=.squawk.toml --no-assume-in-transaction drizzle/concurrent/*.sql",
-    "openapi": "tsx scripts/openapi.ts"
+    "openapi": "tsx scripts/openapi.ts",
+    "docs:personal-data": "tsx scripts/personal-data-ledger.ts"
   },
   "dependencies": {
     "@app/error-reporting": "workspace:*",
+    "@app/logging": "workspace:*",
     "@app/shared": "workspace:*",
     "@hono/node-server": "2.1.4",
     "@hono/zod-openapi": "1.6.3",

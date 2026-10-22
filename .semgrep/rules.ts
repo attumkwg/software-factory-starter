@@ -10,6 +10,8 @@ import type { TenantTx } from "../db/client.ts";
 
 declare const logger: { info: (...a: unknown[]) => void; error: (...a: unknown[]) => void };
 declare const user: { id: string; email: string };
+declare const row: { id: string; title: string };
+declare const body: { title: string };
 declare const err: Error;
 declare const c: { req: { header: (n: string) => string; param: (n: string) => string } };
 declare const sql: { raw: (s: string) => unknown };
@@ -34,6 +36,33 @@ export function examples(input: string) {
   logger.info("起動しました");
   // ok: no-whole-object-logging
   logger.error(err);
+
+  // ruleid: no-spread-in-logging
+  logger.info({ ...row }, "作った");
+  // ruleid: no-spread-in-logging
+  logger.info({ taskId: row.id, ...row }, "作った");
+  // ok: no-spread-in-logging
+  logger.info({ taskId: row.id }, "作った");
+
+  // ruleid: no-personal-field-logging
+  logger.info({ title: body.title }, "作った");
+  // ruleid: no-personal-field-logging
+  logger.info({ label: body.title }, "作った");
+  // ruleid: no-personal-field-logging
+  logger.info({ staffEmail: input }, "入った");
+  // ruleid: no-personal-field-logging
+  logger.info({ userId: user.id, to: user.email }, "送った");
+  // ok: no-personal-field-logging
+  logger.info({ userId: user.id, durationMs: 3 }, "送った");
+  // ok: no-personal-field-logging
+  logger.info({ hasVerifiedEmail: true }, "ログインに失敗");
+
+  // ruleid: no-template-in-log-message
+  logger.info(`作った: ${body.title}`);
+  // ruleid: no-template-in-log-message
+  logger.error({ err }, `送れなかった: ${user.email}`);
+  // ok: no-template-in-log-message
+  logger.info({ taskId: row.id }, "作った");
 
   // ruleid: tenant-from-request
   const tenantId = c.req.header("x-tenant-id");

@@ -1,0 +1,48 @@
+// CloudFront Functions(viewer-request)。試作の入口で合言葉(Basic 認証)を確かめる。
+// 合言葉は KeyValueStore に置く(このコード・リポジトリ・Terraform の状態には入れない)。
+//   _all   … 全部の試作で通る(チームの中で使う)
+//   B-NNNN … その試作だけで通る(話を聞く相手に渡す)
+// 値は base64("名前:合言葉")。鍵が無ければ誰も通さない(入れるまでは閉じたまま)。
+import cf from "cloudfront";
+
+const kvs = cf.kvs("${kvs_id}");
+
+async function allowed(given, id) {
+  const keys = id ? [id, "_all"] : ["_all"];
+  for (const key of keys) {
+    try {
+      if (given === "Basic " + (await kvs.get(key))) return true;
+    } catch (e) {
+      // 鍵が無い
+    }
+  }
+  return false;
+}
+
+async function handler(event) {
+  const request = event.request;
+  const id = request.uri.split("/")[1] || "";
+  const header = request.headers.authorization;
+  if (!(await allowed(header ? header.value : "", id))) {
+    return {
+      statusCode: 401,
+      statusDescription: "Unauthorized",
+      headers: {
+        "www-authenticate": { value: 'Basic realm="prototype", charset="UTF-8"' },
+        "x-robots-tag": { value: "noindex, nofollow" },
+        "cache-control": { value: "no-store" },
+      },
+    };
+  }
+  // /B-0002/ → /B-0002/index.html。/B-0002 → /B-0002/ へ
+  if (request.uri.endsWith("/")) {
+    request.uri += "index.html";
+  } else if (request.uri.split("/").pop().indexOf(".") < 0) {
+    return {
+      statusCode: 301,
+      statusDescription: "Moved Permanently",
+      headers: { location: { value: request.uri + "/" } },
+    };
+  }
+  return request;
+}

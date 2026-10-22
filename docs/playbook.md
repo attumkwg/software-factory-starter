@@ -4,7 +4,7 @@
 > 人が止まって判断するのは **② 仕様と設計の承認** と **⑦ 危険度「中・高」のレビュー** と **⑨ 本番の承認** の3か所だけ。ほかは仕組みと AI に流す。
 > 人が見るのは全文ではなく、**判断が要る所だけ**(人に聞く4つ: 事業判断・利用者の挙動・他チームとの契約や制約・戻せないリスク)。考え方は [guides/human-review.md](guides/human-review.md)。
 
-> 何を作るかがまだ決まっていない・作る前に確かめたいときは、この流れの手前で `/kickoff`([guides/before-pmf.md](guides/before-pmf.md))。
+> 何を作るかがまだ決まっていない・作る前に確かめたいときは、この流れの手前で `/kickoff`([guides/before-pmf.md](guides/before-pmf.md))。機能1つぶんは `/bet` で賭けを開いてから(合格と撤退の線を先に決める。[guides/bets-and-assets.md](guides/bets-and-assets.md))。
 
 ## 1つの機能の流れ
 
@@ -80,6 +80,7 @@ PR が増えて手で回すのが追いつかなくなったら、自動のレ�
 |---|---|---|
 | ラインの振り返り | AI が同じ失敗をした所 → ルール・テスト・lint・スキルのどれに変えるか。人がレビューで気づいた観点を台帳に足す | `CLAUDE.md`・`.claude/skills/`・`.semgrep/`・[review-viewpoints.md](review-viewpoints.md) |
 | 未確定事項 | 保留の期限が過ぎていないか・仮決めのまま止まった PR は無いか | `pnpm decisions` |
+| 賭け | 期限を過ぎて決めていない賭け(⏰)・線がまだ無い賭け(⏳)→ 進む・変える・やめるを決める | `pnpm bets`・`/bet` |
 | 依存の更新 | Renovate の PR をまとめて見る(低はまとめてマージ) | `renovate.json` |
 | リリースノート | 先週マージした PR をまとめる(公開は人) | `/release-notes` スキル |
 | 数字 | デプロイ回数・PR が出てからマージまで・失敗して戻した回数・**人の介在率**(PR ごとの、人が答えた問いの数と、人が手で直した回数。減っていくのが良い) | GitHub の Insights・PR の「人に判断してほしい所」 |

@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { createErrorReporter, logsLinkFrom } from "@app/error-reporting";
 import { serve } from "@hono/node-server";
-import { pino } from "pino";
 import ssr from "#ssr";
 import { setReportError } from "../src/report-hook.ts";
 import { createWebApp } from "./app.ts";
+import { createWebLogger } from "./logger.ts";
 
 // 画面のサービスの起動。`pnpm --filter @app/web build` で dist/index.js(1つの JS)になる。
 //   PORT             … 待ち受け(既定 3001。API の 3000 と同じタスクでも重ならないように)
@@ -29,26 +29,8 @@ const reporter = createErrorReporter({
 // SSR の中(src/start.ts)の失敗も、同じ入口から送る
 setReportError(reporter?.report);
 
-// API と同じ形の JSON ログ(Logs Insights で service と requestId で引ける)
-const logger = pino(
-  {
-    level: logLevel,
-    base: { service: "web" },
-    messageKey: "message",
-    timestamp: pino.stdTimeFunctions.isoTime,
-    formatters: { level: (label) => ({ level: label }) },
-    redact: {
-      paths: ["cookie", "*.cookie", "authorization", "*.authorization"],
-      censor: "[REDACTED]",
-    },
-  },
-  reporter
-    ? pino.multistream([
-        { level: logLevel as pino.Level, stream: pino.destination(1) },
-        { level: "error", stream: reporter.stream },
-      ])
-    : undefined,
-);
+// API と同じ部品・同じ形の JSON ログ(許可リストの項目だけ。server/logger.ts)
+const logger = createWebLogger({ level: logLevel, reporter });
 
 const lifecycle = { shuttingDown: false };
 const app = createWebApp({
@@ -56,6 +38,8 @@ const app = createWebApp({
   clientDir: fileURLToPath(new URL("./client", import.meta.url)),
   logger,
   lifecycle,
+  // 本番(prod)以外は全部、検索に載せない(server/app.ts)
+  appEnv: process.env.APP_ENV,
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
