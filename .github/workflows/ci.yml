@@ -43,7 +43,9 @@ jobs:
         run: pnpm lint
       - name: 危険度「高」の守り(一覧と ask・ラベル・CODEOWNERS がそろっているか・Bash のフック)
         run: pnpm guards
-      - name: 賭けの記録(線を先に決めたか・段階を飛ばしていないか)と、記録の検査(賭け・脆弱性)のテスト
+      - name: キットが自分の中で閉じているか(外の資料・外の節の番号・無い決まりの番号を指していないか)
+        run: pnpm self-contained
+      - name: 賭けの記録(線を先に決めたか・段階を飛ばしていないか)と、記録の検査(賭け・脆弱性・キットの閉じ方)のテスト
         run: |
           pnpm bets
           pnpm test:scripts

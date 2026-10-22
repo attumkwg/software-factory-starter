@@ -25,7 +25,7 @@
 
 ## 決めたこと
 
-**A**(本人の承認)。
+**A**(作者 @attumkwg の承認)。
 
 - Cookie `__Host-reauth`(手元は `reauth`)・HttpOnly・Secure・SameSite=Strict・Path=/・10分。
 - 中身 `{ userId, accessToken, exp, failures }` を AES-256-GCM で暗号化。鍵は `HKDF-SHA256(SESSION_SECRET, info="reauth-v1")`(セッションの署名とは別の鍵)。

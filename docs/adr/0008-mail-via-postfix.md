@@ -39,7 +39,7 @@
 
 ## 決めたこと
 
-**1 は A・2 は A・3 は A**(本人の選択。2 は本人「EFS は重いので S3 にできないか」→ S3 では Postfix が動かないので EFS)。
+**1 は A・2 は A・3 は A**(作者 @attumkwg の選択。2 は作者「EFS は重いので S3 にできないか」→ S3 では Postfix が動かないので EFS)。
 
 - アプリ: `apps/api/src/mail/`(nodemailer で SMTP)。送るのはアウトボックスの受け手だけ。
 - Postfix: `docker/postfix`(Debian の Postfix・読み取り専用のファイルシステムで動く・決めたドメインの送り元だけ受け取る)。本番は ECS で1台だけ(同じ送り待ちを2台が触らない)。

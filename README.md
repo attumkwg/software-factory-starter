@@ -11,7 +11,7 @@ AI エージェント前提でゼロから作るプロダクトの **動く雛�
 - ✅ CI は **AWS も API キーも無しで緑**。AWS・Claude を使うジョブは、変数が無ければ失敗せずに飛ぶ。
 - ⛔ AWS へのデプロイはしていない。Terraform は `fmt` と `validate` まで(apply は下の「本人がやる設定」のあと)。
 
-📘 **はじめての人は [docs/getting-started.md](docs/getting-started.md)(使い始めの手引き)から**。docs 全体の地図は [docs/README.md](docs/README.md)。
+📘 **はじめての人は [docs/getting-started.md](docs/getting-started.md)(使い始めの手引き)から**。なぜこう作るかは [docs/concepts/](docs/concepts/README.md)。docs 全体の地図は [docs/README.md](docs/README.md)。
 
 ---
 
@@ -189,7 +189,9 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ---
 
-## 🧭 設計(my-life の docs/software-factory)との対応
+## 🧭 考え方とこの雛形の対応
+
+考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)は [docs/concepts/](docs/concepts/README.md)、セキュリティの決まり(AI ならではの守り・認可・テナント分離)は [docs/security.md](docs/security.md)。ここでは、それがこの雛形のどのファイルに当たるかを並べる。
 
 ### 7工程
 
@@ -218,7 +220,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 層 | この雛形のどこ |
 |---|---|
 | ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート / 脆弱性の精査 `/cve`)・`.devcontainer/` |
-| ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。OWNER / MEMBER だけが起動できる) |
+| ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。起動できるのはリポジトリの持ち主 OWNER だけ。[docs/security.md の AI-3](docs/security.md)) |
 | ③ 自前のファクトリー | まだ作らない(PR が週に数十件を超えてから) |
 
 ### テナント分離(共有の表+RLS)
@@ -254,7 +256,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 共有の土台(ALB・ワイルドカード証明書・VPC・ECR・役割) | `infra/terraform/envs/preview/base` |
 | DB はコンテナの Postgres+種データ(本番の個人データは使わない) | `modules/preview-env/main.tf` の `db` / `setup` コンテナ |
 
-### セキュリティの検査(security.md の 0)
+### セキュリティの検査(docs/security.md の「毎回の検査」)
 
 | 対象 | 道具 | どこ |
 |---|---|---|

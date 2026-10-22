@@ -10,6 +10,7 @@
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
+- `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
 - `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
 
 ## 地図
@@ -27,6 +28,7 @@
 - `prototypes/<賭けの ID>-<名前>/` … 確かめるための試作(押せる画面だけ・偽のデータ・捨てる物)。`/prototype` が作り、`pnpm prototype:dev <ID>` で手元に開く。本物の API・DB・AWS・秘密を読むと CI が落ちる(`pnpm prototypes`)。`docs/guides/prototypes.md`
 - `docs/product/plan.md` … 始め方の計画(誰の困りごと・確かめ方・合格と撤退の線)。`/kickoff` が書く。考え方は `docs/guides/before-pmf.md`
 - `docs/product/bets/` … 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。`/bet` が書き、`pnpm bets` が確かめる。PR の本文に「取り組み」と「作業の種類」。`docs/guides/bets-and-assets.md`
+- `docs/concepts/` … 考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)。`docs/security.md` … セキュリティの決まり(`AI-n`・`AZ-n`・`L-n`・`T-n`・`V-n`・`D-n`。番号は動かさない)と確かめ方。**根拠はこの2つを指す**(外の資料や PR の番号を根拠にしない。`pnpm self-contained`)
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ)/ `docs/adr` 設計判断 / `docs/runbooks` 手順(障害のときの入口は `incident.md`)
 - `docs/review-viewpoints.md` … 設計とレビューの観点(共通の8つ+このプロダクト特有)。人が気づいた観点は足していく。使い方は `docs/guides/human-review.md`
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)

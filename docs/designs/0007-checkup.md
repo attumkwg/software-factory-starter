@@ -25,8 +25,8 @@ flowchart LR
 - `docs/guides/automation.md`: お金がかかる自動のものは「有効にする日」を書くまで手動。点検もこの決まりに従う
 - `.github/workflows/vuln-scan.yml`: 落ちたら同じ題名の Issue にコメントを足す形がある。知らせの重複を避ける型として使う
 - `.claude/skills/kickoff/SKILL.md`: 1問ずつ・選択肢2〜4個・「(おすすめ)」・分からないなら推奨で進める、の型がある。`/checkup` も同じ型にする
-- `docs/guides/local-guards.md`(PR #35): 守りの3層と、GitHub のプランで変わる所
-- my-life の `docs/software-factory/README.md`「2回目の点検」(2026-10-20): 台帳の初版の元
+- `docs/guides/local-guards.md`: 守りの3層と、GitHub のプランで変わる所
+- 2026-10-20 にキット全体を点検したときの指摘(守り・確認の流れ・攻撃の判断軸・依存の更新・カバレッジ): 台帳の初版の元。中身は下の「台帳の初版」に書き写した
 
 ## 1. 設計方針
 

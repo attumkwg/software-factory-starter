@@ -2,7 +2,7 @@
 
 - 状態: 採用
 - 日付: 2026-10-22
-- 決めた人: @attumkwg(置き場所は本人の選択 2026-10-22。作りは docs/guides/prototypes.md)
+- 決めた人: @attumkwg(置き場所は作者の選択 2026-10-22。作りは docs/guides/prototypes.md)
 
 ## 背景
 
@@ -19,7 +19,7 @@
 
 ## 決めたこと
 
-**A**(本人の選択)。AWS が無い人には、手元の `pnpm prototype:dev <賭けの ID>` を画面共有で見せる道を残す。
+**A**(作者 @attumkwg の選択)。AWS が無い人には、手元の `pnpm prototype:dev <賭けの ID>` を画面共有で見せる道を残す。
 
 - 置き場所は `envs/preview/prototypes`(dev アカウント)。プレビューの土台とは別に立てられる。
 - 合言葉は CloudFront の KeyValueStore に人が CLI で入れる(Terraform の変数にしない = 状態のファイルにも残さない)。鍵が無ければ誰も通さない。全部で通る `_all` と、試作ごとの `B-NNNN` の2種類。

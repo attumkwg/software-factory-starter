@@ -19,7 +19,7 @@ export type TenantTx = Parameters<Parameters<RootDb["transaction"]>[0]>[0];
 /**
  * DB の時間切れ(接続ごとに、つないだときに渡す)。
  *
- * statementMs … 1つのクエリの上限。1社の重いクエリで全体を止めない(security.md 4.3 の 6)。
+ * statementMs … 1つのクエリの上限。1社の重いクエリで全体を止めない(docs/security.md の T-6)。
  * idleInTransactionMs … トランザクションを開いたまま、DB に何も頼まずにいてよい上限。
  *   認可の関所(authz/middleware.ts)はリクエストごとにトランザクションを開くので、ハンドラーが
  *   DB 以外の所で止まると、接続と行のロックを握ったままになる。プールは10本しかないので、

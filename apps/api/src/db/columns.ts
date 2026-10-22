@@ -1,7 +1,7 @@
 import { bigint, char, date, numeric, timestamp, uuid } from "drizzle-orm/pg-core";
 import { v7 as uuidv7 } from "uuid";
 
-// どの領域の表でも同じにする列の作り方(scale.md「最初から決めておく」)。
+// どの領域の表でも同じにする列の作り方(docs/concepts/stages.md「最初の日に決めておく8つ」)。
 
 /** 主キー。UUIDv7(時刻順に並ぶ)。連番を外に出さない。 */
 export const id = (name: string) =>
