@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { api } from "../../api.ts";
+import { pageHead } from "../../head.ts";
 import { AccountPage } from "../../pages/AccountPage.tsx";
 
 // 自分のアカウント(二段階認証・メール・パスワード。docs/specs/0006-account-security.md)。
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/_app/account")({
     if (options.method !== "cognito" || context.me.support) return { account: null };
     return { account: await api.getAccount() };
   },
-  head: () => ({ meta: [{ title: "アカウント | Tasks" }] }),
+  head: () => pageHead({ title: "アカウント" }),
   component: AccountRoute,
 });
 

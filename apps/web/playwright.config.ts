@@ -8,9 +8,15 @@ const cognito = process.env.E2E_AUTH === "cognito";
 
 // スマホの組。幅は WCAG の reflow(1.4.10)の 320px(いちばん狭いスマホ。ここで横にはみ出さなければ広い端末も大丈夫)。
 // CI に入れてあるのは Chromium だけなので、Chromium の端末(Pixel 7)の設定に幅だけ重ねる(iPhone は WebKit が要る)。
-// 時間を倍にしないよう、主な流れ(ログイン → プロジェクト → タスク・列の多い表・無い画面)だけを流す。
-// 決めた理由は docs/designs/0008-web-noindex-mobile.md
-const MOBILE_SPECS = ["task-flow.spec.ts", "audit.spec.ts", "not-found.spec.ts"];
+// 時間を倍にしないよう、主な流れ(ログイン → プロジェクト → タスク・列の多い表・無い画面)と、
+// それ以外の表・入力の画面を見るだけで回る narrow-screens だけを流す。
+// 決めた理由は docs/designs/0008-web-noindex-mobile.md・docs/designs/0010-web-head-ogp.md
+const MOBILE_SPECS = [
+  "task-flow.spec.ts",
+  "audit.spec.ts",
+  "not-found.spec.ts",
+  "narrow-screens.spec.ts",
+];
 
 export default defineConfig({
   testDir: "./e2e",

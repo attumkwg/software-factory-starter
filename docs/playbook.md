@@ -76,6 +76,8 @@ PR が増えて手で回すのが追いつかなくなったら、自動のレ�
 
 ## 毎週やること(30分)
 
+> 守りが今も効いているか・段階(立ち上げ〜2年)でやることは、点検の台帳([checkup/todo.yaml](checkup/todo.yaml)。1枚は [checkup/README.md](checkup/README.md))に移していく。`pnpm checkup` が自動で確かめられる物を確かめ、人に聞くこと・人がやることを出す。
+
 | やること | 何を見るか | 使うもの |
 |---|---|---|
 | ラインの振り返り | AI が同じ失敗をした所 → ルール・テスト・lint・スキルのどれに変えるか。人がレビューで気づいた観点を台帳に足す | `CLAUDE.md`・`.claude/skills/`・`.semgrep/`・[review-viewpoints.md](review-viewpoints.md) |

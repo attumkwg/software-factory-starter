@@ -130,7 +130,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | ① | 何を作るかを決める | `/kickoff`: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める | `docs/product/plan.md` | あり |
 | ② | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
 | ③ | 手でやる設定 | GitHub のブランチ保護・Environments・Renovate、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
-| ④ | 点検を立ち上げる | `/checkup`: 立ち上げの段階でやること(守りが効いているか・取り返せない所)を台帳から1問ずつ。台帳ができるまでは docs/playbook.md の「毎週やること」 | `docs/checkup/todo.yaml`・[手順](docs/specs/0007-checkup.md) | 未 |
+| ④ | 点検を立ち上げる | `pnpm checkup`: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめる。1問ずつ答える /checkup は作成中 | `docs/checkup/todo.yaml`・[手順](docs/checkup/README.md) | 作成中 |
 
 ### 部品の一覧(`/tailor` で残す・消すを決める)
 
@@ -184,7 +184,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 進め方 | 始め方の計画(/kickoff) `kickoff` | 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決めて計画にする | 残す | あり |
 | 進め方 | 機能ごとの賭け(/bet) `bets` | 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く | 残す | あり |
 | 進め方 | 資産と費用の台帳(/ledger) `ledger` | 作った物(資産)とかかったお金を1つの台帳にする | 残す | 未 |
-| 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳にし、担当者に知らせて1問ずつ答えてもらう(仕様と設計は承認済み) | 残す | 未 |
+| 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。担当者への知らせと1問ずつの /checkup は続きの PR で | 残す | 作成中(PR #18) |
 <!-- kit:readme:end -->
 
 ---
