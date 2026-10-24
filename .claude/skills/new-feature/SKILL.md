@@ -63,7 +63,7 @@ description: 「これ作りたい」の一言から、どの賭け(docs/product
    - 親: `gh issue create --title "<機能名>" --label kind:feature --body "<要約と仕様の PR へのリンクと子 Issue の一覧>"`
    - 子: 1つ = 1 PR の大きさで。本文に受け入れ条件の該当部分・権限の表の行・「仕様: docs/specs/NNNN-…」・「設計: docs/designs/NNNN-…」・「親: #番号」・「取り組み: bet:B-NNNN / 作業の種類: …」(実装の PR の本文の「🎯 取り組み」にそのまま写す)。
    - 作ったら、親 Issue の本文の子の一覧を番号つきに直す(`gh issue edit`)。
-   - ラベルがまだ無いと失敗するので、そのときは `gh label create` で作るか、ラベルを外して作る。
+   - ラベルは `.github/labels.yml` にある物だけを使う(無いと失敗する。そのときは本人に `pnpm setup:github --apply` を頼む。`gh label create` で一覧に無いラベルを作らない)。
 5. 最後に、作った PR と Issue の URL を並べて伝える。実装に進むかは聞くだけにする(勝手に始めない)。
 
 ## してはいけない

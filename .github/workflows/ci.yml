@@ -51,6 +51,8 @@ jobs:
           pnpm test:scripts
       - name: 部品のカタログ(書式・つながり・消し方のパスの実在・土台を消す答え・README の生成し忘れ)
         run: pnpm kit:catalog
+      - name: GitHub の設定ファイルとコード(使うラベルが一覧にあるか・必須のチェックがジョブにあるか・Environment・定期の見分け)
+        run: pnpm setup:check
       - name: 設計書の未確定事項(仮決めが残っていない・書き方・保留の期限)と ADR の番号(重なり・見出し)
         run: |
           pnpm decisions --strict

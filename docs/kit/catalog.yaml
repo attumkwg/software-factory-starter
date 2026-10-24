@@ -16,6 +16,11 @@ version: 1
 
 # ── 使い始めたらやること(README の節はここから作る)───────────────────────────────
 start_steps:
+  - title: GitHub を一括で整える
+    command: pnpm setup:github
+    does: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す
+    link: docs/guides/github-setup.md
+    status: あり
   - title: 何を作るかを決める
     command: /kickoff
     does: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める
@@ -28,12 +33,12 @@ start_steps:
     status: あり
   - title: 手でやる設定
     command: null
-    does: GitHub のブランチ保護・Environments・Renovate、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ
+    does: Renovate の App と秘密の値(GitHub の残りは pnpm setup:github が一覧で出す)、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ
     link: "#-本人が手でやる設定"
     status: あり
   - title: 点検を立ち上げる
-    command: pnpm checkup
-    does: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめ、毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日)。人に聞くことは /checkup で1問ずつ答える
+    command: pnpm checkup:adopt
+    does: 台帳の使い始めた日と担当者を自分の物にし(pnpm checkup:adopt --by @自分)、最初の /checkup-refresh を流す。pnpm checkup がいまの段階でやること(守りが効いているか・取り返せない所)を出し、自動で確かめられる物は確かめる。毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日。キットから作ったリポジトリだけ)。人に聞くことは /checkup で1問ずつ答える
     writes: docs/checkup/todo.yaml
     link: docs/checkup/README.md
     status: あり
@@ -264,6 +269,22 @@ parts:
       - ISMS 8.32(変更管理)
       - SOC 2 CC8.1
     where: [.claude/hooks/protected-paths.json, scripts/check-guards.mjs, docs/guides/local-guards.md]
+
+  - id: github-setup
+    name: GitHub の一括のセットアップとラベルの一覧
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: GitHub の設定(ブランチ保護と必須のチェック・Environments・Actions・守りの機能・ラベル)をファイル(.github/setup.yml・labels.yml)に置き、pnpm setup:github が差分を出して一括で反映する。使うラベル・必須のチェック・Environment がファイルに無ければ CI が落ちる。ひな形と使う側を変数 KIT_ROLE で見分け、定期の運用は使う側でだけ動く
+    needed_by: すべて(守りの設定を手で直さず、ずれに気づくため)
+    not_needed_by: なし
+    if_removed: 守りの設定が手作業になり、手順と実際がずれる。ラベルが無くて Issue の作成やワークフローが動かない。ひな形で運用が回る
+    depends_on: [ci-checks, harness]
+    law:
+      - ISMS 8.9(構成管理)・8.32(変更管理)
+      - SOC 2 CC8.1
+    where: [.github/setup.yml, .github/labels.yml, scripts/setup/run.mjs, scripts/setup/check.mjs, scripts/checkup/adopt-cli.mjs, docs/guides/github-setup.md, docs/adr/0027-setup-before-use-and-kit-role.md]
 
   - id: column-classification
     name: 列の分類表とログ

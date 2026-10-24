@@ -10,9 +10,10 @@
 - `pnpm vrt`(見た目の回帰テスト。先に `docker compose -f docker-compose.vrt.yml up -d --wait` で Docker の中のブラウザも)/ `pnpm vrt:update`(画面を変えたときだけ。撮り直した画像を見てからコミット)。`docs/guides/vrt.md`
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
+- `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分けが設定ファイルとずれていないか。CI)。`docs/guides/github-setup.md`
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
-- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
+- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
 - `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
 
 ## 地図
@@ -35,6 +36,7 @@
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ)/ `docs/adr` 設計判断(番号は `pnpm adr` が出す「次の番号」。重なると CI が落ちる)/ `docs/runbooks` 手順(障害のときの入口は `incident.md`)
 - `docs/review-viewpoints.md` … 設計とレビューの観点(共通の8つ+このプロダクト特有)。人が気づいた観点は足していく。使い方は `docs/guides/human-review.md`
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
+- `.github/setup.yml`・`.github/labels.yml` … GitHub の設定とラベルの正(ADR 0027)。**ラベルを使う物を足したら `labels.yml` に1件・ジョブの名前を変えたら `required_checks` も**(無ければ CI が落ちる)。PR に「マージの後に人がやる設定」を書かず、設定ファイルを直す(マージの後に人が `pnpm setup:github --apply`)。定期で動くワークフローは `vars.KIT_ROLE == 'product'` のときだけ(ひな形では運用を回さない)
 
 ## 必ず守る
 

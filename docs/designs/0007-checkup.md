@@ -69,7 +69,7 @@ items:
 - `question` は `{ text, options: [{ label, means, after }], recommended, irreversible }`。`irreversible: true`(お金・公開・削除・契約)の問いは「分からない」で進めない(6. の U-4)。
   - `after` は、その選択肢を選んだ後の状態: `done`(済み。書かなければこれ)/ `open`(まだ。次の週もまた聞く。例: 「まだのものがある」)/ `snooze`(90日後にまた聞く。例: 「あった。3か月後にまた聞く」)。
 - `ask`・`manual` の項目にも `check` を書ける(任意)。書いてあれば、「やった」「選んだ」の後にその場で確かめ、fail なら済みにしない(6. の一問一答)。
-- `history` の1行は `{ on, by, result, choice?, note? }`。`result` は確かめなら `pass` / `fail` / `unknown`、人の答えなら `answered`(選んだ)/ `unsure`(分からない)/ `snoozed`(今はやらない)/ `did`(やった)/ `could_not`(できなかった)、refresh なら `retired`(引退させた)。`choice` は選んだ選択肢の `label`。
+- `history` の1行は `{ on, by, result, choice?, note? }`。`result` は確かめなら `pass` / `fail` / `unknown`、人の答えなら `answered`(選んだ)/ `unsure`(分からない)/ `snoozed`(今はやらない)/ `did`(やった)/ `could_not`(できなかった)、refresh なら `retired`(引退させた)、キットから使い始めたなら `adopted`(`pnpm checkup:adopt` が引退していない項目全部に1行足す。ここより前はキットの持ち主の記録。docs/designs/0014-setup-before-use.md)。`choice` は選んだ選択肢の `label`。
 - 台帳の頭に、世の中の変化の取り込み(`/checkup-refresh`)のための2つを持つ:
   - `refreshed_on`: 前回取り込んだ日。次はこの日から後の話を調べる。35日より前なら、毎週の `w-ledger` が落ち(普通)、知らせに「`/checkup-refresh` を流す時期」と出る(月1回を人が忘れないように。U-3)
   - `refresh_sources`: 調べる所の一覧 `[{ name, url, covers }]`(`url` は https)。これ自体も refresh で見直す

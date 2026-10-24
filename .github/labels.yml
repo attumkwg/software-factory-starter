@@ -1,0 +1,75 @@
+# ラベルの一覧(ここが正)。pnpm setup:github --apply がここから作る・色と説明をそろえる。
+#   - コード・ワークフロー・テンプレート・スクリプト・スキルが使うラベルがここに無ければ、CI の pnpm setup:check が落ちる
+#   - ここに無いラベル(GitHub の既定の bug など)は消さない(付いている Issue から外れてしまう)。消すなら人が画面で
+#   - name を変えると、付いている Issue・PR の表示も変わる。使っている所(used_by)も一緒に直す
+#   - color は6桁の16進(# なし)。description は100文字まで(GitHub の上限)
+# 決まり: docs/designs/0014-setup-before-use.md の 2.
+
+labels:
+  # ── 危険度(変えたパスで labeler が付ける。.github/labeler.yml)──
+  - name: risk:high
+    color: ededed
+    description: "危険度「高」: 認証・認可・DB・移行・infra・CI など。人の確認が要る(変えたパスで自動で付く)"
+    used_by: .github/labeler.yml
+  - name: risk:medium
+    color: ededed
+    description: "危険度「中」: API や画面の中身。AI のレビュー+人が全体像を見る(自動で付く)"
+    used_by: .github/labeler.yml
+  - name: risk:low
+    color: ededed
+    description: "危険度「低」: 文書・テストなど。緑なら人はほぼ見なくてよい(自動で付く)"
+    used_by: .github/labeler.yml・/report-bug
+
+  # ── 変えた場所(labeler が付ける)──
+  - name: area:api
+    color: ededed
+    description: API(apps/api)に関わる
+    used_by: .github/labeler.yml
+  - name: area:web
+    color: ededed
+    description: 画面(apps/web)に関わる
+    used_by: .github/labeler.yml
+  - name: area:infra
+    color: ededed
+    description: インフラ(infra/terraform)に関わる
+    used_by: .github/labeler.yml
+
+  # ── Issue の種類(テンプレートとスキルが付ける)──
+  - name: kind:bug
+    color: d73a4a
+    description: 不具合(Issue のテンプレートが付ける)
+    used_by: .github/ISSUE_TEMPLATE/bug.yml・/report-bug
+  - name: kind:feature
+    color: a2eeef
+    description: 機能の要望(Issue のテンプレートが付ける)
+    used_by: .github/ISSUE_TEMPLATE/feature.yml・/new-feature
+  - name: needs-triage
+    color: ededed
+    description: まだ仕分けていない Issue
+    used_by: .github/ISSUE_TEMPLATE
+
+  # ── 依存の更新(renovate.json)──
+  - name: dependencies
+    color: 0366d6
+    description: 依存の更新(Renovate・Dependabot)
+    used_by: renovate.json
+  - name: security
+    color: b60205
+    description: セキュリティに関わる更新・Issue
+    used_by: renovate.json(脆弱性の直し)
+
+  # ── 点検の知らせ(checkup.yml。scripts/checkup/notify.mjs と同じ色)──
+  - name: checkup
+    color: 0e8a16
+    description: 点検(pnpm checkup の知らせ)
+    used_by: scripts/checkup/notify.mjs・/checkup
+  - name: checkup-urgent
+    color: b60205
+    description: 点検の急ぎ(守りが外れた・重い穴・漏れ)
+    used_by: scripts/checkup/notify.mjs
+
+  # ── 見た目の回帰テスト(vrt.yml)──
+  - name: vrt:update
+    color: fbca04
+    description: VRT の基準の画像を GitHub で撮り直す(撮り直したら外す)
+    used_by: .github/workflows/vrt.yml

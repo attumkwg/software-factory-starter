@@ -34,5 +34,5 @@ description: 不具合の報告を、1問ずつ対話して聞き出し、再現
 1. `.github/ISSUE_TEMPLATE/bug.yml` の項目の順で、本文をまとめて見せる。最後に「直ったと言える条件」(受け入れ条件)を2つ以上。うち1つは「再現するテストが足されている」。
 2. 「この内容で Issue を作ってよいか」を聞く。
 3. OK なら `gh issue create --title "<短い要約>" --label kind:bug --label risk:<high|medium|low> --body "<本文>"`。
-   ラベルがまだ無いと失敗するので、そのときは `gh label create` で作るか、ラベルを外して作る。
+   ラベルは `.github/labels.yml` にある物だけを使う(無いと失敗する。そのときは本人に `pnpm setup:github --apply` を頼む。`gh label create` で一覧に無いラベルを作らない)。
 4. 作った Issue の URL を伝える。直すかどうかは聞くだけ(勝手に直し始めない)。

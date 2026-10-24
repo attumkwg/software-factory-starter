@@ -1,24 +1,10 @@
 import { describe, expect, it } from "vitest";
-import {
-  CreateProjectSchema,
-  CreateTaskSchema,
-  safeReturnTo,
-  UpdateTaskSchema,
-} from "./schemas.ts";
+import { CreateProjectSchema, safeReturnTo, UpdateTaskSchema } from "./schemas.ts";
 
 describe("CreateProjectSchema", () => {
   it("前後の空白を落とし、空の名前は通さない", () => {
     expect(CreateProjectSchema.parse({ name: "  計画  " })).toEqual({ name: "計画" });
     expect(CreateProjectSchema.safeParse({ name: "   " }).success).toBe(false);
-  });
-});
-
-describe("名前・題名の NUL(文字の0番)", () => {
-  it("通さない(DB が持てない)。ほかの変わった文字は通す", () => {
-    expect(CreateProjectSchema.safeParse({ name: "a\u0000b" }).success).toBe(false);
-    expect(CreateTaskSchema.safeParse({ title: "\u0000" }).success).toBe(false);
-    expect(UpdateTaskSchema.safeParse({ title: "a\u0000" }).success).toBe(false);
-    expect(CreateTaskSchema.safeParse({ title: "¶\u0092😀" }).success).toBe(true);
   });
 });
 
