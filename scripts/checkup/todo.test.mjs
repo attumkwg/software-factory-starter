@@ -90,6 +90,27 @@ test("書き方の問題: 必須の欄・値・確かめ方ごとの欄", () => 
   assert.match(text, /項目 a が2回ある/);
 });
 
+test("選択肢の after・ask と manual の check・history の result は決まった値だけ", () => {
+  const options = [
+    { label: "A", means: "m", after: "later" },
+    { label: "B", means: "m", after: "open" },
+  ];
+  const text = problemsOf(
+    item({
+      id: "a",
+      verify: "ask",
+      question: { text: "q", options, recommended: "A", irreversible: false },
+    }),
+    item({ id: "b", check: "nothing" }),
+    item({ id: "c", check: "vulns", history: [{ on: "2026-10-22", by: "@a", result: "ok" }] }),
+  );
+  assert.match(text, /項目 a の選択肢の after「later」/);
+  assert.doesNotMatch(text, /after「open」/);
+  assert.match(text, /項目 b の check「nothing」が scripts\/checkup\/checks\/ に無い/);
+  assert.match(text, /項目 c の history の result「ok」/);
+  assert.doesNotMatch(text, /項目 c の check/);
+});
+
 test("今はやらない(snoozed)は次に聞く日が要り、最後の記録から90日まで", () => {
   const h = [{ on: "2026-10-22", by: "@a", result: "snoozed" }];
   const text = problemsOf(
