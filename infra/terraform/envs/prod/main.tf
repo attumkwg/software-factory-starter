@@ -195,6 +195,8 @@ module "waf" {
   alb_arn = module.app.alb_arn
   # 入れたばかりは数えるだけ。誤検知が無いのを確かめてから block に
   mode = "count"
+  # 止めた数(数えるだけの間は止めるはずだった数)が多いと鳴らす(docs/runbooks/attack.md)
+  alarm_topic_arn = module.alerts.topic_arn
 }
 
 module "security_baseline" {

@@ -47,6 +47,32 @@ test("台帳の全項目に「なぜ」と「放っておくと」がある・as
   }
 });
 
+test("世の中の変化の取り込みの調べる所が台帳にある(設計書 6. の初版)", () => {
+  const names = ledger.refresh_sources.map((s) => s.name).join("・");
+  for (const word of [
+    "GitHub",
+    "AWS",
+    "Node.js",
+    "OWASP",
+    "IPA",
+    "個人情報保護委員会",
+    "Claude Code",
+  ])
+    assert.ok(names.includes(word), word);
+});
+
+test("refreshed_on と refresh_sources の形・引退の記録", () => {
+  const text = validateLedger(
+    { ...head, refreshed_on: "先月", refresh_sources: [{ name: "x", url: "http://a" }], items: [] },
+    [],
+  ).join("\n");
+  assert.match(text, /refreshed_on/);
+  assert.match(text, /refresh_sources の「x」/);
+  assert.match(validateLedger({ ...head, refresh_sources: [], items: [] }).join(), /1件以上/);
+  const retired = [{ on: "2026-11-24", by: "checkup-refresh", result: "retired", note: "不要" }];
+  assert.equal(problemsOf(item({ status: "retired", history: retired })), "");
+});
+
 test("ソフトウェアで解けない「推奨」も載っている(人がやる・advisory)", () => {
   assert.ok(ledger.items.some((i) => i.who === "human" && i.advisory === true));
 });
