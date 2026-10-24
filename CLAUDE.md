@@ -12,7 +12,7 @@
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
-- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`)
+- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く)
 - `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
 
 ## 地図
@@ -39,7 +39,7 @@
 
 - 仕様(Issue の受け入れ条件か `docs/specs/`)の無い変更はしない。分からなければ PR で「人に判断してほしい所」に書く。
 - 1 Issue = 1 PR。PR テンプレートの欄(危険度・テスト結果・判断してほしい所)を全部埋める。
-- 何を作るか・作る前に何を確かめるか → `/kickoff`。キットの部品の残す・消す → `/tailor`(正は `docs/kit/catalog.yaml`。部品を足したら1件足す。`pnpm kit:catalog`)。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。脆弱性(CVE・Dependabot の通知)の精査と対応方針 → `/cve`(届く・まだ直していない穴の中身はリポジトリにも Issue にも書かない。`docs/guides/vulnerabilities.md`)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
+- 何を作るか・作る前に何を確かめるか → `/kickoff`。キットの部品の残す・消す → `/tailor`(正は `docs/kit/catalog.yaml`。部品を足したら1件足す。`pnpm kit:catalog`)。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。点検で担当者に聞くこと・手でやること → `/checkup`(1問ずつ。答えは台帳に書いて PR)。脆弱性(CVE・Dependabot の通知)の精査と対応方針 → `/cve`(届く・まだ直していない穴の中身はリポジトリにも Issue にも書かない。`docs/guides/vulnerabilities.md`)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
 - **人に聞くのは4つだけ**: 事業判断・利用者の挙動・他チームとの契約や制約・戻せないリスク。それ以外は聞かずに決め、設計書の「決めたこと」に理由を書く。4つに当たる判断は止まらずに仮に決め、設計書の「未確定事項」に `仮決め` で残す(人の答えなしに `承認` にしない)。`仮決め` が残る PR はマージに回さない(`pnpm decisions --strict`)。
 - **誤りは、入った工程から作り直す**(ナレッジ → 要求 → 設計 → 実装 → テスト)。上流の誤りをコードだけで継ぎ当てない(`/rework`)。
 - CI が落ちたら直すのは2回まで。3回目は止めて、PR に状況を書いて人に渡す。
