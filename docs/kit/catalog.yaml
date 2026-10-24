@@ -726,6 +726,45 @@ parts:
         - { path: apps/web/e2e/helpers.ts, what: 横のはみ出しの確かめを外す }
       docs: [docs/specs/0008-web-noindex-mobile.md, docs/designs/0008-web-noindex-mobile.md, docs/designs/0010-web-head-ogp.md]
 
+  - id: vrt
+    name: 見た目の回帰テスト(VRT)と部品の一覧ページ
+    group: front
+    status: あり
+    removable: true
+    default: 残す
+    what: 主な画面と部品の一覧(/design-system)を、Docker の中の Chromium でパソコンとスマホの幅で撮り、リポジトリの基準の画像と比べる。PR に結果と画面の一覧をコメントする
+    needed_by: 画面がある・AI が画面を作り、人が PR で画面を見て判断する
+    not_needed_by: 画面が無い・画面を毎回手で開いて確かめる人がいる
+    if_removed: 部品の CSS を変えたとき、どの画面がどう変わったかが分からない。PR を読む人が画面を見ないまま判断する
+    depends_on: [web]
+    law: []
+    remove:
+      delete:
+        - apps/web/e2e/vrt
+        - apps/web/playwright.vrt.config.ts
+        - apps/web/e2e/design-system.spec.ts
+        - apps/web/src/design-system.ts
+        - apps/web/src/design-system.test.ts
+        - apps/web/src/pages/DesignSystemPage.tsx
+        - apps/web/src/routes/design-system.tsx
+        - docker-compose.vrt.yml
+        - .github/workflows/vrt.yml
+        - docs/guides/vrt.md
+      edit:
+        - { path: package.json, what: vrt・vrt:update を外す }
+        - { path: apps/web/package.json, what: vrt・vrt:update を外す }
+        - { path: apps/web/playwright.config.ts, what: testIgnore の vrt/** と MOBILE_SPECS の design-system.spec.ts を外す }
+        - { path: apps/web/vite.config.ts, what: test.include の e2e/vrt を外す }
+        - { path: .gitignore, what: test-results-vrt などの3行を外す }
+        - { path: renovate.json, what: Playwright をまとめる決まりと、docker-compose.vrt.yml の playwright@ を上げる決まりを外す }
+        - { path: CLAUDE.md, what: pnpm vrt の行を外す }
+        - { path: apps/web/CLAUDE.md, what: 見た目の回帰テストの行を外す }
+        - { path: docs/design-system.md, what: 部品の一覧ページの節と、VRT の行・手順の 5 と 7 を外す }
+        - { path: README.md, what: pnpm vrt・vrt.yml・必須のチェックの「見た目の比べ」・ラベル vrt:update を外す }
+        - { path: docs/guides/automation.md, what: vrt.yml の行を外す }
+        - { path: .github/pull_request_template.md, what: 「📸 スクショ」の VRT の所を外す }
+      docs: [docs/specs/0011-visual-regression.md, docs/designs/0011-visual-regression.md, docs/adr/0024-vrt-browser-in-docker.md]
+
   - id: seo
     name: 公開のページと SEO の型
     group: front

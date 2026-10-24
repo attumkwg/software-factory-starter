@@ -11,6 +11,10 @@ coverage/
 playwright-report/
 playwright-report-cognito/
 test-results/
+# 見た目の回帰テスト(pnpm vrt)の出力。基準の画像(apps/web/e2e/vrt/__screenshots__)はコミットする
+playwright-report-vrt/
+test-results-vrt/
+vrt-report/
 blob-report/
 
 # Terraform
