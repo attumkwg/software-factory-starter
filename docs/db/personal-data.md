@@ -130,6 +130,16 @@
 | `details` の `fields` | internal | 直した項目の名前の一覧(値は入れない) |
 | `details` の `route` | internal | 代理の社員が呼んだ API の形(メソッドとパスの型) |
 | `details` の `counts` | internal | 解約で消した表ごとの行数 |
+| `details` の `flag` | internal | 運営が入れた・切った機能の名前(FEATURE_FLAGS の name) |
+
+### `platform.feature_flags`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 行の ID |
+| `tenant_id` | internal | 機能を入れた組織 |
+| `flag` | public | 入れた機能の名前(@app/shared の FEATURE_FLAGS) |
+| `enabled_at` | internal | 入れた時刻(いつから出ていたか) |
 
 ### `platform.outbox`
 

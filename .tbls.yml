@@ -37,6 +37,11 @@ comments:
       topic: 何が起きたか(領域.出来事。src/outbox/topics.ts)
       locked_until: 送り出しが借りている期限
       dead_at: あきらめた時刻(人が見て直す)
+  - table: platform.feature_flags
+    tableComment: 組織ごとの機能フラグ(行がある = その組織に機能を入れた)。定義は @app/shared の FEATURE_FLAGS。アプリは読むだけで、入れる・切るのは運営のコマンド feature-flag。docs/specs/0012-feature-flags-and-usage.md
+    columnComments:
+      flag: 機能の名前(FEATURE_FLAGS の name。一度使った名前は使い回さない)
+      enabled_at: 入れた時刻
   - table: legal.consents
     tableComment: 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0009-legal-consent.md
     columnComments:

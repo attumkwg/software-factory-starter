@@ -19,6 +19,9 @@ describe("監査ログの文", () => {
     expect(auditActionLabel({ ...base, action: "unknown.thing", details: {} })).toBe(
       "unknown.thing",
     );
+    expect(
+      auditActionLabel({ ...base, action: "feature_flag.enable", details: { flag: "picked" } }),
+    ).toBe("機能を入れた(picked)");
   });
 
   it("誰が: 自社の人は名前、社員と仕組みは種類、消された人はそれと分かる文", () => {

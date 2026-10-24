@@ -30,6 +30,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - API は `src/api.ts` からだけ呼ぶ。型は `@app/shared` を使い、画面で型を作り直さない。
 - 認証は同じオリジンの HttpOnly Cookie。トークンを localStorage / sessionStorage に置かない。
 - ボタンの出し分けは `src/permissions.ts`。**守りは API 側**なので、画面で隠すだけで安心しない。
+- 機能フラグの裏の機能は `hasFeature(me, "<名前>")`(`@app/shared`。`me.features` を見る)で出し分ける。API 側も `requireFeature` で守る(`docs/guides/feature-flags.md`)。
 
 ## テスト
 

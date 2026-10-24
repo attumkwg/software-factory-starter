@@ -1082,6 +1082,46 @@ parts:
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
 
+  - id: feature-flags
+    name: 組織ごとの機能フラグ
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 賭けの psf / rollout で、運営が選んだ組織にだけ機能を出す・止める(定義はコード・組織ごとの状態は DB・切り替えは運営のコマンド)。A/B テストの土台
+    needed_by: 機能を一部の組織に出して、使われるかを確かめながら作る
+    not_needed_by: 作る物が決まっていて、全部の組織に同時に出してよい
+    if_removed: 出す組織を選べず、出すか止めるかがデプロイだけになる。賭けの rollout を「全部に出して見る」でしか確かめられない
+    depends_on: [bets, audit-log, offboarding]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/feature-flags
+        - apps/api/drizzle/0011_feature_flags.sql
+        - apps/api/test/unit/feature-flags.test.ts
+        - apps/api/test/integration/feature-flags.int.test.ts
+        - packages/shared/src/feature-flags.ts
+        - packages/shared/src/feature-flags.test.ts
+        - docs/guides/feature-flags.md
+        - docs/runbooks/feature-flags.md
+      edit:
+        - { path: apps/api/src/app.ts, what: featureFlags(AppDeps と c.set)を外す }
+        - { path: apps/api/src/env.ts, what: featureFlags を外す }
+        - { path: apps/api/src/domains/organizations/routes.ts, what: GET /api/me の features を外す }
+        - { path: apps/api/src/cli.ts, what: feature-flag のコマンドを外す }
+        - { path: apps/api/src/db/schema.ts, what: feature-flags の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: platform.feature_flags の行と監査ログの details の flag を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.feature_flags を外す }
+        - { path: apps/api/src/audit/actions.ts, what: MANUAL_AUDIT_ACTIONS の featureFlagEnable / featureFlagDisable を外す(記録の名前は残してよい) }
+        - { path: apps/api/test/helpers/fixtures.ts, what: createTestApp の featureFlags を外す }
+        - { path: apps/web/src/audit-labels.ts, what: feature_flag の文は残してよい(古い記録を読むため) }
+        - { path: packages/shared/src/index.ts, what: feature-flags.ts の export を外す }
+        - { path: packages/shared/src/schemas.ts, what: MeSchema の features は残してよい(足すだけの決まり) }
+        - { path: .tbls.yml, what: platform.feature_flags の説明を外す }
+        - { path: CLAUDE.md, what: 機能フラグの行を外す }
+      migration: 表 platform.feature_flags を消す移行を足す(.claude/skills/db-migration。0011 は書き換えない)
+      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
+
   - id: ledger
     name: 資産と費用の台帳(/ledger)
     group: process

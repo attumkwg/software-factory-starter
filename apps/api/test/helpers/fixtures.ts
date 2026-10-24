@@ -1,4 +1,10 @@
-import { currentVersion, LEGAL_DOCUMENTS, type LegalVersion, type Role } from "@app/shared";
+import {
+  currentVersion,
+  type FeatureFlagDefinition,
+  LEGAL_DOCUMENTS,
+  type LegalVersion,
+  type Role,
+} from "@app/shared";
 import { v7 as uuidv7 } from "uuid";
 import { createApp } from "../../src/app.ts";
 import { loadConfig } from "../../src/config.ts";
@@ -86,7 +92,10 @@ export async function createTenantFixture(
 export function createTestApp(
   appUrl: string,
   env: Record<string, string> = {},
-  opts: { legalVersions?: readonly LegalVersion[] } = {},
+  opts: {
+    legalVersions?: readonly LegalVersion[];
+    featureFlags?: readonly FeatureFlagDefinition[];
+  } = {},
 ) {
   const { db, pool } = createDb(appUrl);
   const config = loadConfig({
@@ -102,6 +111,7 @@ export function createTestApp(
     logger: createLogger({ level: "silent" }),
     lifecycle,
     ...(opts.legalVersions ? { legalVersions: opts.legalVersions } : {}),
+    ...(opts.featureFlags ? { featureFlags: opts.featureFlags } : {}),
   });
   return { app, pool, lifecycle };
 }
