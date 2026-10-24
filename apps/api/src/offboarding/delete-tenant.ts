@@ -21,6 +21,8 @@ export const TENANT_TABLES = [
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",
+  "platform.feature_usage",
+  "platform.feature_flags",
   "tasks.tasks",
   "projects.projects",
   "platform.outbox",

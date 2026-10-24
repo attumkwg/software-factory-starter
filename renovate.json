@@ -65,6 +65,15 @@
       "autoReplaceStringTemplate": "new PostgreSqlContainer(\"{{depName}}:{{newValue}}{{#if newDigest}}@{{newDigest}}{{/if}}\")",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "見た目の回帰テストのブラウザ(docker-compose.vrt.yml の `npx -y playwright@1.2.3 run-server`)。@playwright/test・イメージのタグと同じ版にそろえる(apps/web/e2e/vrt/versions.test.ts が見張る)",
+      "managerFilePatterns": ["/^docker-compose\\.vrt\\.yml$/"],
+      "matchStrings": ["\"playwright@(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
+      "depNameTemplate": "playwright",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
     }
   ],
   "packageRules": [
@@ -134,6 +143,14 @@
       "matchUpdateTypes": ["major"],
       "prBodyNotes": [
         "⚠️ 先に本番の Aurora をこの大きい版に上げる: infra/terraform/modules/aurora/variables.tf の `engine_version`(パラメータグループの family も変わる)。Aurora が古いままならマージしない"
+      ]
+    },
+    {
+      "description": "Playwright は3か所(apps/web の @playwright/test・docker-compose.vrt.yml のイメージのタグと playwright@)を1本にまとめる。版が違うと VRT のブラウザにつながらない。上げたら pnpm vrt:update で基準を撮り直す(Chromium が変わると描き方が少し変わる)",
+      "matchPackageNames": ["@playwright/test", "playwright", "mcr.microsoft.com/playwright"],
+      "groupName": "playwright",
+      "prBodyNotes": [
+        "⚠️ 同じ PR で `pnpm vrt:update` を流し、変わった基準の画像を見てからコミットする(docs/guides/vrt.md)"
       ]
     }
   ],

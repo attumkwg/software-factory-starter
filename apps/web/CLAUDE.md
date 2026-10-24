@@ -30,6 +30,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - API は `src/api.ts` からだけ呼ぶ。型は `@app/shared` を使い、画面で型を作り直さない。
 - 認証は同じオリジンの HttpOnly Cookie。トークンを localStorage / sessionStorage に置かない。
 - ボタンの出し分けは `src/permissions.ts`。**守りは API 側**なので、画面で隠すだけで安心しない。
+- 機能フラグの裏の機能は `hasFeature(me, "<名前>")`(`@app/shared`。`me.features` を見る)で出し分ける。API 側も `requireFeature` で守る(`docs/guides/feature-flags.md`)。
 
 ## テスト
 
@@ -37,6 +38,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - 大事な流れを変えたら E2E を1本足すか直す(目安: 大事な流れ5本程度まで)。
 - `expectAccessible` は axe(WCAG 2.2 AA まで)と「横にはみ出していない」を見る。スマホの組(幅 320px)は主な流れだけ流す(`playwright.config.ts` の `MOBILE_SPECS`)。表や入力の画面を足したら、見るだけで回る `e2e/narrow-screens.spec.ts` に足す(書き込む E2E をスマホの組に足すと、同じ人で2回書き込んで食い違う)。
 - 本番の Node サーバー(`server/`)を変えたら `server/app.test.ts` も直す。
+- 見た目の回帰テスト(`e2e/vrt/`・`pnpm vrt`)が主な画面と部品の一覧(`/design-system`)を撮って基準の画像と比べる。画面や部品の見た目を変えたら `pnpm vrt:update` で撮り直し、画像を見てからコミットする。撮る画面は `e2e/vrt/screens.ts`(写すのは種データだけ)。部品を足したら `pages/DesignSystemPage.tsx` にも並べる。`docs/guides/vrt.md`
 
 ## 速さ
 

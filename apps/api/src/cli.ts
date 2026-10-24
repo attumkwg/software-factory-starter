@@ -1,14 +1,16 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { LegalDocumentSchema } from "@app/shared";
+import { FEATURE_FLAGS, LegalDocumentSchema } from "@app/shared";
 import pg from "pg";
-import { createDb } from "./db/client.ts";
+import { createDb, type RootDb } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { seed } from "./db/seed.ts";
 import { noticeProblem } from "./domains/legal/index.ts";
+import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
+import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
 //   node dist/cli.js migrate          … 移行(表の持ち主で。MIGRATION_DATABASE_URL か PG* の環境変数)
@@ -19,6 +21,12 @@ import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts
 //                                      … 解約した組織を消す(試し → 本番。docs/runbooks/offboarding.md)
 //   node dist/cli.js legal-notify <文書> <版> [--execute]
 //                                      … 規約の変更のお知らせを全員に積む(試し → 本番。docs/runbooks/legal-notice.md)
+//   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
+//                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
+//   node dist/cli.js usage-report <機能> [--weeks <週の数>]
+//                                      … 利用の記録を週ごとの数にする(読むだけ。docs/runbooks/usage-records.md)
+//   node dist/cli.js usage-purge [--execute]
+//                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 
 const appEnv = process.env.APP_ENV ?? "local";
 const throwaway = appEnv === "local" || appEnv === "test" || appEnv === "preview";
@@ -98,13 +106,71 @@ async function legalNotifyCommand(args: string[]) {
   }
 }
 
+/** 組織ごとの機能フラグ。機能が無ければ一覧、--execute が無ければ試し。結果は JSON 1行(組織の名前は出さない) */
+async function featureFlagCommand(args: string[]) {
+  const [tenantId, name, onOff, ...flags] = args;
+  if (!tenantId) throw new Error("使い方: feature-flag <組織の ID> [<機能> on|off [--execute]]");
+  if (name !== undefined && onOff !== "on" && onOff !== "off") {
+    throw new Error("使い方: feature-flag <組織の ID> <機能> on|off [--execute]");
+  }
+  const execute = flags.includes("--execute");
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    if (name === undefined) {
+      const list = await showFeatureFlags(db, tenantId, FEATURE_FLAGS);
+      process.stdout.write(`${JSON.stringify({ mode: "show", tenantId, flags: list })}\n`);
+      return;
+    }
+    const change = await setFeatureFlag(db, tenantId, name, onOff === "on", {
+      defs: FEATURE_FLAGS,
+      execute,
+    });
+    const mode = !change.changed ? "unchanged" : execute ? "changed" : "plan";
+    process.stdout.write(`${JSON.stringify({ mode, tenantId, ...change })}\n`);
+    if (mode === "plan") {
+      process.stdout.write(
+        "まだ変えていません。組織と機能を確かめて --execute を付けて流してください\n",
+      );
+    }
+  } finally {
+    await pool.end();
+  }
+}
+
+/** 利用の記録の集計・古い記録の削除(中身は src/usage/command.ts)。出すのは数だけ(組織の ID・名前・人の ID は出さない) */
+async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    for (const line of await run(db))
+      process.stdout.write(`${line}
+`);
+  } finally {
+    await pool.end();
+  }
+}
+
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify)",
+    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
   );
+if (commands[0] === "usage-report") {
+  const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
+  await usageCommand((db) =>
+    runUsageReport(db, commands.slice(1), { defs: FEATURE_FLAGS, supportTenantId }),
+  );
+  process.exit(0);
+}
+if (commands[0] === "usage-purge") {
+  await usageCommand((db) => runUsagePurge(db, commands.slice(1)));
+  process.exit(0);
+}
 if (commands[0] === "delete-tenant") {
   await deleteTenantCommand(commands.slice(1));
+  process.exit(0);
+}
+if (commands[0] === "feature-flag") {
+  await featureFlagCommand(commands.slice(1));
   process.exit(0);
 }
 if (commands[0] === "legal-notify") {

@@ -351,8 +351,9 @@ items:
     verify: auto
     check: attack-runbook
     severity: normal
-    status: open
-    history: []
+    status: done
+    history:
+      - { on: 2026-10-24, by: pnpm checkup, result: pass, note: 手順書 docs/runbooks/attack.md と WAF の waf-hits のアラーム(Terraform。apply は人)を足した }
     source: 2026-10-20 の点検
     review_by: 2027-04-20
 
@@ -390,6 +391,7 @@ items:
     status: open
     history:
       - { on: 2026-10-20, by: checkup, result: fail, note: 一度も回していない }
+      - { on: 2026-10-24, by: security-fuzz.yml, result: fail, note: 初めて流した(報告を書けずに落ちていたのを直した後)。未ログインは全部通り、ログインした3つの役割で形の違う ID などに 500 が返る所がある。直すのは別の PR }
     source: 2026-10-20 の点検
     review_by: 2027-04-20
 

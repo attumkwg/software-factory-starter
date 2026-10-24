@@ -36,7 +36,7 @@ start_steps:
     does: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめ、毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日)。人に聞くことは /checkup で1問ずつ答える
     writes: docs/checkup/todo.yaml
     link: docs/checkup/README.md
-    status: 作成中
+    status: あり
   - title: キットが既定で決めた所を決める
     command: pnpm decisions --adopt
     does: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる
@@ -726,6 +726,45 @@ parts:
         - { path: apps/web/e2e/helpers.ts, what: 横のはみ出しの確かめを外す }
       docs: [docs/specs/0008-web-noindex-mobile.md, docs/designs/0008-web-noindex-mobile.md, docs/designs/0010-web-head-ogp.md]
 
+  - id: vrt
+    name: 見た目の回帰テスト(VRT)と部品の一覧ページ
+    group: front
+    status: あり
+    removable: true
+    default: 残す
+    what: 主な画面と部品の一覧(/design-system)を、Docker の中の Chromium でパソコンとスマホの幅で撮り、リポジトリの基準の画像と比べる。PR に結果と画面の一覧をコメントする
+    needed_by: 画面がある・AI が画面を作り、人が PR で画面を見て判断する
+    not_needed_by: 画面が無い・画面を毎回手で開いて確かめる人がいる
+    if_removed: 部品の CSS を変えたとき、どの画面がどう変わったかが分からない。PR を読む人が画面を見ないまま判断する
+    depends_on: [web]
+    law: []
+    remove:
+      delete:
+        - apps/web/e2e/vrt
+        - apps/web/playwright.vrt.config.ts
+        - apps/web/e2e/design-system.spec.ts
+        - apps/web/src/design-system.ts
+        - apps/web/src/design-system.test.ts
+        - apps/web/src/pages/DesignSystemPage.tsx
+        - apps/web/src/routes/design-system.tsx
+        - docker-compose.vrt.yml
+        - .github/workflows/vrt.yml
+        - docs/guides/vrt.md
+      edit:
+        - { path: package.json, what: vrt・vrt:update を外す }
+        - { path: apps/web/package.json, what: vrt・vrt:update を外す }
+        - { path: apps/web/playwright.config.ts, what: testIgnore の vrt/** と MOBILE_SPECS の design-system.spec.ts を外す }
+        - { path: apps/web/vite.config.ts, what: test.include の e2e/vrt を外す }
+        - { path: .gitignore, what: test-results-vrt などの3行を外す }
+        - { path: renovate.json, what: Playwright をまとめる決まりと、docker-compose.vrt.yml の playwright@ を上げる決まりを外す }
+        - { path: CLAUDE.md, what: pnpm vrt の行を外す }
+        - { path: apps/web/CLAUDE.md, what: 見た目の回帰テストの行を外す }
+        - { path: docs/design-system.md, what: 部品の一覧ページの節と、VRT の行・手順の 5 と 7 を外す }
+        - { path: README.md, what: pnpm vrt・vrt.yml・必須のチェックの「見た目の比べ」・ラベル vrt:update を外す }
+        - { path: docs/guides/automation.md, what: vrt.yml の行を外す }
+        - { path: .github/pull_request_template.md, what: 「📸 スクショ」の VRT の所を外す }
+      docs: [docs/specs/0011-visual-regression.md, docs/designs/0011-visual-regression.md, docs/adr/0024-vrt-browser-in-docker.md]
+
   - id: seo
     name: 公開のページと SEO の型
     group: front
@@ -1088,6 +1127,78 @@ parts:
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
 
+  - id: feature-flags
+    name: 組織ごとの機能フラグ
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 賭けの psf / rollout で、運営が選んだ組織にだけ機能を出す・止める(定義はコード・組織ごとの状態は DB・切り替えは運営のコマンド)。A/B テストの土台
+    needed_by: 機能を一部の組織に出して、使われるかを確かめながら作る
+    not_needed_by: 作る物が決まっていて、全部の組織に同時に出してよい
+    if_removed: 出す組織を選べず、出すか止めるかがデプロイだけになる。賭けの rollout を「全部に出して見る」でしか確かめられない
+    depends_on: [bets, audit-log, offboarding]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/feature-flags
+        - apps/api/drizzle/0011_feature_flags.sql
+        - apps/api/test/unit/feature-flags.test.ts
+        - apps/api/test/integration/feature-flags.int.test.ts
+        - packages/shared/src/feature-flags.ts
+        - packages/shared/src/feature-flags.test.ts
+        - docs/guides/feature-flags.md
+        - docs/runbooks/feature-flags.md
+      edit:
+        - { path: apps/api/src/app.ts, what: featureFlags(AppDeps と c.set)を外す }
+        - { path: apps/api/src/env.ts, what: featureFlags を外す }
+        - { path: apps/api/src/domains/organizations/routes.ts, what: GET /api/me の features を外す }
+        - { path: apps/api/src/cli.ts, what: feature-flag のコマンドを外す }
+        - { path: apps/api/src/db/schema.ts, what: feature-flags の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: platform.feature_flags の行と監査ログの details の flag を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.feature_flags を外す }
+        - { path: apps/api/src/audit/actions.ts, what: MANUAL_AUDIT_ACTIONS の featureFlagEnable / featureFlagDisable を外す(記録の名前は残してよい) }
+        - { path: apps/api/test/helpers/fixtures.ts, what: createTestApp の featureFlags を外す }
+        - { path: apps/web/src/audit-labels.ts, what: feature_flag の文は残してよい(古い記録を読むため) }
+        - { path: packages/shared/src/index.ts, what: feature-flags.ts の export を外す }
+        - { path: packages/shared/src/schemas.ts, what: MeSchema の features は残してよい(足すだけの決まり) }
+        - { path: .tbls.yml, what: platform.feature_flags の説明を外す }
+        - { path: CLAUDE.md, what: 機能フラグの行を外す }
+      migration: 表 platform.feature_flags を消す移行を足す(.claude/skills/db-migration。0011 は書き換えない)
+      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
+
+  - id: usage-records
+    name: 利用の記録
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す
+    needed_by: 機能を出した後に「使われ続けているか」を数で確かめる
+    not_needed_by: 賭けの線を話を聞くことだけで確かめる・個人の行動を記録したくない
+    if_removed: 賭けの rollout の線(使う組織の割合・使い続ける割合)を数で測れない
+    depends_on: [feature-flags, offboarding, column-classification]
+    law:
+      - 個人情報保護法 17条・21条(利用目的の特定と通知・公表。プライバシーポリシーに書く)
+    remove:
+      delete:
+        - apps/api/src/usage
+        - apps/api/drizzle/0012_usage_records.sql
+        - apps/api/test/integration/usage-records.int.test.ts
+        - docs/runbooks/usage-records.md
+      edit:
+        - { path: apps/api/src/cli.ts, what: usage-report・usage-purge のコマンドを外す }
+        - { path: apps/api/src/db/schema.ts, what: usage の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: platform.feature_usage の行を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.feature_usage を外す }
+        - { path: docs/guides/feature-flags.md, what: 「使われたかを測る」の節を外す }
+        - { path: docs/guides/data-retention.md, what: 利用の記録を外す }
+        - { path: .tbls.yml, what: platform.feature_usage の説明を外す }
+        - { path: CLAUDE.md, what: recordUsage の文を外す }
+        - { path: apps/api/CLAUDE.md, what: recordUsage の文を外す }
+      migration: 表 platform.feature_usage と関数 operator_tenant_ids を消す移行を足す(.claude/skills/db-migration。0012 は書き換えない)
+      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
+
   - id: ledger
     name: 資産と費用の台帳(/ledger)
     group: process
@@ -1104,8 +1215,7 @@ parts:
   - id: checkup
     name: 点検(/checkup)
     group: process
-    status: 作成中
-    pr: 18
+    status: あり
     removable: true
     default: 残す
     what: 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする

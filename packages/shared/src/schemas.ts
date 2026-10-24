@@ -8,6 +8,18 @@ import { InstantSchema, TimeZoneSchema } from "./time.ts";
 
 export const IdSchema = z.uuid();
 
+/**
+ * 人が付ける名前・題名(前後の空白を落とす・空は通さない)。NUL(文字の0番)は通さない:
+ * DB(Postgres)の文字列は NUL を持てず、そのまま渡すと 500 になる。ほかの変わった文字はそのまま
+ */
+const label = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine((v) => !v.includes("\u0000"), { message: "使えない文字(NUL)が入っています" });
+
 export const MeSchema = z.object({
   userId: IdSchema,
   tenantId: IdSchema,
@@ -33,6 +45,11 @@ export const MeSchema = z.object({
    * (/legal/accept)へ回す。upcoming は帯。代理の最中・運営の組織の人には無い(関所の対象外)
    */
   legal: LegalStatusSchema.optional(),
+  /**
+   * この組織で入っている機能の名前(docs/specs/0012-feature-flags-and-usage.md)。画面は hasFeature で出し分ける。
+   * 代理の社員にも、見ている組織の一覧を返す
+   */
+  features: z.array(z.string()).optional(),
 });
 export type Me = z.infer<typeof MeSchema>;
 
@@ -44,7 +61,7 @@ export const ProjectSchema = z.object({
 export type Project = z.infer<typeof ProjectSchema>;
 
 export const CreateProjectSchema = z.object({
-  name: z.string().trim().min(1).max(100),
+  name: label(100),
 });
 export type CreateProject = z.infer<typeof CreateProjectSchema>;
 
@@ -59,13 +76,13 @@ export const TaskSchema = z.object({
 export type Task = z.infer<typeof TaskSchema>;
 
 export const CreateTaskSchema = z.object({
-  title: z.string().trim().min(1).max(200),
+  title: label(200),
 });
 export type CreateTask = z.infer<typeof CreateTaskSchema>;
 
 export const UpdateTaskSchema = z
   .object({
-    title: z.string().trim().min(1).max(200).optional(),
+    title: label(200).optional(),
     done: z.boolean().optional(),
   })
   .refine((v) => v.title !== undefined || v.done !== undefined, {

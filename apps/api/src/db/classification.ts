@@ -134,6 +134,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       fields: internal("直した項目の名前の一覧(値は入れない)"),
       route: internal("代理の社員が呼んだ API の形(メソッドとパスの型)"),
       counts: internal("解約で消した表ごとの行数"),
+      flag: internal("運営が入れた・切った機能の名前(FEATURE_FLAGS の name)"),
     },
   },
 
@@ -161,4 +162,19 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "platform.outbox.last_error": internal(
     "最後の失敗の種類と文(人が見て直す)。値は伏せてから書く(relay.ts の scrubMessage)",
   ),
+
+  // ── 機能フラグ(docs/specs/0012-feature-flags-and-usage.md) ──
+  "platform.feature_flags.id": internal("行の ID"),
+  "platform.feature_flags.tenant_id": internal("機能を入れた組織"),
+  "platform.feature_flags.flag": pub("入れた機能の名前(@app/shared の FEATURE_FLAGS)"),
+  "platform.feature_flags.enabled_at": internal("入れた時刻(いつから出ていたか)"),
+
+  // ── 利用の記録(docs/specs/0012-feature-flags-and-usage.md)。1日1人1機能1行。保存期間(USAGE_RETENTION_DAYS)で消す ──
+  "platform.feature_usage.id": internal("行の ID"),
+  "platform.feature_usage.tenant_id": internal("使った組織"),
+  "platform.feature_usage.user_id": internal(
+    "使った人の ID(賭けの線: 組織の中で何人が使い続けるか)",
+  ),
+  "platform.feature_usage.feature": pub("使った機能の名前(FEATURE_FLAGS の name)"),
+  "platform.feature_usage.day": internal("使った日(組織の時間帯。時刻は持たない)"),
 };
