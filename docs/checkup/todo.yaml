@@ -8,8 +8,9 @@
 #   - every: once / weekly / monthly / quarterly / half-year / yearly
 #   - verify: auto(check に scripts/checkup/checks/ の名前)/ ask(question に問い・選択肢・おすすめ)/ manual(steps に番号付きの手順)
 #   - question.irreversible: true(お金・公開・削除・契約)は「分からない」で進めない。相談先に回すだけ
+#   - 選択肢の after: 選んだ後の状態。done(書かなければこれ)/ open(来週また聞く)/ snooze(90日後にまた聞く)
 #   - status: open / done / asked_advisor / snoozed(snoozed_until に次に聞く日。最長90日)/ retired
-#   - history は足すだけ(答え・確かめの記録。いつ・誰が・何を)
+#   - history は足すだけ(答え・確かめの記録。いつ・誰が・何を)。答えは /checkup が pnpm checkup:answer で書く(手で書かない)
 #   - 公開のリポジトリなので、脆弱性や秘密の見つけ物の中身は書かない(件数と見る場所だけ)
 
 started_on: 2026-10-17 # 使い始めた日(段階の計算の起点)
@@ -234,7 +235,7 @@ items:
       text: GitHub・AWS(root と人のアカウント)・Sentry・ドメインの業者の全部で、二段階認証をオンにしましたか
       options:
         - { label: 全部オンにした, means: 半年後にもう一度聞きます }
-        - { label: まだのものがある, means: 残りの設定の手順を出します }
+        - { label: まだのものがある, means: 残りの設定の手順を出します。来週また聞きます, after: open }
       recommended: 全部オンにした
       irreversible: false
     severity: high
@@ -328,7 +329,7 @@ items:
       text: docs/runbooks/personal-data-breach.md(漏えいのときの届け出の手順)を読んで、自分の会社の連絡先と担当で回せますか
       options:
         - { label: 読んで回せると思った, means: 済みにします。1年ごとの法令の見直しでもう一度見ます }
-        - { label: 直したい所がある, means: 直す所を聞いて、手順書を直す PR を出します }
+        - { label: 直したい所がある, means: 直す所を聞いて、手順書を直す PR を出します。直ったらまた聞きます, after: open }
       recommended: 読んで回せると思った
       irreversible: false
     severity: normal
@@ -544,7 +545,7 @@ items:
       text: この3か月、WAF が「止めるはずだった」アクセスに、ふつうの利用者のものはありましたか
       options:
         - { label: 無かった(止めるに切り替える), means: 切り替える PR を出します(配備は人) }
-        - { label: あった, means: 誤って当たった規則を外す案を出し、3か月後にまた聞きます }
+        - { label: あった, means: 誤って当たった規則を外す案を出し、3か月後にまた聞きます, after: snooze }
       recommended: 無かった(止めるに切り替える)
       irreversible: false
     severity: normal
