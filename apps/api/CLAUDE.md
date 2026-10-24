@@ -19,3 +19,4 @@
 - DB の時間切れ(`src/db/client.ts` の `DB_TIMEOUTS`): 1つのクエリ 5 秒・トランザクションを開いたまま DB に何も頼まない時間 10 秒。**トランザクションの中で外(Cognito・メール・HTTP)を待たない**(認可の関所がリクエストごとに開いているので、ハンドラーの中は全部トランザクションの中)。0.5 秒を超えたクエリは warn のログに出る。
 - テストは必ず2社で書く(`test/helpers/fixtures.ts` の `createTenantFixture`)。
 - 単体は `test/unit`(DB 無し)、DB が要るものは `test/integration/*.int.test.ts`(Testcontainers)。
+- 結合テストは全部のファイルが同じ DB を同時に使う。**全社分をまとめて扱う処理**(アウトボックスの送り出し `relayOnce`・`notifyLegalChange` など)を回すファイルは、`test/helpers/isolated-db.ts` の `createIsolatedDatabase` で自分だけの DB を使う(ほかのファイルの行を取り合って、流すたびに違う所で落ちる)。

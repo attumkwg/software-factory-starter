@@ -11,16 +11,22 @@ import {
   login,
   type TenantFixture,
 } from "../helpers/fixtures.ts";
+import { createIsolatedDatabase } from "../helpers/isolated-db.ts";
 
 // アウトボックス(ADR 0006)が約束すること:
 //   1. 業務の変更と一緒にしか積まれない(取り消されたら積まれない)
 //   2. 何台で送っても、同じ物を同時に2台が取らない
 //   3. 送れなければ時間をおいてやり直し、決めた回数でやめる
 //   4. アプリは他社の出来事を読めない
+//
+// 送り出し(relayOnce)は全社分を取るので、このファイルだけの DB で流す。
+// 同じ DB だと、同時に動くほかのファイルの送り出し(personal-data-logs など)と出来事を取り合い、
+// 流すたびに違う所で落ちる(取られている間は見えず、ほかの宛先で「送れた」「やめた」にされる)。
 
-const owner = createDb(inject("ownerUrl"));
-const appDb = createDb(inject("appUrl"));
-const { app, pool } = createTestApp(inject("appUrl"));
+const urls = await createIsolatedDatabase(inject("adminUrl"), "outbox");
+const owner = createDb(urls.ownerUrl);
+const appDb = createDb(urls.appUrl);
+const { app, pool } = createTestApp(urls.appUrl);
 const logger = createLogger({ level: "silent" });
 let a: TenantFixture;
 let b: TenantFixture;
@@ -28,8 +34,6 @@ let b: TenantFixture;
 beforeAll(async () => {
   a = await createTenantFixture(owner.db, "acme");
   b = await createTenantFixture(owner.db, "globex");
-  // ほかのテストが積んだ物を流しておく
-  await relayOnce({ db: appDb.db, logger, handlers: {}, batchSize: 1000, maxAttempts: 0 });
 });
 afterAll(async () => {
   await owner.pool.end();
@@ -43,20 +47,14 @@ const scopeOf = (t: TenantFixture, tx: Parameters<Parameters<typeof withTenant>[
   userId: t.users.admin.id,
 });
 
-/**
- * 送り出しを1回回し、届いた物を返す。
- * 送り出しは全社分を扱うので、ほかのテストのファイル(同時に動く)が積んだ出来事も来る。
- * このファイルの2社の物だけを数える(ほかの物は、送れたことにして流す)。
- */
+/** 送り出しを1回回し、届いた物を返す */
 async function deliver(handler?: (e: OutboxEvent) => Promise<void>) {
   const got: OutboxEvent[] = [];
-  const mine = new Set([a.tenantId, b.tenantId]);
   await relayOnce({
     db: appDb.db,
     logger,
     handlers: {
       "tasks.task_completed": async (e) => {
-        if (!mine.has(e.tenantId)) return;
         got.push(e);
         await handler?.(e);
       },

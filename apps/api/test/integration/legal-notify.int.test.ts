@@ -5,11 +5,17 @@ import { withTenant } from "../../src/db/tenant.ts";
 import { notifyLegalChange } from "../../src/legal-notify/notify.ts";
 import { createCognitoApp, eventsOf } from "../helpers/cognito.ts";
 import { createTenantFixture, type TenantFixture } from "../helpers/fixtures.ts";
+import { createIsolatedDatabase } from "../helpers/isolated-db.ts";
 
 // 規約の変更のお知らせ(運営のコマンド legal-notify の中身。docs/specs/0009-legal-consent.md・docs/runbooks/legal-notice.md)。
 // 試し → 送る(お知らせの行と出来事)→ 2回目は0件 → 受け手がメールを組み立てる。
+//
+// 送ると DB にある全部の組織に行と出来事を足すので、このファイルだけの DB で流す。
+// 同じ DB だと、同時に動くほかのファイルの組織にまで足してしまう
+// (offboarding.int の「消すと全部の表が空」「他社は変わらず」が流すたびに落ちたり通ったりした)。
 
-const owner = createDb(inject("ownerUrl"));
+const urls = await createIsolatedDatabase(inject("adminUrl"), "legal_notify");
+const owner = createDb(urls.ownerUrl);
 const ref = { document: "terms" as const, version: 1 };
 let a: TenantFixture;
 let ops: TenantFixture;
@@ -56,7 +62,7 @@ describe("legal-notify", () => {
   });
 
   it("受け手が、本人のいまのアドレスへ、要約・効力の日・本文へのリンクのメールを組み立てる", async () => {
-    const t = createCognitoApp(inject("appUrl"));
+    const t = createCognitoApp(urls.appUrl);
     try {
       const events = await eventsOf(owner.db, a.tenantId, "legal.change_notified");
       for (const event of events) await t.handlers["legal.change_notified"]?.(event);

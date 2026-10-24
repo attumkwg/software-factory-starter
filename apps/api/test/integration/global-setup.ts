@@ -4,6 +4,7 @@ import pg from "pg";
 import { Wait } from "testcontainers";
 import type { TestProject } from "vitest/node";
 import { runMigrations } from "../../src/db/migrate.ts";
+import { TEMPLATE_DB } from "../helpers/isolated-db.ts";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -11,6 +12,8 @@ declare module "vitest" {
     ownerUrl: string;
     /** アプリの接続ユーザー(RLS がかかる) */
     appUrl: string;
+    /** superuser(postgres の DB)。別の DB を作るときだけ使う(`createIsolatedDatabase`) */
+    adminUrl: string;
   }
 }
 
@@ -32,8 +35,16 @@ export default async function setup(project: TestProject) {
   const ownerUrl = `postgres://app_owner:app_owner@${base}`;
   await runMigrations(ownerUrl);
 
+  // 写しは、テストがつなぐ前に作る(写す元にだれかがつないでいると作れない)
+  const adminUrl = container.getConnectionUri().replace(/\/app$/, "/postgres");
+  const admin = new pg.Client({ connectionString: adminUrl });
+  await admin.connect();
+  await admin.query(`CREATE DATABASE ${TEMPLATE_DB} TEMPLATE app OWNER app_owner`);
+  await admin.end();
+
   project.provide("ownerUrl", ownerUrl);
   project.provide("appUrl", `postgres://app:app@${base}`);
+  project.provide("adminUrl", adminUrl);
 
   return async () => {
     await container.stop();
