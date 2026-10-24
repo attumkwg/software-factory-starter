@@ -1,6 +1,6 @@
 # ADR 0024: 見た目の回帰テストは、ブラウザだけを Playwright の公式イメージの Docker で動かし、基準の画像はリポジトリに置く
 
-- 状態: 提案
+- 状態: 採用(docs/designs/0011-visual-regression.md の U-1。2026-10-24 承認)
 - 日付: 2026-10-24
 - 決めた人: @attumkwg(PR で)
 
