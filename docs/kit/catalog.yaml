@@ -1128,6 +1128,38 @@ parts:
       migration: 表 platform.feature_flags を消す移行を足す(.claude/skills/db-migration。0011 は書き換えない)
       docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
 
+  - id: usage-records
+    name: 利用の記録
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す
+    needed_by: 機能を出した後に「使われ続けているか」を数で確かめる
+    not_needed_by: 賭けの線を話を聞くことだけで確かめる・個人の行動を記録したくない
+    if_removed: 賭けの rollout の線(使う組織の割合・使い続ける割合)を数で測れない
+    depends_on: [feature-flags, offboarding, column-classification]
+    law:
+      - 個人情報保護法 17条・21条(利用目的の特定と通知・公表。プライバシーポリシーに書く)
+    remove:
+      delete:
+        - apps/api/src/usage
+        - apps/api/drizzle/0012_usage_records.sql
+        - apps/api/test/integration/usage-records.int.test.ts
+        - docs/runbooks/usage-records.md
+      edit:
+        - { path: apps/api/src/cli.ts, what: usage-report・usage-purge のコマンドを外す }
+        - { path: apps/api/src/db/schema.ts, what: usage の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: platform.feature_usage の行を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.feature_usage を外す }
+        - { path: docs/guides/feature-flags.md, what: 「使われたかを測る」の節を外す }
+        - { path: docs/guides/data-retention.md, what: 利用の記録を外す }
+        - { path: .tbls.yml, what: platform.feature_usage の説明を外す }
+        - { path: CLAUDE.md, what: recordUsage の文を外す }
+        - { path: apps/api/CLAUDE.md, what: recordUsage の文を外す }
+      migration: 表 platform.feature_usage と関数 operator_tenant_ids を消す移行を足す(.claude/skills/db-migration。0012 は書き換えない)
+      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
+
   - id: ledger
     name: 資産と費用の台帳(/ledger)
     group: process
