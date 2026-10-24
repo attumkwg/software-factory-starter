@@ -10,6 +10,7 @@ import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
+import { purgeUsage, USAGE_RETENTION_DAYS, usageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
 //   node dist/cli.js migrate          … 移行(表の持ち主で。MIGRATION_DATABASE_URL か PG* の環境変数)
@@ -22,6 +23,10 @@ import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts
 //                                      … 規約の変更のお知らせを全員に積む(試し → 本番。docs/runbooks/legal-notice.md)
 //   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
+//   node dist/cli.js usage-report <機能> [--weeks <週の数>]
+//                                      … 利用の記録を週ごとの数にする(読むだけ。docs/runbooks/usage-records.md)
+//   node dist/cli.js usage-purge [--execute]
+//                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 
 const appEnv = process.env.APP_ENV ?? "local";
 const throwaway = appEnv === "local" || appEnv === "test" || appEnv === "preview";
@@ -132,11 +137,57 @@ async function featureFlagCommand(args: string[]) {
   }
 }
 
+/** 利用の記録の集計。数だけを JSON 1行(組織の ID・名前・人の ID は出さない) */
+async function usageReportCommand(args: string[]) {
+  const [feature, ...flags] = args;
+  if (!feature) throw new Error("使い方: usage-report <機能> [--weeks <週の数>]");
+  const weeksAt = flags.indexOf("--weeks");
+  const weeks = weeksAt >= 0 ? Number(flags[weeksAt + 1]) : 8;
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 60) {
+    throw new Error("--weeks は 1〜60 の整数です");
+  }
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    const report = await usageReport(db, feature, {
+      weeks,
+      defs: FEATURE_FLAGS,
+      supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
+    });
+    process.stdout.write(`${JSON.stringify({ mode: "report", ...report })}\n`);
+  } finally {
+    await pool.end();
+  }
+}
+
+/** 保存期間を過ぎた利用の記録を消す。--execute が無ければ数えるだけ */
+async function usagePurgeCommand(args: string[]) {
+  const execute = args.includes("--execute");
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    const done = await purgeUsage(db, { execute });
+    const line = { mode: execute ? "purged" : "plan", days: USAGE_RETENTION_DAYS, ...done };
+    process.stdout.write(`${JSON.stringify(line)}\n`);
+    if (!execute) {
+      process.stdout.write("まだ消していません。件数を確かめて --execute を付けて流してください\n");
+    }
+  } finally {
+    await pool.end();
+  }
+}
+
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag)",
+    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
   );
+if (commands[0] === "usage-report") {
+  await usageReportCommand(commands.slice(1));
+  process.exit(0);
+}
+if (commands[0] === "usage-purge") {
+  await usagePurgeCommand(commands.slice(1));
+  process.exit(0);
+}
 if (commands[0] === "delete-tenant") {
   await deleteTenantCommand(commands.slice(1));
   process.exit(0);

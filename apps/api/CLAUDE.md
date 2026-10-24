@@ -13,7 +13,7 @@
 - リポジトリは RLS に頼り切らず、`tenantId` でも絞る(層を重ねる)。
 - 他社の物・無い物は 404。権限が無ければ 403。ログインしていなければ 401。
 - 失敗は投げるだけ(`errors.ts` の関数)。ルートで try/catch して形を作らない。`onError` が code に直し、ログは `logger.error({ err }, "…")` の形だけ(SQL の値・失敗の文の値が落ちる)。ログの項目は許可リスト(`packages/logging`。ADR 0019)で、`…Id`・状態・件数・時間のほかは `[REDACTED]` になる。error 以上のログはそのまま Sentry にも行くので、Sentry を直接呼ばない。決まりは `docs/guides/error-handling.md`。
-- **機能フラグ**(賭けの psf / rollout で一部の組織に出す): 機能の API のハンドラーの最初で `await requireFeature(c, "<名前>")`(入っていなければ 404)。名前は `@app/shared` の `FEATURE_FLAGS` に足す(賭けの ID つき)。切り替えは運営のコマンドだけ(API は作らない)。`docs/guides/feature-flags.md`
+- **機能フラグ**(賭けの psf / rollout で一部の組織に出す): 機能の API のハンドラーの最初で `await requireFeature(c, "<名前>")`(入っていなければ 404)。名前は `@app/shared` の `FEATURE_FLAGS` に足す(賭けの ID つき)。切り替えは運営のコマンドだけ(API は作らない)。使ったことは `await recordUsage(c, "<名前>")`(`src/usage`。操作と同じトランザクションで1日1人1行。画面から送る API は作らない)。`docs/guides/feature-flags.md`
 - **個人情報**: 列を足したら `src/db/classification.ts` に区分と目的を1行(`personal` / `sensitive` の値はログ・監査ログ・出来事の中身に入れない)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ置ける(ADR 0018)。
 - 入力は Zod で検証(`@app/shared` のスキーマを使う)。`sql.raw` は使わない。
 - **一覧は必ずページング**(全件を返さない)。`?cursor=&limit=`(`http/common.ts` の `PageQuery`)と `{ …, nextCursor }`。並びは「作った時刻+ID」で、同じ並びの索引を張る(`src/db/paging.ts`・`docs/guides/api-changes.md`)。

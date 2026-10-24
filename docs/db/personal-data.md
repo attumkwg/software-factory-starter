@@ -141,6 +141,16 @@
 | `flag` | public | 入れた機能の名前(@app/shared の FEATURE_FLAGS) |
 | `enabled_at` | internal | 入れた時刻(いつから出ていたか) |
 
+### `platform.feature_usage`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 行の ID |
+| `tenant_id` | internal | 使った組織 |
+| `user_id` | internal | 使った人の ID(賭けの線: 組織の中で何人が使い続けるか) |
+| `feature` | public | 使った機能の名前(FEATURE_FLAGS の name) |
+| `day` | internal | 使った日(組織の時間帯。時刻は持たない) |
+
 ### `platform.outbox`
 
 | 列 | 区分 | 利用目的 |
