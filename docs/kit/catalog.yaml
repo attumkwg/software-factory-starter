@@ -37,6 +37,12 @@ start_steps:
     writes: docs/checkup/todo.yaml
     link: docs/checkup/README.md
     status: あり
+  - title: キットが既定で決めた所を決める
+    command: pnpm decisions --adopt
+    does: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる
+    writes: docs/designs/*.md
+    link: docs/guides/human-review.md
+    status: あり
 
 # ── /tailor が聞くこと(人に聞くのは4つだけ: どれも事業判断か戻せないリスク)───────────
 questions:
