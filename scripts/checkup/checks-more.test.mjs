@@ -85,12 +85,24 @@ test("w-guards・w-decisions: コマンドが通れば合格・落ちれば不�
   assert.equal((await decisions(fakeCtx({}))).result, "unknown");
 });
 
-test("w-ledger: 見直す日の過ぎた項目を出す", async () => {
-  const ledger = { items: [{ id: "a", review_by: "2026-10-01", status: "open" }] };
+test("w-ledger: 見直す日の過ぎた項目と、世の中の変化の取り込みを流す時期を出す", async () => {
+  const fresh = "2026-10-01";
+  const ledger = {
+    refreshed_on: fresh,
+    items: [{ id: "a", review_by: "2026-10-01", status: "open" }],
+  };
   const r = await ledgerReview(fakeCtx({ ledger }));
   assert.equal(r.result, "fail");
   assert.match(r.note, /1件: a/);
-  assert.equal((await ledgerReview(fakeCtx({ ledger: { items: [] } }))).result, "pass");
+  assert.doesNotMatch(r.note, /checkup-refresh/);
+  const ok = await ledgerReview(fakeCtx({ ledger: { refreshed_on: fresh, items: [] } }));
+  assert.equal(ok.result, "pass");
+  // 2026-10-22 は前回から21日。35日を過ぎたら知らせる
+  const late = await ledgerReview(fakeCtx({ ledger: { refreshed_on: "2026-09-16", items: [] } }));
+  assert.equal(late.result, "fail");
+  assert.ok(late.note.includes("から 36日") && late.note.includes("/checkup-refresh"), late.note);
+  const never = await ledgerReview(fakeCtx({ ledger: { items: [] } }));
+  assert.match(never.note, /一度も流していない/);
 });
 
 test("coverage-total: 単体だけで測っていれば不合格", async () => {
