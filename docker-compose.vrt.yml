@@ -1,0 +1,29 @@
+# 見た目の回帰テスト(pnpm vrt)のブラウザ。Playwright の公式イメージの中で Chromium を動かす(ADR 0024)。
+#   docker compose -f docker-compose.vrt.yml up -d --wait   立てる(アプリの docker compose とは別に、先に立てておく)
+#   docker compose -f docker-compose.vrt.yml down           止める
+# テストの本体(手元・CI の Node)が ws://127.0.0.1:3100/ でつなぎ、ブラウザが開く localhost:8080 は
+# テストの本体の側に通される(apps/web/playwright.vrt.config.ts の exposeNetwork)。
+# 版は3か所(このイメージのタグ・下の playwright@・apps/web の @playwright/test)をそろえる(e2e/vrt/versions.test.ts が見張る)。
+name: software-factory-starter-vrt
+
+services:
+  browser:
+    image: mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
+    # Apple の CPU の Mac でも CI(amd64)と同じ画像にする(arm64 の版は描き方がわずかに違う)
+    platform: linux/amd64
+    init: true
+    user: pwuser
+    working_dir: /home/pwuser
+    command: ["npx", "-y", "playwright@1.64.0", "run-server", "--port", "3100", "--host", "0.0.0.0"]
+    ports:
+      # 手元の外からは叩かせない
+      - "127.0.0.1:3100:3100"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(3100,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      retries: 60

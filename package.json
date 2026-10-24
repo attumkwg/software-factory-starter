@@ -14,6 +14,8 @@
     "test:coverage": "turbo run test:coverage",
     "test:integration": "turbo run test:integration",
     "test:e2e": "pnpm --filter @app/web test:e2e",
+    "vrt": "pnpm --filter @app/web vrt",
+    "vrt:update": "pnpm --filter @app/web vrt:update",
     "test:all": "pnpm test && pnpm test:integration",
     "lint": "biome ci .",
     "format": "biome check --write .",

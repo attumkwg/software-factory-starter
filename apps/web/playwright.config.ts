@@ -16,11 +16,15 @@ const MOBILE_SPECS = [
   "audit.spec.ts",
   "not-found.spec.ts",
   "narrow-screens.spec.ts",
+  "design-system.spec.ts",
 ];
 
 export default defineConfig({
   testDir: "./e2e",
-  ...(cognito ? { testMatch: "cognito-*.spec.ts" } : { testIgnore: "cognito-*.spec.ts" }),
+  // 見た目の回帰テスト(e2e/vrt)は別の設定(playwright.vrt.config.ts・pnpm vrt)。ブラウザを Docker の中で動かす
+  ...(cognito
+    ? { testMatch: "cognito-*.spec.ts" }
+    : { testIgnore: ["cognito-*.spec.ts", "vrt/**"] }),
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

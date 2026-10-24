@@ -38,8 +38,10 @@
 2. React Aria Components に土台があるか見る([部品の一覧](https://react-spectrum.adobe.com/react-aria/components.html))。あれば包む。無ければ HTML の正しい要素(`button`・`ul` など)で作る。
 3. `packages/ui/src/components/<名前>.tsx` に書き、`packages/ui/src/index.ts` から export する。
 4. 見た目は `packages/ui/src/styles.css` に、クラス名 `ui-<名前>` で。値は必ずトークン(`var(--...)`)。状態は React Aria が付ける `data-hovered`・`data-selected`・`data-focus-visible` などで書き分ける。
-5. 画面で使い、E2E を回す(axe が問題を拾う)。キーボードだけで操作できるかを手で1回確かめる。
-6. この表(何があるか)に1行足す。
+5. 部品の一覧ページ(`apps/web/src/pages/DesignSystemPage.tsx`)に並べる。
+6. 画面で使い、E2E を回す(axe が問題を拾う)。キーボードだけで操作できるかを手で1回確かめる。
+7. 見た目の基準を撮り直す(`pnpm vrt:update`)。変わった画像を見てからコミットする([guides/vrt.md](guides/vrt.md))。
+8. この表(何があるか)に1行足す。
 
 **新しい色や余白が要るとき**は、トークンを足す提案を PR の「人に判断してほしい所」に書く(トークンを決めるのは人)。
 
@@ -59,9 +61,11 @@
 | 生の色・直書きのスタイル・画面の CSS | Semgrep(`.semgrep/design/`、テストつき) | 毎 PR(`ci.yml`) |
 | 色のコントラスト・ラベル・名前の漏れ・押す所の大きさ | axe(E2E の各画面。WCAG 2.2 AA まで) | 毎 PR(`ci.yml` の E2E) |
 | スマホの幅で横にはみ出さない | E2E の `expectAccessible`(`scrollWidth <= clientWidth`)。スマホの組(幅 320px)は主な流れと、表・入力の画面を見て回る `narrow-screens.spec.ts`(`playwright.config.ts`) | 毎 PR(`ci.yml` の E2E) |
+| 見た目が前と変わっていないか(部品の一覧と主な画面。パソコン・スマホの幅) | VRT(`pnpm vrt`。Docker の中の Chromium で撮り、基準の画像と比べる。[guides/vrt.md](guides/vrt.md)) | 毎 PR(`vrt.yml`。結果と画面は PR のコメントに) |
 | キーボードだけで使えるか・読み上げの順番 | 人が触る | 危険度「中」以上の画面の変更 |
 
-## 部品の見本(Storybook など)
+## 部品の一覧ページ
 
-まだ入れていない。部品が増えて「見本を並べて確かめたい」となったら、手元で動かすだけの形で入れる(CI には足さない)。
-いまは `pnpm dev` で画面を開き、ログイン → プロジェクト → タスクで全部の部品が出る。
+`/design-system`(手元なら http://localhost:8080/design-system)に、全部の部品を種類ごとに並べてある(ログイン無しで開ける。**本番では出ない**)。
+部品を足したら、ここにも並べる。見た目の回帰テスト(VRT)がこのページをパソコンとスマホの幅で撮るので、部品の CSS を変えると、どこが変わったかが PR に出る。
+Storybook などの見本の道具は入れていない(見るのと撮るのは、このページで足りる。[設計書 0011](designs/0011-visual-regression.md))。
