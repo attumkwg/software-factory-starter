@@ -1,5 +1,6 @@
 export * from "./account.ts";
 export * from "./auth.ts";
+export * from "./feature-flags.ts";
 export * from "./legal.ts";
 export * from "./money.ts";
 export * from "./roles.ts";

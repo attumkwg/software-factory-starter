@@ -12,7 +12,7 @@
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
-- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く)
+- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
 - `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
 
 ## 地図
@@ -22,6 +22,7 @@
 - `docker/postfix` … メールの中継(本番は ECS で SES へ・手元は Mailpit へ。http://localhost:8025)。`docs/guides/mail.md`
 - `packages/fake-cognito` … 開発とテスト専用の偽物の Cognito と、本物と比べる契約テスト(`contract/`)。偽物の振る舞いを変えたら契約テストも直す。手元の AWS の代わりの一覧は `docs/guides/local-environment.md`
 - `apps/api/src/audit` … 監査ログ(誰が・いつ・何を)。書き込みの API は認可の関所が自動で記録する。**書き込みの API を足したら `actions.ts` に名前を1行**(無ければ CI が落ちる)。記録は足すだけ
+- `apps/api/src/feature-flags` … 組織ごとの機能フラグ(定義は `packages/shared` の `FEATURE_FLAGS`・賭けに結びつける)。機能の API は `requireFeature`、画面は `hasFeature(me, …)`。切り替えは運営のコマンドだけ。使われたかは `apps/api/src/usage` の `recordUsage`(1日1人1機能1行。中身・時刻は記録しない・400日で消す)で測る。`docs/guides/feature-flags.md`
 - `apps/api/src/offboarding` … 解約の削除のコマンド(`delete-tenant`。試し → `--execute --confirm-name`)。`tenant_id` の表を足したら `TENANT_TABLES` にも。手順は `docs/runbooks/offboarding.md`
 - `apps/api/src/db/classification.ts` … 列の分類表(全部の列に `public` / `internal` / `personal` / `sensitive` と目的)。**列を足したら1行**(無ければ CI が落ちる)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ(ADR 0018)。台帳は `docs/db/personal-data.md`
 - `packages/logging` … API と画面のサーバーのログの部品。**出してよい項目だけ出す**(許可リスト。知らない名前は `[REDACTED]`)。ログに新しい名前を出すなら `ALLOWED_KEYS` に足す(人の確認)。ADR 0019
@@ -39,7 +40,7 @@
 
 - 仕様(Issue の受け入れ条件か `docs/specs/`)の無い変更はしない。分からなければ PR で「人に判断してほしい所」に書く。
 - 1 Issue = 1 PR。PR テンプレートの欄(危険度・テスト結果・判断してほしい所)を全部埋める。
-- 何を作るか・作る前に何を確かめるか → `/kickoff`。キットの部品の残す・消す → `/tailor`(正は `docs/kit/catalog.yaml`。部品を足したら1件足す。`pnpm kit:catalog`)。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。点検で担当者に聞くこと・手でやること → `/checkup`(1問ずつ。答えは台帳に書いて PR)。脆弱性(CVE・Dependabot の通知)の精査と対応方針 → `/cve`(届く・まだ直していない穴の中身はリポジトリにも Issue にも書かない。`docs/guides/vulnerabilities.md`)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
+- 何を作るか・作る前に何を確かめるか → `/kickoff`。キットの部品の残す・消す → `/tailor`(正は `docs/kit/catalog.yaml`。部品を足したら1件足す。`pnpm kit:catalog`)。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。点検で担当者に聞くこと・手でやること → `/checkup`(1問ずつ。答えは台帳に書いて PR)。点検の台帳に世の中の変化を取り込む(月1回・人が起動)→ `/checkup-refresh`。脆弱性(CVE・Dependabot の通知)の精査と対応方針 → `/cve`(届く・まだ直していない穴の中身はリポジトリにも Issue にも書かない。`docs/guides/vulnerabilities.md`)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
 - **人に聞くのは4つだけ**: 事業判断・利用者の挙動・他チームとの契約や制約・戻せないリスク。それ以外は聞かずに決め、設計書の「決めたこと」に理由を書く。4つに当たる判断は止まらずに仮に決め、設計書の「未確定事項」に `仮決め` で残す(人の答えなしに `承認` にしない)。`仮決め` が残る PR はマージに回さない(`pnpm decisions --strict`)。
 - **誤りは、入った工程から作り直す**(ナレッジ → 要求 → 設計 → 実装 → テスト)。上流の誤りをコードだけで継ぎ当てない(`/rework`)。
 - CI が落ちたら直すのは2回まで。3回目は止めて、PR に状況を書いて人に渡す。

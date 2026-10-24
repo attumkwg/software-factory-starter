@@ -20,6 +20,7 @@
 | `cognito-contract.yml` | 偽物の Cognito と同じテストを stg の本物に流す([local-environment.md](local-environment.md)) | 手動(有効にすると毎週月曜)。変数が無ければ飛ばす | 分数だけ+Cognito の利用者が数人(月1万人まで無料) | ここに日付を入れてください |
 | `restore-drill.yml` | stg の DB を一時の DB に戻して確かめ、消す([runbooks/db-restore.md](../runbooks/db-restore.md) の 5) | 手動(有効にすると毎月1日)。変数が無ければ飛ばす | 1回 数十円(一時の DB を30分ほど) | ここに日付を入れてください |
 | `zap-api-scan.yml` | ZAP の認証つき API スキャン(stg) | 手動 | 分数+stg が少し動く分 | ここに日付を入れてください |
+| `checkup.yml` | 点検の知らせ。毎週「点検 YYYY-Www」の Issue(担当者に assign)・急ぎは毎日1件ずつ Issue(直ったら閉じる)。答えは `/checkup`([checkup/README.md](../checkup/README.md))。**毎週の Issue が来なければ点検が止まっている** | 自動(毎週 月曜 8:00・急ぎは毎日 8:00)・手動でも | 分数だけ(毎週 2〜3分・毎日 1分。月 約40分) | 2026-10-24 |
 | `vuln-scan.yml` | 定期の脆弱性チェック(Trivy fs・zizmor のオンライン版)。落ちたら Issue(`/cve` で精査する) | 自動(毎週月曜 5:00)・手動でも | 分数だけ(5分ほど) | 2026-10-22 |
 
 コードレビューを自動にする選択肢(`@claude`・Anthropic 公式の Code Review・外部のサービス)は [code-review.md](code-review.md)。

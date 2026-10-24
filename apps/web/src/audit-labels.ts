@@ -26,6 +26,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "organization.mfa_require": "二段階認証を全員に必須にした",
   "organization.mfa_unrequire": "二段階認証の必須を切った",
   "legal.consent": "利用規約などに同意した",
+  "feature_flag.enable": "機能を入れた",
+  "feature_flag.disable": "機能を切った",
 };
 
 const TARGET_LABELS: Record<string, string> = {
@@ -43,7 +45,9 @@ export function auditActionLabel(e: AuditEvent): string {
   const fields = Array.isArray(e.details.fields)
     ? (e.details.fields as unknown[]).map((f) => FIELD_LABELS[String(f)] ?? String(f))
     : [];
-  return fields.length > 0 ? `${base}(${fields.join("・")})` : base;
+  if (fields.length > 0) return `${base}(${fields.join("・")})`;
+  // 運営が入れた・切った機能の名前(docs/specs/0012-feature-flags-and-usage.md)
+  return typeof e.details.flag === "string" ? `${base}(${e.details.flag})` : base;
 }
 
 export function auditActorLabel(e: AuditEvent): string {

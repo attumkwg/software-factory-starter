@@ -2,7 +2,7 @@
 
 > **利用者が困っている(か、困りそう)なら、それは障害。** 迷ったら宣言する(宣言して何も無かった、は損にならない)。
 > 原因を探すより先に**止血**(戻す・止める)。直すのは落ち着いてから。終わったら必ず**振り返り**。
-> 個別の手順: アラーム [alarms.md](alarms.md) / Sentry [sentry.md](sentry.md) / DB を戻す [db-restore.md](db-restore.md) / デプロイ・移行を戻す [deploy-rollback.md](deploy-rollback.md) / 秘密が漏れた [secret-leak.md](secret-leak.md) / 他社のデータが見えた [tenant-data-leak.md](tenant-data-leak.md) / 個人データが漏れた(委員会への報告・本人への通知)[personal-data-breach.md](personal-data-breach.md)
+> 個別の手順: アラーム [alarms.md](alarms.md) / Sentry [sentry.md](sentry.md) / DB を戻す [db-restore.md](db-restore.md) / デプロイ・移行を戻す [deploy-rollback.md](deploy-rollback.md) / 秘密が漏れた [secret-leak.md](secret-leak.md) / 他社のデータが見えた [tenant-data-leak.md](tenant-data-leak.md) / 個人データが漏れた(委員会への報告・本人への通知)[personal-data-breach.md](personal-data-breach.md) / 攻撃を受けている(総当たり・大量のアクセス・API の悪用)[attack.md](attack.md)
 
 ## 1. 重さを決めて、宣言する(最初の5分)
 
@@ -29,7 +29,7 @@
 上から順に検討する:
 
 1. **直前に何か変えたなら、戻す**: デプロイ → [deploy-rollback.md](deploy-rollback.md)。Terraform の apply → 前の状態に apply し直す。設定の変更 → 元に戻す。
-2. **壊れている機能だけ止める**: 機能フラグ(入れていれば)・その画面のボタンを隠す小さな修正。
+2. **壊れている機能だけ止める**: 機能フラグの裏の機能なら、定義の状態を `off` にする PR をデプロイ(全部の組織で止まる。[feature-flags.md](feature-flags.md)・`docs/guides/feature-flags.md`)。フラグの無い機能は、その画面のボタンを隠す小さな修正。
 3. **全体を止める(メンテナンス)**: データが壊れ続ける・他社のデータが見える、のように「動かしている方が悪い」とき。WAF で止める:
    - WAF のコンソール → Web ACL `<名前>`(例 `sfs-prod`)→ ルール → 「ルールを追加」→ 自分で作るルール: 「すべてのリクエスト」(条件 `URI path` が `/` で始まる)→ 操作「Block」→ カスタムの応答 **503**・本文「ただいまメンテナンス中です。復旧までしばらくお待ちください」→ **優先度を一番上**に。
    - 自分たちだけ通すなら、その前に「社内の IP なら Allow」のルールを置く。

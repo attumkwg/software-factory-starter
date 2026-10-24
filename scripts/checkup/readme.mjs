@@ -58,6 +58,7 @@ export function renderReadme(ledger) {
     "> 状態は台帳に書いた最後の答え。「自動で確かめる」の今の結果は `pnpm checkup` で見る(台帳の状態を信じずに毎回確かめ直す)。",
     "> 「人に聞く」「人が手でやる」には、Claude Code で `/checkup` と打って1問ずつ答える(答えは台帳に書かれ、PR になる)。答えた流れの例: [examples/](examples/)",
     `> 使い始めた日: ${startedOn}・担当者: ${ledger.owners?.responder}・相談先: ${ledger.owners?.advisor}`,
+    `> 世の中の変化の取り込み(月1回、Claude Code で \`/checkup-refresh\`): ${ledger.refreshed_on ? `前回 ${toDate(ledger.refreshed_on)}` : "まだ一度も流していない"}・調べる所 ${(ledger.refresh_sources ?? []).length}か所`,
     "> 誰が: 仕組み = 自動で済む / AI = AI が PR を出す / 人 = 担当者がやる(人・推奨 = ソフトウェアでは解けない。やるかは人が決める)",
     "",
     "## 段階(使い始めた日から数える。前の段階で済んでいない物は残る)",
