@@ -131,6 +131,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | ② | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
 | ③ | 手でやる設定 | GitHub のブランチ保護・Environments・Renovate、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
 | ④ | 点検を立ち上げる | `pnpm checkup`: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめる。1問ずつ答える /checkup は作成中 | `docs/checkup/todo.yaml`・[手順](docs/checkup/README.md) | 作成中 |
+| ⑤ | キットが既定で決めた所を決める | `pnpm decisions --adopt`: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる | `docs/designs/*.md`・[手順](docs/guides/human-review.md) | あり |
 
 ### 部品の一覧(`/tailor` で残す・消すを決める)
 
