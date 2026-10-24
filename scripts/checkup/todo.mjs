@@ -1,7 +1,7 @@
 // 点検の台帳(docs/checkup/todo.yaml)を読み、書き方を確かめ、いま見る項目を選ぶ。CLI は run.mjs。
 // 決まりは docs/designs/0007-checkup.md の 2.(データモデル)・4.(状態遷移)・6.(業務ルール)。
 import { parse } from "yaml";
-import { addDays, EVERY_DAYS, isDate, PHASES, reached, toDate } from "./phase.mjs";
+import { addDays, daysBetween, EVERY_DAYS, isDate, PHASES, reached, toDate } from "./phase.mjs";
 
 export const FILE = "docs/checkup/todo.yaml";
 export const WHO = ["system", "ai", "human"];
@@ -10,7 +10,7 @@ export const SEVERITY = ["high", "normal"];
 export const STATUS = ["open", "done", "asked_advisor", "snoozed", "retired"];
 /** 選択肢を選んだ後の状態(書かなければ done。snooze は SNOOZE_MAX_DAYS 日後にまた聞く) */
 export const AFTER = ["done", "open", "snooze"];
-/** history の result: 確かめ(pass / fail / unknown)と人の答え(設計書 2.) */
+/** history の result: 確かめ(pass / fail / unknown)・人の答え・refresh の引退(設計書 2.) */
 export const RESULTS = [
   "pass",
   "fail",
@@ -20,7 +20,10 @@ export const RESULTS = [
   "snoozed",
   "did",
   "could_not",
+  "retired",
 ];
+/** 世の中の変化の取り込み(/checkup-refresh)を、前回から何日で知らせるか(月1回+少しの余裕) */
+export const REFRESH_DAYS = 35;
 const REQUIRED = [
   "id",
   "title",
@@ -123,11 +126,28 @@ function checkItem(item, checkNames, problems) {
  * 台帳の書き方を確かめ、問題の一覧を返す(空なら合格)。
  * checkNames を渡すと、auto の check が実在するかも見る。
  */
+/** 世の中の変化の取り込みの欄(refreshed_on・refresh_sources。書いてあれば形を見る) */
+function checkRefresh(ledger, problems) {
+  if (ledger?.refreshed_on !== undefined && !isDate(toDate(ledger.refreshed_on)))
+    problems.push("refreshed_on(前回の世の中の変化の取り込み)は YYYY-MM-DD");
+  if (ledger?.refresh_sources === undefined) return;
+  if (!Array.isArray(ledger.refresh_sources) || ledger.refresh_sources.length === 0) {
+    problems.push("refresh_sources(調べる所)は1件以上の一覧");
+    return;
+  }
+  for (const src of ledger.refresh_sources)
+    if (!src?.name || !String(src?.url ?? "").startsWith("https://") || !src?.covers)
+      problems.push(
+        `refresh_sources の「${src?.name ?? "(名前なし)"}」に name・url(https://)・covers が要る`,
+      );
+}
+
 export function validateLedger(ledger, checkNames) {
   const problems = [];
   if (!isDate(toDate(ledger?.started_on))) problems.push("started_on(使い始めた日)が無い");
   if (!ledger?.owners?.responder) problems.push("owners.responder(担当者)が無い");
   if (!ledger?.owners?.advisor) problems.push("owners.advisor(相談先)が無い");
+  checkRefresh(ledger, problems);
   const ids = new Set();
   for (const item of ledger?.items ?? []) {
     if (ids.has(item?.id)) problems.push(`項目 ${item.id} が2回ある`);
@@ -173,6 +193,17 @@ function bucketOf(item, today) {
   if (item.status === "snoozed" && toDate(item.snoozed_until) > today) return "snoozed";
   if (item.status === "done" && !dueAgain(item, today)) return "done";
   return item.verify === "ask" ? "ask" : "manual";
+}
+
+/**
+ * 世の中の変化の取り込み(/checkup-refresh)を流す時期か(w-ledger)。
+ * 戻り値: { due, days }(days は前回からの日数。一度も流していなければ undefined)
+ */
+export function refreshDue(ledger, today) {
+  const last = toDate(ledger?.refreshed_on);
+  if (!isDate(last)) return { due: true, days: undefined };
+  const days = daysBetween(last, today);
+  return { due: days > REFRESH_DAYS, days };
 }
 
 /** 見直す日が来た・過ぎた項目(w-ledger) */

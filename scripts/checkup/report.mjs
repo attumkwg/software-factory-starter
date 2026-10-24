@@ -41,19 +41,29 @@ export function headline(run) {
   ];
 }
 
-/** 結果の全文(Markdown) */
-export function renderReport(run) {
+/**
+ * 結果の節(急ぎ → 落ちた → 確かめられなかった → 聞く → 手でやる → 相談先 → 今はやらない → 問題なし)。
+ * opts.issue … Issue の本文にする(手でやる物をチェックボックスに・相談先を @ で呼ぶ)
+ * opts.advisor … 相談先(@ 付きの名前)
+ */
+export function reportSections(run, opts = {}) {
   const failed = run.results.filter((r) => r.result === "fail");
   const urgent = urgentOf(run);
   const later = failed.filter((r) => !urgent.includes(r));
   const unknown = run.results.filter((r) => r.result === "unknown");
   const passed = run.results.filter((r) => r.result === "pass");
-  const question = (i) => `\n  - 問い: ${i.question.text}`;
-  const steps = (i) => `\n  - 手順は ${i.steps.length}つ(/checkup で番号付きで出す)`;
+  const question = (i) => `
+  - 問い: ${i.question.text}`;
+  const steps = (i) => `
+  - 手順は ${i.steps.length}つ(/checkup で番号付きで出す)`;
+  const manualLine = (i) => {
+    const line = itemLine(i, steps(i));
+    return opts.issue ? line.replace("- ", "- [ ] ") : line;
+  };
+  const advisorHead =
+    opts.issue && opts.advisor ? [`${opts.advisor} さんに答えてほしい物です。`, ""] : [];
+  const advisorLines = run.advisor.map((i) => itemLine(i));
   return [
-    `# 点検 ${run.today}`,
-    "",
-    ...headline(run).map((l) => `- ${l}`),
     ...section("🔴 急ぎ(守りが効いていない・重い穴・漏れ)", urgent.map(resultLine)),
     ...section("🟡 落ちた(急がない)", later.map(resultLine)),
     ...section("❔ 確かめられなかった(gh が無い・権限が無いなど)", unknown.map(resultLine)),
@@ -61,24 +71,40 @@ export function renderReport(run) {
       "🙋 あなたに聞くこと",
       run.ask.map((i) => itemLine(i, question(i))),
     ),
-    ...section(
-      "✋ あなたが手でやること",
-      run.manual.map((i) => itemLine(i, steps(i))),
-    ),
+    ...section("✋ あなたが手でやること", run.manual.map(manualLine)),
     ...section(
       "📮 相談先に回っている(「分からない」を選んだ物)",
-      run.advisor.map((i) => itemLine(i)),
+      advisorLines.length === 0 ? [] : [...advisorHead, ...advisorLines],
     ),
     ...section(
       "💤 今はやらない",
-      run.snoozed.map((i) => itemLine(i, `\n  - 次に聞く日: ${i.snoozed_until}`)),
+      run.snoozed.map((i) =>
+        itemLine(
+          i,
+          `
+  - 次に聞く日: ${i.snoozed_until}`,
+        ),
+      ),
     ),
     ...section(
       "✅ 自動で確かめて問題なし",
       passed.map((r) => `- ${r.item.title} \`${r.item.id}\` — ${r.note}`),
     ),
+  ];
+}
+
+export const footer = (run) =>
+  `> 段階は使い始めた日(${run.startedOn})から数える。前の段階で済んでいない物は残る。台帳: docs/checkup/todo.yaml・1枚: docs/checkup/README.md`;
+
+/** 結果の全文(Markdown) */
+export function renderReport(run) {
+  return [
+    `# 点検 ${run.today}`,
     "",
-    `> 段階は使い始めた日(${run.startedOn})から数える。前の段階で済んでいない物は残る。台帳: docs/checkup/todo.yaml・1枚: docs/checkup/README.md`,
+    ...headline(run).map((l) => `- ${l}`),
+    ...reportSections(run),
+    "",
+    footer(run),
     "",
   ].join("\n");
 }

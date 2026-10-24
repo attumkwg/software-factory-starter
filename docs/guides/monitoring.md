@@ -37,6 +37,7 @@ AWS Budgets(費用)─┘                                          │
 | (Security Hub) | GuardDuty・設定の点検の HIGH / CRITICAL | その都度 | security-baseline |
 | `uptime-{web,api}` | **外から**開けない(東京・シンガポール・オレゴンから30秒ごとに `/readyz` と `/api/auth/options`) | ほとんどの地点から2分続けて | uptime(アラームはバージニア) |
 | (AWS Backup) | DB のバックアップが失敗・中止・期限切れ | その都度 | backup([runbooks/db-restore.md](../runbooks/db-restore.md) の 6) |
+| `waf-hits` | WAF が止めた(数えるだけの間は、止めるはずだった)数が多い。攻撃かもしれない([runbooks/attack.md](../runbooks/attack.md)) | 5分に100回 | waf |
 | `cert-expiry` | 証明書の期限まで30日を切った(自動の更新の失敗) | 1日1回見る | monitoring |
 
 **数字(しきい値)は最初の目安**。鳴りすぎたら上げる・鳴らなくて困ったら下げる。変えたら、この表も直す。
