@@ -5,6 +5,8 @@
 #      アラーム(5xx)が鳴れば自動で戻す。API が先なのは、新しい画面が新しい API を前提にできるように
 #      (API は古い画面からも呼ばれるので、項目は足すだけ・消さない。packages/shared の決まり)
 #   4. 外から疎通を確かめる(画面の /readyz と、ALB の向こうの API)
+# prod だけ、最初に未確定事項を確かめる(pnpm decisions --launch)。仮決め・導入時に決める が残っていれば、
+# AWS に触る前に止まる(docs/designs/0013-decisions-at-adoption.md)。
 # AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
 # main 以外から流したときも、ジョブごと飛ばす。feature のブランチを stg に出せると、prod は stg のイメージを
 # 引くので、承認1回でレビューされていないコードが本番に出てしまう。GitHub の Environments(stg・prod)の
@@ -157,6 +159,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: 公開の前に決める物が残っていないか(仮決め・導入時に決める。pnpm decisions --adopt と /tailor で決める)
+        run: node scripts/decisions.mjs --launch
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_PROD_DEPLOY_ROLE_ARN }}
