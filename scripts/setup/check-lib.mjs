@@ -1,6 +1,7 @@
 // pnpm setup:check の中身。GitHub を読まずに、.github/setup.yml・labels.yml とコードのずれを見る。
 // ファイルは引数の src(list・read)で受け取る(テストで差し替えるため)。決まり: docs/designs/0014-setup-before-use.md の 3.
 import { validateLabels, validateSetup } from "./config.mjs";
+import { LABELS_GUIDE, renderLabelsGuide } from "./labels-doc.mjs";
 import {
   labelsInIssueTemplate,
   labelsInLabeler,
@@ -114,3 +115,9 @@ export function checkAll({ setup, labels, src, checkupEnvironments = [] }) {
     unused: l.unused,
   };
 }
+
+/** ラベルの手引き(docs/guides/labels.md)が一覧から作り直されているか */
+export const checkGuide = (labels, src) =>
+  src.read(LABELS_GUIDE) === renderLabelsGuide(labels)
+    ? []
+    : [`${LABELS_GUIDE} が .github/labels.yml と合っていない(pnpm setup:labels で作り直す)`];

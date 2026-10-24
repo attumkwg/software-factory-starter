@@ -103,6 +103,10 @@ test("w-ledger: 見直す日の過ぎた項目と、世の中の変化の取り�
   assert.ok(late.note.includes("から 36日") && late.note.includes("/checkup-refresh"), late.note);
   const never = await ledgerReview(fakeCtx({ ledger: { items: [] } }));
   assert.match(never.note, /一度も流していない/);
+  // ひな形(キットのリポジトリ)では落とさない: 定期では回さず、呼んだときに /checkup-refresh
+  const kit = await ledgerReview({ ...fakeCtx({ ledger: { items: [] } }), role: "template" });
+  assert.equal(kit.result, "pass");
+  assert.match(kit.note, /ひな形なので定期では回さない.*一度も流していない/);
 });
 
 test("coverage-total: 単体だけで測っていれば不合格", async () => {

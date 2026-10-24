@@ -1,75 +1,161 @@
 # ラベルの一覧(ここが正)。pnpm setup:github --apply がここから作る・色と説明をそろえる。
+#   - 人が読む手引き docs/guides/labels.md は、ここから pnpm setup:labels で作る(手で直さない。古いと pnpm setup:check が落ちる)
 #   - コード・ワークフロー・テンプレート・スクリプト・スキルが使うラベルがここに無ければ、CI の pnpm setup:check が落ちる
 #   - ここに無いラベル(GitHub の既定の bug など)は消さない(付いている Issue から外れてしまう)。消すなら人が画面で
 #   - name を変えると、付いている Issue・PR の表示も変わる。使っている所(used_by)も一緒に直す
-#   - color は6桁の16進(# なし)。description は100文字まで(GitHub の上限)
+# 書き方:
+#   name … GitHub のラベルの名前 / color … 6桁の16進(# なし)
+#   description … GitHub の画面に出る短い説明(100文字まで。GitHub の上限)
+#   group … 手引きの見出し / meaning … 何のラベルか / who … 誰が付けるか(自動 / AI / 人。自動なら何が)
+#   when … いつ付く / action … 付いたら何をするか / used_by … 使っている所(人が読むため。確かめない)
 # 決まり: docs/designs/0014-setup-before-use.md の 2.
 
 labels:
-  # ── 危険度(変えたパスで labeler が付ける。.github/labeler.yml)──
+  # ── 危険度(PR。変えたパスで自動で付く)──
   - name: risk:high
     color: ededed
-    description: "危険度「高」: 認証・認可・DB・移行・infra・CI など。人の確認が要る(変えたパスで自動で付く)"
+    description: "危険度「高」: 認証・認可・DB・移行・infra・CI・ハーネスを変えた PR。人が中身を見る(自動で付く)"
+    group: 危険度(PR)
+    meaning: 間違えると戻せない・守りが外れる場所(認証・認可・DB と移行・権限の表・infra・CI・AI のハーネス)を変えた PR
+    who: 自動(labeler。.github/labeler.yml のパス)
+    when: PR を開いた・push したとき。複数付いたら一番高いものがその PR の危険度
+    action: 人が中身を読む(👥 人が増えたら2人。CODEOWNERS)。PR の「人に判断してほしい所」から読む
     used_by: .github/labeler.yml
   - name: risk:medium
     color: ededed
-    description: "危険度「中」: API や画面の中身。AI のレビュー+人が全体像を見る(自動で付く)"
+    description: "危険度「中」: API や画面の中身を変えた PR。人が全体像を見る(自動で付く)"
+    group: 危険度(PR)
+    meaning: API・画面・部品の中身を変えた PR(高の場所は含まない)
+    who: 自動(labeler)
+    when: PR を開いた・push したとき
+    action: 人は全体像と「人に判断してほしい所」を見る(細かい所は CI と AI のレビュー)
     used_by: .github/labeler.yml
   - name: risk:low
     color: ededed
-    description: "危険度「低」: 文書・テストなど。緑なら人はほぼ見なくてよい(自動で付く)"
+    description: "危険度「低」: 文書・テストだけの PR。CI が緑なら人はほぼ見なくてよい(自動で付く)"
+    group: 危険度(PR)
+    meaning: 変えたファイルが全部、文書かテストの PR
+    who: 自動(labeler)。不具合の Issue には /report-bug が見込みで付ける
+    when: PR を開いた・push したとき
+    action: CI が緑ならマージしてよい(最初の1〜2か月は人も見て、AI の見逃しを数える)
     used_by: .github/labeler.yml・/report-bug
 
-  # ── 変えた場所(labeler が付ける)──
+  # ── 変えた場所(PR。自動で付く)──
   - name: area:api
     color: ededed
-    description: API(apps/api)に関わる
+    description: API(apps/api)を変えた PR(自動で付く)
+    group: 変えた場所(PR)
+    meaning: API(apps/api)を変えた PR
+    who: 自動(labeler)
+    when: PR を開いた・push したとき
+    action: 何もしなくてよい(PR を探す・数えるための印)
     used_by: .github/labeler.yml
   - name: area:web
     color: ededed
-    description: 画面(apps/web)に関わる
+    description: 画面(apps/web)を変えた PR(自動で付く)
+    group: 変えた場所(PR)
+    meaning: 画面(apps/web)を変えた PR
+    who: 自動(labeler)
+    when: PR を開いた・push したとき
+    action: 何もしなくてよい。見た目が変われば VRT の結果が PR のコメントに出る
     used_by: .github/labeler.yml
   - name: area:infra
     color: ededed
-    description: インフラ(infra/terraform)に関わる
+    description: インフラ(infra/terraform)を変えた PR(自動で付く)
+    group: 変えた場所(PR)
+    meaning: インフラ(infra/terraform)を変えた PR
+    who: 自動(labeler)
+    when: PR を開いた・push したとき
+    action: 何もしなくてよい。apply はマージの後に人が CI で
     used_by: .github/labeler.yml
 
-  # ── Issue の種類(テンプレートとスキルが付ける)──
+  # ── Issue の種類・仕分け ──
   - name: kind:bug
     color: d73a4a
-    description: 不具合(Issue のテンプレートが付ける)
+    description: 不具合の報告(Issue のテンプレートと /report-bug が付ける)
+    group: Issue の種類・仕分け
+    meaning: 不具合の報告の Issue
+    who: 自動(Issue のテンプレート「不具合」)・AI(/report-bug)
+    when: 不具合の Issue を作ったとき
+    action: 再現の手順と危険度を見て、直すなら /rework か /new-feature で PR に
     used_by: .github/ISSUE_TEMPLATE/bug.yml・/report-bug
   - name: kind:feature
     color: a2eeef
-    description: 機能の要望(Issue のテンプレートが付ける)
+    description: 機能の要望(Issue のテンプレートと /new-feature が付ける)
+    group: Issue の種類・仕分け
+    meaning: 機能の要望・機能の親 Issue
+    who: 自動(Issue のテンプレート「機能」)・AI(/new-feature)
+    when: 機能の Issue を作ったとき
+    action: 賭け(/bet)が無ければ先に開く。仕様と子 Issue は /new-feature
     used_by: .github/ISSUE_TEMPLATE/feature.yml・/new-feature
   - name: needs-triage
     color: ededed
-    description: まだ仕分けていない Issue
+    description: まだ仕分けていない Issue(テンプレートが付ける。仕分けたら外す)
+    group: Issue の種類・仕分け
+    meaning: まだ誰も中身を見て仕分けていない Issue
+    who: 自動(Issue のテンプレート)・人(Slack のフォームから来た Issue)
+    when: Issue を作ったとき
+    action: 週に1回まとめて見て、やる・やらない・後で を決めたら外す
     used_by: .github/ISSUE_TEMPLATE
 
-  # ── 依存の更新(renovate.json)──
+  # ── 依存の更新(Renovate)──
   - name: dependencies
     color: 0366d6
-    description: 依存の更新(Renovate・Dependabot)
+    description: 依存の更新の PR(Renovate が付ける)
+    group: 依存の更新
+    meaning: 部品(ライブラリ・Action・イメージ)の版を上げる PR
+    who: 自動(Renovate。renovate.json)
+    when: 更新の PR が出たとき(毎週月曜の朝・最大5本)
+    action: CI が緑で危険度「低」ならまとめてマージ。大きい版は Dependency Dashboard の Issue で承認してから
     used_by: renovate.json
   - name: security
     color: b60205
-    description: セキュリティに関わる更新・Issue
+    description: 脆弱性を直す依存の更新(Renovate が付ける。急ぐ)
+    group: 依存の更新
+    meaning: 既知の脆弱性を直すための依存の更新の PR
+    who: 自動(Renovate の脆弱性の直し)
+    when: 直った版が出たとき(いつでも。待たない)
+    action: 先にマージする。届くか・ほかに要る直しがあるかは /cve で
     used_by: renovate.json(脆弱性の直し)
 
-  # ── 点検の知らせ(checkup.yml。scripts/checkup/notify.mjs と同じ色)──
+  # ── 点検の知らせ(キットから作ったリポジトリだけ)──
   - name: checkup
     color: 0e8a16
-    description: 点検(pnpm checkup の知らせ)
+    description: 点検の知らせ(毎週の「点検 YYYY-Www」と急ぎ。checkup.yml が付ける)
+    group: 点検の知らせ
+    meaning: 点検(docs/checkup/todo.yaml)の知らせの Issue
+    who: 自動(checkup.yml。毎週月曜 8:00)
+    when: 毎週の「点検 YYYY-Www」と、急ぎの Issue を作ったとき
+    action: Claude Code で /checkup と打って1問ずつ答える(Issue のチェックは「やった」の印だけ)
     used_by: scripts/checkup/notify.mjs・/checkup
   - name: checkup-urgent
     color: b60205
-    description: 点検の急ぎ(守りが外れた・重い穴・漏れ)
+    description: 点検の急ぎ(守りが外れた・重い穴・漏れ。直ったら自動で閉じる)
+    group: 点検の知らせ
+    meaning: 守りが外れた・重い穴が開いている・秘密が漏れた など、すぐ直す物
+    who: 自動(checkup.yml。毎日 8:00)
+    when: 急ぎの確かめが落ちたとき(1件ずつ)
+    action: その日のうちに直す。直れば次の朝に自動で閉じる
     used_by: scripts/checkup/notify.mjs
 
-  # ── 見た目の回帰テスト(vrt.yml)──
+  # ── 人が記録に付ける ──
+  - name: restore-drill
+    color: "5319e7" # 引用符が要る(無いと YAML が数 5319×10⁷ と読む)
+    description: DB を戻す訓練の記録(prod の四半期の訓練の結果の Issue に人が付ける)
+    group: 記録
+    meaning: DB を戻す訓練の結果を残した Issue
+    who: 人
+    when: prod の戻す訓練(四半期に1回・手で)の結果を Issue に書いたとき
+    action: 何もしなくてよい(点検と監査のときに、訓練をした証拠として探す)
+    used_by: docs/runbooks/db-restore.md の 5
+
+  # ── 見た目の回帰テスト(PR に人が付ける)──
   - name: vrt:update
     color: fbca04
-    description: VRT の基準の画像を GitHub で撮り直す(撮り直したら外す)
+    description: VRT の基準の画像を CI で撮り直す(画面を変えた PR に人が付ける。撮り直したら外す)
+    group: 見た目の回帰テスト(PR)
+    meaning: 見た目の比べ(VRT)の基準の画像を、GitHub の上で撮り直してほしい印
+    who: 人(手元に Docker が無いとき)
+    when: 画面をわざと変えた PR で、VRT が赤のとき
+    action: CI が撮り直し、取り込む1行が PR のコメントに出る。取り込んでコミットしたらラベルを外す
     used_by: .github/workflows/vrt.yml

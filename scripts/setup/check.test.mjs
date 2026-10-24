@@ -1,11 +1,21 @@
 // pnpm setup:check の中身(GitHub を読まない確かめ)のテスト。ファイルは偽物の src で渡す。
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkAll } from "./check-lib.mjs";
+import { checkAll, checkGuide } from "./check-lib.mjs";
 import { validateLabels } from "./config.mjs";
+import { LABELS_GUIDE, renderLabelsGuide } from "./labels-doc.mjs";
 import { labelsInText, readWorkflow } from "./usage.mjs";
 
-const label = (name) => ({ name, color: "ededed", description: name });
+const label = (name, who = "自動(labeler)") => ({
+  name,
+  color: "ededed",
+  description: name,
+  group: "危険度",
+  meaning: `${name} の意味`,
+  who,
+  when: "PR を開いたとき",
+  action: "人が見る",
+});
 const setupWith = (over = {}) => ({
   version: 1,
   template_repository: "kit/starter",
@@ -60,7 +70,7 @@ test("一覧に無いラベルを使っていれば落ち、使っていない�
     "scripts/a.test.mjs": 'const LABEL = "only-in-test";',
     "scripts/setup/usage.mjs": "// --label example",
   });
-  const labels = ["risk:high", "kind:bug", "dependencies", "checkup", "spare"].map(label);
+  const labels = ["risk:high", "kind:bug", "dependencies", "checkup", "spare"].map((n) => label(n));
   const r = checkAll({ setup: setupWith(), labels, src });
   assert.deepEqual(r.unused, ["spare"]);
   assert.equal(r.problems.length, 2);
@@ -133,17 +143,29 @@ test("定期で動くワークフローは、needs の無いジョブ全部に K
   assert.match(r.problems[0], /open\.yml は定期で動くのに、a の if に/);
 });
 
-test("ラベルの一覧の書き方: 色・説明の長さ・大文字小文字の重なり", () => {
+test("ラベルの一覧の書き方: 色・説明の長さ・大文字小文字の重なり・手引きに出す欄", () => {
+  const { action: _action, ...noAction } = label("no-action");
   const problems = validateLabels([
     label("ok"),
-    { name: "bad-color", color: "#fff", description: "x" },
-    { name: "long", color: "ededed", description: "あ".repeat(101) },
+    { ...label("bad-color"), color: "#fff" },
+    { ...label("long"), description: "あ".repeat(101) },
     label("OK"),
+    noAction,
   ]);
-  assert.equal(problems.length, 3);
+  assert.equal(problems.length, 4);
   assert.match(problems.join("\n"), /bad-color の color/);
   assert.match(problems.join("\n"), /long の description/);
   assert.match(problems.join("\n"), /OK が2回/);
+  assert.match(problems.join("\n"), /no-action に action が無い/);
+});
+
+test("ラベルの手引きは一覧から作る: 人が付けるラベルを先に出し、古ければ落ちる", () => {
+  const labels = [label("risk:high"), label("vrt:update", "人(手元に Docker が無いとき)")];
+  const guide = renderLabelsGuide(labels);
+  assert.match(guide, /人が手で付けるのは `vrt:update` だけ/);
+  assert.match(guide, /\| `risk:high` \| risk:high の意味 \| 自動\(labeler\) \|/);
+  assert.deepEqual(checkGuide(labels, srcOf({ [LABELS_GUIDE]: guide })), []);
+  assert.equal(checkGuide(labels, srcOf({ [LABELS_GUIDE]: "古い" })).length, 1);
 });
 
 test("設定の書き方が違えば、ほかを見ずにそれを返す", () => {

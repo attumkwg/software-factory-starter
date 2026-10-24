@@ -117,7 +117,7 @@ Issue の形(題名 `点検 2026-W43`、ラベル `checkup`、担当者を assig
 - 相談先に回っている項目があれば、その節で相談先を @ で呼ぶ(相談先にも通知が届く)。
 - ラベル `checkup`。担当者(`owners.responder`)を assign。assign できなければ assign なしで立て、本文の先頭で @ で呼ぶ。
 
-急ぎ(`--urgent`)の Issue の形(題名 `点検の急ぎ: <項目の title>`、ラベル `checkup`・`checkup-urgent`、担当者を assign):
+急ぎ(`--urgent`)の Issue の形(題名 `点検の急ぎ: <項目の title>`、ラベル `checkup`・`checkup-urgent`(意味は docs/guides/labels.md。一覧は .github/labels.yml)、担当者を assign):
 
 ```
 🔴 <title>(【守りが外れた】なら頭に付ける)

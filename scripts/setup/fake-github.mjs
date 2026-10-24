@@ -8,6 +8,7 @@ function baseState() {
   return {
     repo: {
       full_name: "acme/app",
+      created_at: "2026-11-01T00:00:00Z",
       visibility: "public",
       allow_merge_commit: true,
       allow_squash_merge: true,
@@ -209,6 +210,11 @@ export function fakeGitHub(change = () => {}) {
     get: (sub) => route("GET", sub),
     getPath: (path) => {
       if (path === "user") return done(state.me);
+      // キットの最後のコミット(state.kitUpdatedAt があれば1件)
+      if (/^repos\/[^/]+\/[^/]+\/commits\?/.test(path))
+        return done(
+          state.kitUpdatedAt ? [{ commit: { committer: { date: state.kitUpdatedAt } } }] : [],
+        );
       const m = path.match(/^users\/(.+)$/);
       if (!m) return notFound;
       const id = 100 + Object.keys(state.users).length;

@@ -37,6 +37,8 @@
 - `pnpm setup:github` は試しが既定。`--apply` で差分のある所だけ書く(何度流しても同じ)。消さない(一覧に無いラベル・扱わない規則)。秘密は名前だけ。
 - CI の `pnpm setup:check` が、使われているラベル・必須のチェックの名前・Environment・定期のワークフローの見分けが、ファイルとずれていないかを見る。
 - 定期で動くワークフローは `vars.KIT_ROLE == 'product'` のときだけ定期で動く(手では流せる)。ひな形でも回す物は `template_schedules` に理由つきで足す。
+- ひな形で動かし続けるのはライブラリの更新(Renovate・Dependabot の通知)だけ。古くなった仕組みの点検と直しは、持ち主が呼んだときに `/checkup-refresh` を1回。溜まった最新化は、使う人が作り始める `pnpm setup:github` で知らせる(持ち主の方針。2026-10-24)。
+- ラベルの意味・誰が付けるか・付いたらどうするかは `.github/labels.yml` に持ち、人が読む手引き `docs/guides/labels.md` をそこから作る。
 - 使う人の入口は README の「使い始めたらやること」の最初・`docs/getting-started.md` の ③・`/kickoff` と `/tailor`。部品を足した PR は「マージの後に人がやる設定」を書く代わりに、設定ファイルを直す(マージの後は `pnpm setup:github --apply` だけ)。
 
 ## 結果として起きること

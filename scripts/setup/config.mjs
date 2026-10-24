@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
+import { GUIDE_FIELDS } from "./labels-doc.mjs";
 
 export const SETUP_FILE = ".github/setup.yml";
 export const LABELS_FILE = ".github/labels.yml";
@@ -33,6 +34,8 @@ function labelProblems(l, i) {
   if (!isHex(l?.color)) problems.push(`${at} の color は6桁の16進(# なし)`);
   if (!l?.description) problems.push(`${at} に description が無い`);
   else if ([...l.description].length > 100) problems.push(`${at} の description は100文字まで`);
+  for (const f of GUIDE_FIELDS)
+    if (!l?.[f]) problems.push(`${at} に ${f} が無い(手引き docs/guides/labels.md に出す)`);
   return problems;
 }
 

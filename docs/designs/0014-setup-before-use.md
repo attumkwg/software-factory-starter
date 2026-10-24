@@ -53,8 +53,16 @@ labels:
   - name: risk:high          # GitHub のラベルの名前(変えると付いている Issue の表示が変わる)
     color: ededed            # 6桁の16進(# なし。比べるときは大文字と小文字を区別しない)
     description: …           # 100文字まで(GitHub の上限)
+    group: 危険度(PR)        # 手引きの見出し
+    meaning: …               # 何のラベルか
+    who: 自動(labeler)       # 誰が付けるか(自動 / AI / 人。自動なら何が)
+    when: …                  # いつ付く
+    action: …                # 付いたら何をするか(then は JS で Promise に見えるので使わない)
     used_by: .github/labeler.yml   # 何が付けるか・読むか(人が読むため。確かめない)
 ```
+
+- 人が読む手引き `docs/guides/labels.md` は、この一覧から `pnpm setup:labels` で作る(手で直さない)。ラベルの説明が README・playbook・手順書・設計書に散らばっていたので、そこからはこの1枚を指す
+- `description`(GitHub の画面の説明欄)は短い版。長い説明は手引きに
 
 ### `.github/setup.yml`
 
@@ -98,6 +106,7 @@ labels:
 3. 必須のチェックが、PR で動くワークフロー(`on` に `pull_request` がある)のジョブの名前にあるか。`${{ matrix.x }}` は `strategy.matrix.x` の値で広げる
 4. ワークフローの `environment:`(文字か `{ name }`)が `environments` にあるか。点検の `gh-envs` が見る Environment(`ENVIRONMENTS`)も `environments` にあるか
 5. `schedule:` が生きているワークフローのうち `template_schedules` に無い物は、`needs` の無いジョブ全部の `if` に `vars.KIT_ROLE == 'product'` があるか
+6. ラベルの手引き(`docs/guides/labels.md`)が一覧から作り直されているか(古ければ `pnpm setup:labels`)
 
 ## 4. 状態遷移
 
@@ -147,7 +156,7 @@ labels:
 | ワークフロー | 定期 | ひな形で | 見分け方 |
 |---|---|---|---|
 | `checkup.yml` | 毎週・毎日(生きている) | **止める** | `KIT_ROLE`(この PR で足す) |
-| `vuln-scan.yml` | 毎週(生きている) | **止める**(U-1) | `KIT_ROLE`(この PR で足す) |
+| `vuln-scan.yml` | 毎週(生きている) | **止める**(U-1。持ち主の方針で承認) | `KIT_ROLE`(この PR で足す) |
 | `security-fuzz.yml` | コメントで止めてある | 止まっている | 有効にするときは `KIT_ROLE` が要る(`pnpm setup:check` が落とす) |
 | `restore-drill.yml`・`cognito-contract.yml`・`zap-api-scan.yml`・`cleanup-previews.yml` | コメントで止めてある | 止まっている | AWS の変数(ひな形には置かない)。有効にするときは `KIT_ROLE` も要る |
 | `deploy.yml`・`preview.yml`・`terraform-plan.yml`・`claude.yml` | 定期ではない(push・PR・コメント) | AWS の変数・秘密が無いので飛ぶ | 今のまま |
@@ -167,6 +176,19 @@ labels:
 | Environment の秘密が無い | 使うなら、秘密 `<名前>` を Environment `<名前>` に(値は人が画面で) |
 | リポジトリの秘密が無い(任意) | 使うなら、秘密 `CHECKUP_TOKEN`(点検がブランチ保護を読む)・`SLACK_WEBHOOK_URL` |
 | ファイルを直した | 直したファイルは1つの PR に |
+
+### キットの古くなった所を、作り始めるときに知らせる
+
+キットそのものは定期の運用を回さない(持ち主の方針。11.)。その代わり、使う人がキットで作り始める `pnpm setup:github`(使う側)の「人がやること」に、溜まった分をその場で出す:
+
+| 見分け方 | 出す文 |
+|---|---|
+| キットの最後のコミットの日 > このリポジトリを作った日(`gh api repos/<template_repository>/commits?per_page=1`・`created_at`) | 作った後にキットが更新されている(取り込みたい直しが無いか、キットのコミットの一覧を見る) |
+| 台帳の `refreshed_on` が無い・35日を過ぎた(`refreshDue`) | 最初の `/checkup-refresh`(キットの台帳が世の中の変化を取り込んだのは いつ / 一度も無い) |
+| 見直す日(`review_by`)の過ぎた項目がある(`reviewDue`) | 見直す日の過ぎた項目 N件 → `/checkup-refresh` で見直す |
+| いつも(Renovate の手順に添える) | Renovate を入れると、キットに溜まった依存の更新が PR で出る(最初の週は多め) |
+
+ひな形の側では、点検の `w-ledger`(見直す日・取り込みの時期)は**落とさない**(`ctx.role === "template"` なら pass にして、残りを注記に出す)。持ち主が呼んだときに `/checkup-refresh` を1回流す。役割は `scripts/checkup/context.mjs` が `.github/setup.yml` の `template_repository` と比べて決める。
 
 ### `pnpm checkup:adopt` の書き換え
 
@@ -193,6 +215,9 @@ labels:
 | Environment があるか | 3. の 4 | `setup.test.mjs` |
 | 定期のジョブに見分けがあるか | 3. の 5 | `setup.test.mjs` |
 | 台帳を自分の物にする | 6. の adopt | `scripts/checkup/adopt.test.mjs` |
+| ラベルの手引きが一覧から作られ、古ければ落ちる | 2.・3. の 6 | `check.test.mjs`(手引きの形・古いとき) |
+| 作り始めるときにキットの古くなった所を知らせる | 6.「キットの古くなった所」 | `plan.test.mjs`(作った後の更新・取り込みの古さ・見直す日。ひな形では出さない) |
+| ひな形では w-ledger が落ちない | 6.「キットの古くなった所」 | `scripts/checkup/checks-more.test.mjs` |
 | 台帳の担当者がひな形のままなら出す | 6. の表 | `setup.test.mjs` |
 
 ## 8. 非機能
@@ -232,6 +257,21 @@ labels:
 
 ## 11. 決めたこと(AI が決めた。人に聞かなかった)
 
+### 持ち主が決めたこと(2026-10-24 の会話。承認)
+
+> 「やりたい最新化っていうところはあるんですけど、それは作っていくときに都度教えてもらったりとかしてもらえるといいかもです」
+> 「このキットの運用自体は回したくないです。やんなきゃいけないこととしては、ライブラリ等々のアップデートとか、あとはよっぽど古い仕組みだからおかしいみたいなところの点検と修正ですかね。その点検は都度回していくことになると思う。その時にやっていくとかしてほしい」
+> 「ラベルの使い方って、なんか説明ってどっかにあったりしますかね。いきなり一通りラベル出されても、何のことかわかんない気がしてます」
+
+- ひな形のリポジトリでは定期の運用を回さない(毎週の点検の Issue・急ぎの知らせ・月1回の `/checkup-refresh`・戻す訓練・契約テストの定期実行)。台帳の運用の項目(`w-ledger`)もひな形では落ちない
+- ひな形で動かし続けるのは**ライブラリの更新だけ**(Renovate の PR・Dependabot の通知)。毎週の定期の脆弱性チェック(`vuln-scan.yml`)は更新ではなく「落ちたら Issue を立てて精査する」運用なので止める(U-1。手で流すのはできる)
+- 古くなった仕組みの点検と直しは、**持ち主が呼んだときに1回**(`/checkup-refresh` を手で起動して PR に)。定期では回さない
+- 最新化の知らせは、使う人が**作り始めるとき**に出す(`pnpm setup:github` の「人がやること」と、`/kickoff` が先に `pnpm setup:github` を勧める流れ。6.「キットの古くなった所」)
+- 使う人の側では、セットアップの後に定期の運用が始まる
+- ラベルの説明は1か所(`.github/labels.yml` の 意味・誰が・いつ・付いたらどうするか)にまとめ、人が読む手引き `docs/guides/labels.md` を作る。2026-10-24 に手で作った6つ(`vrt:update`・`kind:bug`・`kind:feature`・`needs-triage`・`dependencies`・`security`)の説明は仮の物なので、`--apply` で一覧の説明にそろえ直す
+
+### AI が決めたこと
+
 - 設定の道具は自前のスクリプト+`gh` — 依存を足さない・試しで差分を見せられる・持ち主の `gh` のログインをそのまま使える。Terraform の GitHub プロバイダは状態の置き場とトークンが要り、外の App(Settings の App など)は権限の広い App を入れることになる(ADR 0027)
 - 見分けは変数 `KIT_ROLE` を**入れたときだけ**動く形(既定は止まる) — 名前で見分けると、キットから作ったばかりのリポジトリで、台帳の担当者がキットの持ち主のまま点検の Issue が立つ。GitHub の「Template repository」の印はこのキットに付いていない(付けるかは公開の判断)
 - 一覧に無いラベルは消さない — 消すと付いていた Issue・PR から外れる(戻せない)。GitHub の既定のラベル(`bug` など)は人が使うかもしれない
@@ -257,7 +297,7 @@ labels:
 
 | 番号 | 工程 | 種類 | 仮決め(設計した事実) | なぜそうしたか | 人が判断する問い | 状態 |
 |---|---|---|---|---|---|---|
-| U-1 | 設計 | 利用者の挙動 | ひな形では、毎週の定期の脆弱性チェック(`vuln-scan.yml`。落ちたら Issue)も止める。キットの依存の穴は Renovate の PR と Dependabot の通知で気づく | 持ち主の「ひな形で運用を回したくない」に合わせた。落ちたときに Issue が立ち `/cve` で精査する流れは運用そのもの | ひな形でも毎週の脆弱性チェックを回すか(回すなら `template_schedules` に足し、`vuln-scan.yml` の見分けを外す) | 仮決め |
+| U-1 | 設計 | 利用者の挙動 | ひな形では、毎週の定期の脆弱性チェック(`vuln-scan.yml`。落ちたら Issue)も止める。キットの依存の穴は Renovate の PR と Dependabot の通知で気づく | 持ち主の「ひな形で運用を回したくない」に合わせた。落ちたときに Issue が立ち `/cve` で精査する流れは運用そのもの | ひな形でも毎週の脆弱性チェックを回すか(回すなら `template_schedules` に足し、`vuln-scan.yml` の見分けを外す) | 承認(@attumkwg 2026-10-24: キットの運用の方針「動かし続けるのはライブラリの更新だけ」から。11. の「持ち主が決めたこと」) |
 
 ## 13. 作り直しの記録
 

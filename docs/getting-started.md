@@ -101,7 +101,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 > ⚠️ **非公開のリポジトリを GitHub Free で使うと、ブランチ保護・Environments が使えない**(下の1つ目と3つ目ができない)。AWS と Claude の鍵を入れる前に、公開にするか Pro / Team にする。何が守られて何が守られないかは [guides/local-guards.md](guides/local-guards.md)。
 
 - [ ] **ブランチ保護(main)**: PR 必須・CI のチェック必須。🧍 1人の間は承認 0(自分の PR は自分で承認できない)、👥 人が増えたら承認 1+CODEOWNERS の承認。危険度「高」を2人にするならチームを作って CODEOWNERS を書き換える。
-- [ ] **ラベル**: `.github/labels.yml` の全部(`risk:high` / `risk:medium` / `risk:low` ほか)。セットアップが作る。
+- [ ] **ラベル**: `.github/labels.yml` の全部(`risk:high` / `risk:medium` / `risk:low` ほか)。セットアップが作る。何のラベルか・誰が付けるか・付いたらどうするかは [guides/labels.md](guides/labels.md)。
 - [ ] **Environments**: `stg`・`prod`(prod に承認する人。🧍 1人の間は「Prevent self-review」をオフ)。
 - [ ] **Actions の無料枠**: 🌐 公開なら上限なし(標準の実行環境)。🔒 非公開は Free で月 2,000分。このキットの CI は PR 1回で 20〜40分。止め方と見方は [guides/automation.md](guides/automation.md)。
 - [ ] **お金のかかる自動のもの**は、いまは全部手動。使い始める日を [guides/automation.md](guides/automation.md) の表に入れる。

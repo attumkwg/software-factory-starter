@@ -44,6 +44,12 @@ export function planLabels({ gh, labels }) {
   const wanted = new Set(labels.map((l) => l.name.toLowerCase()));
   const others = res.data.filter((l) => !wanted.has(l.name.toLowerCase())).map((l) => l.name);
   if (others.length > 0) entries.push(extra(`一覧に無いラベル(消さない): ${others.join("・")}`));
+  const byHand = labels.filter((l) => String(l.who ?? "").startsWith("人")).map((l) => l.name);
+  entries.push(
+    extra(
+      `何のラベルか・誰が付けるか・付いたらどうするか: docs/guides/labels.md(人が手で付けるのは ${byHand.join("・")} だけ)`,
+    ),
+  );
   return { title: "ラベル", entries };
 }
 

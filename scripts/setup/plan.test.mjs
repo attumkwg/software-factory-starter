@@ -11,7 +11,8 @@ import { apply, countDiffs, plan, render } from "./plan.mjs";
 const setup = parse(readFileSync(".github/setup.yml", "utf8"));
 const labels = parse(readFileSync(".github/labels.yml", "utf8")).labels;
 const srcOf = (files = {}) => ({ read: (f) => files[f] });
-const run = (gh, files) => plan({ gh, setup, labels, src: srcOf(files) });
+const run = (gh, files, today = "2026-11-02") =>
+  plan({ gh, setup, labels, src: srcOf(files), today });
 const entriesOf = (result, title) => result.areas.find((a) => a.title.startsWith(title)).entries;
 
 test("試しは読むだけで、何も書かない。区分ごとの差分が出る", () => {
@@ -174,4 +175,34 @@ test("人がやること: CODEOWNERS と台帳がキットの持ち主のまま�
     "docs/checkup/todo.yaml": 'refreshed_on: 2026-11-01\nowners:\n  responder: "@alice"\n',
   });
   assert.equal(done.steps.length, 2);
+});
+
+test("作り始めるときに、キットの古くなった所を知らせる(作った後の更新・取り込みの古さ・見直す日)", () => {
+  const gh = fakeGitHub((s) => {
+    s.kitUpdatedAt = "2026-12-10T09:00:00Z";
+  });
+  const ledger = [
+    "refreshed_on: 2026-09-01",
+    "owners:",
+    '  responder: "@alice"',
+    "items:",
+    "  - { id: old-one, status: open, review_by: 2026-12-01 }",
+    "  - { id: gone, status: retired, review_by: 2026-01-01 }",
+  ].join("\n");
+  const text = run(gh, { "docs/checkup/todo.yaml": ledger }, "2026-12-15")
+    .steps.map((s) => s.text)
+    .join("\n");
+  assert.match(text, /作った後\(2026-11-01\)にキットが更新されている\(最後 2026-12-10\)/);
+  assert.match(text, /取り込んだのは 105日前/);
+  assert.match(text, /見直す日の過ぎた項目 1件\(old-one\)/);
+  const kit = fakeGitHub((s) => {
+    s.repo.full_name = setup.template_repository;
+    s.kitUpdatedAt = "2026-12-10T09:00:00Z";
+  });
+  assert.doesNotMatch(
+    run(kit, { "docs/checkup/todo.yaml": ledger }, "2026-12-15")
+      .steps.map((s) => s.text)
+      .join("\n"),
+    /キットが更新|取り込んだのは/,
+  );
 });

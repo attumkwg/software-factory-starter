@@ -18,7 +18,7 @@ version: 1
 start_steps:
   - title: GitHub を一括で整える
     command: pnpm setup:github
-    does: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す
+    does: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す。ラベルの意味は docs/guides/labels.md
     link: docs/guides/github-setup.md
     status: あり
   - title: 何を作るかを決める

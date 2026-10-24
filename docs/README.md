@@ -21,7 +21,7 @@
 | [product/plan.md](product/) | 始め方の計画(誰の困りごと・いちばん危ない思い込み・確かめ方・合格と撤退の線)。テンプレートあり | 確かめた結果が出たとき(`/kickoff` が書く) | 低 |
 | [product/bets/](product/bets/) | 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。テンプレートと見本あり。考え方は [guides/bets-and-assets.md](guides/bets-and-assets.md) | 賭けを開く・結果が出た・段階が変わるとき(`/bet` が書く。`pnpm bets` が確かめる) | 低 |
 | [getting-started.md](getting-started.md) | 使い始めの手引き(手元 → 置き換え → GitHub → AWS → Slack → 運用) | 手順や費用が変わったとき | 低 |
-| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか・[PMF の前の進め方](guides/before-pmf.md)(何を作るかを安く確かめる)・[試作を出す](guides/prototypes.md)(押せる画面だけ・合言葉つきの URL)・[人が見る所を絞る](guides/human-review.md)(未確定事項・人向けのまとめ・上流からの作り直し)・[守りの3層](guides/local-guards.md)(AI に勝手に変えさせない所と、GitHub のプランで変わる所)・[GitHub を一括で整える](guides/github-setup.md)(pnpm setup:github・ラベルの一覧・ひな形と使う側) など、仕組みの使い方 | 仕組みを変えたとき | 低 |
+| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか・[PMF の前の進め方](guides/before-pmf.md)(何を作るかを安く確かめる)・[試作を出す](guides/prototypes.md)(押せる画面だけ・合言葉つきの URL)・[人が見る所を絞る](guides/human-review.md)(未確定事項・人向けのまとめ・上流からの作り直し)・[守りの3層](guides/local-guards.md)(AI に勝手に変えさせない所と、GitHub のプランで変わる所)・[GitHub を一括で整える](guides/github-setup.md)(pnpm setup:github・ひな形と使う側)・[ラベルの手引き](guides/labels.md)(何のラベルか・誰が付けるか・付いたらどうするか) など、仕組みの使い方 | 仕組みを変えたとき | 低 |
 
 ## 記録(書いた時のまま。古くなっても直さない)
 

@@ -33,7 +33,7 @@ pnpm setup:github --apply
 
 | 区分 | 中身 | 置き場所 |
 |---|---|---|
-| ラベル | 危険度(`risk:*`)・場所(`area:*`)・Issue の種類・依存の更新・点検の知らせ・VRT の撮り直し | `.github/labels.yml` |
+| ラベル | 危険度(`risk:*`)・場所(`area:*`)・Issue の種類・依存の更新・点検の知らせ・訓練の記録・VRT の撮り直し。**意味と付いたらどうするかは [labels.md](labels.md)** | `.github/labels.yml`(手引きは `pnpm setup:labels` で作る) |
 | リポジトリ | マージは Squash と Rebase だけ・自動マージを使える・マージしたらブランチを消す・「Update branch」のボタン | `.github/setup.yml` の `repository` |
 | 守りの機能 | 秘密の見つけと push の保護・非公開の脆弱性の報告(公開のときだけ)・Dependabot の通知(直す PR は Renovate) | `security` |
 | Actions | 既定は読むだけ・Actions が PR を承認できない・SHA で固定した Action だけ・外の人の PR は毎回承認・成果物とログは7日 | `actions` |
@@ -69,9 +69,20 @@ pnpm setup:github --apply
 6. 使うなら秘密の値(Environment `claude` の `ANTHROPIC_API_KEY`・`zap` の2つ・リポジトリの `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL`)を GitHub の画面で
 7. 直したファイル(3〜5)を1つの PR に
 
+## キットの古くなった所(作り始めるときに出る)
+
+キットそのものは定期の運用を回さない(動かし続けるのはライブラリの更新だけ)。その代わり、使う側で `pnpm setup:github` を流すと、「人がやること」に次が出る:
+
+- このリポジトリを作った後にキットが更新されている(取り込みたい直しが無いか、キットのコミットの一覧を見る)
+- キットの台帳が世の中の変化を取り込んだのが古い・一度も無い → 最初の `/checkup-refresh`
+- 見直す日の過ぎた台帳の項目がある → `/checkup-refresh` で見直す
+- Renovate を入れると、キットに溜まった依存の更新が PR で出る(最初の週は多め)
+
+キットの持ち主が古くなった所を直したいときは、キットのリポジトリで `/checkup-refresh` を手で1回流して PR にする(定期では回さない)。
+
 ## ラベル・必須のチェックを足すとき
 
-- **ラベル**を使う物(ワークフロー・Issue のテンプレート・スキルの `--label`・スクリプトの定数)を足したら、`.github/labels.yml` に1件足す。無いと CI の `pnpm setup:check` が落ちる。
+- **ラベル**を使う物(ワークフロー・Issue のテンプレート・スキルの `--label`・スクリプトの定数)を足したら、`.github/labels.yml` に1件足す(何のラベルか・誰が・いつ・付いたらどうするかも)。`pnpm setup:labels` で [labels.md](labels.md) を作り直す。無い・古いと CI の `pnpm setup:check` が落ちる。
 - **ジョブの名前**を変えた・消したら、`.github/setup.yml` の `required_checks` も直す。必須のチェックの名前がジョブに無いと、全部の PR が「来ないチェック」を待って止まるので、CI が落とす。
 - **新しい Environment** を使うワークフローを足したら、`environments` に足す。
 - PR の本文に「マージの後に人がやる設定」は書かない。代わりに設定ファイルを直し、**マージの後に `pnpm setup:github --apply`** を流す(Actions には設定を書く権限を持たせない)。

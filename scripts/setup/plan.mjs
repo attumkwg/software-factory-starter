@@ -26,7 +26,7 @@ const AREAS = [
 ];
 
 /** 区分を全部読む。リポジトリそのものが読めなければ、そこで止める(管理者でない・名前が違う) */
-export function plan({ gh, setup, labels, src }) {
+export function plan({ gh, setup, labels, src, today }) {
   const repo = gh.get("");
   if (!repo.ok) return { error: unknown(`リポジトリ ${gh.repo} `, repo).text };
   const meRes = gh.getPath("user");
@@ -34,7 +34,23 @@ export function plan({ gh, setup, labels, src }) {
   const role = roleOf(setup, repo.data.full_name);
   const ctx = { repoData: repo.data, role, me };
   const areas = AREAS.map((area) => area({ gh, setup, labels, ctx }));
-  return { repo: repo.data.full_name, role, me, areas, steps: nextSteps({ setup, role, src, me }) };
+  const kit = role === "product" ? kitDates(gh, setup, repo.data) : undefined;
+  return {
+    repo: repo.data.full_name,
+    role,
+    me,
+    areas,
+    steps: nextSteps({ setup, role, src, me, kit, today }),
+  };
+}
+
+/** キットの最後のコミットの日と、このリポジトリを作った日(読めなければ updatedAt なし) */
+function kitDates(gh, setup, repoData) {
+  const res = gh.getPath(`repos/${setup.template_repository}/commits?per_page=1`);
+  return {
+    createdAt: repoData.created_at,
+    updatedAt: res.ok ? res.data?.[0]?.commit?.committer?.date : undefined,
+  };
 }
 
 /** 差分を並びの順に流す。1つ失敗してもほかは続ける。戻り値: [{ text, ok, message }] */

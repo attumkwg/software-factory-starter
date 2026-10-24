@@ -3,16 +3,19 @@
 import { parse } from "yaml";
 
 // ラベルに使える文字(ここで切る。日本語の句読点やバッククォートは名前に含めない)
-const NAME_CHAR = /[A-Za-z0-9:_./-]/;
+const isNameChar = (c) =>
+  (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || ":_./-".includes(c);
 // 書きかけの名前(risk:<high|low>・${{ … }} など)は拾わない
 const PLACEHOLDER = ["<", "$", "{"];
 
-/** pos から名前を1つ読む。続きが書きかけの印なら undefined */
+/** pos から名前を1つ読む(終わりの記号は落とす)。続きが書きかけの印なら undefined */
 function readName(text, pos) {
   let end = pos;
-  while (end < text.length && NAME_CHAR.test(text[end])) end += 1;
+  while (end < text.length && isNameChar(text[end])) end += 1;
   if (end === pos || PLACEHOLDER.includes(text[end])) return undefined;
-  return text.slice(pos, end).replace(/[.:/-]+$/, "");
+  let last = end;
+  while (last > pos && ".:/-".includes(text[last - 1])) last -= 1;
+  return text.slice(pos, last);
 }
 
 /** `--label a,b`・`--add-label a`・`--remove-label=a` */

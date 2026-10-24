@@ -137,7 +137,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | # | やること | どうやって | 残る物 | 状態 |
 |---|---|---|---|---|
-| ① | GitHub を一括で整える | `pnpm setup:github`: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す | [手順](docs/guides/github-setup.md) | あり |
+| ① | GitHub を一括で整える | `pnpm setup:github`: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す。ラベルの意味は docs/guides/labels.md | [手順](docs/guides/github-setup.md) | あり |
 | ② | 何を作るかを決める | `/kickoff`: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める | `docs/product/plan.md` | あり |
 | ③ | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
 | ④ | 手でやる設定 | Renovate の App と秘密の値(GitHub の残りは pnpm setup:github が一覧で出す)、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
@@ -214,7 +214,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 工程 | この雛形のどこ |
 |---|---|
 | ① 受付 | `.github/ISSUE_TEMPLATE/`(機能・不具合。不具合には requestId の欄) |
-| ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル |
+| ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル(ラベルの意味は [docs/guides/labels.md](docs/guides/labels.md)) |
 | ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
 | ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
 | ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
@@ -225,7 +225,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | | どこで決まるか |
 |---|---|
-| パスで自動でラベル | `.github/labeler.yml`(`risk:high` / `risk:medium` / `risk:low`) |
+| パスで自動でラベル | `.github/labeler.yml`(`risk:high` / `risk:medium` / `risk:low`。全部のラベルの意味・誰が付けるか・付いたらどうするかは [docs/guides/labels.md](docs/guides/labels.md)) |
 | 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
 | PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
 | 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
@@ -336,7 +336,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
    - 🧍 1人の間: **承認は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェックと手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
    - 👥 人が増えたら: 承認 1・CODEOWNERS の承認。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2
    - マージキューを使うなら、`取り組みと作業の種類(PR の本文)` を必須から外す(キューの中では流れない)
-2. **ラベル**: `.github/labels.yml` の全部(危険度・場所・Issue の種類・依存の更新・点検の知らせ・VRT の撮り直し)。コードが使うラベルが一覧に無ければ CI が落ちるので、「使うのに無い」は起きない。一覧に無いラベルは消さない
+2. **ラベル**: `.github/labels.yml` の全部(危険度・場所・Issue の種類・依存の更新・点検の知らせ・訓練の記録・VRT の撮り直し)。**何のラベルか・誰が付けるか・付いたらどうするかは [docs/guides/labels.md](docs/guides/labels.md)**(ほとんど自動で付き、人が手で付けるのは2つだけ)。コードが使うラベルが一覧に無ければ CI が落ちるので、「使うのに無い」は起きない。一覧に無いラベルは消さない
 3. **Environments**: stg・prod・claude・zap を、どれも **main からだけ**使えるようにする。ワークフローの中でも main 以外は飛ばすが、ブランチのワークフローは書き換えられるので、GitHub の側でも止める(これが本当の守り)。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
    - prod の承認する人: 🧍 1人の間は自分(流した人)・**自分の承認を許す**(止めると、自分でマージしたデプロイを誰も承認できない。承認は「本番に出す前に一度止まって見る」一手間)。👥 人が増えたら2人以上にして自分の承認を止める。🔒 非公開のリポジトリでは、Pro / Team でも承認する人を置けない(公開か Enterprise だけ)
    - 秘密の値は人が画面で: `claude` に `ANTHROPIC_API_KEY`(claude.yml)・`zap` に `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD`(zap-api-scan.yml)。下の 3. の表
