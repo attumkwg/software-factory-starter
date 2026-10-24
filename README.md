@@ -104,6 +104,16 @@ docker compose up --build
 pnpm test:e2e
 ```
 
+画面の見た目を前と比べる(VRT。ブラウザは Docker の中。画面を変えたら `pnpm vrt:update` で撮り直す。[docs/guides/vrt.md](docs/guides/vrt.md)):
+
+```bash
+docker compose -f docker-compose.vrt.yml up -d --wait
+```
+
+```bash
+pnpm vrt
+```
+
 開発するとき(API は 3000、画面は 5173。画面は SSR のまま自動で読み直し、/api は API へ中継する):
 
 ```bash
@@ -169,6 +179,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
 | 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
 | 表側(画面) | 検索に載せない(noindex)とスマホの幅の E2E `noindex-mobile` | 本番以外と、ログインの後の画面を検索に載せない(X-Robots-Tag・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る | 残す | あり |
+| 表側(画面) | 見た目の回帰テスト(VRT)と部品の一覧ページ `vrt` | 主な画面と部品の一覧(/design-system)を、Docker の中の Chromium でパソコンとスマホの幅で撮り、リポジトリの基準の画像と比べる。PR に結果と画面の一覧をコメントする | 残す | あり |
 | 表側(画面) | 公開のページと SEO の型 `seo` | 検索から人を呼ぶための公開のページ(説明・料金・ブログ)の型 | 消す | 未 |
 | 個人情報 | 個人データが漏れたときの手順書 `breach-runbook` | 委員会への報告(速報3〜5日・確報30日 / 60日)と本人への通知、B2B のお客さんへの知らせの段取り | 残す | あり |
 | 個人情報 | 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている | 消す | 未 |
@@ -204,7 +215,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル |
 | ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
 | ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
-| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
+| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
 | ⑥ レビュー | `pull_request_template.md`(全体像と判断してほしい所を一番上。問いは「事実・理由・問い」)・`docs/review-viewpoints.md`(観点ごとの扱い)・`CODEOWNERS`・`labeler.yml`。直しは `/rework`(上流から作り直す)。考え方は `docs/guides/human-review.md` |
 | ⑦ 出荷と監視 | `deploy.yml`(stg 自動 → prod 承認 → ECS の blue/green)・`ecs-service` の 5xx アラームで自動で戻す・構造化ログ |
 
@@ -318,10 +329,10 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
    - 「Require a pull request before merging」
      - 🧍 1人の間: **Required approvals は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェック(下)と手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
      - 👥 人が増えたら: 承認 1・「Require review from Code Owners」・「Dismiss stale pull request approvals when new commits are pushed」をオン。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2 にする
-   - 「Require status checks to pass」と「Require branches to be up to date before merging」(並べて出した PR が、合わさって main を赤くするのを防ぐ): `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`・`取り組みと作業の種類(PR の本文)`(PR の本文の「🎯 取り組み」。マージキューを使うなら、キューの中では流れないのでここから外す)
+   - 「Require status checks to pass」と「Require branches to be up to date before merging」(並べて出した PR が、合わさって main を赤くするのを防ぐ): `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`・`見た目の比べ(VRT)`・`取り組みと作業の種類(PR の本文)`(PR の本文の「🎯 取り組み」。マージキューを使うなら、キューの中では流れないのでここから外す)
    - 「Restrict deletions」・「Block force pushes」・「Require linear history」
    - ⚠️ 「Require linear history」にすると、**マージは Squash か Rebase だけ**になる(「Create a merge commit」は使えない)。Settings → General → Pull Requests で「Allow merge commits」をオフにしておくと、ボタンで迷わない
-2. **ラベル**を作る: `risk:high`・`risk:medium`・`risk:low`・`area:api`・`area:web`・`area:infra`・`kind:feature`・`kind:bug`・`needs-triage`・`dependencies`・`security`(labeler は無いラベルも作るが、色をそろえるなら先に)
+2. **ラベル**を作る: `risk:high`・`risk:medium`・`risk:low`・`area:api`・`area:web`・`area:infra`・`kind:feature`・`kind:bug`・`needs-triage`・`dependencies`・`security`(labeler は無いラベルも作るが、色をそろえるなら先に)・`vrt:update`(見た目の基準を CI で撮り直す。[docs/guides/vrt.md](docs/guides/vrt.md)。これは先に作らないと付けられない)
 3. **Environments**(Settings → Environments)。**どれも「Deployment branches and tags」を「Selected branches and tags」にして `main` だけを足す**。ワークフローの中でも main 以外は飛ばすが、ブランチのワークフローは書き換えられるので、GitHub の側でも止める(これが本当の守り):
    - `stg`(承認なし)と `prod`(**Required reviewers** に承認する人)。deploy・deploy-mail-relay が使う。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
      - 🧍 1人の間: prod の承認する人は自分。**「Prevent self-review」はオフ**(オンだと、自分でマージしたデプロイを誰も承認できない)。承認は「本番に出す前に一度止まって見る」ための一手間として使う
