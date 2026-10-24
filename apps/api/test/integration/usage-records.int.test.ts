@@ -6,7 +6,13 @@ import { createDb, type TenantTx } from "../../src/db/client.ts";
 import { withTenant } from "../../src/db/tenant.ts";
 import type { Actor, AppEnv } from "../../src/env.ts";
 import { setFeatureFlag } from "../../src/feature-flags/index.ts";
-import { purgeUsage, recordUsage, usageReport } from "../../src/usage/index.ts";
+import {
+  purgeUsage,
+  recordUsage,
+  runUsagePurge,
+  runUsageReport,
+  usageReport,
+} from "../../src/usage/index.ts";
 import { createTenantFixture, type TenantFixture } from "../helpers/fixtures.ts";
 
 // 利用の記録(docs/specs/0012-feature-flags-and-usage.md の「利用の記録」)。2つのお客さん(a・b)と運営(ops)。
@@ -175,5 +181,26 @@ describe("運営のコマンド", () => {
     const days = (await rowsOf(b.tenantId)).map((r) => r.day);
     expect(days).not.toContain("2020-01-01");
     expect(days).toContain("2026-09-01");
+  });
+
+  it("コマンドの入口: 出す行は JSON 1行(試しは案内も)。引数が違えば止まる", async () => {
+    const [report] = await runUsageReport(owner.db, [FEATURE, "--weeks", "2"], {
+      defs: DEFS,
+      supportTenantId: ops.tenantId,
+      now,
+    });
+    expect(JSON.parse(report as string)).toMatchObject({ mode: "report", feature: FEATURE });
+    await expect(
+      runUsageReport(owner.db, [FEATURE, "--weeks", "0"], { defs: DEFS, supportTenantId: null }),
+    ).rejects.toThrow("--weeks は 1〜60 の整数です");
+    await expect(
+      runUsageReport(owner.db, [], { defs: DEFS, supportTenantId: null }),
+    ).rejects.toThrow("使い方");
+
+    const plan = await runUsagePurge(owner.db, [], { now });
+    expect(plan).toHaveLength(2);
+    expect(JSON.parse(plan[0] as string)).toMatchObject({ mode: "plan", days: 400, count: 0 });
+    const done = await runUsagePurge(owner.db, ["--execute"], { now });
+    expect(done.map((l) => JSON.parse(l).mode)).toEqual(["purged"]);
   });
 });
