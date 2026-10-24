@@ -110,3 +110,47 @@ export async function purgeUsage(
   }
   return { before, count };
 }
+
+// ── コマンドの入口(cli.ts)。引数を読み、出す行(JSON 1行+案内)を返す。接続を開く・閉じるのは cli.ts ──
+
+/** usage-report <機能> [--weeks <週の数。既定 8・1〜60>] */
+export function parseUsageReportArgs(args: string[]): { feature: string; weeks: number } {
+  const [feature, ...flags] = args;
+  if (!feature || feature.startsWith("--")) {
+    throw new Error("使い方: usage-report <機能> [--weeks <週の数>]");
+  }
+  const weeksAt = flags.indexOf("--weeks");
+  const weeks = weeksAt >= 0 ? Number(flags[weeksAt + 1]) : 8;
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 60) {
+    throw new Error("--weeks は 1〜60 の整数です");
+  }
+  return { feature, weeks };
+}
+
+export async function runUsageReport(
+  db: RootDb,
+  args: string[],
+  opts: { defs: readonly FeatureFlagDefinition[]; supportTenantId: string | null; now?: Date },
+): Promise<string[]> {
+  const { feature, weeks } = parseUsageReportArgs(args);
+  const report = await usageReport(db, feature, { weeks, ...opts });
+  return [JSON.stringify({ mode: "report", ...report })];
+}
+
+/** usage-purge [--execute] */
+export async function runUsagePurge(
+  db: RootDb,
+  args: string[],
+  opts: { now?: Date } = {},
+): Promise<string[]> {
+  const execute = args.includes("--execute");
+  const done = await purgeUsage(db, { execute, ...opts });
+  const line = JSON.stringify({
+    mode: execute ? "purged" : "plan",
+    days: USAGE_RETENTION_DAYS,
+    ...done,
+  });
+  return execute
+    ? [line]
+    : [line, "まだ消していません。件数を確かめて --execute を付けて流してください"];
+}

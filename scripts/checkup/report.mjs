@@ -5,8 +5,8 @@ import { urgentOf } from "./runner.mjs";
 /** 1問・1件にかかる時間の目安(分) */
 export const MINUTES = { ask: 3, manual: 10 };
 export const WHO_LABEL = { system: "仕組み", ai: "AI", human: "人" };
-/** 1問ずつ答える入口(PR ② で /checkup が入るまでは、この一覧を見て台帳を直す) */
-export const ANSWER_HOW = "Claude Code で /checkup(作成中。それまではこの一覧を見て台帳を直す)";
+/** 1問ずつ答える入口 */
+export const ANSWER_HOW = "Claude Code で /checkup";
 
 const who = (item) => `${WHO_LABEL[item.who] ?? item.who}${item.advisory ? "・推奨" : ""}`;
 

@@ -36,6 +36,7 @@
 - 人は **PR の本文**だけを見る: 全体像 / 人に判断してほしい所(設計した事実・なぜそうしたか・人が判断する問い)/ 観点ごとの扱い / AI が決めたこと。
 - AI は4つの問いにぶつかっても止まらず、**仮に決めて「未確定事項」に残す**。人は番号ごとに「承認 / 変更 / 保留」を PR のコメントで答える。
 - `仮決め` が残っている間はマージしない(`pnpm decisions --strict`)。全部の設計書の仮決めと保留の一覧は `pnpm decisions`。
+- 答えがプロダクトごとに違う問いは `導入時に決める` にしてキットの既定でマージし、使い始めた人が `pnpm decisions --adopt`(`/tailor`)で決める。本番に出す前は `pnpm decisions --launch`(guides/human-review.md の 2)。
 
 ### 直すとき: 上流から作り直す
 
@@ -76,7 +77,7 @@ PR が増えて手で回すのが追いつかなくなったら、自動のレ�
 
 ## 毎週やること(30分)
 
-> 守りが今も効いているか・段階(立ち上げ〜2年)でやることは、点検の台帳([checkup/todo.yaml](checkup/todo.yaml)。1枚は [checkup/README.md](checkup/README.md))に移していく。`pnpm checkup` が自動で確かめられる物を確かめ、人に聞くこと・人がやることを出す。
+> 守りが今も効いているか・段階(立ち上げ〜2年)でやることは、点検の台帳([checkup/todo.yaml](checkup/todo.yaml)。1枚は [checkup/README.md](checkup/README.md))に移していく。`pnpm checkup` が自動で確かめられる物を確かめ、人に聞くこと・人がやることを出す。担当者は Claude Code で `/checkup` と打ち、1問ずつ答える。
 
 | やること | 何を見るか | 使うもの |
 |---|---|---|
