@@ -11,7 +11,9 @@ version: 1
 template_repository: attumkwg/software-factory-starter
 
 # ひな形でも定期で動いてよいワークフロー(ファイル名と理由)。ここに無い定期の物は KIT_ROLE の見分けが要る
-template_schedules: []
+template_schedules:
+  - file: vuln-scan.yml
+    why: キットの依存と Action の新しい穴を、コードが動いていない間も毎週見る(落ちたら Issue → /cve)。持ち主が承認(設計書 0014 の U-1)
 
 # リポジトリの設定(Settings → General)
 repository:

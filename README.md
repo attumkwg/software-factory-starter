@@ -308,10 +308,10 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
 | `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
-| `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットから作ったリポジトリだけ)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
+| `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットのリポジトリでも回す)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
 | `checkup.yml` | 自動: 毎週月曜 8:00・急ぎは毎日 8:00(キットから作ったリポジトリだけ)・手動でも(点検の知らせ。[docs/checkup/README.md](docs/checkup/README.md)) | 動く(秘密 `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL` は任意) |
 
-**定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。手で流すのはどこでもできる([docs/guides/github-setup.md](docs/guides/github-setup.md))。
+**定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](docs/guides/github-setup.md))。
 
 `ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。
 

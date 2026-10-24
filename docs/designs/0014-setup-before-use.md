@@ -156,7 +156,7 @@ labels:
 | ワークフロー | 定期 | ひな形で | 見分け方 |
 |---|---|---|---|
 | `checkup.yml` | 毎週・毎日(生きている) | **止める** | `KIT_ROLE`(この PR で足す) |
-| `vuln-scan.yml` | 毎週(生きている) | **止める**(U-1。持ち主の方針で承認) | `KIT_ROLE`(この PR で足す) |
+| `vuln-scan.yml` | 毎週(生きている) | **回す**(U-1。持ち主が承認) | `template_schedules` に理由つき(見分けは付けない) |
 | `security-fuzz.yml` | コメントで止めてある | 止まっている | 有効にするときは `KIT_ROLE` が要る(`pnpm setup:check` が落とす) |
 | `restore-drill.yml`・`cognito-contract.yml`・`zap-api-scan.yml`・`cleanup-previews.yml` | コメントで止めてある | 止まっている | AWS の変数(ひな形には置かない)。有効にするときは `KIT_ROLE` も要る |
 | `deploy.yml`・`preview.yml`・`terraform-plan.yml`・`claude.yml` | 定期ではない(push・PR・コメント) | AWS の変数・秘密が無いので飛ぶ | 今のまま |
@@ -209,7 +209,7 @@ labels:
 | 読めない所は続ける・失敗の件数で 1 | 1. | `setup.test.mjs` |
 | 人がやること | 6. の表 | `setup.test.mjs` |
 | `KIT_ROLE` を名前で決める | 4. | `setup.test.mjs` |
-| 定期は product のときだけ | 6. の洗い出し | `checkup.yml`・`vuln-scan.yml` の `if`・`pnpm setup:check` の 5 |
+| 定期は product のときだけ | 6. の洗い出し | `checkup.yml` の `if`・`vuln-scan.yml` は `template_schedules`・`pnpm setup:check` の 5 |
 | ラベルの一覧が1か所・使う物が無ければ落ちる | 3. の 1・2 | `setup.test.mjs`(使われ方の形ごと)・CI の `pnpm setup:check` |
 | 必須のチェックがジョブにあるか | 3. の 3 | `setup.test.mjs`(matrix を広げる) |
 | Environment があるか | 3. の 4 | `setup.test.mjs` |
@@ -264,7 +264,7 @@ labels:
 > 「ラベルの使い方って、なんか説明ってどっかにあったりしますかね。いきなり一通りラベル出されても、何のことかわかんない気がしてます」
 
 - ひな形のリポジトリでは定期の運用を回さない(毎週の点検の Issue・急ぎの知らせ・月1回の `/checkup-refresh`・戻す訓練・契約テストの定期実行)。台帳の運用の項目(`w-ledger`)もひな形では落ちない
-- ひな形で動かし続けるのは**ライブラリの更新だけ**(Renovate の PR・Dependabot の通知)。毎週の定期の脆弱性チェック(`vuln-scan.yml`)は更新ではなく「落ちたら Issue を立てて精査する」運用なので止める(U-1。手で流すのはできる)
+- ひな形で動かし続けるのは**ライブラリの更新**(Renovate の PR・Dependabot の通知)と、**毎週の定期の脆弱性チェック**(`vuln-scan.yml`。落ちたら Issue → `/cve`)。点検の Issue(`checkup.yml`)は止める(U-1。持ち主が「ひな形でも毎週の脆弱性チェックは回す。点検の Issue はひな形では止める」と承認)
 - 古くなった仕組みの点検と直しは、**持ち主が呼んだときに1回**(`/checkup-refresh` を手で起動して PR に)。定期では回さない
 - 最新化の知らせは、使う人が**作り始めるとき**に出す(`pnpm setup:github` の「人がやること」と、`/kickoff` が先に `pnpm setup:github` を勧める流れ。6.「キットの古くなった所」)
 - 使う人の側では、セットアップの後に定期の運用が始まる
@@ -297,7 +297,7 @@ labels:
 
 | 番号 | 工程 | 種類 | 仮決め(設計した事実) | なぜそうしたか | 人が判断する問い | 状態 |
 |---|---|---|---|---|---|---|
-| U-1 | 設計 | 利用者の挙動 | ひな形では、毎週の定期の脆弱性チェック(`vuln-scan.yml`。落ちたら Issue)も止める。キットの依存の穴は Renovate の PR と Dependabot の通知で気づく | 持ち主の「ひな形で運用を回したくない」に合わせた。落ちたときに Issue が立ち `/cve` で精査する流れは運用そのもの | ひな形でも毎週の脆弱性チェックを回すか(回すなら `template_schedules` に足し、`vuln-scan.yml` の見分けを外す) | 承認(@attumkwg 2026-10-24: キットの運用の方針「動かし続けるのはライブラリの更新だけ」から。11. の「持ち主が決めたこと」) |
+| U-1 | 設計 | 利用者の挙動 | ひな形でも、毎週の定期の脆弱性チェック(`vuln-scan.yml`。落ちたら Issue → `/cve`)は回す(`template_schedules` に足し、`KIT_ROLE` の見分けを付けない)。点検の Issue(`checkup.yml`)はひな形では止める | 最初の仮決めは「止める」だったが、持ち主の答えで回す側に。キットの依存と Action の新しい穴を、コードが動いていない間も毎週見る | ひな形でも毎週の脆弱性チェックを回すか | 承認(@attumkwg 2026-10-24。会話で回答) |
 
 ## 13. 作り直しの記録
 

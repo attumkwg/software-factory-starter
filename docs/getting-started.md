@@ -25,7 +25,7 @@
 pnpm setup:github
 ```
 
-試し(差分だけを出す。何も書き換えない)。中身を見て、よければ `pnpm setup:github --apply`。ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定がそろい、変数 `KIT_ROLE=product` が付いて**定期の運用(毎週の点検の知らせ・定期の脆弱性チェック)が動き出す**。何度流しても同じ結果になる。
+試し(差分だけを出す。何も書き換えない)。中身を見て、よければ `pnpm setup:github --apply`。ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定がそろい、変数 `KIT_ROLE=product` が付いて**定期の運用(毎週の点検の知らせなど)が動き出す**(定期の脆弱性チェックはキットでも毎週回っている)。何度流しても同じ結果になる。
 
 最後に「人がやること」(Renovate の App・秘密の値・台帳を自分の物にする `pnpm checkup:adopt`・最初の `/checkup-refresh` など)が、済んでいない物だけ出る。手順と困ったときは [guides/github-setup.md](guides/github-setup.md)。
 

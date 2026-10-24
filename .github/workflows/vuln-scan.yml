@@ -10,7 +10,8 @@
 # 費用: Actions の数分だけ。
 name: Vulnerability scan
 
-# 毎週 自動で回す(日本時間 月曜 5:00。キットから作ったリポジトリだけ)。手でも回せる(Actions → Vulnerability scan → Run workflow)。
+# 毎週 自動で回す(日本時間 月曜 5:00。キットのリポジトリ(ひな形)でも回す: .github/setup.yml の template_schedules)。
+# 手でも回せる(Actions → Vulnerability scan → Run workflow)。
 on:
   workflow_dispatch:
   # 有効にする日: 2026-10-22
@@ -33,8 +34,6 @@ env:
 jobs:
   trivy-fs:
     name: Trivy fs(依存・設定・Terraform)
-    # 定期で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)だけ。ひな形とセットアップ前は飛ばす(ADR 0027・設計書 0014 の U-1)
-    if: github.event_name != 'schedule' || vars.KIT_ROLE == 'product'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -53,8 +52,6 @@ jobs:
 
   zizmor-online:
     name: zizmor(オンライン版)
-    # 定期で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)だけ。ひな形とセットアップ前は飛ばす(ADR 0027・設計書 0014 の U-1)
-    if: github.event_name != 'schedule' || vars.KIT_ROLE == 'product'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
