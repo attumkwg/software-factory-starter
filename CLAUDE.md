@@ -33,7 +33,7 @@
 - `docs/product/plan.md` … 始め方の計画(誰の困りごと・確かめ方・合格と撤退の線)。`/kickoff` が書く。考え方は `docs/guides/before-pmf.md`
 - `docs/product/bets/` … 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。`/bet` が書き、`pnpm bets` が確かめる。PR の本文に「取り組み」と「作業の種類」。`docs/guides/bets-and-assets.md`
 - `docs/concepts/` … 考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)。`docs/security.md` … セキュリティの決まり(`AI-n`・`AZ-n`・`L-n`・`T-n`・`V-n`・`D-n`。番号は動かさない)と確かめ方。**根拠はこの2つを指す**(外の資料や PR の番号を根拠にしない。`pnpm self-contained`)
-- `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ)/ `docs/adr` 設計判断(番号は `pnpm adr` が出す「次の番号」。重なると CI が落ちる)/ `docs/runbooks` 手順(障害のときの入口は `incident.md`)
+- `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ。番号は仕様と対で同じ。`pnpm adr` が出す「仕様と設計書の次の番号」)/ `docs/adr` 設計判断(番号は `pnpm adr` が出す「次の番号」。仕様・設計書・設計判断とも、同じフォルダで重なると CI が落ちる)/ `docs/runbooks` 手順(障害のときの入口は `incident.md`)
 - `docs/review-viewpoints.md` … 設計とレビューの観点(共通の8つ+このプロダクト特有)。人が気づいた観点は足していく。使い方は `docs/guides/human-review.md`
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
 - `.github/setup.yml`・`.github/labels.yml` … GitHub の設定とラベルの正(ADR 0027)。**ラベルを使う物を足したら `labels.yml` に1件(意味・誰が・いつ・付いたらどうするか)・ジョブの名前を変えたら `required_checks` も**(無ければ CI が落ちる)。PR に「マージの後に人がやる設定」を書かず、設定ファイルを直す(マージの後に人が `pnpm setup:github --apply`)。定期で動くワークフローは `vars.KIT_ROLE == 'product'` のときだけ(ひな形では運用を回さない)

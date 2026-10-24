@@ -13,7 +13,7 @@
 ## 作業の前に読んだ物(ガイド)
 
 - `docs/design-system.md`・`apps/web/CLAUDE.md`: 画面ごとの CSS は書かない・部品の側で直す。幅 320px で横にはみ出さない。静的なファイルは `public/`
-- `docs/specs/0008-web-noindex-mobile.md`・`docs/designs/0008-web-noindex-mobile.md`: #6 で、表の横スクロールの枠(`.ui-table-scroll`)・入力欄の `min-width: min(16rem, 100%)`・`favicon.svg`・無い URL の 404(E2E)・全部の応答に noindex が入った。**点検の 🟡 の「表のはみ出し」「favicon」「404」の芯は #6 で済んでいる**。残りは確かめる範囲(スマホで開いていない画面・深いパス)と、iOS のアイコン
+- `docs/specs/0015-web-noindex-mobile.md`・`docs/designs/0015-web-noindex-mobile.md`: #6 で、表の横スクロールの枠(`.ui-table-scroll`)・入力欄の `min-width: min(16rem, 100%)`・`favicon.svg`・無い URL の 404(E2E)・全部の応答に noindex が入った。**点検の 🟡 の「表のはみ出し」「favicon」「404」の芯は #6 で済んでいる**。残りは確かめる範囲(スマホで開いていない画面・深いパス)と、iOS のアイコン
 - `apps/web/src/routes/*.tsx`: 全部の route が `head: () => ({ meta: [{ title: "<名前> | Tasks" }] })` を手で書いていた。説明・OGP はどこにも無い
 - TanStack Router の `HeadContent`(`headContentUtils.js`): 深い route から順に見て、同じ `name` / `property` の meta は最初(=深い方)だけ残す。title も深い方。**root に既定を置けば、画面ごとに上書きできる**
 - `apps/web/src/report-error.ts`: サーバーの環境変数をブラウザに渡すのに、`createIsomorphicFn` と `<html data-*>` を使っている(DSN)。同じ形にする

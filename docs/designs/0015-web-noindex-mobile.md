@@ -1,7 +1,7 @@
 # 設計: 画面の表側(検索に載せない・スマホの幅)
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
-> 仕様: [docs/specs/0008-web-noindex-mobile.md](../specs/0008-web-noindex-mobile.md)
+> 仕様: [docs/specs/0015-web-noindex-mobile.md](../specs/0015-web-noindex-mobile.md)
 > 状態: 承認済み(未確定事項は全部答え済み。@attumkwg 2026-10-22「PR #6 の U-1 は『本番も全部検索に載せない』で承認します」)
 > 観点の順は [review-viewpoints.md](../review-viewpoints.md)。当てはまらない節も消さずに「該当なし(理由)」と書く。
 

@@ -43,3 +43,30 @@ export const nextNumber = (files) => {
   const max = nums.reduce((m, n) => Math.max(m, Number(n)), 0);
   return String(max + 1).padStart(4, "0");
 };
+
+// 仕様(docs/specs)・設計書(docs/designs)の番号。files: [{ file }]。同じフォルダの中で番号が重なれば落とす
+// (仕様と設計書が同じ番号で対になるのは正しいので、フォルダをまたいでは見ない)。ADR と違い見出しの形は決めない
+export const checkNumberedDocs = (dir, files) => {
+  const problems = [];
+  const seen = new Map();
+  for (const { file } of files) {
+    if (file.startsWith("_") || !file.endsWith(".md")) continue;
+    const num = numberOfFile(file);
+    if (!num) {
+      problems.push(`${dir}/${file} ファイル名は NNNN-<英語の短い名前>.md(4桁の番号)`);
+      continue;
+    }
+    const earlier = seen.get(num);
+    if (earlier) {
+      problems.push(
+        `${dir}/${file} 番号 ${num} が ${dir}/${earlier} と重なっている(後から入った方を、仕様と設計書の両方で空いている次の番号に振り直す)`,
+      );
+    } else {
+      seen.set(num, file);
+    }
+  }
+  return problems;
+};
+
+// 仕様と設計書が次に使う番号(2つのフォルダ全部の中で一番大きい番号+1。対で同じ番号にするため)
+export const nextDocNumber = (...fileLists) => nextNumber(fileLists.flat());

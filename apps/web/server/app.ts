@@ -54,7 +54,7 @@ const SECURE_HEADERS = secureHeaders({
 // 検索に載せない(X-Robots-Tag)。業務の画面なので、既定は全部の応答に付ける。
 // 外してよいのは、本番(APP_ENV=prod)で、ここに書いたパスのページだけ(例: "/login"・"/sign-up")。
 // プレビュー(pr-N.preview.<domain>)・stg・手元は、URL が漏れても載らないように一覧に関わらず全部付ける。
-// 何を載せるかは事業の判断(docs/designs/0008-web-noindex-mobile.md の U-1)
+// 何を載せるかは事業の判断(docs/designs/0015-web-noindex-mobile.md の U-1)
 export const INDEXABLE_PATHS: readonly string[] = [];
 const NOINDEX = "noindex, nofollow";
 // 本番は、検索の仕組みが X-Robots-Tag を読めるように辿るのは許す(Disallow にすると noindex が読まれず、

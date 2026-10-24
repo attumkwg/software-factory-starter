@@ -745,7 +745,7 @@ parts:
         - { path: apps/web/server/app.test.ts, what: 検索の決まりのテストを外す }
         - { path: apps/web/playwright.config.ts, what: スマホの幅(mobile)の組を外す }
         - { path: apps/web/e2e/helpers.ts, what: 横のはみ出しの確かめを外す }
-      docs: [docs/specs/0008-web-noindex-mobile.md, docs/designs/0008-web-noindex-mobile.md, docs/designs/0010-web-head-ogp.md]
+      docs: [docs/specs/0015-web-noindex-mobile.md, docs/designs/0015-web-noindex-mobile.md, docs/designs/0010-web-head-ogp.md]
 
   - id: vrt
     name: 見た目の回帰テスト(VRT)と部品の一覧ページ
