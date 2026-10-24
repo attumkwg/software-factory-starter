@@ -1,4 +1,5 @@
 // 点検が GitHub を読むための gh の呼び出し。読むだけ(GET)。
+// CHECKUP_READ_TOKEN があれば、読むときだけそれを使う(読み取り専用の細かい権限のトークン。Issue を書くトークンと分ける。設計書 5.)。
 // gh が無い・ログインしていない・権限が無いときは投げずに { ok: false, status, message } を返し、
 // 確かめ1つの結果を unknown にする(全体は止めない。設計書 8. の「壊れたとき」)。
 import { execFileSync } from "node:child_process";
@@ -9,6 +10,10 @@ export function httpStatus(text) {
   if (at < 0) return 0;
   return Number.parseInt(String(text).slice(at + 6, at + 9), 10) || 0;
 }
+
+/** 読むときの環境(CHECKUP_READ_TOKEN があれば GH_TOKEN をそれに替える) */
+export const readEnv = (env = process.env) =>
+  env.CHECKUP_READ_TOKEN ? { ...env, GH_TOKEN: env.CHECKUP_READ_TOKEN } : env;
 
 const firstLine = (s) =>
   String(s ?? "")
@@ -23,6 +28,7 @@ export function ghApi(path) {
   try {
     const out = execFileSync("gh", ["api", "-H", "Accept: application/vnd.github+json", path], {
       encoding: "utf8",
+      env: readEnv(),
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 60_000,
     });

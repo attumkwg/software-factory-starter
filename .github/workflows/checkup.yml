@@ -1,0 +1,72 @@
+# 点検の知らせ。台帳(docs/checkup/todo.yaml)から、自動で確かめられる物を確かめ、担当者に GitHub の Issue で知らせる。
+#   毎週(日本時間 月曜 8:00)… 「点検 YYYY-Www」の Issue を作る(前の週の Issue は閉じ、残っている物を写す)+急ぎも見る
+#   毎日(日本時間 火〜日 8:00)… 急ぎ(守りが外れた・重い穴・漏れ)だけ見て、あれば1件ずつ Issue。直ったら閉じる
+# 答えは Issue ではなく、Claude Code の /checkup で1問ずつ(Issue のチェックボックスは「やった」の印だけ)。
+# 決まりは docs/designs/0007-checkup.md の 3.・5.・8.。毎週の Issue が来なければ、点検が止まっている(Actions → Checkup を見る)。
+#
+# 要るもの:
+#   - 秘密 CHECKUP_TOKEN(任意)… 細かい権限のトークン(読み取りだけ: Administration・Contents・Metadata・
+#     Dependabot alerts・Secret scanning alerts・Actions)。ブランチ保護などを読むのに要る。無ければその項目は「確かめられなかった」
+#   - 秘密 SLACK_WEBHOOK_URL(任意)… あれば Slack にも同じ要約を送る
+# 費用: 毎週 2〜3分・毎日 1分ほど(公開のリポジトリは無料。非公開+Free でも月 約40分 = 枠の 2%)。Claude は使わない。
+name: Checkup
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: weekly(毎週の Issue と急ぎ)か urgent(急ぎだけ)
+        type: choice
+        options: [weekly, urgent]
+        default: weekly
+  # 有効にする日: 2026-10-24
+  # 毎週と毎日で、月に約40分(公開のリポジトリは無料)。U-5: 毎週は月曜 8:00・急ぎは毎日 8:00(日本時間)
+  schedule:
+    - cron: "0 23 * * 0" # 日本時間 月曜 8:00(毎週+急ぎ)
+    - cron: "0 23 * * 1-6" # 日本時間 火〜日 8:00(急ぎだけ)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkup
+  cancel-in-progress: false
+
+jobs:
+  checkup:
+    name: 点検
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 確かめて知らせる
+        env:
+          # Issue を書くのはジョブのトークン。読むのは CHECKUP_TOKEN(無ければジョブのトークン)
+          GH_TOKEN: ${{ github.token }}
+          CHECKUP_READ_TOKEN: ${{ secrets.CHECKUP_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "schedule" ]; then
+            if [ "$SCHEDULE" = "0 23 * * 0" ]; then MODE=weekly; else MODE=urgent; fi
+          fi
+          if [ "$MODE" = "weekly" ]; then
+            pnpm checkup --issue --urgent
+          else
+            pnpm checkup --urgent
+          fi
