@@ -3,11 +3,14 @@
 //   pnpm checkup --json          結果を JSON で出す(知らせ・ほかの道具が読む)
 //   pnpm checkup --write-readme  詳しくない人が読む1枚(docs/checkup/README.md)を台帳から作り直す
 //   pnpm checkup --today 2026-11-16  日付を変えて試す(段階の確かめ)
+//   pnpm checkup --issue         結果で「今週の点検」の Issue を作る・直す(前の週の Issue は閉じる)。checkup.yml が毎週流す
+//   pnpm checkup --urgent        急ぎ(severity: high の fail)を1件ずつ Issue にする・直ったら閉じる。checkup.yml が毎日流す
 // GitHub は gh で読む。gh が無い・ログインしていない・権限が無いときは落とさず、その項目を unknown にする。
 // 台帳の書き方が違うときは 1 で終わる。確かめの結果では落とさない(知らせで伝える)。設計: docs/designs/0007-checkup.md
 import { readFileSync, writeFileSync } from "node:fs";
 import { makeContext } from "./context.mjs";
 import { resolveRepo } from "./gh.mjs";
+import { notify } from "./notify-gh.mjs";
 import { isDate, toDate, todayInTokyo } from "./phase.mjs";
 import { README, renderReadme } from "./readme.mjs";
 import { renderReport } from "./report.mjs";
@@ -52,3 +55,7 @@ const run = await runCheckup({
 
 if (args.includes("--json")) console.log(JSON.stringify(toJson(run), null, 2));
 else console.log(renderReport(run));
+
+const weekly = args.includes("--issue");
+const urgent = args.includes("--urgent");
+if (weekly || urgent) await notify(run, { repo, owners: ledger.owners, weekly, urgent });
