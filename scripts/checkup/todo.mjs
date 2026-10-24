@@ -8,6 +8,19 @@ export const WHO = ["system", "ai", "human"];
 export const VERIFY = ["auto", "ask", "manual"];
 export const SEVERITY = ["high", "normal"];
 export const STATUS = ["open", "done", "asked_advisor", "snoozed", "retired"];
+/** 選択肢を選んだ後の状態(書かなければ done。snooze は SNOOZE_MAX_DAYS 日後にまた聞く) */
+export const AFTER = ["done", "open", "snooze"];
+/** history の result: 確かめ(pass / fail / unknown)と人の答え(設計書 2.) */
+export const RESULTS = [
+  "pass",
+  "fail",
+  "unknown",
+  "answered",
+  "unsure",
+  "snoozed",
+  "did",
+  "could_not",
+];
 const REQUIRED = [
   "id",
   "title",
@@ -22,7 +35,7 @@ const REQUIRED = [
   "source",
   "review_by",
 ];
-const SNOOZE_MAX_DAYS = 90;
+export const SNOOZE_MAX_DAYS = 90;
 
 const isKebab = (s) =>
   typeof s === "string" &&
@@ -50,33 +63,43 @@ function checkQuestion(q, name, problems) {
   const labels = (q.options ?? []).map((o) => o?.label);
   if (labels.length < 2 || labels.length > 4)
     problems.push(`${name} の選択肢は2〜4個(いま ${labels.length})`);
-  for (const o of q.options ?? [])
+  for (const o of q.options ?? []) {
     if (!o?.label || !o?.means) problems.push(`${name} の選択肢に label と means が要る`);
+    if (o?.after !== undefined && !AFTER.includes(o.after))
+      problems.push(`${name} の選択肢の after「${o.after}」は ${AFTER.join(" / ")} のどれか`);
+  }
   if (!labels.includes(q.recommended))
     problems.push(`${name} のおすすめ「${q.recommended}」が選択肢に無い`);
   if (typeof q.irreversible !== "boolean")
     problems.push(`${name} の question.irreversible は true か false`);
 }
 
-/** 確かめ方ごとに要る欄(auto → check・ask → question・manual → steps) */
+/** 確かめ方ごとに要る欄(auto → check・ask → question・manual → steps)。ask・manual の check は任意(答えの裏を取る) */
 function checkVerify(item, name, checkNames, problems) {
-  if (item.verify === "auto") {
-    if (!item.check) problems.push(`${name} は auto なので check が要る`);
-    else if (checkNames && !checkNames.includes(item.check))
-      problems.push(`${name} の check「${item.check}」が scripts/checkup/checks/ に無い`);
-  }
+  if (item.verify === "auto" && !item.check) problems.push(`${name} は auto なので check が要る`);
+  if (item.check && checkNames && !checkNames.includes(item.check))
+    problems.push(`${name} の check「${item.check}」が scripts/checkup/checks/ に無い`);
   if (item.verify === "ask") checkQuestion(item.question, name, problems);
   if (item.verify === "manual" && !(Array.isArray(item.steps) && item.steps.length > 0))
     problems.push(`${name} は manual なので steps(番号付きの手順)が要る`);
 }
 
+function checkHistory(item, name, problems) {
+  if (!Array.isArray(item.history)) problems.push(`${name} の history は一覧([] でもよい)`);
+  for (const h of item.history ?? []) {
+    if (!isDate(toDate(h?.on)) || !h?.by || !h?.result)
+      problems.push(`${name} の history の1行に on(YYYY-MM-DD)・by・result が要る`);
+    else if (!RESULTS.includes(h.result))
+      problems.push(
+        `${name} の history の result「${h.result}」は ${RESULTS.join(" / ")} のどれか`,
+      );
+  }
+}
+
 function checkDates(item, name, problems) {
   if (item.review_by !== undefined && !isDate(toDate(item.review_by)))
     problems.push(`${name} の review_by は YYYY-MM-DD`);
-  if (!Array.isArray(item.history)) problems.push(`${name} の history は一覧([] でもよい)`);
-  for (const h of item.history ?? [])
-    if (!isDate(toDate(h?.on)) || !h?.by || !h?.result)
-      problems.push(`${name} の history の1行に on(YYYY-MM-DD)・by・result が要る`);
+  checkHistory(item, name, problems);
   if (item.status === "snoozed") {
     const until = toDate(item.snoozed_until);
     const last = toDate(lastEntry(item)?.on);
