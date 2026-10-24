@@ -2,6 +2,7 @@ import { MeSchema } from "@app/shared";
 import { createRoute } from "@hono/zod-openapi";
 import { scopeOf } from "../../db/scope.ts";
 import { unauthorized } from "../../errors.ts";
+import { findEnabledFeatures } from "../../feature-flags/index.ts";
 import { authErrors, createRouter, json } from "../../http/common.ts";
 import { findAccess } from "./account.ts";
 import { getMe } from "./repository.ts";
@@ -17,11 +18,13 @@ export const organizationRoutes = createRouter().openapi(
   }),
   async (c) => {
     const actor = c.get("actor");
+    // この組織で入っている機能(docs/specs/0012-feature-flags-and-usage.md)。代理の社員にも同じ一覧
+    const features = await findEnabledFeatures(c.get("tx"), actor.tenantId, c.get("featureFlags"));
     // 代理の社員は、見ている組織の閲覧者として返す(画面は上に帯を出す)
     if (actor.support) {
       const me = await getSupportMe(c.get("tx"), actor.tenantId, actor.support.sessionId);
       if (!me) throw unauthorized();
-      return c.json(me, 200);
+      return c.json({ ...me, features }, 200);
     }
     const scope = scopeOf(c);
     const me = await getMe(scope);
@@ -37,7 +40,13 @@ export const organizationRoutes = createRouter().openapi(
     // 規約の同意(関所が引いて置いた物。docs/specs/0009-legal-consent.md)。pending なら画面は /legal/accept へ回す
     const legal = c.get("legalStatus");
     return c.json(
-      { ...me, isSupportStaff: supportTenantId === me.tenantId, mfa, ...(legal ? { legal } : {}) },
+      {
+        ...me,
+        isSupportStaff: supportTenantId === me.tenantId,
+        mfa,
+        ...(legal ? { legal } : {}),
+        features,
+      },
       200,
     );
   },

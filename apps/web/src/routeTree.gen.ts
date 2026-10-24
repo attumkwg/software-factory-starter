@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignUpRouteImport } from './routes/sign-up'
@@ -26,6 +27,11 @@ import { Route as LegalDocumentVersionRouteImport } from './routes/legal/$docume
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignSystemRoute = DesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -96,6 +102,7 @@ const LegalDocumentVersionRoute = LegalDocumentVersionRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/design-system': typeof DesignSystemRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/legal/$document/': typeof LegalDocumentIndexRoute
 }
 export interface FileRoutesByTo {
+  '/design-system': typeof DesignSystemRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/design-system': typeof DesignSystemRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/design-system'
     | '/forgot-password'
     | '/login'
     | '/sign-up'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/legal/$document/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/design-system'
     | '/forgot-password'
     | '/login'
     | '/sign-up'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/design-system'
     | '/forgot-password'
     | '/login'
     | '/sign-up'
@@ -192,6 +204,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  DesignSystemRoute: typeof DesignSystemRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   SignUpRoute: typeof SignUpRoute
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design-system': {
+      id: '/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof DesignSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -328,6 +348,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  DesignSystemRoute: DesignSystemRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   SignUpRoute: SignUpRoute,

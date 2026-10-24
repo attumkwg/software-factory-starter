@@ -160,3 +160,26 @@ resource "aws_wafv2_web_acl_logging_configuration" "this" {
     }
   }
 }
+
+# ── 見張り: WAF が止めた数(数えるだけの間は、止めるはずだった数)──────────────────────
+# 攻撃(総当たり・大量のアクセス・API の悪用)に気づくため。鳴ったら docs/runbooks/attack.md。
+# mode が count の間は BlockedRequests が 0 のままなので、CountedRequests を見る(止めるに切り替えたら BlockedRequests)。
+data "aws_region" "current" {}
+
+resource "aws_cloudwatch_metric_alarm" "waf_hits" {
+  count               = var.alarm_topic_arn == null ? 0 : 1
+  alarm_name          = "${var.name}-waf-hits"
+  alarm_description   = "WAF が5分に${var.alarm_threshold}回以上${var.mode == "block" ? "止めた" : "止めるはずだった(数えるだけ)"}。攻撃かもしれない。docs/runbooks/alarms.md#waf-hits → docs/runbooks/attack.md"
+  namespace           = "AWS/WAFV2"
+  metric_name         = var.mode == "block" ? "BlockedRequests" : "CountedRequests"
+  dimensions          = { WebACL = aws_wafv2_web_acl.this.name, Rule = "ALL", Region = data.aws_region.current.region }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = var.alarm_threshold
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  # 止めた物が無い間は数字が来ない
+  treat_missing_data = "notBreaching"
+  alarm_actions      = [var.alarm_topic_arn]
+  ok_actions         = [var.alarm_topic_arn]
+}

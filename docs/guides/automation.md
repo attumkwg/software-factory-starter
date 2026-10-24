@@ -8,6 +8,7 @@
 | ワークフロー | 何をする | 今の状態 | 有効にするとかかるお金 | 有効にする日 |
 |---|---|---|---|---|
 | `ci.yml` | 整形・型・テスト・E2E・検査 | 自動(PR・main) | Actions の分数だけ(下の「無料枠」) | 有効(品質のライン) |
+| `vrt.yml` | 見た目の比べ(VRT)・PR に結果と主な画面をコメント([vrt.md](vrt.md)) | 自動(PR・ラベル `vrt:update`) | Actions の分数だけ(PR ごとに約8分) | 有効(品質のライン) |
 | `labeler.yml` | 危険度のラベル | 自動(PR) | ほぼ0(数秒) | 有効 |
 | `terraform.yml` | fmt・validate・tflint・Trivy | 自動(infra の PR) | Actions の分数だけ | 有効 |
 | `terraform-plan.yml` | AWS に plan を問い合わせ PR にコメント(PR の plan は stg だけ。prod は main のときだけ) | 手動 | AWS の読み取り(ほぼ0)+分数 | ここに日付を入れてください |

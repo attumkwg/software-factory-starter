@@ -33,3 +33,15 @@ variable "logs_kms_key_arn" {
   type        = string
   default     = null
 }
+
+variable "alarm_topic_arn" {
+  description = "WAF が止めた数のアラームを送る SNS(alerts の topic)。null ならアラームを作らない"
+  type        = string
+  default     = null
+}
+
+variable "alarm_threshold" {
+  description = "5分に何回止めたら(数えるだけの間は、止めるはずだったら)鳴らすか。最初の目安。鳴りすぎたら上げる"
+  type        = number
+  default     = 100
+}
