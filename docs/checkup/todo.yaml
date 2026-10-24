@@ -11,12 +11,51 @@
 #   - 選択肢の after: 選んだ後の状態。done(書かなければこれ)/ open(来週また聞く)/ snooze(90日後にまた聞く)
 #   - status: open / done / asked_advisor / snoozed(snoozed_until に次に聞く日。最長90日)/ retired
 #   - history は足すだけ(答え・確かめの記録。いつ・誰が・何を)。答えは /checkup が pnpm checkup:answer で書く(手で書かない)
+#   - 項目を足す・直す・引退させるのは /checkup-refresh の PR(引退は消さずに status: retired と history に result: retired)
 #   - 公開のリポジトリなので、脆弱性や秘密の見つけ物の中身は書かない(件数と見る場所だけ)
 
 started_on: 2026-10-17 # 使い始めた日(段階の計算の起点)
 owners:
   responder: "@attumkwg" # 知らせを受けて答える人(担当者)
   advisor: "@attumkwg" # 「分からない」の相談先(詳しい人)
+
+# 世の中の変化の取り込み(/checkup-refresh。月1回、人が手元で起動する)。
+#   refreshed_on: 前回取り込んだ日(/checkup-refresh が書く)。35日を過ぎると毎週の w-ledger が知らせる。まだ一度も流していない
+#   refresh_sources: 調べる所。これ自体も refresh で見直す(足す・直すは PR で)
+refresh_sources:
+  - name: GitHub の変更履歴
+    url: https://github.blog/changelog/
+    covers: Actions・ブランチ保護・ルールセット・Dependabot・secret scanning・Issue の仕様の変更
+  - name: GitHub のプラン
+    url: https://github.com/pricing
+    covers: 無料のプランで使える守り・Actions の分数の枠の変更
+  - name: GitHub Advisory Database(npm)
+    url: https://github.com/advisories?query=ecosystem%3Anpm
+    covers: 使っている主な依存(hono・jose・pg・drizzle・TanStack・zod など)の重大な通知(中身は /cve へ)
+  - name: Node.js のセキュリティリリース
+    url: https://nodejs.org/en/blog/vulnerability
+    covers: Node.js の穴とサポート期限
+  - name: PostgreSQL のセキュリティ情報
+    url: https://www.postgresql.org/support/security/
+    covers: PostgreSQL(Aurora)の穴とサポート期限
+  - name: AWS のセキュリティ情報
+    url: https://aws.amazon.com/security/security-bulletins/
+    covers: 使っている AWS のサービス(ECS・Aurora・Cognito・SES・WAF など)の重大な通知と仕様の変更
+  - name: OWASP Top 10
+    url: https://owasp.org/www-project-top-ten/
+    covers: よく使われる攻撃と対策の変化
+  - name: OWASP ASVS
+    url: https://owasp.org/www-project-application-security-verification-standard/
+    covers: 確かめるべき守りの一覧の変化
+  - name: IPA 重要なセキュリティ情報
+    url: https://www.ipa.go.jp/security/security-alert/
+    covers: 日本で広く使われる物の重大な穴
+  - name: 個人情報保護委員会
+    url: https://www.ppc.go.jp/news/
+    covers: 個人情報保護法の改正・漏えいの届け出の決まりの変化
+  - name: Claude Code の変更履歴
+    url: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
+    covers: フック・権限・スキルの仕様の変更(キットの守りの3層に当たる)
 
 items:
   # ── 毎週(立ち上げから。自動で確かめる)────────────────────────────────
@@ -126,8 +165,8 @@ items:
     review_by: 2027-04-20
 
   - id: w-ledger
-    title: 見直す日の過ぎた台帳の項目が無いか
-    why: 世の中が変わると、台帳の項目そのものが古くなる。見直す日で気づくため
+    title: 見直す日の過ぎた台帳の項目が無いか・世の中の変化を取り込む時期か(/checkup-refresh)
+    why: 世の中が変わると、台帳の項目そのものが古くなる。見直す日と、月1回の取り込みで気づくため
     if_ignored: もう意味の無い点検を続け、要る点検が抜ける
     who: system
     phase: setup

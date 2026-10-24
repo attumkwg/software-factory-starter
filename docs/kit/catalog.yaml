@@ -1108,16 +1108,16 @@ parts:
     pr: 18
     removable: true
     default: 残す
-    what: 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)
+    what: 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする
     needed_by: すべて(守りが今も効いているかを、詳しくない人でも回すため)
     not_needed_by: なし
     if_removed: 守りが外れても・段階でやることが来ても、詳しい人が自分で見に行くまで気づかない
     depends_on: [harness, cve-triage]
     law:
       - ISMS 9.1(監視・測定)・5.36(順守の確認)
-    where: [docs/checkup/todo.yaml, docs/checkup/README.md, scripts/checkup/run.mjs, .claude/skills/checkup/SKILL.md, .github/workflows/checkup.yml, docs/designs/0007-checkup.md]
+    where: [docs/checkup/todo.yaml, docs/checkup/README.md, scripts/checkup/run.mjs, .claude/skills/checkup/SKILL.md, .claude/skills/checkup-refresh/SKILL.md, .github/workflows/checkup.yml, docs/designs/0007-checkup.md]
     remove:
-      delete: [docs/checkup, scripts/checkup, .claude/skills/checkup, .github/workflows/checkup.yml]
+      delete: [docs/checkup, scripts/checkup, .claude/skills/checkup, .claude/skills/checkup-refresh, .github/workflows/checkup.yml]
       edit:
         - { path: package.json, what: checkup・checkup:answer を外す・test:scripts から scripts/checkup/*.test.mjs を外す }
         - { path: docs/playbook.md, what: 点検の台帳を指す1行を外す }
