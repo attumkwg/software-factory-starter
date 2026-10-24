@@ -36,7 +36,7 @@ start_steps:
     does: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめ、毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日)。人に聞くことは /checkup で1問ずつ答える
     writes: docs/checkup/todo.yaml
     link: docs/checkup/README.md
-    status: 作成中
+    status: あり
   - title: キットが既定で決めた所を決める
     command: pnpm decisions --adopt
     does: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる
@@ -1104,8 +1104,7 @@ parts:
   - id: checkup
     name: 点検(/checkup)
     group: process
-    status: 作成中
-    pr: 18
+    status: あり
     removable: true
     default: 残す
     what: 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする

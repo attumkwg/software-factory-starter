@@ -2,7 +2,7 @@
 
 > **利用者が困っている(か、困りそう)なら、それは障害。** 迷ったら宣言する(宣言して何も無かった、は損にならない)。
 > 原因を探すより先に**止血**(戻す・止める)。直すのは落ち着いてから。終わったら必ず**振り返り**。
-> 個別の手順: アラーム [alarms.md](alarms.md) / Sentry [sentry.md](sentry.md) / DB を戻す [db-restore.md](db-restore.md) / デプロイ・移行を戻す [deploy-rollback.md](deploy-rollback.md) / 秘密が漏れた [secret-leak.md](secret-leak.md) / 他社のデータが見えた [tenant-data-leak.md](tenant-data-leak.md) / 個人データが漏れた(委員会への報告・本人への通知)[personal-data-breach.md](personal-data-breach.md)
+> 個別の手順: アラーム [alarms.md](alarms.md) / Sentry [sentry.md](sentry.md) / DB を戻す [db-restore.md](db-restore.md) / デプロイ・移行を戻す [deploy-rollback.md](deploy-rollback.md) / 秘密が漏れた [secret-leak.md](secret-leak.md) / 他社のデータが見えた [tenant-data-leak.md](tenant-data-leak.md) / 個人データが漏れた(委員会への報告・本人への通知)[personal-data-breach.md](personal-data-breach.md) / 攻撃を受けている(総当たり・大量のアクセス・API の悪用)[attack.md](attack.md)
 
 ## 1. 重さを決めて、宣言する(最初の5分)
 

@@ -7,7 +7,7 @@
 // 見つけないもの: 「他社のデータが見える」のような意味の上の穴(それは権限の表のテストと人の診断)。
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { chmodSync, mkdirSync } from "node:fs";
 
 const SCHEMATHESIS_IMAGE = "schemathesis/schemathesis:v4.30.1";
 const NETWORK = "software-factory-starter_default";
@@ -40,6 +40,8 @@ for (const actor of ACTORS) {
   const cookie = actor.email ? await login(actor.email) : null;
   const reportDir = `reports/schemathesis/${actor.name}`;
   mkdirSync(reportDir, { recursive: true });
+  // Schemathesis のイメージは root でない利用者で動くので、手元(Actions)で作った置き場に書けるようにする
+  chmodSync(reportDir, 0o777);
   console.log(`\n=== ${actor.name} ===`);
 
   const args = [
