@@ -313,7 +313,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 **定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](docs/guides/github-setup.md))。
 
-`ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。
+`ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。文書だけの PR では重いジョブ(結合・E2E・イメージ・VRT など)の中身を省いて成功を返す。待ちの内訳と、並んだ PR を入れるときのこつは [docs/guides/ci-speed.md](docs/guides/ci-speed.md)。
 
 日々の進め方は [docs/playbook.md](docs/playbook.md)、Slack から頼む形にしたいときは [docs/guides/slack.md](docs/guides/slack.md)。
 
