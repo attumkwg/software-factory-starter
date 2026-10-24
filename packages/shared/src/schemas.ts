@@ -8,6 +8,18 @@ import { InstantSchema, TimeZoneSchema } from "./time.ts";
 
 export const IdSchema = z.uuid();
 
+/**
+ * 人が付ける名前・題名(前後の空白を落とす・空は通さない)。NUL(文字の0番)は通さない:
+ * DB(Postgres)の文字列は NUL を持てず、そのまま渡すと 500 になる。ほかの変わった文字はそのまま
+ */
+const label = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine((v) => !v.includes("\u0000"), { message: "使えない文字(NUL)が入っています" });
+
 export const MeSchema = z.object({
   userId: IdSchema,
   tenantId: IdSchema,
@@ -49,7 +61,7 @@ export const ProjectSchema = z.object({
 export type Project = z.infer<typeof ProjectSchema>;
 
 export const CreateProjectSchema = z.object({
-  name: z.string().trim().min(1).max(100),
+  name: label(100),
 });
 export type CreateProject = z.infer<typeof CreateProjectSchema>;
 
@@ -64,13 +76,13 @@ export const TaskSchema = z.object({
 export type Task = z.infer<typeof TaskSchema>;
 
 export const CreateTaskSchema = z.object({
-  title: z.string().trim().min(1).max(200),
+  title: label(200),
 });
 export type CreateTask = z.infer<typeof CreateTaskSchema>;
 
 export const UpdateTaskSchema = z
   .object({
-    title: z.string().trim().min(1).max(200).optional(),
+    title: label(200).optional(),
     done: z.boolean().optional(),
   })
   .refine((v) => v.title !== undefined || v.done !== undefined, {
