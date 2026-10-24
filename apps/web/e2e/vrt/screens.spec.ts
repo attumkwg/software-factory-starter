@@ -28,7 +28,13 @@ for (const screen of SCREENS) {
 
 test("部品の一覧(確認のダイアログ)", async ({ page }) => {
   await page.goto("/design-system");
-  await page.getByRole("button", { name: "消す" }).click();
-  await expect(page.getByRole("alertdialog", { name: "見本を消しますか?" })).toBeVisible();
-  await snap(page, "design-system-dialog");
+  const dialog = page.getByRole("alertdialog", { name: "見本を消しますか?" });
+  // SSR の HTML が先に出るので、ブラウザの JS がつながる前に押すと何も起きない。開くまで押し直す
+  await expect(async () => {
+    await page.getByRole("button", { name: "消す" }).click();
+    await expect(dialog).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  // ダイアログだけを撮る。ダイアログと暗い幕は画面に固定(position: fixed)なので、ページ全体で撮ると、
+  // 押したときに動いたスクロールの位置で写る場所が変わる(撮るたびにずれて落ちた。2026-10-24 の CI)
+  await expect(dialog).toHaveScreenshot("design-system-dialog.png");
 });

@@ -113,6 +113,7 @@ Playwright の版は3か所(`apps/web/package.json` の `@playwright/test`・イ
 塗る所(`mask`): `2026/10/24` の形の文字(作った日)。どの画面でも灰色に塗る(既定の桃色は目立ちすぎる)。
 
 撮り方: 画面ごとに `page.goto` → 待つもの → `toHaveScreenshot("<ID>.png", { fullPage: true, mask })`。
+確認のダイアログ(`design-system-dialog`)だけは、**ダイアログの要素だけ**を撮る(`expect(dialog).toHaveScreenshot`)。ダイアログと暗い幕は画面に固定(`position: fixed`)なので、ページ全体で撮ると、押したときに動いたスクロールの位置で写る場所が変わる。開くときは、JS がつながる前に押して何も起きないことがあるので、開くまで押し直す(`toPass`)。
 
 ### 5.4 CI(`.github/workflows/vrt.yml`)
 
@@ -226,3 +227,4 @@ Playwright の版は3か所(`apps/web/package.json` の `@playwright/test`・イ
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-24 | CI の VRT で、部品の一覧(確認のダイアログ)のスマホだけが基準と違った(1回目の CI は通っていた) | テスト | 撮り方: 固定のダイアログをページ全体で撮っていて、スクロールの位置で写る場所がずれた → ダイアログの要素だけを撮る。開くまで押し直す(E2E の `design-system.spec.ts` も) | 設計書の 5.3・基準の画像 `design-system-dialog`(パソコン・スマホ)を撮り直した。しきい値は変えていない |

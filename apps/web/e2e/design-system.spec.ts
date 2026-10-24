@@ -22,10 +22,13 @@ test("部品の一覧に、部品が種類ごとに並ぶ", async ({ page }) => 
   }
   await expectAccessible(page);
 
-  // 確認のダイアログは開いて閉じられる(見本なので何も消えない)
-  await page.getByRole("button", { name: "消す" }).click();
+  // 確認のダイアログは開いて閉じられる(見本なので何も消えない)。
+  // JS がつながる前に押すと何も起きないので、開くまで押し直す(e2e/vrt/screens.spec.ts と同じ)
   const dialog = page.getByRole("alertdialog", { name: "見本を消しますか?" });
-  await expect(dialog).toBeVisible();
+  await expect(async () => {
+    await page.getByRole("button", { name: "消す" }).click();
+    await expect(dialog).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await expectAccessible(page);
   await dialog.getByRole("button", { name: "やめる" }).click();
   await expect(dialog).toBeHidden();
