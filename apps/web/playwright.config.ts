@@ -26,6 +26,8 @@ export default defineConfig({
     ? { testMatch: "cognito-*.spec.ts" }
     : { testIgnore: ["cognito-*.spec.ts", "vrt/**"] }),
   fullyParallel: true,
+  // CI の機械は 4 コア。既定(コアの半分 = 2)だと、ブラウザが画面とAPIの返事を待つ間にコアが空く(docs/guides/ci-speed.md)
+  workers: process.env.CI ? 4 : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",

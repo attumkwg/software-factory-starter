@@ -1,5 +1,7 @@
 # PR の検査(工程⑤)。AWS も API キーも要らない。全部が緑でないとマージできない(ブランチ保護で必須に)。
 # 速い検査(Biome・型・単体)を最初に返し、重いもの(結合・E2E・イメージ)は並べて流す。
+# 文書だけの PR では、重いジョブは中身を省いて成功を返す(.github/scripts/ci-scope.mjs。main と マージキューでは全部流す)。
+# 待ちの内訳と縮め方は docs/guides/ci-speed.md
 name: CI
 
 on:
@@ -80,15 +82,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+          fetch-depth: 2 # 元(base)と比べる(ci-scope)
+      - name: 重い検査が要るか(文書だけの PR は省く。省いても成功を返す)
+        id: scope
+        run: node .github/scripts/ci-scope.mjs "$GITHUB_EVENT_NAME" >> "$GITHUB_OUTPUT"
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - if: steps.scope.outputs.heavy == 'true'
+        run: pnpm install --frozen-lockfile
       # 結合テストがあるのは API だけ。API の test:coverage は単体と結合を一緒に流し、合わせた値で下限を見る
       #(単体だけだと DB を使う所が入らない。単体は数秒なので、二度流しても時間はほぼ増えない)
       - name: Testcontainers で結合テスト(API は単体と合わせたカバレッジの下限も)
+        if: steps.scope.outputs.heavy == 'true'
         run: pnpm --filter @app/api test:coverage
 
   api-compat:
@@ -103,18 +113,25 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: 重い検査が要るか(文書だけの PR は省く。省いても成功を返す)
+        id: scope
+        run: node .github/scripts/ci-scope.mjs "$GITHUB_EVENT_NAME" >> "$GITHUB_OUTPUT"
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
       - name: この PR の OpenAPI
+        if: steps.scope.outputs.heavy == 'true'
         run: |
           pnpm install --frozen-lockfile
           pnpm openapi
           mkdir -p "$RUNNER_TEMP/specs"
           cp apps/api/openapi.json "$RUNNER_TEMP/specs/head.json"
       - name: 元(base)の OpenAPI
+        if: steps.scope.outputs.heavy == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
@@ -124,6 +141,7 @@ jobs:
           pnpm openapi
           cp apps/api/openapi.json "$RUNNER_TEMP/specs/base.json"
       - name: 壊す変更が無いか
+        if: steps.scope.outputs.heavy == 'true'
         run: >-
           docker run --rm -v "$RUNNER_TEMP/specs:/specs" "$OASDIFF_IMAGE"
           breaking /specs/base.json /specs/head.json --fail-on ERR
@@ -136,43 +154,71 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+          fetch-depth: 2 # 元(base)と比べる(ci-scope)
+      - name: 重い検査が要るか(文書だけの PR は省く。省いても成功を返す)
+        id: scope
+        run: node .github/scripts/ci-scope.mjs "$GITHUB_EVENT_NAME" >> "$GITHUB_OUTPUT"
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @app/api db:lint
+      - if: steps.scope.outputs.heavy == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.scope.outputs.heavy == 'true'
+        run: pnpm --filter @app/api db:lint
 
   e2e:
     name: E2E(docker compose+Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+          fetch-depth: 2 # 元(base)と比べる(ci-scope)
+      - name: 重い検査が要るか(文書だけの PR は省く。省いても成功を返す)
+        id: scope
+        run: node .github/scripts/ci-scope.mjs "$GITHUB_EVENT_NAME" >> "$GITHUB_OUTPUT"
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: 手元と同じ形で起動(DB・移行・種データ・API・画面の SSR・ALB の代わり)
+      - if: steps.scope.outputs.heavy == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: 手元と同じ形で起動(DB・移行・種データ・API・画面の SSR・ALB の代わり)と、ブラウザを入れる(並べて)
+        if: steps.scope.outputs.heavy == 'true'
         run: |
+          # ブラウザと OS の部品を入れる(約20秒)のを、アプリの起動を待つ間に済ませる
+          pnpm --filter @app/web exec playwright install --with-deps chromium > "$RUNNER_TEMP/playwright-install.log" 2>&1 &
+          install=$!
           docker compose up --build -d
           # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
-          for _ in $(seq 1 60); do
+          ready=false
+          for _ in $(seq 1 120); do
             if curl -fsS http://localhost:8080/readyz && [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
-              exit 0
+              ready=true
+              break
             fi
-            sleep 2
+            sleep 1
           done
-          docker compose logs
-          exit 1
-      - run: pnpm --filter @app/web exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+          if [ "$ready" != true ]; then
+            docker compose logs
+            exit 1
+          fi
+          if ! wait "$install"; then
+            cat "$RUNNER_TEMP/playwright-install.log"
+            exit 1
+          fi
+      - if: steps.scope.outputs.heavy == 'true'
+        run: pnpm test:e2e
       - name: Cognito でのログイン(偽物の Cognito に切り替えて、ログインの流れだけ流す)
+        if: steps.scope.outputs.heavy == 'true'
         env:
           E2E_AUTH: cognito
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-cognito
@@ -181,7 +227,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d --wait api fake-cognito
           pnpm test:e2e --output=test-results/cognito
       - name: スクショ・動画・レポート(PR に貼る証拠)
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.scope.outputs.heavy == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
@@ -191,7 +237,7 @@ jobs:
             apps/web/test-results
           retention-days: 7
       - name: 失敗したらログ
-        if: failure()
+        if: failure() && steps.scope.outputs.heavy == 'true'
         run: docker compose -f docker-compose.yml -f docker-compose.cognito.yml logs
 
   gitleaks:
@@ -265,8 +311,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+          fetch-depth: 2 # 元(base)と比べる(ci-scope)
+      - name: 重い検査が要るか(文書だけの PR は省く。省いても成功を返す)
+        id: scope
+        run: node .github/scripts/ci-scope.mjs "$GITHUB_EVENT_NAME" >> "$GITHUB_OUTPUT"
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - if: steps.scope.outputs.heavy == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ${{ matrix.file }}
@@ -275,6 +327,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
       - name: Trivy でイメージを検査
+        if: steps.scope.outputs.heavy == 'true'
         run: >-
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE"
           image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "${{ matrix.app }}:ci"

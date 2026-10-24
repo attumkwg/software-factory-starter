@@ -10,6 +10,12 @@ x-app: &app
     context: .
     dockerfile: apps/api/Dockerfile
 
+# 起動の間(start_period)だけ、1秒ごとに「動いたか」を確かめる。確かめ方と、動いた後の間隔(10秒)はイメージの HEALTHCHECK のまま。
+# これが無いと、postfix → api → web → alb の順に「次の確かめ(10秒後)」を待ち、起動のたびに約30秒を捨てる(CI の E2E・VRT も)
+x-fast-start: &fast-start
+  start_period: 60s
+  start_interval: 1s
+
 services:
   db:
     image: postgres:17-alpine
@@ -66,6 +72,7 @@ services:
         condition: service_completed_successfully
       postfix:
         condition: service_healthy
+    healthcheck: *fast-start
 
   web:
     image: software-factory-starter/web:local
@@ -78,6 +85,7 @@ services:
       LOG_LEVEL: info
       # 画面の URL(OGP の og:url に使う。apps/web/src/head.ts)。API の APP_URL と同じ値
       APP_URL: http://localhost:8080
+    healthcheck: *fast-start
     depends_on:
       api:
         condition: service_healthy
@@ -108,6 +116,7 @@ services:
       POSTFIX_MYHOSTNAME: postfix.local
     # 本番(ECS)と同じく、書けるのは送り待ちと /run だけ
     read_only: true
+    healthcheck: *fast-start
     tmpfs:
       - /run
     volumes:
