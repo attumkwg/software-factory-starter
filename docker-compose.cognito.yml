@@ -18,6 +18,10 @@ services:
       FAKE_COGNITO_CLIENT_ID: local-web-client
       FAKE_COGNITO_SMTP_URL: smtp://postfix:25
       FAKE_COGNITO_MAIL_FROM: Tasks <no-reply@example.test>
+    # 起動の間だけ1秒ごとに確かめる(docker-compose.yml の x-fast-start と同じ。ファイルをまたいでアンカーは使えない)
+    healthcheck:
+      start_period: 60s
+      start_interval: 1s
     ports:
       # E2E が、テストの前に人を消す・二段階認証を設定するために直接つなぐ
       - "9231:9231"

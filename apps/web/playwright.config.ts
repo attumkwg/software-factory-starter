@@ -19,6 +19,10 @@ const MOBILE_SPECS = [
   "design-system.spec.ts",
 ];
 
+// 1分待つテスト(API がログインの Cookie を出し直すのは1分に1回)。組を分けて先頭に置き、いちばん先に流す。
+// 待つ間(ブラウザは何もしない)に、ほかのワーカーが残りを流す。最後に始まると、全体がその1分ぶん延びる(docs/guides/ci-speed.md)
+const WAITING_SPECS = ["session.spec.ts"];
+
 export default defineConfig({
   testDir: "./e2e",
   // 見た目の回帰テスト(e2e/vrt)は別の設定(playwright.vrt.config.ts・pnpm vrt)。ブラウザを Docker の中で動かす
@@ -26,6 +30,8 @@ export default defineConfig({
     ? { testMatch: "cognito-*.spec.ts" }
     : { testIgnore: ["cognito-*.spec.ts", "vrt/**"] }),
   fullyParallel: true,
+  // CI は 3(1つは上の待つテスト、残りの2つでほかを流す)。4 コアの機械にアプリも同居するので、4 にしても速くならなかった
+  workers: process.env.CI ? 3 : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
@@ -37,10 +43,19 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     ...(cognito
-      ? []
+      ? [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }]
       : [
+          {
+            name: "chromium-wait",
+            use: { ...devices["Desktop Chrome"] },
+            testMatch: WAITING_SPECS,
+          },
+          {
+            name: "chromium",
+            use: { ...devices["Desktop Chrome"] },
+            testIgnore: ["cognito-*.spec.ts", "vrt/**", ...WAITING_SPECS],
+          },
           {
             name: "mobile",
             use: { ...devices["Pixel 7"], viewport: { width: 320, height: 720 } },

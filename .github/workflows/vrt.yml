@@ -10,6 +10,7 @@
 # - コメントを書くジョブ(comment)は PR のコードを checkout も実行もしない。本文を成果物で受け取って貼るだけ。
 #   フォークの PR では動かさない(外の人の PR に書き込みの権限を渡さない。比べる検査は流す)。
 # - 値は env で渡す(式を run に直接書かない)。
+# 文書だけの PR では比べない(scope のジョブ。比べるジョブは飛ばされて成功を返す。.github/scripts/ci-scope.mjs)。
 name: VRT
 
 on:
@@ -25,12 +26,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  vrt:
-    name: 見た目の比べ(VRT)
+  scope:
+    name: 見た目に関わる変更か
     # ラベルを付けたときは vrt:update のときだけ流す(labeler の risk:* などで流し直さない)
     if: github.event.action != 'labeled' || github.event.label.name == 'vrt:update'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+    outputs:
+      heavy: ${{ steps.scope.outputs.heavy }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2 # 元(base)と比べる
+      - id: scope
+        run: node .github/scripts/ci-scope.mjs "$GITHUB_EVENT_NAME" >> "$GITHUB_OUTPUT"
+
+  vrt:
+    name: 見た目の比べ(VRT)
+    # 飛ばされたジョブは成功を返すので、必須のチェックは止まらない
+    needs: scope
+    if: needs.scope.outputs.heavy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       VRT_MODE: ${{ contains(github.event.pull_request.labels.*.name, 'vrt:update') && 'update' || 'compare' }}
     steps:
@@ -43,19 +61,29 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: ブラウザ(Docker の中の Chromium)と、手元と同じ形のアプリを起動
+      - name: ブラウザ(Docker の中の Chromium)と、手元と同じ形のアプリを起動(並べて)
         run: |
-          docker compose -f docker-compose.vrt.yml up -d --wait
+          # ブラウザのイメージ(約1.5GB)を取ってくる間に、アプリを作って起動する
+          docker compose -f docker-compose.vrt.yml up -d --wait > "$RUNNER_TEMP/browser.log" 2>&1 &
+          browser=$!
           docker compose up --build -d
           # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
-          for _ in $(seq 1 60); do
+          ready=false
+          for _ in $(seq 1 120); do
             if curl -fsS http://localhost:8080/readyz && [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
-              exit 0
+              ready=true
+              break
             fi
-            sleep 2
+            sleep 1
           done
-          docker compose logs
-          exit 1
+          if [ "$ready" != true ]; then
+            docker compose logs
+            exit 1
+          fi
+          if ! wait "$browser"; then
+            cat "$RUNNER_TEMP/browser.log"
+            exit 1
+          fi
       - name: 比べる(ラベル vrt:update があれば撮り直す)
         id: run
         run: |
