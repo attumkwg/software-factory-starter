@@ -1,4 +1,4 @@
-import type { LegalStatus, LegalVersion, Role } from "@app/shared";
+import type { FeatureFlagDefinition, LegalStatus, LegalVersion, Role } from "@app/shared";
 import type { TenantTx } from "./db/client.ts";
 
 /**
@@ -47,5 +47,7 @@ export type AppEnv = {
      * docs/specs/0009-legal-consent.md
      */
     legalStatus?: LegalStatus;
+    /** 機能フラグの定義(既定は @app/shared の FEATURE_FLAGS。結合テストが差し替える。docs/specs/0012-feature-flags-and-usage.md) */
+    featureFlags: readonly FeatureFlagDefinition[];
   };
 };

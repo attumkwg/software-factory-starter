@@ -1253,6 +1253,209 @@
           ]
         }
       ]
+    },
+    {
+      "name": "platform.feature_flags",
+      "type": "BASE TABLE",
+      "comment": "組織ごとの機能フラグ(行がある = その組織に機能を入れた)。定義は @app/shared の FEATURE_FLAGS。アプリは読むだけで、入れる・切るのは運営のコマンド feature-flag。docs/specs/0012-feature-flags-and-usage.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "flag",
+          "type": "text",
+          "nullable": false,
+          "comment": "機能の名前(FEATURE_FLAGS の name。一度使った名前は使い回さない)"
+        },
+        {
+          "name": "enabled_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "comment": "入れた時刻"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "feature_flags_pkey",
+          "def": "CREATE UNIQUE INDEX feature_flags_pkey ON platform.feature_flags USING btree (id)",
+          "table": "platform.feature_flags",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "feature_flags_tenant_flag_key",
+          "def": "CREATE UNIQUE INDEX feature_flags_tenant_flag_key ON platform.feature_flags USING btree (tenant_id, flag)",
+          "table": "platform.feature_flags",
+          "columns": [
+            "tenant_id",
+            "flag"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "feature_flags_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "platform.feature_flags",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "feature_flags_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "platform.feature_flags",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "feature_flags_tenant_flag_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, flag)",
+          "table": "platform.feature_flags",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "flag"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "platform.feature_usage",
+      "type": "BASE TABLE",
+      "comment": "利用の記録(この人がこの日にこの機能を使った。1日1人1機能1行)。中身・時刻・URL・IP は持たない。アプリは読む・足すだけ。400日で運営のコマンド usage-purge が消す。docs/specs/0012-feature-flags-and-usage.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "feature",
+          "type": "text",
+          "nullable": false,
+          "comment": "機能の名前(FEATURE_FLAGS の name)"
+        },
+        {
+          "name": "day",
+          "type": "date",
+          "nullable": false,
+          "comment": "使った日(組織の時間帯での日付)"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "feature_usage_pkey",
+          "def": "CREATE UNIQUE INDEX feature_usage_pkey ON platform.feature_usage USING btree (id)",
+          "table": "platform.feature_usage",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "feature_usage_once_a_day_key",
+          "def": "CREATE UNIQUE INDEX feature_usage_once_a_day_key ON platform.feature_usage USING btree (tenant_id, user_id, feature, day)",
+          "table": "platform.feature_usage",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "feature",
+            "day"
+          ]
+        },
+        {
+          "name": "feature_usage_feature_day_idx",
+          "def": "CREATE INDEX feature_usage_feature_day_idx ON platform.feature_usage USING btree (tenant_id, feature, day)",
+          "table": "platform.feature_usage",
+          "columns": [
+            "tenant_id",
+            "feature",
+            "day"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "feature_usage_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "platform.feature_usage",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "feature_usage_user_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)",
+          "table": "platform.feature_usage",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "feature_usage_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "platform.feature_usage",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "feature_usage_once_a_day_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, user_id, feature, day)",
+          "table": "platform.feature_usage",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "feature",
+            "day"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -1490,6 +1693,47 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "platform.feature_flags",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "platform.feature_usage",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "platform.feature_usage",
+      "columns": [
+        "tenant_id",
+        "user_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
     }
   ],
   "functions": [
@@ -1555,6 +1799,12 @@
     },
     {
       "name": "public.legal_notice_tenants",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.operator_tenant_ids",
       "return_type": "uuid",
       "arguments": "",
       "type": "FUNCTION"

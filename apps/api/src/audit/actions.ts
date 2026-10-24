@@ -66,6 +66,9 @@ export const MANUAL_AUDIT_ACTIONS = {
   logout: "auth.logout",
   // 登録の確認(公開の API)のあとに、登録の画面で同意した版を記録したとき
   signUpConsent: "legal.consent",
+  // 運営のコマンド feature-flag が、組織に機能を入れた・切った(docs/specs/0012-feature-flags-and-usage.md)。details.flag に名前
+  featureFlagEnable: "feature_flag.enable",
+  featureFlagDisable: "feature_flag.disable",
 } as const;
 
 /**

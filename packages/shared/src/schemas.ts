@@ -33,6 +33,11 @@ export const MeSchema = z.object({
    * (/legal/accept)へ回す。upcoming は帯。代理の最中・運営の組織の人には無い(関所の対象外)
    */
   legal: LegalStatusSchema.optional(),
+  /**
+   * この組織で入っている機能の名前(docs/specs/0012-feature-flags-and-usage.md)。画面は hasFeature で出し分ける。
+   * 代理の社員にも、見ている組織の一覧を返す
+   */
+  features: z.array(z.string()).optional(),
 });
 export type Me = z.infer<typeof MeSchema>;
 
