@@ -58,7 +58,7 @@
 
 ### ⑦ レビュー: 危険度で人の出番を変える
 
-ラベルは変えたファイルで自動で付く(`.github/labeler.yml`)。複数付いたら一番高いもの。
+ラベルは変えたファイルで自動で付く(`.github/labeler.yml`)。複数付いたら一番高いもの。ほかのラベルも含めた意味と付いたらどうするかは [guides/labels.md](guides/labels.md)。
 
 | 危険度 | 例 | 人のレビュー | 見る所 |
 |---|---|---|---|
@@ -98,7 +98,7 @@ PR が増えて手で回すのが追いつかなくなったら、自動のレ�
 |---|---|---|
 | 毎月 | stg の戻す訓練を流して結果を見る(自動にするまでは手で Run workflow。落ちたら Issue が立つ) | Actions → Restore drill の Summary |
 | 毎月 | 障害の振り返りの再発防止の Issue が閉じたか | `docs/incidents/` |
-| 四半期 | **prod の戻す訓練**(2人・手で。結果は Issue に `restore-drill` のラベル) | [runbooks/db-restore.md](runbooks/db-restore.md) の 5 |
+| 四半期 | **prod の戻す訓練**(2人・手で。結果は Issue に `restore-drill` のラベル。[guides/labels.md](guides/labels.md)) | [runbooks/db-restore.md](runbooks/db-restore.md) の 5 |
 | 四半期 | 手順書を1つ選んで、stg で通しでやってみる(古くなっていないか) | [runbooks/](runbooks/) |
 
 ## 人と AI の分担

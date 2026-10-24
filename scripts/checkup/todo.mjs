@@ -21,6 +21,7 @@ export const RESULTS = [
   "did",
   "could_not",
   "retired",
+  "adopted", // キットから使い始めた(pnpm checkup:adopt。ここより前はキットの持ち主の記録)
 ];
 /** 世の中の変化の取り込み(/checkup-refresh)を、前回から何日で知らせるか(月1回+少しの余裕) */
 export const REFRESH_DAYS = 35;

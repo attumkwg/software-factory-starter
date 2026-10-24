@@ -136,7 +136,7 @@ COMMIT;
 | stg | **毎月1日に自動**(いまは手動。有効にする日は [guides/automation.md](../guides/automation.md)) | `restore-drill.yml` | 戻せる最新の時点に一時の DB を作り、移行の数・表・行の数を確かめて消す。結果(かかった時間・戻した時点)は実行の Summary に。落ちたら Issue |
 | prod | **四半期に1回・手で** | 2人 | 下のチェックリスト。本物のお客さんのデータなので自動にしない |
 
-prod の訓練のチェックリスト(結果は Issue に `restore-drill` のラベルで残す。行の中身は書かない):
+prod の訓練のチェックリスト(結果は Issue に `restore-drill` のラベルで残す。ラベルは [guides/labels.md](../guides/labels.md)。行の中身は書かない):
 
 - [ ] 1 の手順で、1時間前の時点に一時の DB を作れた(**かかった時間**: 分)
 - [ ] 表の持ち主でつなげた・移行の数が本物と同じ

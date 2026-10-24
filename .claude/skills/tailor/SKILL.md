@@ -27,7 +27,8 @@ description: キットの部品(監査ログ・代理ログイン・メール・
 2. `docs/product/plan.md`(`/kickoff` の計画)があれば読み、**分かっている答えは聞かない**。例: 「9. 誰に向けて売るか」が会社向けなら `audience` は聞かずに「会社向け(計画より)」と書く。
 3. `docs/product/tailoring.md` があれば読む。前の答えと決定を出発点にする(2回目以降は「変わったことはあるか」から聞く)。
 4. `CLAUDE.md` の最初の1行・`docs/specs/` を読む(何のプロダクトか)。
-5. `pnpm decisions --adopt` を流し、「導入時に決める」(キットの既定のままで、使う人が決める未確定事項)の一覧を持っておく(下の「キットが既定で決めた所」で聞く)。
+5. `pnpm setup:github`(試し)を流し、GitHub の設定と「人がやること」を見ておく(差分があれば、まとめの最後に「本人が `--apply`」と書く。**AI は `--apply` を打たない**)。
+6. `pnpm decisions --adopt` を流し、「導入時に決める」(キットの既定のままで、使う人が決める未確定事項)の一覧を持っておく(下の「キットが既定で決めた所」で聞く)。
 
 ## 聞くこと(カタログの `questions` の順。分かっている所は飛ばす)
 
@@ -108,6 +109,7 @@ description: キットの部品(監査ログ・代理ログイン・メール・
 4. **消す部品は1つずつ PR**(頼られている物を後に)。1つごとに:
    - ブランチ `chore/remove-<id>`。カタログのその部品の `remove` のとおりに消す: `delete` を消す・`edit` を直す・`migration` は `.claude/skills/db-migration` で消す移行を足す(**昔の移行は書き換えない**)・`matrix` の行を `docs/authz/matrix.yaml` から消す・`terraform` のモジュールを外す・`ci` のジョブを外す・`docs` の仕様と ADR は**消さずに**頭に「このプロダクトでは消した(YYYY-MM-DD・docs/product/tailoring.md)」と1行足す(記録は書いた時のまま)。
    - カタログのその部品を `status: 消した` にし、`pnpm kit:readme` で README を作り直す。
+   - 消したジョブ・Environment・ラベルを `.github/setup.yml`(`required_checks`・`environments`)と `.github/labels.yml` からも外す(残ると `pnpm setup:check` が落ちる。必須のチェックが来ないまま全部の PR が止まるのを防ぐ)。PR の「人に判断してほしい所」に「マージの後に `pnpm setup:github --apply`」を書く(GitHub の側のルールセットから外す)。
    - `grep` で部品の名前・id・表の名前が残っていないか確かめる。`pnpm lint`・`pnpm typecheck`・`pnpm test`・`pnpm kit:catalog`(DB・API を触ったら `pnpm test:integration`)。**CI が通ることで消し漏れを見る**。
    - 移行・認可・infra・CI を触るので、多くは危険度「高」。PR の「人に判断してほしい所」に「戻せないリスク: 消す移行は本番のデータも消す」を書く。
 5. **点検の台帳とのつなぎ**: 点検の台帳(`docs/checkup/todo.yaml`。docs/specs/0007-checkup.md)ができたら、消した部品に関わる項目を「該当なし」(理由に `docs/product/tailoring.md` の日付)にする。後で部品を足したら戻す。台帳がまだ無ければ、記録の PR に「台帳ができたら該当なしにする部品」を書いておく。

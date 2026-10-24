@@ -24,9 +24,18 @@ function listFiles(root, dir) {
     .sort();
 }
 
+/** ひな形か使う側か(.github/setup.yml の template_repository と同じ名前なら template。ADR 0027) */
+export function roleOfRepo(root, repo) {
+  const abs = join(root, ".github/setup.yml");
+  const m = existsSync(abs) && readFileSync(abs, "utf8").match(/^template_repository:\s*(\S+)/m);
+  if (!m || !repo) return "product";
+  return m[1].toLowerCase() === String(repo).toLowerCase() ? "template" : "product";
+}
+
 export function makeContext({ root = process.cwd(), repo, today, ledger }) {
   return {
     repo,
+    role: roleOfRepo(root, repo),
     today,
     ledger,
     api: (sub) => (repo ? ghApi(`repos/${repo}${sub ? `/${sub}` : ""}`) : NO_REPO),

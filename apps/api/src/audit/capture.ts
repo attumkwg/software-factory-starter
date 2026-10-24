@@ -1,4 +1,3 @@
-import { IdSchema } from "@app/shared";
 import type { Context } from "hono";
 import type { AuditAction } from "./actions.ts";
 import type { AuditEntry } from "./record.ts";
@@ -7,29 +6,15 @@ import type { AuditEntry } from "./record.ts";
 //   対象の ID … 作った(201)なら返した本文の id、それ以外はパスの `<対象>Id`
 //   details    … ほかのパスの ID(例: タスクを作ったプロジェクト)と、直した項目の名前(値は入れない)
 
-/**
- * Hono のパス(/api/projects/:projectId/tasks)と実際のパスを突き合わせて、パスの値を取る。
- * **ID の形の値だけ**(パスの値は全部 `<対象>Id`)。断った(403)ときはルートの検証より前なので、
- * `null,null`・NUL・壊れた % が来る。そのまま uuid の列や details に入れると DB が拒んで 500 になる
- */
+/** Hono のパス(/api/projects/:projectId/tasks)と実際のパスを突き合わせて、パスの値を取る */
 function pathParams(handlerPath: string, actualPath: string): Record<string, string> {
   const pattern = handlerPath.split("/");
   const actual = actualPath.split("/");
   const out: Record<string, string> = {};
   pattern.forEach((seg, i) => {
-    const value = actual[i] ? safeDecode(actual[i]) : null;
-    if (seg.startsWith(":") && value && IdSchema.safeParse(value).success)
-      out[seg.slice(1)] = value;
+    if (seg.startsWith(":") && actual[i]) out[seg.slice(1)] = decodeURIComponent(actual[i]);
   });
   return out;
-}
-
-function safeDecode(segment: string): string | null {
-  try {
-    return decodeURIComponent(segment);
-  } catch {
-    return null;
-  }
 }
 
 async function createdId(c: Context): Promise<string | null> {

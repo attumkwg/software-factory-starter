@@ -137,11 +137,12 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | # | やること | どうやって | 残る物 | 状態 |
 |---|---|---|---|---|
-| ① | 何を作るかを決める | `/kickoff`: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める | `docs/product/plan.md` | あり |
-| ② | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
-| ③ | 手でやる設定 | GitHub のブランチ保護・Environments・Renovate、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
-| ④ | 点検を立ち上げる | `pnpm checkup`: 台帳の使い始めた日(started_on)と担当者を自分のものにし、いまの段階でやること(守りが効いているか・取り返せない所)を出す。自動で確かめられる物は確かめ、毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日)。人に聞くことは /checkup で1問ずつ答える | `docs/checkup/todo.yaml`・[手順](docs/checkup/README.md) | あり |
-| ⑤ | キットが既定で決めた所を決める | `pnpm decisions --adopt`: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる | `docs/designs/*.md`・[手順](docs/guides/human-review.md) | あり |
+| ① | GitHub を一括で整える | `pnpm setup:github`: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す。ラベルの意味は docs/guides/labels.md | [手順](docs/guides/github-setup.md) | あり |
+| ② | 何を作るかを決める | `/kickoff`: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める | `docs/product/plan.md` | あり |
+| ③ | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
+| ④ | 手でやる設定 | Renovate の App と秘密の値(GitHub の残りは pnpm setup:github が一覧で出す)、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
+| ⑤ | 点検を立ち上げる | `pnpm checkup:adopt`: 台帳の使い始めた日と担当者を自分の物にし(pnpm checkup:adopt --by @自分)、最初の /checkup-refresh を流す。pnpm checkup がいまの段階でやること(守りが効いているか・取り返せない所)を出し、自動で確かめられる物は確かめる。毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日。キットから作ったリポジトリだけ)。人に聞くことは /checkup で1問ずつ答える | `docs/checkup/todo.yaml`・[手順](docs/checkup/README.md) | あり |
+| ⑥ | キットが既定で決めた所を決める | `pnpm decisions --adopt`: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる | `docs/designs/*.md`・[手順](docs/guides/human-review.md) | あり |
 
 ### 部品の一覧(`/tailor` で残す・消すを決める)
 
@@ -163,6 +164,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 土台(消さない) | 🔒 ログの決まり `logging` | 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない) | 残す | あり |
 | 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | 作成中(PR #10) |
 | 土台(消さない) | 🔒 AI のハーネス(守りの一覧とフック) `harness` | 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる | 残す | あり |
+| 土台(消さない) | 🔒 GitHub の一括のセットアップとラベルの一覧 `github-setup` | GitHub の設定(ブランチ保護と必須のチェック・Environments・Actions・守りの機能・ラベル)をファイル(.github/setup.yml・labels.yml)に置き、pnpm setup:github が差分を出して一括で反映する。使うラベル・必須のチェック・Environment がファイルに無ければ CI が落ちる。ひな形と使う側を変数 KIT_ROLE で見分け、定期の運用は使う側でだけ動く | 残す | あり |
 | 土台(消さない) | 🔒 列の分類表とログ `column-classification` | 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする。台帳(docs/db/personal-data.md)はここから作る | 残す | あり |
 | 会社向け | 監査ログ `audit-log` | 誰が・いつ・何をしたかを残し、お客さんの管理者が画面で見られる。書き込みの API は関所が自動で残す | 残す | あり |
 | 会社向け | サポートの代理ログイン `support-access` | お客さんの管理者が許可した間だけ、運営の社員がその組織の画面を「見るだけ」で開ける | 残す | あり |
@@ -212,7 +214,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 工程 | この雛形のどこ |
 |---|---|
 | ① 受付 | `.github/ISSUE_TEMPLATE/`(機能・不具合。不具合には requestId の欄) |
-| ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル |
+| ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル(ラベルの意味は [docs/guides/labels.md](docs/guides/labels.md)) |
 | ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
 | ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
 | ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
@@ -223,7 +225,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | | どこで決まるか |
 |---|---|
-| パスで自動でラベル | `.github/labeler.yml`(`risk:high` / `risk:medium` / `risk:low`) |
+| パスで自動でラベル | `.github/labeler.yml`(`risk:high` / `risk:medium` / `risk:low`。全部のラベルの意味・誰が付けるか・付いたらどうするかは [docs/guides/labels.md](docs/guides/labels.md)) |
 | 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
 | PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
 | 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
@@ -306,7 +308,10 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
 | `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
-| `vuln-scan.yml` | 自動: 毎週月曜 5:00・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
+| `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットのリポジトリでも回す)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
+| `checkup.yml` | 自動: 毎週月曜 8:00・急ぎは毎日 8:00(キットから作ったリポジトリだけ)・手動でも(点検の知らせ。[docs/checkup/README.md](docs/checkup/README.md)) | 動く(秘密 `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL` は任意) |
+
+**定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](docs/guides/github-setup.md))。
 
 `ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。
 
@@ -320,40 +325,28 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ### 1. GitHub のリポジトリ設定
 
-> 🧍 **1人の間**と 👥 **人が増えたら**(レビューできる人が2人以上)で変わる所は、両方を書いた。人が増えたら 🧍 の所を 👥 に切り替える。
+> **まず `pnpm setup:github`(試し: 差分だけ)→ よければ `pnpm setup:github --apply`。** 下の 1〜3・5〜7 は、これで一括でそろう(何度流しても同じ)。
+> 値の正は `.github/setup.yml`(ブランチ保護・Environments・Actions・守りの機能)と `.github/labels.yml`(ラベル)。理由はファイルのコメントに、流し方と困ったときは [docs/guides/github-setup.md](docs/guides/github-setup.md)。
+> 人が画面でやるのは 4(Renovate)と秘密の値だけ(セットアップが「人がやること」に出す)。設定ファイルを直した PR は、マージの後に `--apply` を流す。
 >
+> 🧍 **1人の間**と 👥 **人が増えたら**(レビューできる人が2人以上)で変わる所は、`.github/setup.yml` の値を変えて流し直す。
 > 🌐 **公開か非公開か**でも使える物が変わる。非公開+Free では 1 と 3 ができない(表は [docs/guides/local-guards.md](docs/guides/local-guards.md))。
 
-1. **ブランチ保護(main)**: Settings → Rules → Rulesets → New branch ruleset
-   - 対象: `main`(Include default branch)。**Bypass list は空**(持ち主も例外にしない)
-   - 「Require a pull request before merging」
-     - 🧍 1人の間: **Required approvals は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェック(下)と手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
-     - 👥 人が増えたら: 承認 1・「Require review from Code Owners」・「Dismiss stale pull request approvals when new commits are pushed」をオン。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2 にする
-   - 「Require status checks to pass」と「Require branches to be up to date before merging」(並べて出した PR が、合わさって main を赤くするのを防ぐ): `Biome・型・単体`・`結合(Postgres・RLS・2社・権限の表 ②)`・`API の互換(oasdiff。項目は足すだけ)`・`移行の検査(squawk)`・`E2E(docker compose+Playwright)`・`秘密情報(gitleaks)`・`コードの検査(Semgrep CE+自社ルール)`・`依存と設定(Trivy fs / config)`・`イメージのビルドと検査(Trivy image・api)`・`イメージのビルドと検査(Trivy image・web)`・`イメージのビルドと検査(Trivy image・mail)`・`ワークフローの検査(actionlint・zizmor)`・`見た目の比べ(VRT)`・`取り組みと作業の種類(PR の本文)`(PR の本文の「🎯 取り組み」。マージキューを使うなら、キューの中では流れないのでここから外す)
-   - 「Restrict deletions」・「Block force pushes」・「Require linear history」
-   - ⚠️ 「Require linear history」にすると、**マージは Squash か Rebase だけ**になる(「Create a merge commit」は使えない)。Settings → General → Pull Requests で「Allow merge commits」をオフにしておくと、ボタンで迷わない
-2. **ラベル**を作る: `risk:high`・`risk:medium`・`risk:low`・`area:api`・`area:web`・`area:infra`・`kind:feature`・`kind:bug`・`needs-triage`・`dependencies`・`security`(labeler は無いラベルも作るが、色をそろえるなら先に)・`vrt:update`(見た目の基準を CI で撮り直す。[docs/guides/vrt.md](docs/guides/vrt.md)。これは先に作らないと付けられない)
-3. **Environments**(Settings → Environments)。**どれも「Deployment branches and tags」を「Selected branches and tags」にして `main` だけを足す**。ワークフローの中でも main 以外は飛ばすが、ブランチのワークフローは書き換えられるので、GitHub の側でも止める(これが本当の守り):
-   - `stg`(承認なし)と `prod`(**Required reviewers** に承認する人)。deploy・deploy-mail-relay が使う。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
-     - 🧍 1人の間: prod の承認する人は自分。**「Prevent self-review」はオフ**(オンだと、自分でマージしたデプロイを誰も承認できない)。承認は「本番に出す前に一度止まって見る」ための一手間として使う
-     - 👥 人が増えたら: 承認する人を2人以上にして「Prevent self-review」をオン(マージした本人が本番を通せないように)
-     - 🔒 非公開のリポジトリでは、Pro / Team でも承認する人を置けない(公開か Enterprise だけ)
-   - `claude`: 秘密 `ANTHROPIC_API_KEY` を**ここに**置く(下の 3. の表)。claude.yml が使う
-   - `zap`: 秘密 `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD` を**ここに**置く。zap-api-scan.yml が使う
-4. **Renovate**: https://github.com/apps/renovate → Install(入っていれば Configure)→ 自分のアカウント → 「Only select repositories」でこのリポジトリだけ → Install。Mend の画面に移ったら GitHub でサインインして規約に同意する
+1. **ブランチ保護(main のルールセット)**: PR 必須・必須のチェック(`required_checks`。CI のジョブの名前と `pnpm setup:check` が突き合わせる)・最新の main に追いついてから(並べて出した PR が、合わさって main を赤くするのを防ぐ)・直線の履歴(マージは Squash か Rebase だけ)・消せない・強制 push できない。**例外(Bypass list)は空**(持ち主も例外にしない)
+   - 🧍 1人の間: **承認は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェックと手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
+   - 👥 人が増えたら: 承認 1・CODEOWNERS の承認。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2
+   - マージキューを使うなら、`取り組みと作業の種類(PR の本文)` を必須から外す(キューの中では流れない)
+2. **ラベル**: `.github/labels.yml` の全部(危険度・場所・Issue の種類・依存の更新・点検の知らせ・訓練の記録・VRT の撮り直し)。**何のラベルか・誰が付けるか・付いたらどうするかは [docs/guides/labels.md](docs/guides/labels.md)**(ほとんど自動で付き、人が手で付けるのは2つだけ)。コードが使うラベルが一覧に無ければ CI が落ちるので、「使うのに無い」は起きない。一覧に無いラベルは消さない
+3. **Environments**: stg・prod・claude・zap を、どれも **main からだけ**使えるようにする。ワークフローの中でも main 以外は飛ばすが、ブランチのワークフローは書き換えられるので、GitHub の側でも止める(これが本当の守り)。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
+   - prod の承認する人: 🧍 1人の間は自分(流した人)・**自分の承認を許す**(止めると、自分でマージしたデプロイを誰も承認できない。承認は「本番に出す前に一度止まって見る」一手間)。👥 人が増えたら2人以上にして自分の承認を止める。🔒 非公開のリポジトリでは、Pro / Team でも承認する人を置けない(公開か Enterprise だけ)
+   - 秘密の値は人が画面で: `claude` に `ANTHROPIC_API_KEY`(claude.yml)・`zap` に `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD`(zap-api-scan.yml)。下の 3. の表
+4. **Renovate**(人が画面で): https://github.com/apps/renovate → Install(入っていれば Configure)→ 自分のアカウント → 「Only select repositories」でこのリポジトリだけ → Install。Mend の画面に移ったら GitHub でサインインして規約に同意する
    - `renovate.json` があるので、最初の設定の PR は出ずにそのまま動く。更新の PR は毎週月曜の朝9時前に最大5本(出てから3日たった版だけ)。脆弱性の直しはいつでも。自動マージはしない
    - 大きい版は PR にならず、Dependency Dashboard の Issue の「Pending Approval」に並ぶ。上げるときにチェックを入れる(Node と Postgres は PR の本文の ⚠️ のとおり、Renovate が読めない所も同じ PR で直す)
    - Mend の画面(https://developer.mend.io)でリポジトリの Mode が「Silent」だと、動いても PR も Dependency Dashboard も出ない。入れた後に Dashboard の Issue が出なければ、Settings で Silent を外す
-5. **Secret scanning と push 保護**(秘密を含む push をその場で止める)
-   - 🌐 公開: **無料**。Settings → Advanced Security で「Secret Protection」(Secret scanning)と「Push protection」をオンにする。CI の gitleaks も外さない(履歴の全部を毎回見る・`.gitleaksignore` で理由つきに除外できる)
-   - 🔒 非公開: 有料(GitHub Secret Protection)。PMF 前は CI の gitleaks で代える
-6. **Actions の設定**: Settings → Actions → General
-   - 「Approval for running fork pull request workflows from contributors」を **Require approval for all external contributors** にする(外の人の PR の実行は、毎回人が中身を見てから。公開だと誰でも PR を出せる)
-   - 「Workflow permissions」を **Read repository contents and packages permissions**(読み取りだけ)にする。書き込みが要るワークフローは、ファイルの中で `permissions:` を1つずつ足してある
-   - 「Allow GitHub Actions to create and approve pull requests」を**オフ**にする(AI や Actions が自分の PR を承認できないように)
-   - 「Artifact and log retention」を**7日**にする(ZAP のレポートは `zaproxy/action-api-scan` が成果物を作るので、ワークフローから日数を決められない。レポートにはリクエストの中身が入りうる)
-7. **Dependabot alerts**: Settings → Advanced Security(または Code security)→ 「Dependabot alerts」を有効にする(依存の脆弱性の知らせ。直す PR は Renovate が出すので、Dependabot の security updates はオフのままでよい)
-   - 🌐 公開なら「Private vulnerability reporting」もオンにする(外の人が脆弱性を Issue に書かずに、非公開で知らせられる)
+5. **Secret scanning と push 保護**(秘密を含む push をその場で止める): 🌐 公開なら無料でオン。🔒 非公開は有料(GitHub Secret Protection)なのでセットアップは飛ばし、CI の gitleaks で代える。CI の gitleaks はどちらでも外さない(履歴の全部を毎回見る・`.gitleaksignore` で理由つきに除外できる)
+6. **Actions の設定**: 書き込みが要るワークフローは、ファイルの中で `permissions:` を1つずつ足してあるので、既定は**読み取りだけ**。AI や Actions が自分の PR を**承認できない**。外の人の PR の実行は**毎回人が中身を見てから**(公開だと誰でも PR を出せる)。SHA で固定した Action だけ。成果物とログは**7日**(ZAP のレポートは `zaproxy/action-api-scan` が成果物を作るので、ワークフローから日数を決められない。レポートにはリクエストの中身が入りうる)
+7. **Dependabot alerts**: オン(依存の脆弱性の知らせ。直す PR は Renovate が出すので、Dependabot の security updates はオフ)。🌐 公開なら「Private vulnerability reporting」もオン(外の人が脆弱性を Issue に書かずに、非公開で知らせられる)
 8. **プレビューは dev アカウントだけ**: PR のプレビューが引く AWS の役割(`AWS_PREVIEW_ROLE_ARN`)は、PR の版のワークフローからも引ける(OIDC の `pull_request`)ので、PR を書ける人なら dev の中で動かせる。dev には**本物の秘密・本物のデータを置かない**(プレビューの DB はコンテナの Postgres+種データ)。prod の役割は PR から引けない
 
 ### 2. AWS アカウントと状態の置き場

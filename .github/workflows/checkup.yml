@@ -35,6 +35,9 @@ concurrency:
 jobs:
   checkup:
     name: 点検
+    # 定期で動くのは、キットから作ったリポジトリ(pnpm setup:github --apply が変数 KIT_ROLE=product を書く)だけ。
+    # ひな形(KIT_ROLE=template)とセットアップ前(変数なし)では飛ばす。手で流すのはどこでもできる(ADR 0027)
+    if: github.event_name != 'schedule' || vars.KIT_ROLE == 'product'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

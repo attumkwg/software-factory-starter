@@ -79,5 +79,5 @@ pnpm vrt:update
 
 ## 最初にやる設定(人)
 
-- ラベル `vrt:update` を作る(Settings → Labels。README の「本人が手でやる設定」の 2)
-- ブランチ保護の必須のチェックに `見た目の比べ(VRT)` を足す(README の 1)。足さなければ、赤でもマージできる(知らせるだけ)
+- `pnpm setup:github --apply`(ラベル `vrt:update` を作り、必須のチェックに `見た目の比べ(VRT)` を足す。[github-setup.md](github-setup.md))。外すなら `.github/setup.yml` の `required_checks` から消して流し直す(赤でもマージできる = 知らせるだけ)
+- ラベル `vrt:update` の使い方は [labels.md](labels.md)

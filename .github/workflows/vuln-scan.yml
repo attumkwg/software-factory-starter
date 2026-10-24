@@ -10,7 +10,8 @@
 # 費用: Actions の数分だけ。
 name: Vulnerability scan
 
-# 毎週 自動で回す(日本時間 月曜 5:00)。手でも回せる(Actions → Vulnerability scan → Run workflow)。
+# 毎週 自動で回す(日本時間 月曜 5:00。キットのリポジトリ(ひな形)でも回す: .github/setup.yml の template_schedules)。
+# 手でも回せる(Actions → Vulnerability scan → Run workflow)。
 on:
   workflow_dispatch:
   # 有効にする日: 2026-10-22

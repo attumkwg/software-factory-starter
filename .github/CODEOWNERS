@@ -37,6 +37,7 @@
 /.claude/hooks/                     @attumkwg
 /.semgrep/                          @attumkwg
 /scripts/checkup/                   @attumkwg
+/scripts/setup/                     @attumkwg
 /.gitleaksignore                    @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg

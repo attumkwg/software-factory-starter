@@ -5,6 +5,7 @@
 
 | # | やること | かかる時間の目安 | お金 |
 |---|---|---|---|
+| はじめ | GitHub を一括で整える(`pnpm setup:github`) | 10分 | 0円 |
 | ⓪ | 何を作るかを決める(`/kickoff`) | 半日〜(確かめるのは数週間) | 0円 |
 | ⓪' | 部品を選ぶ(`/tailor`) | 30分〜(消すのは1つずつ PR) | 0円 |
 | ① | 手元で動かす | 30分 | 0円 |
@@ -15,6 +16,18 @@
 | ⑥ | 毎週の運用 | 毎週30分 | — |
 
 ---
+
+## はじめに: GitHub を一括で整える
+
+キットから自分のリポジトリを作ったら、最初に1つだけ流す(`gh` でそのリポジトリの管理者としてログインしておく):
+
+```bash
+pnpm setup:github
+```
+
+試し(差分だけを出す。何も書き換えない)。中身を見て、よければ `pnpm setup:github --apply`。ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定がそろい、変数 `KIT_ROLE=product` が付いて**定期の運用(毎週の点検の知らせなど)が動き出す**(定期の脆弱性チェックはキットでも毎週回っている)。何度流しても同じ結果になる。
+
+最後に「人がやること」(Renovate の App・秘密の値・台帳を自分の物にする `pnpm checkup:adopt`・最初の `/checkup-refresh` など)が、済んでいない物だけ出る。手順と困ったときは [guides/github-setup.md](guides/github-setup.md)。
 
 ## ⓪ 何を作るかを決める
 
@@ -83,12 +96,12 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 ## ③ GitHub の設定
 
-ルートの README の「本人が手でやる設定」の 1 を順に。要点:
+「はじめに」の `pnpm setup:github --apply` で、下の物はほぼそろっている(設定の正は `.github/setup.yml`・`.github/labels.yml`)。ここでは中身を確かめる。詳しくはルートの README の「本人が手でやる設定」の 1。要点:
 
 > ⚠️ **非公開のリポジトリを GitHub Free で使うと、ブランチ保護・Environments が使えない**(下の1つ目と3つ目ができない)。AWS と Claude の鍵を入れる前に、公開にするか Pro / Team にする。何が守られて何が守られないかは [guides/local-guards.md](guides/local-guards.md)。
 
 - [ ] **ブランチ保護(main)**: PR 必須・CI のチェック必須。🧍 1人の間は承認 0(自分の PR は自分で承認できない)、👥 人が増えたら承認 1+CODEOWNERS の承認。危険度「高」を2人にするならチームを作って CODEOWNERS を書き換える。
-- [ ] **ラベル**: `risk:high` / `risk:medium` / `risk:low` ほか。
+- [ ] **ラベル**: `.github/labels.yml` の全部(`risk:high` / `risk:medium` / `risk:low` ほか)。セットアップが作る。何のラベルか・誰が付けるか・付いたらどうするかは [guides/labels.md](guides/labels.md)。
 - [ ] **Environments**: `stg`・`prod`(prod に承認する人。🧍 1人の間は「Prevent self-review」をオフ)。
 - [ ] **Actions の無料枠**: 🌐 公開なら上限なし(標準の実行環境)。🔒 非公開は Free で月 2,000分。このキットの CI は PR 1回で 20〜40分。止め方と見方は [guides/automation.md](guides/automation.md)。
 - [ ] **お金のかかる自動のもの**は、いまは全部手動。使い始める日を [guides/automation.md](guides/automation.md) の表に入れる。
