@@ -1,7 +1,7 @@
 # 仕様: 画面の表側(検索に載せない・スマホの幅)
 
 > 状態: 承認済み(承認した人: @attumkwg 2026-10-22。2026-10-21 の3回目の点検の 🔴 から)
-> 設計: [docs/designs/0008-web-noindex-mobile.md](../designs/0008-web-noindex-mobile.md)
+> 設計: [docs/designs/0015-web-noindex-mobile.md](../designs/0015-web-noindex-mobile.md)
 
 ## なぜ作るか
 

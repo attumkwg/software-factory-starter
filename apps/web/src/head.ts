@@ -3,7 +3,7 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 // 画面ごとの <title>・説明(meta description)・OGP(チャットにリンクを貼ったときのカード)。route の head で使う。
 //
 // - 検索に載せるかどうかは、ここでは決めない。画面のサーバーが全部の応答に `X-Robots-Tag: noindex` を付ける
-//   (server/app.ts の INDEXABLE_PATHS。docs/designs/0008-web-noindex-mobile.md)。
+//   (server/app.ts の INDEXABLE_PATHS。docs/designs/0015-web-noindex-mobile.md)。
 //   `<meta name="robots">` を出さないのはそのため(2か所で決めると食い違う)
 // - og:url と og:image は絶対 URL が要る。画面の URL は環境変数 APP_URL から(API と同じ名前)。
 //   無ければ og:url と og:image は出さない(他は出す)

@@ -2,7 +2,7 @@
 
 > 状態: 下書き(2026-10-21 の3回目の点検の 🟡 から。作者が「残りの 🟡 をまとめて進める」と決めた。承認は PR で)
 > 設計: [docs/designs/0010-web-head-ogp.md](../designs/0010-web-head-ogp.md)
-> 前の仕様: [0008-web-noindex-mobile.md](0008-web-noindex-mobile.md)(検索に載せない・スマホの幅。🔴 の分)
+> 前の仕様: [0015-web-noindex-mobile.md](0015-web-noindex-mobile.md)(検索に載せない・スマホの幅。🔴 の分)
 
 ## なぜ作るか
 
