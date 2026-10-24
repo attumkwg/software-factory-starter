@@ -351,8 +351,9 @@ items:
     verify: auto
     check: attack-runbook
     severity: normal
-    status: open
-    history: []
+    status: done
+    history:
+      - { on: 2026-10-24, by: pnpm checkup, result: pass, note: 手順書 docs/runbooks/attack.md と WAF の waf-hits のアラーム(Terraform。apply は人)を足した }
     source: 2026-10-20 の点検
     review_by: 2027-04-20
 
