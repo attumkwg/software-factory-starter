@@ -195,6 +195,26 @@
 | `dead_at` | internal | あきらめた時刻 |
 | `last_error` | internal | 最後の失敗の種類と文(人が見て直す)。値は伏せてから書く(relay.ts の scrubMessage) |
 
+### `platform.pmf_survey_asked`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 行の ID |
+| `tenant_id` | internal | 答えた人の組織 |
+| `user_id` | internal | この回に答え終えた人の ID(1人1回・四半期に1回にするため。答えは持たない) |
+| `round` | public | 聞いた回(「2026-Q4」の形) |
+| `day` | internal | 答えた日(組織の時間帯。時刻は持たない。保存期間で消す) |
+
+### `platform.pmf_survey_counts`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 行の ID |
+| `tenant_id` | internal | 答えた人の組織 |
+| `round` | public | 聞いた回 |
+| `answer` | public | 答えの種類(@app/shared の PMF_SURVEY_ANSWERS) |
+| `count` | internal | その答えの数(人は持たない) |
+
 ### `platform.tenant_plans`
 
 | 列 | 区分 | 利用目的 |

@@ -1772,6 +1772,203 @@
           ]
         }
       ]
+    },
+    {
+      "name": "platform.pmf_survey_asked",
+      "type": "BASE TABLE",
+      "comment": "「無くなったら困るか」をこの回(四半期)に答え終えた人の印(1人1回にするため)。**答えは持たない**。アプリは読む・足すだけ。400日で運営のコマンド pmf-survey-purge が消す。docs/specs/0046-pmf-survey.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "round",
+          "type": "text",
+          "nullable": false,
+          "comment": "聞いた回(「2026-Q4」の形。組織の時間帯の四半期)"
+        },
+        {
+          "name": "day",
+          "type": "date",
+          "nullable": false,
+          "comment": "答えた日(組織の時間帯での日付)"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "pmf_survey_asked_pkey",
+          "def": "CREATE UNIQUE INDEX pmf_survey_asked_pkey ON platform.pmf_survey_asked USING btree (id)",
+          "table": "platform.pmf_survey_asked",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "pmf_survey_asked_once_key",
+          "def": "CREATE UNIQUE INDEX pmf_survey_asked_once_key ON platform.pmf_survey_asked USING btree (tenant_id, user_id, round)",
+          "table": "platform.pmf_survey_asked",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "round"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pmf_survey_asked_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "platform.pmf_survey_asked",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "pmf_survey_asked_user_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)",
+          "table": "platform.pmf_survey_asked",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "pmf_survey_asked_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "platform.pmf_survey_asked",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "pmf_survey_asked_once_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, user_id, round)",
+          "table": "platform.pmf_survey_asked",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "round"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "platform.pmf_survey_counts",
+      "type": "BASE TABLE",
+      "comment": "「無くなったら困るか」の答えの数(組織・回・答えごと)。**人の ID も時刻も持たない**(だれが何と答えたかを結びつけない)。アプリは読む・足す・数を増やすだけ。docs/specs/0046-pmf-survey.md",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "round",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "answer",
+          "type": "text",
+          "nullable": false,
+          "comment": "答えの種類(@app/shared の PMF_SURVEY_ANSWERS)"
+        },
+        {
+          "name": "count",
+          "type": "bigint",
+          "nullable": false,
+          "comment": "その答えの数"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "pmf_survey_counts_pkey",
+          "def": "CREATE UNIQUE INDEX pmf_survey_counts_pkey ON platform.pmf_survey_counts USING btree (id)",
+          "table": "platform.pmf_survey_counts",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "pmf_survey_counts_answer_key",
+          "def": "CREATE UNIQUE INDEX pmf_survey_counts_answer_key ON platform.pmf_survey_counts USING btree (tenant_id, round, answer)",
+          "table": "platform.pmf_survey_counts",
+          "columns": [
+            "tenant_id",
+            "round",
+            "answer"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pmf_survey_counts_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "platform.pmf_survey_counts",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "pmf_survey_counts_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "platform.pmf_survey_counts",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "pmf_survey_counts_answer_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, round, answer)",
+          "table": "platform.pmf_survey_counts",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "round",
+            "answer"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -2081,6 +2278,47 @@
     },
     {
       "table": "platform.tenant_plans",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "platform.pmf_survey_asked",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "platform.pmf_survey_asked",
+      "columns": [
+        "tenant_id",
+        "user_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "platform.pmf_survey_counts",
       "columns": [
         "tenant_id"
       ],

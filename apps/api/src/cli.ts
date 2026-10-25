@@ -14,6 +14,7 @@ import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { planPersonData } from "./person-data/plan-person-data.ts";
 import { type PlanInput, planReport, setPlan, showPlan } from "./plans/index.ts";
+import { runPmfSurveyPurge, runPmfSurveyReport } from "./pmf-survey/index.ts";
 import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
@@ -42,6 +43,10 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //                                      … 1社あたりの原価の按分の元(組織の大きさの帯ごとの数。読むだけ。docs/guides/cost-dashboard.md の 7)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
+//   node dist/cli.js pmf-survey-report [--round 2026-Q4]
+//                                      … 「無くなったら困るか」の答えを数と割合にする(読むだけ。docs/runbooks/pmf-survey.md)
+//   node dist/cli.js pmf-survey-purge [--execute]
+//                                      … 保存期間を過ぎた「聞き終えた印」を消す(試し → 本番。docs/runbooks/pmf-survey.md)
 
 const appEnv = process.env.APP_ENV ?? "local";
 const throwaway = appEnv === "local" || appEnv === "test" || appEnv === "preview";
@@ -288,22 +293,20 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge / pmf-survey-report / pmf-survey-purge)",
   );
-if (commands[0] === "usage-report") {
-  const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
-  await usageCommand((db) =>
-    runUsageReport(db, commands.slice(1), { defs: FEATURE_FLAGS, supportTenantId }),
-  );
-  process.exit(0);
-}
-if (commands[0] === "tenant-shares") {
-  const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
-  await usageCommand((db) => runTenantShares(db, commands.slice(1), { supportTenantId }));
-  process.exit(0);
-}
-if (commands[0] === "usage-purge") {
-  await usageCommand((db) => runUsagePurge(db, commands.slice(1)));
+// 数だけを出す運営のコマンド(中身は src/usage・src/pmf-survey。組織の ID・名前・人の ID は出さない)
+const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
+const COUNT_COMMANDS: Record<string, (db: RootDb, args: string[]) => Promise<string[]>> = {
+  "usage-report": (db, args) => runUsageReport(db, args, { defs: FEATURE_FLAGS, supportTenantId }),
+  "tenant-shares": (db, args) => runTenantShares(db, args, { supportTenantId }),
+  "usage-purge": (db, args) => runUsagePurge(db, args),
+  "pmf-survey-report": (db, args) => runPmfSurveyReport(db, args, { supportTenantId }),
+  "pmf-survey-purge": (db, args) => runPmfSurveyPurge(db, args),
+};
+const countCommand = COUNT_COMMANDS[commands[0] ?? ""];
+if (countCommand) {
+  await usageCommand((db) => countCommand(db, commands.slice(1)));
   process.exit(0);
 }
 if (commands[0] === "create-tenant") {

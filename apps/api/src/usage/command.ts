@@ -22,7 +22,7 @@ const DAY = 86_400_000;
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
 /** 組織の ID の一覧(コマンド専用の関数。ID だけを返す。移行 0012) */
-async function allTenantIds(db: RootDb): Promise<string[]> {
+export async function allTenantIds(db: RootDb): Promise<string[]> {
   const r = await db.execute<{ tenant_id: string }>(
     sql`select tenant_id from operator_tenant_ids() as tenant_id order by tenant_id`,
   );

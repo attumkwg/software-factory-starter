@@ -37,6 +37,9 @@ export const PERMISSIONS = {
   "invitation:manage": ["admin"],
   // 組織のプラン・人数の上限を見る(docs/specs/0047-plans.md)。契約の中身なので管理者だけ。変えるのは運営のコマンドだけ
   "plan:read": ["admin"],
+  // 「無くなったら困るか」に答える(docs/specs/0046-pmf-survey.md)。使っている人みんな。代理の最中は使えない(NOT_DURING_SUPPORT)。
+  // 聞くのは機能フラグ pmf-survey を入れた組織だけ(入っていなければハンドラーが 404)
+  "pmf_survey:answer": ["admin", "member", "viewer"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -93,6 +96,9 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   // 招かれた人が受ける(ログインの前。札の署名と、生きている招待かを API と DB の関数が確かめる)
   "POST /api/invitations/accept": PUBLIC,
   "GET /api/organization/plan": "plan:read",
+  // いまこの人に聞くか(だれでも読める。聞かないときも ask: false)
+  "GET /api/pmf-survey": "me:read",
+  "POST /api/pmf-survey": "pmf_survey:answer",
 };
 
 /**
@@ -103,6 +109,8 @@ export const NOT_DURING_SUPPORT: ReadonlySet<Permission> = new Set([
   "account:manage",
   // 社員がお客さんの代わりに規約に同意しない(docs/specs/0009-legal-consent.md)
   "legal:accept",
+  // 社員がお客さんの代わりに「無くなったら困るか」に答えない(docs/specs/0046-pmf-survey.md)
+  "pmf_survey:answer",
 ]);
 
 /**

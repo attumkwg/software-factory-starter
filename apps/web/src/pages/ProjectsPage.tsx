@@ -15,10 +15,20 @@ import { api } from "../api.ts";
 import { formatDate } from "../format.ts";
 import { canDeleteProject, canWrite } from "../permissions.ts";
 import { useAction } from "../use-action.ts";
+import { PmfSurvey } from "./PmfSurvey.tsx";
 
 // 一覧のデータは route(routes/_app/index.tsx)の loader が SSR で読む。
 // 書き込みは useAction を通す(成功したら読み直し、失敗したら次に何をすればよいかを出す)。
-export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) {
+export function ProjectsPage({
+  me,
+  projects,
+  askSurvey = false,
+}: {
+  me: Me;
+  projects: Project[];
+  /** 「無くなったら困るか」を聞くか(GET /api/pmf-survey の ask) */
+  askSurvey?: boolean;
+}) {
   const [name, setName] = useState("");
   const creating = useAction();
   const deleting = useAction();
@@ -75,6 +85,7 @@ export function ProjectsPage({ me, projects }: { me: Me; projects: Project[] }) 
   return (
     <Stack gap={4}>
       <Heading level={1}>プロジェクト</Heading>
+      {askSurvey && <PmfSurvey />}
       {canWrite(me.role) && (
         <form onSubmit={create}>
           <Inline gap={2}>
