@@ -10,6 +10,7 @@
 
 - 自動(auto)モードでもフックの確認は出る(フックの `ask` は自動モードより強い)。
 - **確認を飛ばすモード(`--dangerously-skip-permissions`・bypassPermissions)は、このリポジトリの中では使えない**(`.claude/settings.json` の `permissions.disableBypassPermissionsMode: "disable"`。ADR 0047)。乗っ取られた依存が、入っている AI の CLI をこのモードで呼んで鍵を探させる攻撃があったため。リポジトリの外のフォルダで呼ばれる分は、この設定では止まらない(下の「手元の設定を全社に配る」)。
+- **外へ向けた操作は記録する**(`.claude/hooks/record-outbound.mjs`。PostToolUse): `git push`・`gh pr create` などの書き込み・`gh api` の書き込み・`publish`・`curl` など・WebFetch・WebSearch・MCP を、時刻・手段・宛先だけ `.claude/outbound.log`(git に載せない)に1行ずつ。PR の「🚪 外へ出した物」は `pnpm outbound` で表にし、頼まれていない物に **いいえ** を付ける(設計書 0057 の 6)。止めるのではなく、後から見えるようにする層。
 - フックは「読むだけ」のコマンド(`cat`・`grep`・`git diff` など)は聞かない。疑わしいときは聞く側に倒してある。止めすぎ・聞きすぎを見つけたら、`guard-edit.test.mjs`・`guard-bash.test.mjs` に例を足してから直す。
 
 ## 編集の確認を手元だけで外す(`KIT_EDIT_GUARD=pr`)

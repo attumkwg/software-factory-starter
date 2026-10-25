@@ -82,6 +82,21 @@ jobs:
         run: aws s3 cp --recursive --only-show-errors "s3://$BUCKET/cost/inputs/" "$RUNNER_TEMP/inputs/"
       - name: ページと ledger.csv を作る
         run: pnpm cost --render "$RUNNER_TEMP/cost" --inputs "$RUNNER_TEMP/inputs"
+      # 賭けの予算の枠(非公開の budgets.csv)の注意の線を超える見込みなら知らせる。出すのは賭けの ID と割合だけ(金額は出さない)。
+      # 要約は非公開のリポジトリのときだけ(公開のリポジトリでは誰でも読める)。Slack は秘密 SLACK_WEBHOOK_URL があるときだけ(点検と同じ)
+      - name: 予算の枠の知らせ
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          set -euo pipefail
+          alerts=$(pnpm --silent cost --budget-alerts "$RUNNER_TEMP/cost")
+          if [ -z "$alerts" ]; then exit 0; fi
+          if [ "$PRIVATE" = "true" ]; then printf '%s\n' "$alerts" >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+            jq -n --arg text "$alerts" '{text: $text}' \
+              | curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$SLACK_WEBHOOK_URL" > /dev/null
+          fi
       - name: 非公開の置き場に置く(cost/<年-月>/ と cost/latest/index.html)
         env:
           BUCKET: ${{ vars.COST_BUCKET }}

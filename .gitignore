@@ -28,6 +28,8 @@ crash.log
 
 # Claude Code(個人設定は共有しない)
 .claude/settings.local.json
+# AI が外へ向けてした操作の記録(.claude/hooks/record-outbound.mjs。PR に表で貼る。docs/designs/0057-ai-egress.md)
+.claude/outbound.log
 
 .DS_Store
 
