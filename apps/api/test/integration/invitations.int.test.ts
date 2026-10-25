@@ -271,6 +271,23 @@ describe("受けられない場合", () => {
     expect(me).toMatchObject({ tenantId: b.tenantId, organizationsCount: 2 });
   });
 
+  it("招いた後・受ける前に、その人がこの組織に足されていたら 409 already_member(何も変わらない)", async () => {
+    const email = newEmail("raced").toLowerCase();
+    const inv = await invited(aAdmin, email);
+    // 運営の SQL などで、受ける前に同じメールの行が足された(組織ごとの一意 users_tenant_email_key)
+    await withTenant(owner.db, a.tenantId, (tx) =>
+      tx.execute(
+        sql`insert into organizations.users (id, tenant_id, email, name, role)
+          values (gen_random_uuid(), ${a.tenantId}, ${email}, '先に足された人', 'viewer')`,
+      ),
+    );
+    const res = await accept(invitationToken(SECRET, inv.id), "受けた人");
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("already_member");
+    expect(await userByEmail(a.tenantId, email)).toMatchObject({ name: "先に足された人" });
+    expect((await invitationRow(a.tenantId, inv.id))?.accepted_at ?? null).toBeNull();
+  });
+
   it("アプリの接続は users に行を足せない(人が増えるのは、生きている招待を受ける関数だけ)", async () => {
     await expect(
       withTenant(appDb.db, a.tenantId, (tx) =>

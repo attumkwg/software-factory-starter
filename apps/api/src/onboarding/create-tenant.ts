@@ -171,7 +171,8 @@ export async function createTenant(
     });
   } catch (e) {
     if (e instanceof DryRun) return created;
-    throw toFriendlyError(e);
+    // 全体の一意は無くなったので、メールの重なりでは落ちない(ADR 0066)。ほかの失敗はそのまま
+    throw e;
   }
   return created;
 }
@@ -184,11 +185,6 @@ async function withSupportContext(tx: TenantTx, supportTenantId: string, fn: () 
   await tx.execute(sql`select set_config('app.tenant_id', ${supportTenantId}, true)`);
   await fn();
   await tx.execute(sql`select set_config('app.tenant_id', ${current.rows[0]?.t ?? ""}, true)`);
-}
-
-/** 失敗はそのまま投げる(全体の一意は無くなったので、メールの重なりでは落ちない。ADR 0066) */
-function toFriendlyError(e: unknown): unknown {
-  return e;
 }
 
 /** そのメールの所属の数(全部の組織で。DB の関数。表の持ち主で流す) */

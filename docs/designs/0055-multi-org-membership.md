@@ -125,7 +125,7 @@ sequenceDiagram
 - セキュリティ: 仕様の STRIDE。本文に組織の ID を取る API が1本増える → 所属の確かめは DB の関数(sub で)。結合テストで他社の ID・消された所属・代理の最中。
 - 運用: 手順書 `cognito-login.md`(結びつきを直す・所属の一覧の見方)・`offboarding.md` の 3・`person-data.md` の 5。
 - 費用: なし。
-- 移行: ③ は戻せない(U-3)。① と ② を出して1週間見てから ③。
+- 移行: ③ は戻せない(U-3)。① と ② を出して1週間見てから ③(持ち主の決め 2026-10-25。手順は `docs/runbooks/multi-org-rollout.md`)。
 
 ## 9. このプロダクト特有
 

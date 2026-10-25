@@ -64,6 +64,7 @@ SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_a
 
 - **前の版のアプリに戻すだけで済むか**を先に見る(足すだけの移行なら、ほぼ済む)。
 - 形を戻すなら、**逆の移行を新しく書いて出す**(Drizzle に「戻す」移行は無い)。
+- 戻せないと決めてある移行: `0019_multi_org_contract`(全体で一意のメールと sub を外す)。出す前に [multi-org-rollout.md](multi-org-rollout.md) の 2(1週間見る)。
 - 🔴 **やってはいけない**: 流した移行のファイルを書き換える・消す / `drizzle.__drizzle_migrations` の行を手で消す(次から本番と手元で表の形がずれる)。
 - 移行が値を消した・上書きした(`DROP COLUMN`・`UPDATE`)なら、逆の移行では戻らない → [db-restore.md](db-restore.md) の 3(表ごと)で、移行の直前の値を取り出す。
 
