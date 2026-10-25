@@ -1,0 +1,4 @@
+# 見本(偽の数字)。本物は非公開の置き場(S3 の cost/inputs/budgets.csv)に置く。賭けごとに1行(枠を引き直すときは行を足し、古い行の until を締める)
+# bet … B-NNNN / monthly_jpy … 月の枠(人の時間+インフラ+SaaS+共通の配り分。円)/ from・until … YYYY-MM(その月を含む)/ warn_pct … 知らせる線(空なら 80)
+bet,monthly_jpy,from,until,warn_pct
+B-0002,300000,2026-10,2027-03,
