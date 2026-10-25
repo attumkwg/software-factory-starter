@@ -1268,6 +1268,29 @@ parts:
         - { path: docs/playbook.md, what: 脆弱性の行を外す }
         - { path: scripts/checkup/checks/vulns.mjs, what: 消し、台帳(docs/checkup/todo.yaml)の w-vuln を引退(retired)にする(点検を残すとき) }
 
+  - id: security-questionnaire
+    name: セキュリティの質問票の下書き(/security-questionnaire)
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: お客さんから届いたセキュリティの質問票に、docs/security.md の決まり・適用宣言書・委託先の一覧・手順書・SLA と取り扱いの取り決めの型・点検の答えから、答えの下書きを根拠のリンクつきで作る。「はい」は根拠があり本番で有効だと確かめた物だけ。下書きはリポジトリの外・出す前に責任者が確かめる
+    needed_by: 会社向けで、病院・大企業などからセキュリティの質問票が届く
+    not_needed_by: 個人向けだけ・質問票が来ない
+    if_removed: 質問票のたびに、営業とセキュリティの担当が手で資料を探す。根拠の無い「はい」を書いてしまう
+    depends_on: [vendor-ledger, contract-templates]
+    law:
+      - ISMS 5.20(供給者との合意の中のセキュリティ。お客さんの側から見て)
+      - P マーク(委託先としての説明)
+    where:
+      - .claude/skills/security-questionnaire
+    remove:
+      delete: [.claude/skills/security-questionnaire]
+      edit:
+        - { path: CLAUDE.md, what: /security-questionnaire の所を外す }
+        - { path: docs/reference.md, what: /security-questionnaire を外す }
+      docs: [docs/specs/0039-security-questionnaire.md, docs/designs/0039-security-questionnaire.md]
+
   - id: prototypes
     name: プロトタイプの置き場
     group: dev
