@@ -81,6 +81,13 @@ comments:
     columnComments:
       code_hash: サポート番号の SHA-256(番号そのものは保存しない)
       revoked_at: 取り消した時刻(入っている社員も次のリクエストから入れない)
+  - table: organizations.invitations
+    tableComment: 管理者が出した招待(docs/specs/0027-invitations.md・ADR 0040)。リンクの札は持たない(招待の ID とサーバーの秘密の署名)。受けるのは auth_accept_invitation 関数だけ(1回きり)
+    columnComments:
+      expires_at: リンクの期限(作ってから7日)
+      accepted_at: 受けた時刻(入ったら、もう使えない)
+      accepted_user_id: 受けてできた users の行
+      revoked_at: 取り消した時刻(リンクはすぐ使えなくなる)
   - table: organizations.support_sessions
     tableComment: 社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる
     columnComments:

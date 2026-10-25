@@ -14,6 +14,7 @@
 | `growth.pre_registrations` | `organization_name` | **personal** | 組織を作るときの名前の案(個人事業なら人の名前になる) |
 | `organizations.email_changes` | `previous_email` | **personal** | 変わったお知らせを古いアドレスへ送る |
 | `organizations.email_changes` | `new_email` | **personal** | 確認コードを新しいアドレスへ送る |
+| `organizations.invitations` | `email` | **personal** | 招いた人のメールアドレス(招待のメールの宛先・受けたら users の行になる) |
 | `organizations.support_sessions` | `staff_name` | **personal** | お客さんの画面に「誰が入ったか」を出す |
 | `organizations.support_sessions` | `staff_email` | **personal** | 入った社員の連絡先を画面に出す |
 | `organizations.tenants` | `name` | **personal** | 組織の名前を画面に出す(個人事業主なら人の名前になる) |
@@ -98,6 +99,22 @@
 | `requested_at` | internal | 申し込んだ時刻(24時間の期限) |
 | `confirmed_at` | internal | 変わった時刻 |
 
+### `organizations.invitations`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 招待の ID(リンクの署名の元) |
+| `tenant_id` | internal | 招いた組織 |
+| `email` | **personal** | 招いた人のメールアドレス(招待のメールの宛先・受けたら users の行になる) |
+| `role` | public | 招いたロール |
+| `invited_by` | internal | 招いた管理者 |
+| `created_at` | internal | 招いた時刻 |
+| `expires_at` | internal | リンクの期限 |
+| `accepted_at` | internal | 受けた時刻(1回きり) |
+| `accepted_user_id` | internal | 受けてできた人の ID |
+| `revoked_at` | internal | 取り消した時刻 |
+| `revoked_by` | internal | 取り消した管理者 |
+
 ### `organizations.support_grants`
 
 | 列 | 区分 | 利用目的 |
@@ -167,10 +184,12 @@
 | `details` の `projectId` | internal | タスクを作ったプロジェクトなど |
 | `details` の `taskId` | internal | パスのタスクの ID |
 | `details` の `grantId` | internal | パスの許可の ID |
+| `details` の `invitationId` | internal | パスの招待の ID |
 | `details` の `fields` | internal | 直した項目の名前の一覧(値は入れない) |
 | `details` の `route` | internal | 代理の社員が呼んだ API の形(メソッドとパスの型) |
 | `details` の `counts` | internal | 解約で消した表ごとの行数 |
 | `details` の `flag` | internal | 運営が入れた・切った機能の名前(FEATURE_FLAGS の name) |
+| `details` の `adminUserId` | internal | 運営が組織を作ったときの、最初の管理者の ID |
 | `details` の `preRegistrations` | internal | 期限で消した事前登録の数 |
 | `details` の `dailyCounts` | internal | 期限で消した日ごとの数の行の数 |
 | `details` の `convertedTenantId` | internal | 事前登録から作った組織の ID |
@@ -208,6 +227,7 @@
 | `payload` の `userId` | internal | お知らせを送る相手の ID(宛先は送る直前に DB から読む) |
 | `payload` の `emailChangeId` | internal | メールアドレスの変更の ID(古いアドレスは表から読む) |
 | `payload` の `noticeId` | internal | 規約の変更のお知らせの ID(宛先と版は表から読む) |
+| `payload` の `invitationId` | internal | 招待の ID(宛先と組織は表から読む。リンクは送る直前に作る) |
 | `payload` の `preRegistrationId` | internal | 事前登録の ID(宛先とリンクは表から読む) |
 | `created_at` | internal | 積んだ時刻 |
 | `available_at` | internal | 送ってよい時刻 |

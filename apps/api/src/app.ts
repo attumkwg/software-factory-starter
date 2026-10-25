@@ -14,6 +14,7 @@ import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
 import { auditRoutes } from "./audit/index.ts";
 import { accountRoutes } from "./auth/account-routes.ts";
+import { invitationAcceptRoutes } from "./auth/invitation-routes.ts";
 import { authenticate } from "./auth/middleware.ts";
 import { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
@@ -24,6 +25,7 @@ import type { RootDb } from "./db/client.ts";
 import { linkKey, publicGrowthRoutes } from "./domains/growth/index.ts";
 import { legalRoutes } from "./domains/legal/index.ts";
 import {
+  invitationRoutes,
   mfaRequirementRoutes,
   organizationRoutes,
   supportGrantRoutes,
@@ -170,10 +172,13 @@ export function createApp(deps: AppDeps) {
   );
   // 本人のアカウント(二段階認証・メール・パスワード。docs/specs/0006-account-security.md)
   if (cognito) app.route("/api", accountRoutes({ db, logger, session: config.session, cognito }));
+  // 招待を受ける(ログインの前。リンクの札で組織が決まる。docs/specs/0027-invitations.md)
+  app.route("/api", invitationAcceptRoutes({ db, logger, linkSecret: config.session.secret }));
   // 領域ごとのルート(src/domains/<領域>/routes.ts)
   app.route("/api", organizationRoutes);
   app.route("/api", mfaRequirementRoutes);
   app.route("/api", supportGrantRoutes());
+  app.route("/api", invitationRoutes);
   // 社員の代理ログイン(組織を切り替えるので認証の側)
   app.route("/api", supportSessionRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);

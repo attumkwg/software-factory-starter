@@ -15,6 +15,8 @@ import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
+import { applicationSourceFor } from "./onboarding/application-source.ts";
+import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
@@ -22,6 +24,8 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js seed             … 種データ(local / test / preview だけ)
 //   node dist/cli.js init-roles       … 接続ユーザーを作る(使い捨ての DB だけ。SUPERUSER_DATABASE_URL)
 //   node dist/cli.js init-roles migrate seed   … プレビュー環境の起動時
+//   node dist/cli.js create-tenant <申し込みの置き場のキー> [--execute --confirm-name <名前>]
+//                                      … 申し込みを受けた組織と最初の管理者を作る(試し → 本番。docs/runbooks/tenant-provisioning.md)
 //   node dist/cli.js delete-tenant <組織の ID> [--execute --confirm-name <名前>]
 //                                      … 解約した組織を消す(試し → 本番。docs/runbooks/offboarding.md)
 //   node dist/cli.js legal-notify <文書> <版> [--execute]
@@ -29,7 +33,7 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
 //   node dist/cli.js usage-report <機能> [--weeks <週の数>]
-//                                      … 利用の記録を週ごとの数にする(読むだけ。docs/runbooks/usage-records.md)
+//                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 //   node dist/cli.js pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD]
@@ -57,6 +61,41 @@ async function initRoles() {
     }
   } finally {
     await client.end();
+  }
+}
+
+/**
+ * 申し込みを受けた組織を作る。--execute が無ければ、流してから取り消す(試し)。結果は JSON 1行(名前・メールは出さない)。
+ * 申し込みは置き場(S3)から読む。引数はキーだけ(CloudTrail に名前・メールを残さない)
+ */
+async function createTenantCommand(args: string[]) {
+  const [key, ...flags] = args;
+  if (!key) throw new Error("置き場のキーがありません: create-tenant applications/<申込番号>.json");
+  const source = applicationSourceFor({ appEnv, bucket: process.env.APPLICATIONS_BUCKET });
+  const { application, ignoredKeys } = parseTenantApplication(await source.read(key));
+  const execute = flags.includes("--execute");
+  const nameAt = flags.indexOf("--confirm-name");
+  const confirmName = nameAt >= 0 ? flags[nameAt + 1] : undefined;
+  if (execute && !confirmName)
+    throw new Error("--execute には --confirm-name <組織の名前> が要ります");
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    const created = await createTenant(db, application, {
+      execute,
+      confirmName,
+      supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
+    });
+    const line = execute
+      ? { mode: "created", ...created, ignoredKeys }
+      : { mode: "plan", timeZone: created.timeZone, mfaRequired: created.mfaRequired, ignoredKeys };
+    process.stdout.write(`${JSON.stringify(line)}\n`);
+    if (!execute) {
+      process.stdout.write(
+        "まだ作っていません(流してから取り消しました)。中身を確かめて --execute --confirm-name <組織の名前> を付けて流してください\n",
+      );
+    }
+  } finally {
+    await pool.end();
   }
 }
 
@@ -182,7 +221,7 @@ async function readLine(): Promise<string> {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge / pre-registrations-report / pre-registrations-purge / pre-registrations-delete)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge / pre-registrations-report / pre-registrations-purge / pre-registrations-delete)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -193,6 +232,10 @@ if (commands[0] === "usage-report") {
 }
 if (commands[0] === "usage-purge") {
   await usageCommand((db) => runUsagePurge(db, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "create-tenant") {
+  await createTenantCommand(commands.slice(1));
   process.exit(0);
 }
 if (commands[0] === "pre-registrations-report") {

@@ -1,4 +1,4 @@
-import { index, integer, pgSchema, primaryKey, text, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, pgSchema, primaryKey, text, unique, uuid } from "drizzle-orm/pg-core";
 import { dateOnly, id, instant } from "../../db/columns.ts";
 import { tenants } from "../organizations/schema.ts";
 
@@ -31,9 +31,9 @@ export const preRegistrations = growth.table(
     utmMedium: text("utm_medium").notNull().default(""),
     utmCampaign: text("utm_campaign").notNull().default(""),
     landingPath: text("landing_path").notNull().default("/"),
-    consentTextVersion: integer("consent_text_version").notNull(),
+    consentTextVersion: bigint("consent_text_version", { mode: "number" }).notNull(),
     /** そのとき出していたプライバシーポリシーの版(LEGAL_VERSIONS。公開の版が無ければ空) */
-    privacyVersion: integer("privacy_version"),
+    privacyVersion: bigint("privacy_version", { mode: "number" }),
     consentedAt: instant("consented_at").notNull().defaultNow(),
     /** 確認のメールを最後に積んだ時刻(同じアドレスへは24時間に1通。確認のリンクはこの時刻から作る) */
     confirmSentAt: instant("confirm_sent_at").notNull().defaultNow(),
@@ -65,9 +65,9 @@ export const lpDailyCounts = growth.table(
     utmSource: text("utm_source").notNull(),
     utmMedium: text("utm_medium").notNull(),
     utmCampaign: text("utm_campaign").notNull(),
-    views: integer("views").notNull().default(0),
-    registrations: integer("registrations").notNull().default(0),
-    confirmations: integer("confirmations").notNull().default(0),
+    views: bigint("views", { mode: "number" }).notNull().default(0),
+    registrations: bigint("registrations", { mode: "number" }).notNull().default(0),
+    confirmations: bigint("confirmations", { mode: "number" }).notNull().default(0),
   },
   (t) => [
     primaryKey({

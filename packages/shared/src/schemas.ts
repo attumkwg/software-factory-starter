@@ -129,6 +129,13 @@ export const ERROR_CODES = [
   "mfa_required_for_support", // 必須の組織に代理で入るには、社員の二段階認証が要る(403)
   // 規約と同意(docs/specs/0009-legal-consent.md)
   "terms_acceptance_required", // 同意し直しが要る規約の版に、まだ同意していない(403)。画面は /legal/accept へ
+  // 招待(docs/specs/0027-invitations.md)
+  "already_member", // そのメールアドレスの人は、もうこの組織にいる(409)
+  "already_invited", // そのメールアドレスには、生きている招待がもうある(409)
+  "too_many_invitations", // 生きている招待が上限に届いた(409)。受けてもらうか取り消してから
+  "invitation_not_pending", // 受けた・取り消した招待は取り消せない(409)
+  "invalid_invitation", // 招待のリンクが正しくない・期限切れ・使用済み・取り消し済み(400。どれかは言わない)
+  "invitation_email_in_use", // 招待のメールアドレスは、もうどこかの組織で使われている(409。1人 = 1組織)
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -302,3 +309,56 @@ export function safeReturnTo(value: unknown): string {
   if (value === "/login" || value.startsWith("/login?")) return "/";
   return value;
 }
+
+// ── 招待(docs/specs/0027-invitations.md) ───────────────────────────────────────
+
+/** 招待のリンクの期限(日)。過ぎたら使えない(送り直すには取り消して招き直す) */
+export const INVITATION_DAYS = 7;
+
+/**
+ * 招待の状態。pending … 受けていない・期限内・取り消していない。
+ * accepted … 受けた(1回きり)・expired … 期限が過ぎた・revoked … 取り消した
+ */
+export const InvitationStatusSchema = z.enum(["pending", "accepted", "expired", "revoked"]);
+export type InvitationStatus = z.infer<typeof InvitationStatusSchema>;
+
+export const InvitationSchema = z.object({
+  id: IdSchema,
+  email: z.email(),
+  role: RoleSchema,
+  status: InvitationStatusSchema,
+  createdAt: InstantSchema,
+  expiresAt: InstantSchema,
+});
+export type Invitation = z.infer<typeof InvitationSchema>;
+
+export const InvitationPageSchema = z.object({
+  invitations: z.array(InvitationSchema),
+  /** 続きを読むときに cursor に渡す。無ければ終わり */
+  nextCursor: z.string().nullable(),
+});
+export type InvitationPage = z.infer<typeof InvitationPageSchema>;
+
+/** 管理者が人を招く。メールは小文字にそろえる(ログインの結びつけが小文字で探すため) */
+export const CreateInvitationSchema = z.object({
+  email: z
+    .email()
+    .max(254)
+    .transform((e) => e.toLowerCase()),
+  role: RoleSchema,
+});
+export type CreateInvitation = z.infer<typeof CreateInvitationSchema>;
+
+/** 招待を受ける(ログイン無しで。リンクの札と、組織の中で見せる名前) */
+export const AcceptInvitationSchema = z.object({
+  token: z.string().min(1).max(200),
+  name: z.string().trim().min(1).max(100),
+});
+export type AcceptInvitation = z.infer<typeof AcceptInvitationSchema>;
+
+/** 受けた後: どの組織に・どのメールで入ったか(画面は、このメールで登録してログインするよう案内する) */
+export const AcceptedInvitationSchema = z.object({
+  tenantName: z.string(),
+  email: z.email(),
+});
+export type AcceptedInvitation = z.infer<typeof AcceptedInvitationSchema>;
