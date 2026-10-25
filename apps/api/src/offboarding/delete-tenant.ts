@@ -20,6 +20,7 @@ export const TENANT_TABLES = [
   "sensitive.tenant_keys",
   "legal.notices",
   "legal.consents",
+  "organizations.invitations",
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",

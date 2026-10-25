@@ -24,6 +24,15 @@ test("管理者の設定とサポートへの許可(表と選択)", async ({ pag
   await page.goto("/support-access");
   await expect(page.getByRole("heading", { name: "サポートへの許可", level: 1 })).toBeVisible();
   await expectAccessible(page);
+  await page.goto("/invitations");
+  await expect(page.getByRole("heading", { name: "招待", level: 1 })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test("招待を受ける画面(ログイン無し・名前の入力)", async ({ page }) => {
+  await page.goto("/invitation");
+  await expect(page.getByRole("heading", { name: "招待を受ける", level: 1 })).toBeVisible();
+  await expectAccessible(page);
 });
 
 test("運営のサポートの入口(番号の入力)", async ({ page }) => {

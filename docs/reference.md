@@ -248,7 +248,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 - **二段階認証の予備のコード・管理者が人の二段階認証を外す画面**: 二段階認証の設定・メールアドレスとパスワードの変更・組織の必須は画面「アカウント」と「設定」にある(docs/specs/0006-account-security.md)。認証アプリを無くした人は、運営が手順書で戻す([docs/runbooks/mfa-reset.md](runbooks/mfa-reset.md))。
 - **メールの受け取らない設定・まとめ送り・HTML のメール**(spec 0002 の「やらないこと」)。
-- **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
+- **招待の送り直し・人の無効化・一覧からの人の削除**: 招待は「設定」→「招待」(docs/specs/0027-invitations.md)。送り直しは取り消して招き直す。人を外すのは、いまも SQL(docs/runbooks/cognito-login.md)。
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: 作らない(ADR 0017)。署名つき Cookie で、無操作1時間・ログインから最長12時間で切れる。端末を選んで切る・管理者による強制ログアウトが要るようになったら DB か Valkey に。
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。

@@ -13,6 +13,15 @@ export {
   requestEmailChange,
   setMfaEnabled,
 } from "./account.ts";
+export { invitationRoutes } from "./invitation-routes.ts";
+export {
+  type AcceptedInvitation,
+  acceptInvitation,
+  invitationMail,
+  invitationToken,
+  tenantOpenedMail,
+  verifyInvitationToken,
+} from "./invitations.ts";
 export { mfaRequirementRoutes } from "./mfa-requirement-routes.ts";
 export {
   type AccountNotice,

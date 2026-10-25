@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as InvitationRouteImport } from './routes/invitation'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
+import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSupportRouteImport } from './routes/_app/support'
 import { Route as AppSupportAccessRouteImport } from './routes/_app/support-access'
@@ -37,6 +39,11 @@ const DesignSystemRoute = DesignSystemRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationRoute = InvitationRouteImport.update({
+  id: '/invitation',
+  path: '/invitation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -62,6 +69,11 @@ const AppAccountRoute = AppAccountRouteImport.update({
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvitationsRoute = AppInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -104,10 +116,12 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/design-system': typeof DesignSystemRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/invitation': typeof InvitationRoute
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
+  '/invitations': typeof AppInvitationsRoute
   '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
   '/support-access': typeof AppSupportAccessRoute
@@ -119,10 +133,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/invitation': typeof InvitationRoute
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
+  '/invitations': typeof AppInvitationsRoute
   '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
   '/support-access': typeof AppSupportAccessRoute
@@ -137,10 +153,12 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/design-system': typeof DesignSystemRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/invitation': typeof InvitationRoute
   '/login': typeof LoginRoute
   '/sign-up': typeof SignUpRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/audit': typeof AppAuditRoute
+  '/_app/invitations': typeof AppInvitationsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/support': typeof AppSupportRoute
   '/_app/support-access': typeof AppSupportAccessRoute
@@ -156,10 +174,12 @@ export interface FileRouteTypes {
     | '/'
     | '/design-system'
     | '/forgot-password'
+    | '/invitation'
     | '/login'
     | '/sign-up'
     | '/account'
     | '/audit'
+    | '/invitations'
     | '/settings'
     | '/support'
     | '/support-access'
@@ -171,10 +191,12 @@ export interface FileRouteTypes {
   to:
     | '/design-system'
     | '/forgot-password'
+    | '/invitation'
     | '/login'
     | '/sign-up'
     | '/account'
     | '/audit'
+    | '/invitations'
     | '/settings'
     | '/support'
     | '/support-access'
@@ -188,10 +210,12 @@ export interface FileRouteTypes {
     | '/_app'
     | '/design-system'
     | '/forgot-password'
+    | '/invitation'
     | '/login'
     | '/sign-up'
     | '/_app/account'
     | '/_app/audit'
+    | '/_app/invitations'
     | '/_app/settings'
     | '/_app/support'
     | '/_app/support-access'
@@ -206,6 +230,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   DesignSystemRoute: typeof DesignSystemRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  InvitationRoute: typeof InvitationRoute
   LoginRoute: typeof LoginRoute
   SignUpRoute: typeof SignUpRoute
   LegalDocumentVersionRoute: typeof LegalDocumentVersionRoute
@@ -233,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitation': {
+      id: '/invitation'
+      path: '/invitation'
+      fullPath: '/invitation'
+      preLoaderRoute: typeof InvitationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -268,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invitations': {
+      id: '/_app/invitations'
+      path: '/invitations'
+      fullPath: '/invitations'
+      preLoaderRoute: typeof AppInvitationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -325,6 +364,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppInvitationsRoute: typeof AppInvitationsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSupportRoute: typeof AppSupportRoute
   AppSupportAccessRoute: typeof AppSupportAccessRoute
@@ -336,6 +376,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppAuditRoute: AppAuditRoute,
+  AppInvitationsRoute: AppInvitationsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSupportRoute: AppSupportRoute,
   AppSupportAccessRoute: AppSupportAccessRoute,
@@ -350,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   DesignSystemRoute: DesignSystemRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  InvitationRoute: InvitationRoute,
   LoginRoute: LoginRoute,
   SignUpRoute: SignUpRoute,
   LegalDocumentVersionRoute: LegalDocumentVersionRoute,
