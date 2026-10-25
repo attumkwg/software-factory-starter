@@ -44,6 +44,8 @@ module "github_oidc" {
 }
 
 data "aws_iam_policy_document" "deploy" {
+  # 公開の LP を置く(public_site_domain を入れたときだけ。下の public_site_deploy)
+  source_policy_documents = [data.aws_iam_policy_document.public_site_deploy.json]
   statement {
     sid       = "EcrLogin"
     actions   = ["ecr:GetAuthorizationToken"]
@@ -206,5 +208,33 @@ data "aws_iam_policy_document" "cost" {
     actions = ["ce:GetCostAndUsage", "ce:GetCostForecast"]
     #trivy:ignore:AVD-AWS-0057 Cost Explorer はリソースを絞れない(AWS の仕様)。読むのは金額の集計だけ
     resources = ["*"]
+  }
+}
+
+# deploy.yml が公開の LP(apps/site)をビルドして置く・古い物を消す(invalidation)。そのバケットと配る口だけ
+data "aws_iam_policy_document" "public_site_deploy" {
+  dynamic "statement" {
+    for_each = module.public_site
+    content {
+      sid       = "ListPublicSite"
+      actions   = ["s3:ListBucket"]
+      resources = [statement.value.bucket_arn]
+    }
+  }
+  dynamic "statement" {
+    for_each = module.public_site
+    content {
+      sid       = "PutPublicSite"
+      actions   = ["s3:PutObject", "s3:DeleteObject"]
+      resources = ["${statement.value.bucket_arn}/*"]
+    }
+  }
+  dynamic "statement" {
+    for_each = module.public_site
+    content {
+      sid       = "InvalidatePublicSite"
+      actions   = ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"]
+      resources = [statement.value.distribution_arn]
+    }
   }
 }

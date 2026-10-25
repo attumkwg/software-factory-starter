@@ -107,3 +107,9 @@ variable "anomaly_threshold_usd" {
   type        = number
   default     = 10
 }
+
+variable "public_site_domain" {
+  description = "公開の LP(apps/site)のドメイン(例: www.example.com。route53_zone_id のゾーンに入る)。null なら置き場所を作らず、API の公開の入口(/api/public/*)も 404 のまま。運営の組織(support_tenant_id)も要る"
+  type        = string
+  default     = null
+}
