@@ -60,14 +60,12 @@ export async function listAuditEvents(
   };
 }
 
-/** データの書き出し(docs/specs/0005-offboarding.md)。自社の監査ログを全部(新しい順) */
-export async function exportAuditEvents(s: TenantScope): Promise<AuditEvent[]> {
-  const all: AuditEvent[] = [];
-  let before: string | undefined;
-  do {
-    const page = await listAuditEvents(s, { before, limit: 500 });
-    all.push(...page.events);
-    before = page.nextCursor ?? undefined;
-  } while (before);
-  return all;
+/** データの書き出し(docs/specs/0018-export-stream.md)。自社の監査ログを新しい順に1ページずつ */
+export async function exportAuditEventsPage(
+  s: TenantScope,
+  after: string | null,
+  limit: number,
+): Promise<{ rows: AuditEvent[]; nextCursor: string | null }> {
+  const page = await listAuditEvents(s, { before: after ?? undefined, limit });
+  return { rows: page.events, nextCursor: page.nextCursor };
 }

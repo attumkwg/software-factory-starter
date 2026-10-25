@@ -4,7 +4,7 @@ export {
   type Access,
   confirmEmailChange,
   endOtherSessions,
-  exportEmailChanges,
+  exportEmailChangesPage,
   findAccess,
   findMfaRequired,
   findPendingEmailChange,
@@ -21,6 +21,7 @@ export {
 } from "./notifications.ts";
 export {
   exportOrganization,
+  exportUsersPage,
   findContact,
   findRole,
   findTimeZone,
@@ -30,7 +31,7 @@ export {
 export { organizationRoutes } from "./routes.ts";
 export {
   endSupportSession,
-  exportSupportGrants,
+  exportSupportGrantsPage,
   findActiveSupportSession,
   findSupportGrantByCode,
   startSupportSession,

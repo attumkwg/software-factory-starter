@@ -1,6 +1,7 @@
 import type { ExportData, Me, Role } from "@app/shared";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
+import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { tenants, users } from "./schema.ts";
 
@@ -83,15 +84,28 @@ export async function findUserNames(
   return new Map(rows.map((r) => [r.id, r.name]));
 }
 
-/**
- * データの書き出し(docs/specs/0005-offboarding.md)。組織と利用者。
- * 認証の製品の ID(external_id = Cognito の sub)は入れない(写す項目を決めて、表を丸ごと出さない)。
- */
-export async function exportOrganization(
-  s: TenantScope,
-): Promise<Pick<ExportData, "organization" | "users">> {
+/** データの書き出し(docs/specs/0005-offboarding.md)。組織 */
+export async function exportOrganization(s: TenantScope): Promise<ExportData["organization"]> {
   const [tenant] = await s.tx.select().from(tenants).where(eq(tenants.tenantId, s.tenantId));
   if (!tenant) throw new Error("tenant not found");
+  return {
+    id: tenant.tenantId,
+    name: tenant.name,
+    timeZone: tenant.timeZone,
+    createdAt: tenant.createdAt.toISOString(),
+  };
+}
+
+/**
+ * データの書き出し(docs/specs/0018-export-stream.md)。利用者を古い順に1ページずつ。
+ * 認証の製品の ID(external_id = Cognito の sub)は入れない(写す項目を決めて、表を丸ごと出さない)。
+ */
+export async function exportUsersPage(
+  s: TenantScope,
+  after: string | null,
+  limit: number,
+): Promise<{ rows: ExportData["users"]; nextCursor: string | null }> {
+  const cursor = after ? decodeCursor(after) : null;
   const rows = await s.tx
     .select({
       id: users.id,
@@ -99,17 +113,23 @@ export async function exportOrganization(
       name: users.name,
       role: users.role,
       createdAt: users.createdAt,
+      cursorAt: cursorTime(users.createdAt),
     })
     .from(users)
-    .where(eq(users.tenantId, s.tenantId))
-    .orderBy(asc(users.createdAt));
+    .where(
+      and(eq(users.tenantId, s.tenantId), beyondCursor(cursor, "asc", users.createdAt, users.id)),
+    )
+    .orderBy(asc(users.createdAt), asc(users.id))
+    .limit(limit + 1);
+  const page = toPage(rows, limit, (r) => ({ at: r.cursorAt, id: r.id }));
   return {
-    organization: {
-      id: tenant.tenantId,
-      name: tenant.name,
-      timeZone: tenant.timeZone,
-      createdAt: tenant.createdAt.toISOString(),
-    },
-    users: rows.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })),
+    rows: page.rows.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      createdAt: u.createdAt.toISOString(),
+    })),
+    nextCursor: page.nextCursor,
   };
 }
