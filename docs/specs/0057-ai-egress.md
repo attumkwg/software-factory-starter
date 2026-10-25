@@ -1,7 +1,7 @@
 # 仕様: AI の環境から外への通信を絞る(結合テストを回せる形で)
 
 > 状態: 承認済み(承認した人: @attumkwg 2026-10-25。会話で回答)
-> 設計: [docs/designs/0057-ai-egress.md](../designs/0057-ai-egress.md)・ADR: [0068](../adr/0068-ai-egress-by-where-it-runs.md)
+> 設計: [docs/designs/0057-ai-egress.md](../designs/0057-ai-egress.md)・ADR: [0068](../adr/0068-ai-egress-by-where-it-runs.md)(②は [0069](../adr/0069-background-ai-runs-integration-tests.md) で置き換え)
 > 穴 G-22(`docs/scenarios/gaps.md`)。場面は `06-security-audit.md` の 6-11(背景の AI を夜も回す)。決まりは [docs/security.md](../security.md) の AI-2。
 > **この PR は設計だけ**。作るのは段ごとの PR(設計書の 7)。
 
