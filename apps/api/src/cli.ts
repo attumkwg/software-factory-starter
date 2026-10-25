@@ -24,7 +24,7 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
 //   node dist/cli.js usage-report <機能> [--weeks <週の数>]
-//                                      … 利用の記録を週ごとの数にする(読むだけ。docs/runbooks/usage-records.md)
+//                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 

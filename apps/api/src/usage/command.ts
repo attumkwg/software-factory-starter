@@ -3,6 +3,12 @@ import { and, eq, lt, sql } from "drizzle-orm";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
 import { isFeatureEnabled } from "../feature-flags/index.ts";
+import {
+  RETENTION_SMALL_BELOW,
+  type RetentionUnit,
+  retention,
+  type TenantWeeks,
+} from "./retention.ts";
 import { featureUsage } from "./schema.ts";
 
 // 運営のコマンド usage-report・usage-purge(cli.ts)の中身(docs/runbooks/usage-records.md)。
@@ -37,49 +43,111 @@ export type UsageReport = {
   /** 週(月曜)ごとの、使った組織の数・使った人の数 */
   weeks: UsageWeek[];
 };
+/** 継続率(設計書 0022)。始めた週ごとの組の、N 週後もまだ使っている数と割合 */
+export type UsageRetention = {
+  feature: string;
+  /** この週(月曜)から後に初めて使った組だけ */
+  cohortsFrom: string;
+  /** 数え終わった最後の週(月曜)。今週は途中なので入れない */
+  lastFullWeek: string;
+  /** 大きさがこれより小さい組・足し合わせは small: true(割合だけで線を判定しない) */
+  smallBelow: number;
+  /** いまこの機能が入っているのに、一度も使っていない組織の数(どの組にも入らない) */
+  enabledNeverUsed: number;
+  tenants: RetentionUnit;
+  users: RetentionUnit;
+};
 
-/** 機能ごとに、週ごとの「使った組織の数・使った人の数」と「いま入っている組織の数」 */
+type ReportOpts = {
+  weeks: number;
+  defs: readonly FeatureFlagDefinition[];
+  supportTenantId: string | null;
+  now?: Date;
+};
+type TenantRead = { enabled: boolean; userWeeks: TenantWeeks };
+
+/** 組織ごとに「いま入っているか」と、人ごとの使った週(人の ID は DB から読み出さない) */
+async function readTenants(
+  db: RootDb,
+  feature: string,
+  opts: ReportOpts,
+  until: string,
+): Promise<TenantRead[]> {
+  const read: TenantRead[] = [];
+  for (const tenantId of await allTenantIds(db)) {
+    if (tenantId === opts.supportTenantId) continue;
+    read.push(
+      await withTenant(db, tenantId, async (tx) => ({
+        enabled: await isFeatureEnabled(tx, tenantId, opts.defs, feature),
+        // 始めた週を知るため、数える週より前の記録も読む(保存期間の中だけ残っている)
+        userWeeks: (
+          await tx.execute<{ weeks: string[] }>(
+            sql`select array_agg(distinct to_char(date_trunc('week', day), 'YYYY-MM-DD')) as weeks
+                from platform.feature_usage
+                where tenant_id = ${tenantId} and feature = ${feature} and day <= ${until}
+                group by user_id`,
+          )
+        ).rows.map((row) => row.weeks),
+      })),
+    );
+  }
+  return read;
+}
+
+/** 週(since から)ごとの、使った組織の数・使った人の数 */
+function weeklyCounts(tenants: readonly TenantRead[], since: string): UsageWeek[] {
+  const byWeek = new Map<string, UsageWeek>();
+  for (const { userWeeks } of tenants) {
+    const users = new Map<string, number>();
+    for (const week of userWeeks.flat()) {
+      if (week >= since) users.set(week, (users.get(week) ?? 0) + 1);
+    }
+    for (const [week, n] of users) {
+      const w = byWeek.get(week) ?? { week, tenants: 0, users: 0 };
+      w.tenants += 1;
+      w.users += n;
+      byWeek.set(week, w);
+    }
+  }
+  return [...byWeek.values()].sort((a, b) => a.week.localeCompare(b.week));
+}
+
+/**
+ * 機能ごとに、週ごとの「使った組織の数・使った人の数」と「いま入っている組織の数」と、
+ * 始めた週ごとの継続率(retention。設計書 0022)
+ */
 export async function usageReport(
   db: RootDb,
   feature: string,
-  opts: {
-    weeks: number;
-    defs: readonly FeatureFlagDefinition[];
-    supportTenantId: string | null;
-    now?: Date;
-  },
-): Promise<UsageReport> {
+  opts: ReportOpts,
+): Promise<UsageReport & { retention: UsageRetention }> {
   const now = opts.now ?? new Date();
   const since = mondayOf(new Date(now.getTime() - (opts.weeks - 1) * 7 * DAY));
   const until = isoDate(now);
-  const byWeek = new Map<string, UsageWeek>();
-  let tenantsTotal = 0;
-  let tenantsEnabled = 0;
-  for (const tenantId of await allTenantIds(db)) {
-    if (tenantId === opts.supportTenantId) continue;
-    tenantsTotal += 1;
-    const { enabled, rows } = await withTenant(db, tenantId, async (tx) => ({
-      enabled: await isFeatureEnabled(tx, tenantId, opts.defs, feature),
-      rows: (
-        await tx.execute<{ week: string; users: number }>(
-          sql`select to_char(date_trunc('week', day), 'YYYY-MM-DD') as week,
-                count(distinct user_id)::int as users
-              from platform.feature_usage
-              where tenant_id = ${tenantId} and feature = ${feature} and day >= ${since} and day <= ${until}
-              group by 1`,
-        )
-      ).rows,
-    }));
-    if (enabled) tenantsEnabled += 1;
-    for (const row of rows) {
-      const w = byWeek.get(row.week) ?? { week: row.week, tenants: 0, users: 0 };
-      w.tenants += 1;
-      w.users += row.users;
-      byWeek.set(row.week, w);
-    }
-  }
-  const weeks = [...byWeek.values()].sort((a, b) => a.week.localeCompare(b.week));
-  return { feature, since, until, tenantsTotal, tenantsEnabled, weeks };
+  const tenants = await readTenants(db, feature, opts, until);
+  // 保存期間の端より前に始めた組は、始めた週の記録が消えているかもしれないので数えない
+  const kept = mondayOf(new Date(now.getTime() - (USAGE_RETENTION_DAYS - 6) * DAY));
+  const cohortsFrom = since > kept ? since : kept;
+  const lastFullWeek = mondayOf(new Date(now.getTime() - 7 * DAY));
+  return {
+    feature,
+    since,
+    until,
+    tenantsTotal: tenants.length,
+    tenantsEnabled: tenants.filter((t) => t.enabled).length,
+    weeks: weeklyCounts(tenants, since),
+    retention: {
+      feature,
+      cohortsFrom,
+      lastFullWeek,
+      smallBelow: RETENTION_SMALL_BELOW,
+      enabledNeverUsed: tenants.filter((t) => t.enabled && t.userWeeks.length === 0).length,
+      ...retention(
+        tenants.map((t) => t.userWeeks),
+        { from: cohortsFrom, lastFull: lastFullWeek },
+      ),
+    },
+  };
 }
 
 /** その日の週の月曜(UTC の日付として) */
@@ -133,8 +201,11 @@ export async function runUsageReport(
   opts: { defs: readonly FeatureFlagDefinition[]; supportTenantId: string | null; now?: Date },
 ): Promise<string[]> {
   const { feature, weeks } = parseUsageReportArgs(args);
-  const report = await usageReport(db, feature, { weeks, ...opts });
-  return [JSON.stringify({ mode: "report", ...report })];
+  const { retention: cohorts, ...report } = await usageReport(db, feature, { weeks, ...opts });
+  return [
+    JSON.stringify({ mode: "report", ...report }),
+    JSON.stringify({ mode: "retention", ...cohorts }),
+  ];
 }
 
 /** usage-purge [--execute] */
