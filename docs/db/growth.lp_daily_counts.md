@@ -6,17 +6,17 @@
 
 ## Columns
 
-| Name          | Type    | Default | Nullable | Children | Parents                                           | Comment |
-| ------------- | ------- | ------- | -------- | -------- | ------------------------------------------------- | ------- |
-| tenant_id     | uuid    |         | false    |          | [organizations.tenants](organizations.tenants.md) |         |
-| day           | date    |         | false    |          |                                                   |         |
-| path          | text    |         | false    |          |                                                   |         |
-| utm_source    | text    |         | false    |          |                                                   |         |
-| utm_medium    | text    |         | false    |          |                                                   |         |
-| utm_campaign  | text    |         | false    |          |                                                   |         |
-| views         | integer | 0       | false    |          |                                                   |         |
-| registrations | integer | 0       | false    |          |                                                   |         |
-| confirmations | integer | 0       | false    |          |                                                   |         |
+| Name          | Type   | Default | Nullable | Children | Parents                                           | Comment |
+| ------------- | ------ | ------- | -------- | -------- | ------------------------------------------------- | ------- |
+| tenant_id     | uuid   |         | false    |          | [organizations.tenants](organizations.tenants.md) |         |
+| day           | date   |         | false    |          |                                                   |         |
+| path          | text   |         | false    |          |                                                   |         |
+| utm_source    | text   |         | false    |          |                                                   |         |
+| utm_medium    | text   |         | false    |          |                                                   |         |
+| utm_campaign  | text   |         | false    |          |                                                   |         |
+| views         | bigint | 0       | false    |          |                                                   |         |
+| registrations | bigint | 0       | false    |          |                                                   |         |
+| confirmations | bigint | 0       | false    |          |                                                   |         |
 
 ## Constraints
 

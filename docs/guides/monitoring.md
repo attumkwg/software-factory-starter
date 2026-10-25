@@ -1,6 +1,6 @@
 # 見張りと知らせ(監視の基本)
 
-> **PMF の前から置いておく、最小の見張り。** 当番(夜中に起こされる人)はまだ置かない。鳴ったら Slack の `#alerts-prod` に流れ、気づいた人が [runbooks/alarms.md](../runbooks/alarms.md) を見て動く。
+> **PMF の前から置いておく、最小の見張り。** 当番(夜中に起こされる人)はまだ置かない(置くときの決まりは [on-call.md](on-call.md))。鳴ったら Slack の `#alerts-prod` に流れ、気づいた人が [runbooks/alarms.md](../runbooks/alarms.md) を見て動く。
 > 決めた理由は [ADR 0010](../adr/0010-alerts-to-slack.md)(知らせの道)と [ADR 0011](../adr/0011-sentry-from-logs.md)(Sentry)。
 >
 > **見張りの分担**: アラーム(1〜4)は「**全体として**おかしい」(落ちた・遅い・DB・費用)。外形監視(表の `uptime`)は「**外から**開けるか」。Sentry(5)は「**この1件が**なぜ失敗したか」(どの API・誰・どの版・スタック)。
@@ -134,5 +134,5 @@ API・画面のサーバー: logger.error / fatal ─┬→ 標準出力(CloudWa
 | 本物のブラウザで画面の流れを外から確かめる(CloudWatch Synthetics) | PMF 後 | いまの外形監視は「届くか」だけ。ログインの流れまで見るなら。1環境 月 1,500〜3,000円 |
 | アウトボックスの溜まり(送れずに残る件数) | PMF 後 | いまは [runbooks/mail-not-delivered.md](../runbooks/mail-not-delivered.md) の SQL で見る |
 | 費用の急な増え方(Cost Anomaly Detection) | PMF 後 | Budgets で月の上限は見ている |
-| 当番(PagerDuty など・夜中に鳴らす) | 有料の顧客が付いてから | PMF 前は Slack で十分 |
+| 当番(PagerDuty など・夜中に鳴らす) | 夜中も約束する契約を結ぶ前 | PMF 前は Slack で十分。決まり(役・連絡の段・起こすアラーム)は [on-call.md](on-call.md) |
 | ダッシュボード | 要るようになったら | Container Insights と ALB の標準の画面で足りる |

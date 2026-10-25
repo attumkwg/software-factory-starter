@@ -103,8 +103,15 @@
     {
       "idx": 14,
       "version": "7",
-      "when": 1792913185909,
-      "tag": "0014_growth_pre_registrations",
+      "when": 1792912106948,
+      "tag": "0014_invitations",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792916467452,
+      "tag": "0015_growth_pre_registrations",
       "breakpoints": true
     }
   ]

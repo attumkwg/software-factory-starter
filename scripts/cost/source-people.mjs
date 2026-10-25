@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { checkPrBody, idOfFile, parseBet } from "../bets-lib.mjs";
+import { AI_LABEL } from "../metrics/ai-assisted.mjs";
 import { periodOf } from "./period.mjs";
 
 export const PEOPLE_FILE = "docs/cost/people.yaml";
@@ -50,7 +51,10 @@ const add = (m, k, v) => {
 export function prMinutes(pr, reviews, config) {
   const m = config.minutes;
   const author = pr.user?.login;
-  const ai = config.ai_markers.some((mark) => String(pr.body ?? "").includes(mark));
+  // 週の数字(pnpm metrics)と同じく、ラベル ai:assisted でも見分ける(印の無い AI の PR に人が付けた物も)
+  const ai =
+    (pr.labels ?? []).some((l) => l?.name === AI_LABEL) ||
+    config.ai_markers.some((mark) => String(pr.body ?? "").includes(mark));
   const out = {};
   if (isBot(author)) add(out, "(ボットの PR の確認)", m.bot_pr_check);
   else add(out, `@${author}`, ai ? m.ai_pr_check : m.human_pr);

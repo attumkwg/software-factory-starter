@@ -40,6 +40,7 @@
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
 │  ├─ designs/                  設計書のテンプレート(AI 用で網羅的に。AI の仮決めを追う「未確定事項」)
 │  ├─ review-viewpoints.md      設計とレビューの観点(共通の8つ+このプロダクト特有。溜めていく)
+│  ├─ legal/                    お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い。文面は書かず、既定・根拠・使う人が決めること)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
@@ -103,6 +104,12 @@ docker compose -f docker-compose.vrt.yml up -d --wait
 pnpm vrt
 ```
 
+色のトークンのコントラストの比(明るいテーマと暗いテーマ。WCAG 2.2 AA。色の案を出すときは `/brand` が案のファイルを並べて渡す。[docs/design-system.md](design-system.md)):
+
+```bash
+pnpm contrast
+```
+
 開発するとき(API は 3000、画面は 5173。画面は SSR のまま自動で読み直し、/api は API へ中継する):
 
 ```bash
@@ -115,7 +122,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 種データは **必ず2社**: Acme(`admin@acme.test` / `member@acme.test` / `viewer@acme.test`)と Globex(`admin@globex.test`)。
 
-その他: `pnpm lint`(Biome)・`pnpm typecheck`・`pnpm openapi`(apps/api/openapi.json を書き出す)・`pnpm --filter @app/api db:lint`(squawk)。
+その他: `pnpm lint`(Biome)・`pnpm typecheck`・`pnpm metrics`(週の数字。gh で読むだけ。[docs/guides/metrics.md](guides/metrics.md))・`pnpm openapi`(apps/api/openapi.json を書き出す)・`pnpm --filter @app/api db:lint`(squawk)。
 
 
 ---
@@ -216,6 +223,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `ci.yml` | 自動: PR・main | 全部動く(AWS 不要) |
 | `terraform.yml` | 自動: infra を変えた PR | fmt・validate・tflint・Trivy |
 | `labeler.yml` | 自動: PR | 危険度のラベル |
+| `ai-label.yml` | 自動: PR を開いた・本文を直した | AI が手伝った PR にラベル `ai:assisted`(本文の印から。[docs/guides/metrics.md](guides/metrics.md)) |
 | `terraform-plan.yml` | 手動(PR の plan は stg だけ。prod は main のときだけ) | 飛ばす(notice を出す) |
 | `preview.yml` | 手動(PR の番号を入れる) | 飛ばす(notice を出す) |
 | `cleanup-previews.yml` | 手動 | 飛ばす |
@@ -225,6 +233,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
 | `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットのリポジトリでも回す)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
 | `checkup.yml` | 自動: 毎週月曜 8:00・急ぎは毎日 8:00(キットから作ったリポジトリだけ)・手動でも(点検の知らせ。[docs/checkup/README.md](checkup/README.md)) | 動く(秘密 `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL` は任意) |
+| `metrics.yml` | 自動: 毎週月曜 8:30(キットから作ったリポジトリだけ)・手動でも(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫を Actions の要約に。[docs/guides/metrics.md](guides/metrics.md)) | 動く(AWS も秘密も要らない) |
 
 **定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](guides/github-setup.md))。
 
@@ -239,7 +248,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 - **二段階認証の予備のコード・管理者が人の二段階認証を外す画面**: 二段階認証の設定・メールアドレスとパスワードの変更・組織の必須は画面「アカウント」と「設定」にある(docs/specs/0006-account-security.md)。認証アプリを無くした人は、運営が手順書で戻す([docs/runbooks/mfa-reset.md](runbooks/mfa-reset.md))。
 - **メールの受け取らない設定・まとめ送り・HTML のメール**(spec 0002 の「やらないこと」)。
-- **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
+- **招待の送り直し・人の無効化・一覧からの人の削除**: 招待は「設定」→「招待」(docs/specs/0027-invitations.md)。送り直しは取り消して招き直す。人を外すのは、いまも SQL(docs/runbooks/cognito-login.md)。
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: 作らない(ADR 0017)。署名つき Cookie で、無操作1時間・ログインから最長12時間で切れる。端末を選んで切る・管理者による強制ログアウトが要るようになったら DB か Valkey に。
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。

@@ -37,6 +37,7 @@ const relay = config.outboxRelay
         logger,
         mailer,
         appUrl: config.appUrl,
+        linkSecret: config.session.secret,
         publicSite: config.publicSite
           ? {
               url: config.publicSite.url,

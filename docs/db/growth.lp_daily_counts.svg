@@ -37,13 +37,13 @@
 <text text-anchor="start" x="148.92" y="-462.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
 <polygon fill="none" stroke="black" points="46.2,-419.8 46.2,-450.6 355.17,-450.6 355.17,-419.8 46.2,-419.8"/>
 <text text-anchor="start" x="53.2" y="-432" font-family="Arial" font-size="14.00">views </text>
-<text text-anchor="start" x="92.1" y="-432" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="92.1" y="-432" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="black" points="46.2,-389 46.2,-419.8 355.17,-419.8 355.17,-389 46.2,-389"/>
 <text text-anchor="start" x="53.2" y="-401.2" font-family="Arial" font-size="14.00">registrations </text>
-<text text-anchor="start" x="133.34" y="-401.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="133.34" y="-401.2" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="black" points="46.2,-358.2 46.2,-389 355.17,-389 355.17,-358.2 46.2,-358.2"/>
 <text text-anchor="start" x="53.2" y="-370.4" font-family="Arial" font-size="14.00">confirmations </text>
-<text text-anchor="start" x="140.34" y="-370.4" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="140.34" y="-370.4" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="black" stroke-width="3" points="44.7,-356.7 44.7,-672.5 356.67,-672.5 356.67,-356.7 44.7,-356.7"/>
 </g>
 <!-- organizations.tenants -->

@@ -17,9 +17,9 @@ CREATE TABLE "growth"."lp_daily_counts" (
 	"utm_source" text NOT NULL,
 	"utm_medium" text NOT NULL,
 	"utm_campaign" text NOT NULL,
-	"views" integer DEFAULT 0 NOT NULL,
-	"registrations" integer DEFAULT 0 NOT NULL,
-	"confirmations" integer DEFAULT 0 NOT NULL,
+	"views" bigint DEFAULT 0 NOT NULL,
+	"registrations" bigint DEFAULT 0 NOT NULL,
+	"confirmations" bigint DEFAULT 0 NOT NULL,
 	CONSTRAINT "lp_daily_counts_pkey" PRIMARY KEY("tenant_id","day","path","utm_source","utm_medium","utm_campaign")
 );
 --> statement-breakpoint
@@ -33,8 +33,8 @@ CREATE TABLE "growth"."pre_registrations" (
 	"utm_medium" text DEFAULT '' NOT NULL,
 	"utm_campaign" text DEFAULT '' NOT NULL,
 	"landing_path" text DEFAULT '/' NOT NULL,
-	"consent_text_version" integer NOT NULL,
-	"privacy_version" integer,
+	"consent_text_version" bigint NOT NULL,
+	"privacy_version" bigint,
 	"consented_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"confirm_sent_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"confirmed_at" timestamp with time zone,

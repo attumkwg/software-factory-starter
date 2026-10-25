@@ -8,7 +8,10 @@
   /* 色: 役割で名前を付ける(青・赤ではなく「主」「危険」) */
   --color-bg: #ffffff;
   --color-surface: #f6f8fa;
+  /* 枠の線: 区切りの線・カード・表など飾りの線は border。入力欄・選択・チェックボックス・副のボタンなど、操作する部品の枠は
+     border-control(背景と面に 3:1 以上。WCAG 2.2 の 1.4.11。pnpm contrast が確かめる) */
   --color-border: #d0d7de;
+  --color-border-control: #818b98;
   --color-text: #1f2328;
   --color-text-muted: #59636e;
   --color-primary: #0b5cad;
@@ -55,6 +58,7 @@
     --color-bg: #0d1117;
     --color-surface: #161b22;
     --color-border: #3d444d;
+    --color-border-control: #656c76;
     --color-text: #e6edf3;
     --color-text-muted: #9198a1;
     --color-primary: #4493f8;

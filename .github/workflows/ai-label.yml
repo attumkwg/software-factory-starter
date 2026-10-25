@@ -1,0 +1,60 @@
+# AI が手伝った PR にラベル ai:assisted を付ける(週の数字 pnpm metrics と費用のページが数える。設計書 0035 の 6)。
+# 見分けるのは PR の本文の印(docs/cost/people.yaml の ai_markers)と、AI のボットが作った PR。コミットからは見分けない。
+# 付けるだけで外さない(印の無い AI の PR は人が手で付ける。外すなら本文の印も消す)。
+# 本文は env で渡して標準入力から読む(式を run に直接書くと、本文で命令を差し込まれる)。
+# 書く権限のジョブは PR のコードを checkout しない(vrt.yml と同じ形)。
+name: AI の手伝いのラベル
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: AI の手伝いを見分ける
+    # フォークの PR はラベルを付けられないので飛ばす(labeler.yml と同じ)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      assisted: ${{ steps.ai.outputs.assisted }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # 依存は要らない(node の標準だけ)
+      - id: ai
+        name: 本文と作った人から見分ける
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: printf '%s' "$PR_BODY" | node scripts/metrics/ai-assisted.mjs --author "$PR_AUTHOR" >> "$GITHUB_OUTPUT"
+
+  label:
+    name: ラベルを付ける
+    needs: detect
+    if: needs.detect.outputs.assisted == 'true' && !contains(github.event.pull_request.labels.*.name, 'ai:assisted')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: ai:assisted を付ける
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! gh pr edit "$PR" --repo "$REPO" --add-label ai:assisted; then
+            echo "::warning::ラベル ai:assisted を付けられなかった(ラベルが無いなら pnpm setup:github --apply。docs/guides/labels.md)"
+          fi
