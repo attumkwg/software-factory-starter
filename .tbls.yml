@@ -47,6 +47,16 @@ comments:
     columnComments:
       feature: 機能の名前(FEATURE_FLAGS の name)
       day: 使った日(組織の時間帯での日付)
+  - table: platform.pmf_survey_asked
+    tableComment: 「無くなったら困るか」をこの回(四半期)に答え終えた人の印(1人1回にするため)。**答えは持たない**。アプリは読む・足すだけ。400日で運営のコマンド pmf-survey-purge が消す。docs/specs/0046-pmf-survey.md
+    columnComments:
+      round: 聞いた回(「2026-Q4」の形。組織の時間帯の四半期)
+      day: 答えた日(組織の時間帯での日付)
+  - table: platform.pmf_survey_counts
+    tableComment: 「無くなったら困るか」の答えの数(組織・回・答えごと)。**人の ID も時刻も持たない**(だれが何と答えたかを結びつけない)。アプリは読む・足す・数を増やすだけ。docs/specs/0046-pmf-survey.md
+    columnComments:
+      answer: 答えの種類(@app/shared の PMF_SURVEY_ANSWERS)
+      count: その答えの数
   - table: sensitive.tenant_keys
     tableComment: 組織ごとのデータ鍵(要配慮個人情報を暗号化する鍵。KMS で包んだ物だけ)。読めるのはロール app_sensitive だけ(app_rw はスキーマに入れない)。行を消すとその組織の要配慮の暗号文は読めない。docs/adr/0029-sensitive-data-tier1.md
     columnComments:

@@ -128,6 +128,13 @@ export const PERSON_REFERENCES: readonly PersonReference[] = [
     why: "機能を使った日の記録(400日で消える物)",
   },
   {
+    table: "platform.pmf_survey_asked",
+    column: "user_id",
+    by: "user_id",
+    action: "delete",
+    why: "「無くなったら困るか」をこの回に答え終えた印(答えは持たない。400日で消える物)",
+  },
+  {
     table: "platform.outbox",
     column: "payload",
     by: "payload",

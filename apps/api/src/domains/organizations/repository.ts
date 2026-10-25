@@ -70,6 +70,19 @@ export async function findTimeZone(tx: TenantTx, tenantId: string): Promise<stri
   return row?.timeZone ?? null;
 }
 
+/** その人が組織に入った時刻(PMF の兆しを聞くのは、使い始めてしばらくたった人だけ)。いなければ null。 */
+export async function findUserSince(
+  tx: TenantTx,
+  tenantId: string,
+  userId: string,
+): Promise<Date | null> {
+  const [row] = await tx
+    .select({ createdAt: users.createdAt })
+    .from(users)
+    .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
+  return row?.createdAt ?? null;
+}
+
 /** 監査ログの画面に「誰が」を名前で出すため。自社の人だけ(いない人・消された人は返らない)。 */
 export async function findUserNames(
   tx: TenantTx,

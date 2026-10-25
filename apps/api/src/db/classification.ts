@@ -210,6 +210,22 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "platform.feature_usage.feature": pub("使った機能の名前(FEATURE_FLAGS の name)"),
   "platform.feature_usage.day": internal("使った日(組織の時間帯。時刻は持たない)"),
 
+  // ── 「無くなったら困るか」(docs/specs/0046-pmf-survey.md)。だれが何と答えたかを結びつけないよう、印と数を分ける ──
+  "platform.pmf_survey_asked.id": internal("行の ID"),
+  "platform.pmf_survey_asked.tenant_id": internal("答えた人の組織"),
+  "platform.pmf_survey_asked.user_id": internal(
+    "この回に答え終えた人の ID(1人1回・四半期に1回にするため。答えは持たない)",
+  ),
+  "platform.pmf_survey_asked.round": pub("聞いた回(「2026-Q4」の形)"),
+  "platform.pmf_survey_asked.day": internal(
+    "答えた日(組織の時間帯。時刻は持たない。保存期間で消す)",
+  ),
+  "platform.pmf_survey_counts.id": internal("行の ID"),
+  "platform.pmf_survey_counts.tenant_id": internal("答えた人の組織"),
+  "platform.pmf_survey_counts.round": pub("聞いた回"),
+  "platform.pmf_survey_counts.answer": pub("答えの種類(@app/shared の PMF_SURVEY_ANSWERS)"),
+  "platform.pmf_survey_counts.count": internal("その答えの数(人は持たない)"),
+
   // ── 要配慮個人情報(sensitive。ADR 0018・0029)。読み書きは src/sensitive/ からだけ・接続は app_sensitive ──
   // 要配慮の列は、ここに sensitive で足し、値は src/sensitive/ の seal() で暗号化してから書く(DB には暗号文だけ)
   "sensitive.tenant_keys.tenant_id": internal("データ鍵の持ち主の組織"),

@@ -35,6 +35,7 @@ export {
   findRole,
   findTimeZone,
   findUserNames,
+  findUserSince,
   listUserIds,
 } from "./repository.ts";
 export { organizationRoutes } from "./routes.ts";

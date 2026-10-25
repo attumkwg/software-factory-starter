@@ -26,12 +26,13 @@ describe("機能フラグの定義", () => {
       def({ name: "ok-name" }),
       def({ name: "Bad_Name" }),
       def({ name: "no-bet", bet: "B-1" }),
+      def({ name: "kit-flag", bet: "kit" }),
       def({ name: "no-description", description: " " }),
     ]);
     expect(problems).toEqual([
       "ok-name: 名前が重なっている",
       "Bad_Name: 名前は英小文字・数字・「-」(先頭は英字)",
-      "no-bet: bet は B-NNNN の形",
+      "no-bet: bet は B-NNNN の形(キットの仕組みは kit)",
       "no-description: 説明が空",
     ]);
   });

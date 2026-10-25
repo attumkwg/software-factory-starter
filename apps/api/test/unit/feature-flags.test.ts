@@ -34,6 +34,8 @@ function betProblems(
   stages: ReadonlyMap<string, string>,
 ): string[] {
   return defs.flatMap((d) => {
+    // キットの仕組み(賭けではない)は、賭けの段階に縛らない
+    if (d.bet === "kit") return [];
     const stage = stages.get(d.bet);
     if (!stage) return [`${d.name}: 賭け ${d.bet} のファイルが docs/product/bets に無い`];
     const allowed = ALLOWED_STATES[stage];

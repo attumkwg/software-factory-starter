@@ -33,6 +33,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "invitation.revoke": "招待を取り消した",
   "invitation.accept": "招待を受けて参加した",
   "plan.change": "プランを変えた",
+  // 何と答えたかは記録に無い(数の表にだけある)
+  "pmf_survey.respond": "「無くなったら困るか」に答えた",
 };
 
 const TARGET_LABELS: Record<string, string> = {
