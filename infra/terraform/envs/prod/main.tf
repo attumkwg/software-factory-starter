@@ -9,6 +9,9 @@ locals {
   # Sentry の1件から、そのリクエストのログを開くリンクも付ける(API と画面のサーバーのロググループ)
   # 運営の組織(社員の代理ログイン。docs/runbooks/support-access.md で作ってから ID を入れる)
   support_environment = var.support_tenant_id == null ? {} : { SUPPORT_TENANT_ID = var.support_tenant_id }
+  # 要配慮個人情報の段1(専用の鍵・要配慮だけの接続。ADR 0029)。sensitive_data_enabled のときだけ
+  sensitive_environment = var.sensitive_data_enabled ? { SENSITIVE_KMS_KEY_ID = module.sensitive_data[0].kms_key_arn } : {}
+  sensitive_secrets     = var.sensitive_data_enabled ? { SENSITIVE_DATABASE_URL = module.sensitive_data[0].database_url_secret_arn } : {}
   sentry_environment = var.sentry_dsn == null ? {} : {
     SENTRY_DSN           = var.sentry_dsn
     LOGS_INSIGHTS_REGION = var.region
@@ -57,6 +60,21 @@ module "aurora" {
   deletion_protection        = true
 }
 
+# 要配慮個人情報の段1(ADR 0018・0029)。要配慮の列を足す仕様が承認されたら sensitive_data_enabled = true にして、
+# README の「接続ユーザーを1回だけ作る」で app_sensitive_login も作る。段を上げるときは docs/runbooks/sensitive-data-tiers.md
+# 鍵の利用の見張りは、管理操作の記録(CloudTrail)のロググループに置く(KMS の出来事も入っている)
+module "sensitive_data" {
+  count                     = var.sensitive_data_enabled ? 1 : 0
+  source                    = "../../modules/sensitive-data"
+  name                      = local.name
+  task_role_arn             = module.app.task_role_arn
+  db_endpoint               = module.aurora.endpoint
+  database_name             = module.aurora.database_name
+  secrets_kms_key_arn       = module.aurora.kms_key_arn
+  cloudtrail_log_group_name = module.audit_trail.log_group_name
+  alarm_topic_arn           = module.alerts.topic_arn
+}
+
 module "app" {
   source             = "../../modules/ecs-service"
   name               = local.name
@@ -86,11 +104,11 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }, local.sentry_environment, local.support_environment)
-  secrets = {
+  }, local.sentry_environment, local.support_environment, local.sensitive_environment)
+  secrets = merge({
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
-  }
+  }, local.sensitive_secrets)
   migration_environment = {
     PGHOST     = module.aurora.endpoint
     PGDATABASE = module.aurora.database_name

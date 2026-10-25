@@ -116,9 +116,16 @@ resource "aws_iam_role_policy" "execution_secrets" {
   })
 }
 
-# アプリ自身の役割(いまは AWS の API を呼ばないので空。S3 などを使うときに足す)
+# アプリ自身の役割(S3 などを使うときに足す)。要配慮の鍵(modules/sensitive-data)は、鍵のポリシーでこの役割だけに許す
 resource "aws_iam_role" "task" {
   name               = "${var.name}-task"
+  assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
+}
+
+# 移行・運営のコマンド(delete-tenant など)の役割。アプリの役割とは分け、何も許さない
+# (コマンドから要配慮の鍵を使えないように。ADR 0029)
+resource "aws_iam_role" "migrate" {
+  name               = "${var.name}-migrate"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
 }
 
@@ -386,7 +393,7 @@ resource "aws_ecs_task_definition" "migrate" {
   cpu                      = 256
   memory                   = 512
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn            = aws_iam_role.task.arn
+  task_role_arn            = aws_iam_role.migrate.arn
   container_definitions = jsonencode([{
     name                   = "migrate"
     image                  = var.image

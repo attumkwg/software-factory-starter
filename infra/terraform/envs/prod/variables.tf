@@ -93,3 +93,9 @@ variable "support_tenant_id" {
   type        = string
   default     = null
 }
+
+variable "sensitive_data_enabled" {
+  description = "要配慮個人情報の段1(専用の KMS の鍵・要配慮だけの接続)を作るか。要配慮の列を足す仕様が承認されたら true(ADR 0029)"
+  type        = bool
+  default     = false
+}

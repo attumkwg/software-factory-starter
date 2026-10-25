@@ -6,6 +6,7 @@ import { createDb, dbLogging } from "./db/client.ts";
 import { createLogger } from "./logger.ts";
 import { createMailer } from "./mail/index.ts";
 import { outboxHandlers, startOutboxRelay } from "./outbox/index.ts";
+import { sensitiveStoreFromConfig } from "./sensitive/index.ts";
 
 const config = loadConfig();
 // error 以上のログを Sentry にも送る(SENTRY_DSN が無ければ null。docs/guides/monitoring.md)
@@ -19,8 +20,10 @@ const reporter = createErrorReporter({
 const logger = createLogger({ level: config.logLevel, reporter });
 // 接続が切れた・時間のかかったクエリをログに(db/client.ts の dbLogging)
 const { db, pool } = createDb(config.databaseUrl, dbLogging(logger));
+// 要配慮個人情報の接続(別のロール。ADR 0029)。設定が無ければ null
+const sensitive = sensitiveStoreFromConfig(config.sensitive, dbLogging(logger));
 const lifecycle = { shuttingDown: false };
-const app = createApp({ config, db, logger, lifecycle });
+const app = createApp({ config, db, logger, lifecycle, sensitive });
 
 // 送信待ち(アウトボックス)の送り出し。止めるときは、DB を閉じる前に止める
 const mailer = createMailer(config.mail, logger);
@@ -65,6 +68,7 @@ async function shutdown(signal: string) {
   });
   await relay?.stop();
   await pool.end();
+  await sensitive?.close();
   await reporter?.flush(2_000);
   clearTimeout(force);
   logger.info("止まりました");

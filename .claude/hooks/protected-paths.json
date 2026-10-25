@@ -5,6 +5,7 @@
     "apps/api/src/authz/**",
     "apps/api/src/db/**",
     "apps/api/test/unit/classification.test.ts",
+    "apps/api/src/sensitive/**",
     "apps/api/src/logger.ts",
     "packages/error-reporting/**",
     "packages/logging/**",

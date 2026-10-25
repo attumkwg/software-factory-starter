@@ -183,6 +183,15 @@
 | `created_by` | internal | 作った人の ID |
 | `created_at` | internal | 作った時刻(一覧の並び) |
 
+### `sensitive.tenant_keys`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `tenant_id` | internal | データ鍵の持ち主の組織 |
+| `kms_key_id` | internal | データ鍵を包んだ KMS の鍵(ARN) |
+| `wrapped_key` | internal | KMS で包んだデータ鍵(KMS が無ければ開けない。消すと、その組織の要配慮の暗号文が読めなくなる) |
+| `created_at` | internal | 作った時刻 |
+
 ### `tasks.tasks`
 
 | 列 | 区分 | 利用目的 |

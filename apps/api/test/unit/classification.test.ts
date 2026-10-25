@@ -96,7 +96,33 @@ describe("要配慮個人情報(sensitive)は分けて置く(ADR 0018)", () => {
     };
     expect(misplacedSensitive(fake)).toEqual(["tasks.tasks.diagnosis", "platform.outbox.payload"]);
   });
+
+  it("sensitive の列は text(src/sensitive/ の seal() で作った暗号文だけが入る形。ADR 0029)", () => {
+    expect(
+      notCiphertext(columns, COLUMN_CLASSIFICATION),
+      "要配慮の値は、暗号文(text)で持つ。数・日付・jsonb のまま置かない(並べ替え・検索が要るなら、別の列にハッシュを足す)",
+    ).toEqual([]);
+  });
+
+  it("確かめ方の確かめ: 暗号文にならない型の sensitive の列は見つかる", () => {
+    const fakeColumns: Column[] = [
+      { path: `${SENSITIVE_SCHEMA}.health.diagnosis`, schema: SENSITIVE_SCHEMA, type: "text" },
+      { path: `${SENSITIVE_SCHEMA}.health.born_on`, schema: SENSITIVE_SCHEMA, type: "date" },
+    ];
+    const fake: Record<string, ColumnClass> = {
+      [`${SENSITIVE_SCHEMA}.health.diagnosis`]: { class: "sensitive", purpose: "例" },
+      [`${SENSITIVE_SCHEMA}.health.born_on`]: { class: "sensitive", purpose: "例" },
+    };
+    expect(notCiphertext(fakeColumns, fake)).toEqual([`${SENSITIVE_SCHEMA}.health.born_on`]);
+  });
 });
+
+/** sensitive なのに、暗号文(text)を入れられない型の列 */
+function notCiphertext(cols: Column[], classification: Record<string, ColumnClass>): string[] {
+  return cols
+    .filter((c) => classification[c.path]?.class === "sensitive" && c.type !== "text")
+    .map((c) => c.path);
+}
 
 describe("監査ログの details と送信待ちの payload の中身", () => {
   const details = COLUMN_CLASSIFICATION["platform.audit_events.details"]?.keys ?? {};
