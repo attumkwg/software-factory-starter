@@ -1,0 +1,8 @@
+# 見本(偽の数字)。本物は非公開の置き場(S3 の cost/inputs/actuals.csv)に置く。週に1回、人ごと・賭けごと・開発の段階ごとに1行
+# date … その記録の始まりの日(ふつうは週の月曜。月をまたぐ週は、月ごとに2行に分けて、2行目は月の1日)
+# bet … B-NNNN か core(土台)/ phase … 研究開発・制作・運用 / hours … その週の実際の時間 / approved_by … 確かめた人(空なら未確認)
+date,person,bet,phase,hours,approved_by
+2026-10-19,@example-dev,B-0002,研究開発,22,@example-lead
+2026-10-19,@example-dev,core,運用,14,@example-lead
+2026-10-26,@example-dev,B-0002,研究開発,20,
+2026-11-01,@example-dev,B-0002,研究開発,8,

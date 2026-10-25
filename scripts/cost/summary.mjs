@@ -82,7 +82,7 @@ function components(parts) {
 /** 人の時間と賭けごとの PL(people を渡したときだけ。仕様 0020) */
 function plOf(entries, parts, people) {
   const prs = entries["people-prs"]?.ok ? entries["people-prs"].data.prs : null;
-  if (!people || !(prs || people.inputs.time)) return null;
+  if (!people || !(prs || people.inputs.time || people.inputs.actuals)) return null;
   return makePl({
     awsByBet: parts.aws.byBet,
     saasItems: parts.saasItems,
@@ -92,6 +92,19 @@ function plOf(entries, parts, people) {
     allocation: people.allocation,
     stages: people.stages,
   });
+}
+
+/** 人の時間の実績(週の記録)で足りない物(仕様 0044) */
+function actualNotes(actuals) {
+  if (!actuals)
+    return [
+      "人の時間の実績: 無い(cost/inputs/actuals.csv)。推定の幅で出した(上場の準備には週の記録が要る)",
+    ];
+  const unapproved = actuals.rows.filter((r) => !r.approved_by).length;
+  return [
+    ...(actuals.bad > 0 ? [`人の時間の実績: 形の合わない行 ${actuals.bad}行を数えていない`] : []),
+    ...(unapproved > 0 ? [`人の時間の実績: 確かめた人の無い行 ${unapproved}行(未確認)`] : []),
+  ];
 }
 
 /** 1社あたりの原価(按分の元 tenants.json と、本番の AWS があるときだけ。仕様 0042) */
@@ -122,6 +135,7 @@ const peopleNotes = (inputs, prs) => [
     : ["人の時給: 無い(非公開の置き場の cost/inputs/rates.json)。人の費用を円にしていない"]),
   ...(inputs.time ? [] : ["人の時間の手入力: 無い(cost/inputs/time.csv)。自動の目安だけ"]),
   ...(inputs.revenue ? [] : ["売上: 無い(cost/inputs/revenue.csv)"]),
+  ...actualNotes(inputs.actuals),
   ...(inputs.tenants
     ? []
     : ["1社あたりの原価: 按分の元が無い(cost/inputs/tenants.json。API の tenant-shares)"]),
