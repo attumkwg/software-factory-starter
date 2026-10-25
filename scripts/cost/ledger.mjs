@@ -1,6 +1,7 @@
 // /ledger の案の CSV(月1回)。賭けごとに、人の時間を PR の作業の種類と賭けの段階で「資産の候補・費用・除却の候補」に分け、
 // インフラ・SaaS・共通の配り分は「費用(運用)」にする。案と根拠(PR の番号)まで。確定は人と専門家(docs/guides/bets-and-assets.md)。
 // 金額が入るので、非公開の置き場か手元にだけ置く(リポジトリにコミットしない)。
+import { actualPhases, PHASES, phaseOfStage } from "./actuals.mjs";
 import { CORE } from "./source-people.mjs";
 
 const HEAD = [
@@ -46,10 +47,42 @@ function peopleRows(month, bet, prs, plRow, rates) {
   ]);
 }
 
-/** CSV の文字列(1行目が見出し)。pl は makePl の戻り値(行ごとの people_manual_yen を含む) */
-export function makeLedgerCsv({ month, prs, rates, pl }) {
+/** 実績(週の記録)の行。賭け × 開発の段階ごと。根拠は記録の行の数・未確認の数・段階の案との違い(仕様 0044) */
+function actualRows(month, plRow, groups, rates) {
+  return groups
+    .filter((g) => g.bet === plRow.bet)
+    .map((g) => {
+      const minutes = Object.values(g.minutes).reduce((a, b) => a + b, 0);
+      const yen = Object.entries(g.minutes).reduce(
+        (a, [person, min]) => a + (min / 60) * (rate(rates, person) ?? 0),
+        0,
+      );
+      const expected = plRow.bet === CORE ? "運用" : phaseOfStage(plRow.stage);
+      const notes = [
+        `週の記録 ${g.rows}行`,
+        ...(g.unapproved > 0 ? [`未確認 ${g.unapproved}行`] : []),
+        ...(g.phase === expected ? [] : [`賭けの段階からの案は「${expected}」`]),
+      ];
+      return [
+        month,
+        plRow.bet,
+        plRow.stage ?? "",
+        `人の時間(実績・${g.phase})`,
+        PHASES[g.phase],
+        Math.round(minutes / 6) / 10,
+        rates ? Math.round(yen) : "",
+        "",
+        notes.join("・"),
+      ];
+    });
+}
+
+/** CSV の文字列(1行目が見出し)。pl は makePl の戻り値(行ごとの people_manual_yen を含む)。actuals は readActuals の戻り値 */
+export function makeLedgerCsv({ month, prs, rates, pl, actuals = null }) {
   const rows = [];
+  const groups = actualPhases(actuals);
   for (const r of pl.rows) {
+    rows.push(...actualRows(month, r, groups, rates));
     rows.push(...peopleRows(month, r.bet, prs ?? [], r, rates));
     const running = r.infra + r.saas + r.shared;
     if (running > 0)
