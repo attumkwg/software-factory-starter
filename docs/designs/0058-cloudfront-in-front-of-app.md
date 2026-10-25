@@ -72,7 +72,7 @@ current=A, previous=""  ─人が─→ current=B, previous=A ─apply─→ (Cl
 - **CloudFront**: オリジンは `origin.<app_domain>`(HTTPS だけ・TLS 1.2)。読み込みの待ち 60 秒(ALB の待ちと同じ。書き出しの流し出しは途中で切れない)。ビューアーは HTTP → HTTPS に転送・TLS 1.2(`TLSv1.2_2021`)・HTTP/2 と HTTP/3・IPv6。料金の区分は `PriceClass_200`(日本を含む)。アクセスログは取らない。
 - **オリジンへのリクエストの決まり**(自前): Cookie 全部・クエリ全部・ヘッダーは全部+`CloudFront-Viewer-Address`。Host もそのまま(ALB の証明書は `app_domain` と `origin.<app_domain>` の両方を持つ)。
 - **ALB**: 入口のセキュリティグループ = プレフィックスリスト `com.amazonaws.global.cloudfront.origin-facing`(443)。リスナーのルールに `http_header` の条件(名前・値は2つまで)。ECS の blue/green が書き換えるのは `action` だけ(`condition` は Terraform のまま)。
-- **WAF**: スコープ `CLOUDFRONT` で us-east-1 に。ログ(`aws-waf-logs-*`)も us-east-1(KMS はアプリの鍵が東京なので AWS の既定の暗号化)。アラームは us-east-1 の SNS(外形監視の `uptime` の topic)。この topic は `alerts` の `extra_topic_arns` で、東京の topic と同じ Slack(Amazon Q Developer in chat applications。旧 AWS Chatbot)に流れる(メールも)。WAF と外形監視の知らせが、ほかのアラームと同じ所に届く。
+- **WAF**: スコープ `CLOUDFRONT` で us-east-1 に。ログ(`aws-waf-logs-*`)も us-east-1(KMS はアプリの鍵が東京なので AWS の既定の暗号化)。アラームは us-east-1 の SNS(外形監視の `uptime` の topic)。この topic は `alerts` の `extra_topic_arns` で、東京の topic と同じ Slack(Amazon Q Developer in chat applications。旧 AWS Chatbot)に流れる(メールも)。WAF と外形監視の知らせが、ほかのアラームと同じ所に届く。**外形監視はいちばん大事な知らせ**なので、Slack につないだときに東京とバージニアの両方を鳴らして、Slack に出るのを確かめる手順を `docs/guides/manual-setup.md` の 4 の 3 に書いた(持ち主の「メールだと気づけないのは怖い」)。
 - **Route 53**: `app_domain` の A/AAAA → CloudFront・`origin.<app_domain>` の A → ALB・証明書の確かめ(us-east-1 の証明書と東京の証明書は同じ確かめのレコードなので、上書きを許す)。
 
 ## 6. 業務ルール
@@ -152,4 +152,5 @@ current=A, previous=""  ─人が─→ current=B, previous=A ─apply─→ (Cl
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | 持ち主の補足「外形監視も Slack に。最重要なのでメールだと気づけないのは怖い」(#100) | 運用(Slack に届くことを確かめる手順が「試しに鳴らす」だけで、バージニアの topic を鳴らす所が無かった) | `docs/guides/manual-setup.md` の 4 の 3(東京とバージニアの4つを鳴らす。Slack に出なければ先へ進まない)・`alarms.md` の uptime | Terraform の形は変わらない(外形監視の topic は既に Slack の設定に入っている) |
 | 2026-10-25 | 持ち主の指摘「WAF のアラームも SNS から Slack に」(#100) | 設計(5 に「メールで届く」と書いた。us-east-1 の外形監視の topic が、`alerts` の `extra_topic_arns` で既に Slack に流れているのを見落とした) | 5 の WAF の知らせの先 | Terraform のコメント(envs の waf_front)・手順書 alarms.md・PR の表の 3。Terraform の形は変わらない(既に Slack に流れる) |

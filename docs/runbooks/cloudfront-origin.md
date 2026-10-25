@@ -44,6 +44,7 @@ curl -sS -m 10 -o /dev/null -w '%{http_code}\n' "https://origin.$D/" || echo "�
 - 画面にログインし、設定の「IP の制限」(プランに `ip-allowlist` がある組織)の「いまの IP」が、自分の本当の IP であること。
 - **偽ったヘッダーが効かないこと**: 同じ画面を開くリクエストに `CloudFront-Viewer-Address: 203.0.113.1:1` を付けても(ブラウザの開発ツールか `curl -H` で Cookie を付けて `GET /api/organization/ip-allowlist`)、`yourIp` が自分の本当の IP のまま。203.0.113.1 になったら、すぐに 5 で戻し、開発に知らせる。
 - WAF(us-east-1)の「サンプルのリクエスト」の送り元が、本当の相手の IP であること(CloudFront の IP ではない)。
+- 外形監視(`<名前>-uptime-web`・`-api`。us-east-1)が OK のままで、Slack に鳴っていないこと。外形監視は CloudFront を通って開けるかを見るので、切り替え・入れ替えの失敗はまずここで分かる(Slack に届く。[guides/manual-setup.md](../guides/manual-setup.md) の 4 の 3)。
 
 ## 3. 秘密のヘッダーを入れ替える(年に1回と、漏れた疑いのとき)
 
