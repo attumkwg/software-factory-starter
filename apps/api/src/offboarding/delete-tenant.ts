@@ -18,6 +18,9 @@ import { withTenant } from "../db/tenant.ts";
 export const TENANT_TABLES = [
   // 要配慮個人情報(ADR 0029)。データ鍵を最初に消す = 暗号による消去(要配慮の表を足したら、この前に)
   "sensitive.tenant_keys",
+  // 公開の LP の事前登録(運営の組織の持ち物。運営の組織は解約しないが、表の網羅のため)
+  "growth.pre_registrations",
+  "growth.lp_daily_counts",
   "legal.notices",
   "legal.consents",
   "organizations.invitations",
