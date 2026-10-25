@@ -2,7 +2,7 @@
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
 > 仕様: [docs/specs/0057-ai-egress.md](../specs/0057-ai-egress.md)・ADR: [0068](../adr/0068-ai-egress-by-where-it-runs.md)(②は [0069](../adr/0069-background-ai-runs-integration-tests.md) で置き換え)
-> 状態: 承認済み(承認した人: @attumkwg 2026-10-25。会話で回答)
+> 状態: 完了(承認した人: @attumkwg 2026-10-25。会話で回答。段1〜5 を出した)
 > 観点の順は [review-viewpoints.md](../review-viewpoints.md)。当てはまらない節も消さずに「該当なし(理由)」と書く。
 
 ## 0. 全体像
@@ -90,6 +90,20 @@ flowchart LR
 - 絞りの設定は root の持ち物にし、開発の利用者(AI)は書けない。キットの一覧(`.claude/hooks/protected-paths.json`)に `.devcontainer/**` を足す(危険度「高」)。
 - 受け入れ: 中で `pnpm test:integration`・`pnpm test:e2e`・`pnpm vrt` が通る。`curl https://example.com` が止まり、記録に残る。
 
+**作った形と確かめたこと(段3・2026-10-25)**:
+
+- 作り: `.devcontainer/Dockerfile`(元のイメージ+tinyproxy+iptables。E2E のブラウザと OS の部品は作るときに入れる)・`egress/allowlist.txt`・`egress/tinyproxy.conf`・`egress/egress-up.sh`(root。プロキシを起動・中の Docker の取得とビルドにプロキシを渡す・firewall・node のふつうの sudo を取り上げる)・`egress/blocked.sh`(止めた宛先を数える)。node が sudo で動かせるのは `egress-up.sh` だけ。
+- 中の Docker のコンテナから外へは `DOCKER-USER` で止める。イメージを作るときの `pnpm install` は、プロキシを通す(`~/.docker/config.json` の宛先は起動のたびに中の網の IP で書く。`NODE_USE_ENV_PROXY` を `docker-compose.yml` の `build.args` から `apps/*/Dockerfile` の `ARG` に渡す。外では空なので何も変わらない)。
+- 手元(Windows の Docker Desktop)で、この形のコンテナを立てて確かめた: npm・GitHub は通る/`example.com` はプロキシでも直でも止まり、`blocked.sh` に出る/node の `sudo` は使えない/**結合テスト 31 ファイル・358件が通る/`docker compose up --build` で画面・API が立つ/E2E 37件が通る(4件は既定で飛ばす物)/VRT 18件が基準と一致**。
+- 許可リストは、止まった宛先を見て足した: Docker Hub の置き場(`production.cloudfront.docker.com`)・distroless(`gcr.io`)・RDS の証明書(`truststore.pki.rds.amazonaws.com`)・メールの中継の apt(`deb.debian.org`)。`telemetry.vercel.com`(turbo の利用の知らせ)は止めたまま(`TURBO_TELEMETRY_DISABLED=1`)。
+- 元のイメージのタグ `1-24-bookworm` は置き場に無かった(devcontainer が立たなかった)。`24-bookworm` に直した。
+
+**わざと残る穴(人が知っておくこと)**:
+
+- 許可リストに、だれでも使える保存先の名前がある(Docker の置き場が使う `*.r2.cloudflarestorage.com`)。名前だけでは、自分たちの物と他人の物を区別できない。ブラウザの置き場(`storage.googleapis.com`)は、作るときに入れることで許可しないで済ませた。
+- プロキシは宛先の名前で決める(TLS の中は見ない)。名前を偽る形(domain fronting)は止められない。
+- 中の Docker で `--network host` と、プロキシと同じ利用者の番号で動くコンテナを作れば、firewall の外へ出られる。うっかり送る形(この設計が止めたい物)ではなく、わざと抜ける形なので、残す。
+
 ### ② 背景の AI(`claude.yml`)
 
 - `--disallowedTools` に `WebFetch`・`WebSearch` を足す。MCP は action が足す GitHub の物だけ(このリポジトリだけに届く)で、ほかの MCP(`mcp_config`)は渡さない。
@@ -124,7 +138,7 @@ PR の本文(と背景の AI の最後の報告)に、次の表を必ず付け�
 | 1 | ② 背景の AI の道具を絞る(`claude.yml` の `--disallowedTools`・結合テストは自分で回し、コンテナは外へ出られない) | 高(CI) | U-1・U-3 |
 | 2 | 外へ出した物の記録のフックと PR テンプレートの欄 | 高(ハーネス・CI) | 6 の型 |
 | 3 | ① 絞った devcontainer(プロキシ・firewall・中の Docker の取得)と、中で結合テスト・E2E・VRT が通ることの確かめ | 高(ハーネス) | U-1 |
-| 4 | CI の結合テスト・E2E のテストのコードの通信を絞る | 高(CI) | U-2 |
+| 4 | CI の結合テスト・E2E のテストのコードの通信を絞る(`ci.yml` の結合テストの前と、E2E のイメージを作った後に `block-container-egress.sh`。偽物の Cognito のイメージも止める前に作る。テストを動かす Node は絞れない) | 高(CI) | U-2 |
 | 5 | `docs/security.md` の AI-2 を「あり」に・`docs/guides/local-guards.md` に層を足す | 中 | 1〜3 |
 
 ## 8. 非機能

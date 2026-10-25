@@ -16,6 +16,7 @@
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
 - `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
 - `pnpm contrast`(色のトークンのコントラストの比。明るいテーマと暗いテーマ・WCAG 2.2 AA。案のファイルを並べて渡すと比べられる)
+- `pnpm sales:pack --out <ファイル>`(稟議の資料の束: 仕組みの事実・SLA・取り扱い・委託先を1つに。リポジトリの外に書く。デモの組織は stg でデモの前に手で戻す `demo-reset.yml`。`docs/guides/sales.md`)
 - `pnpm metrics`(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫。決裁用と改善用。`gh` で読むだけ。`metrics.yml` が毎週。`docs/guides/metrics.md`)
 - `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
 
@@ -58,6 +59,7 @@
 - **人に聞くのは4つだけ**: 事業判断・利用者の挙動・他チームとの契約や制約・戻せないリスク。それ以外は聞かずに決め、設計書の「決めたこと」に理由を書く。4つに当たる判断は止まらずに仮に決め、設計書の「未確定事項」に `仮決め` で残す(人の答えなしに `承認` にしない)。`仮決め` が残る PR はマージに回さない(`pnpm decisions --strict`)。
 - **誤りは、入った工程から作り直す**(ナレッジ → 要求 → 設計 → 実装 → テスト)。上流の誤りをコードだけで継ぎ当てない(`/rework`)。
 - CI が落ちたら直すのは2回まで。3回目は止めて、PR に状況を書いて人に渡す。
+- **人が見ていない所で回す作業(夜・長い作業)は、外への通信を絞った devcontainer か背景の AI(`claude.yml`)でだけ**。PR の「🚪 外へ出した物」に、外へ向けた操作を並べる(頼まれていない物は「いいえ」)。`docs/guides/unattended-ai.md`
 
 ## してはいけない
 

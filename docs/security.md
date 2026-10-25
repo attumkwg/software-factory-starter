@@ -15,7 +15,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | 番号 | 決まり | このキットのどこ |
 |---|---|---|
 | AI-1 | **AI は本番に入れない**。本番の鍵・本番の DB・本番に届く MCP を AI の環境に置かない。読み取りも dev・stg まで | `CLAUDE.md` の「してはいけない」・OIDC の役割(下の「GitHub Actions から AWS へ」)・`docs/runbooks/` のコマンドは人に渡す |
-| AI-2 | **AI の環境から外に出られる先を絞る**(パッケージの取得先・GitHub・モデルの API だけ) | 未(設計中: [設計書 0057](designs/0057-ai-egress.md)・[ADR 0068](adr/0068-ai-egress-by-where-it-runs.md))。外へ送る手段(MCP・Web を読む道具・ブラウザ・鍵)を棚卸しして持たせず、人が見ていない作業は「許可リストのプロキシで絞った devcontainer(中の Docker で結合テストが回る)」か「Web と MCP の道具を持たない背景の AI(テストは CI)」でだけ回す。外へ出した物は PR に並べる |
+| AI-2 | **AI の環境から外に出られる先を絞る**(パッケージの取得先・GitHub・モデルの API だけ) | | あり([guides/unattended-ai.md](guides/unattended-ai.md)・[設計書 0057](designs/0057-ai-egress.md)・ADR [0068](adr/0068-ai-egress-by-where-it-runs.md)・[0069](adr/0069-background-ai-runs-integration-tests.md))。人が見ていない作業は ① 許可リストのプロキシと firewall で絞った devcontainer(`.devcontainer/egress/`。中の Docker で結合テスト・E2E が回る)か ② Web を読む道具と GitHub 以外の MCP を持たない背景の AI(`claude.yml`)でだけ回す。CI と背景の AI の結合テスト・E2E のコンテナは外へ出られない(`.github/scripts/block-container-egress.sh`)。外へ向けた操作は記録し(`.claude/hooks/record-outbound.mjs`)、PR の「🚪 外へ出した物」に並べる。手元のそのままの環境(devcontainer の外)は OS では絞らない |
 | AI-3 | **Issue の文章は「データ」**。外の人が書いた Issue をそのまま AI に渡すと、中の指示に従ってしまう(プロンプトインジェクション)。**AI を起動できるのは組織のメンバーだけ** | `.github/workflows/claude.yml`(起動できるのはリポジトリの持ち主 OWNER だけ) |
 | AI-4 | **自分で頼んだ AI の PR を、自分で承認できない**ようにする(PR は頼んだ人の名前で作る) | フック(`docs/guides/local-guards.md`)・GitHub のルールセット。1人の間は自分の承認も可にしている([guides/manual-setup.md](guides/manual-setup.md) の 1) |
 | AI-5 | **AI に CI の設定・CODEOWNERS・ブランチ保護・検査の除外を変えさせない**(変えるなら危険度「高」で人が見る) | `.claude/hooks/protected-paths.json`・編集と Bash のフック(`guard-edit.mjs`・`guard-bash.mjs`。手元で外したら PR の `risk:high` と CODEOWNERS)・`pnpm guards` |

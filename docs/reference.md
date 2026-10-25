@@ -58,7 +58,7 @@
 │  └─ scripts/run-migration.sh  ECS の1回きりのタスクで移行
 ├─ .claude/                     ハーネス(フック・スキル)。settings.json は下の注意を参照
 ├─ .semgrep/                    自社専用の検査ルールとそのテスト
-├─ .devcontainer/               人も AI も同じ開発環境
+├─ .devcontainer/               人も AI も同じ開発環境(外への通信は許可リストのプロキシだけ。egress/。docs/guides/unattended-ai.md)
 ├─ CLAUDE.md                    全体のルール(apps/api・apps/web にも短いものがある)
 ├─ docker-compose.yml           手元で丸ごと動かす(docker/alb.Caddyfile が ALB の代わり)
 └─ renovate.json                依存の更新(危険度のラベルつき)
@@ -237,6 +237,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
 | `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットのリポジトリでも回す)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
 | `checkup.yml` | 自動: 毎週月曜 8:00・急ぎは毎日 8:00(キットから作ったリポジトリだけ)・手動でも(点検の知らせ。[docs/checkup/README.md](checkup/README.md)) | 動く(秘密 `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL` は任意) |
+| `demo-reset.yml` | 手動(デモの前に押す。stg の営業のデモ用の組織を戻す。[docs/guides/sales.md](guides/sales.md)) | 飛ばす(`DEMO_TENANT_ID` と stg のデプロイの役割が要る) |
 | `metrics.yml` | 自動: 毎週月曜 8:30(キットから作ったリポジトリだけ)・手動でも(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫を Actions の要約に。[docs/guides/metrics.md](guides/metrics.md)) | 動く(AWS も秘密も要らない) |
 
 **定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](guides/github-setup.md))。
@@ -258,7 +259,6 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **1つの画面で組織をまたいで見る**: 1人は複数の組織に所属できる(ADR 0066)が、セッションは1組織分だけ。横断の一覧や検索は作らない。
 - **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
-- **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。設計はある([設計書 0057](designs/0057-ai-egress.md)。人が見ていない作業は、絞った devcontainer か背景の AI でだけ回す)。作るのは段ごとの PR。
 - **WAF を「止める」にすること**: stg・prod の ALB の前に WAF はある(`infra/terraform/modules/waf`)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
 - **CSP の違反の知らせを集めること**(`report-to`): 画面の CSP はある([設計書 0045](designs/0045-web-csp.md))が、違反を受け取る口は無い。止めた物は E2E の `csp.spec.ts` で見つける。本番で起きた違反を数えたくなったら、受け口を API に足す。
 
