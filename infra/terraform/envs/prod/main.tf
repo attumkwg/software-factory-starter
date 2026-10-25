@@ -205,6 +205,17 @@ module "security_baseline" {
   findings_topic_arn = module.alerts.topic_arn
 }
 
+# 管理操作の記録(CloudTrail → 消せない S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
+module "audit_trail" {
+  source          = "../../modules/audit-trail"
+  name            = local.name
+  alarm_topic_arn = module.alerts.topic_arn
+  # ⚠️ compliance: 保存の期間が過ぎるまで、root でも消せない・バケットも消せない。apply の前に
+  #    保存の日数を確かめる(docs/runbooks/audit-trail.md の 2)
+  lock_mode      = "compliance"
+  retention_days = 400
+}
+
 # ── 見張りと知らせ(アラーム → SNS → Slack)。docs/guides/monitoring.md ────────────────────
 
 module "alerts" {

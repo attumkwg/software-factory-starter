@@ -16,6 +16,7 @@
 | [playbook.md](playbook.md) | 開発の進め方・毎週やること・分担 | 進め方を変えたとき(週の振り返りで決める) | 低 |
 | [review-viewpoints.md](review-viewpoints.md) | 設計とレビューの観点(共通の8つ+このプロダクト特有)。溜めていく台帳 | 人がレビューで新しい観点に気づいたとき・機械で確かめられるようになったとき | 低 |
 | [security.md](security.md) | セキュリティの決まり(AI ならではの守り AI-n・認可 AZ-n・テナント分離 L-n / T-n / V-n。番号は動かさない)・何を確かめていて、何を確かめていないか・深い診断の段取り | 検査を足す・変えたとき | 中 |
+| [compliance/](compliance/README.md) | 認証の準備(P マーク・ISMS)の入口。委託先の台帳(`vendors.yaml`。コードと CI で照らす)・AI に渡すデータの決まり・管理操作の記録の場所 | 外の会社・SDK・AWS のサービス・Actions を足すとき(`pnpm vendors` が落ちて気づく)。年1回は契約と認証を見直す | 高(台帳) |
 | [kit/catalog.yaml](kit/catalog.yaml) | キットの部品のカタログ(何をするか・要る/要らないプロダクト・消すと困ること・つながり・法令や認証・消し方)。README の「使い始めたらやること」はここから作る | 部品を足す・消す・ファイルを動かしたとき(`pnpm kit:catalog` が落ちて気づく)。README は `pnpm kit:readme` | 低 |
 | [product/tailoring.md](product/) | 部品の残す・消すの記録(答え・部品ごとの決定と理由)。足すだけ | `/tailor` が書く | 低 |
 | [product/plan.md](product/) | 始め方の計画(誰の困りごと・いちばん危ない思い込み・確かめ方・合格と撤退の線)。テンプレートあり | 確かめた結果が出たとき(`/kickoff` が書く) | 低 |
@@ -31,7 +32,7 @@
 | [specs/](specs/) | 機能ごとの仕様(受け入れ条件・悪用のされ方)。テンプレートあり | 作る前(`/new-feature` が書く) |
 | [designs/](designs/) | 機能ごとの設計書(AI 用。8つの観点で網羅的に)と、AI の仮決めを追う「未確定事項」。テンプレートあり。仕様と同じ番号 | 仕様と同じ PR で(`/design` が書く)。完了までは作り直しで直してよい(`/rework`) |
 | [adr/](adr/) | 設計の判断となぜそうしたか。テンプレートあり | 後から「なぜ?」と聞かれそうな判断をしたとき |
-| [runbooks/](runbooks/) | 困ったときの手順。入口は [runbooks/incident.md](runbooks/incident.md)(障害対応の型)。アラーム・Sentry・サポートの代理ログイン・解約・DB を戻す・デプロイと移行を戻す・秘密が漏れた・他社のデータが見えた・個人データが漏れた(委員会への報告と本人への通知)・Cognito・メール | 事故のあと・当番の手順を決めたとき |
+| [runbooks/](runbooks/) | 困ったときの手順。入口は [runbooks/incident.md](runbooks/incident.md)(障害対応の型)。アラーム・Sentry・サポートの代理ログイン・解約・DB を戻す・デプロイと移行を戻す・秘密が漏れた・他社のデータが見えた・個人データが漏れた(委員会への報告と本人への通知)・管理操作の記録(CloudTrail)・Cognito・メール | 事故のあと・当番の手順を決めたとき |
 | [incidents/](incidents/) | 障害の振り返り(S1・S2。1件1ファイル) | 障害のあと5営業日以内([runbooks/incident.md](runbooks/incident.md) の 6) |
 
 - 仕様と今の姿が違ってきたら、**仕様は直さず**、domain(いまの正)を直し、必要なら新しい仕様を足す(設計書も同じ)。
