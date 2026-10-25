@@ -4,7 +4,7 @@
 #   lines … 区分ごとの下と上(円)。区分と実績の対応:
 #     infra      … AWS の stg と prod のアカウント
 #     preview_ci … AWS の dev のアカウント(PR ごとの環境)+GitHub Actions(非公開のときの枠を超えた分)
-#     ai         … AI(Anthropic の使用の金額)+saas.yaml の category: ai(席の月額など)
+#     ai         … saas.yaml の category: ai(AI の席・使用料の月額。API で自動では取らない)
 #     scan       … saas.yaml の category: scan(有料の検査)
 #   saas.yaml の category: other は、見積もりの無い「そのほか」に出る
 usd_jpy: 150 # 1ドルの円(ドルの実績を円にするとき。stages.md と同じ)

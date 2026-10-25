@@ -16,8 +16,8 @@ module "github_oidc" {
       policy_json = data.aws_iam_policy_document.preview.json
     }
     "preview-cost" = {
-      description = "cost.yml (environment cost, main only): read Cost Explorer"
-      subjects    = ["environment:cost"]
+      description = "cost.yml (main only): read Cost Explorer"
+      subjects    = ["ref:refs/heads/main"]
       policy_json = data.aws_iam_policy_document.cost.json
     }
   }
@@ -120,7 +120,7 @@ locals {
 }
 
 # ── 費用を読む(cost.yml。毎日・有効にしたら)。docs/guides/cost-dashboard.md・ADR 0032 ─────────────
-#   AWS_<環境>_COST_ROLE_ARN … github_role_arns の …-cost。Environment「cost」(main だけ)のジョブからだけ引ける
+#   AWS_<環境>_COST_ROLE_ARN … github_role_arns の …-cost。main のコードからだけ引ける(PR の版は書き換えられるので、請求の詳細を読ませない)
 #   Cost Explorer の集計を読むだけ(PR ごとの環境はタグ PullRequest で分かれる)。1回 $0.01 なので、呼ぶ回数は scripts/cost が決める(1日 6回まで)
 
 data "aws_iam_policy_document" "cost" {

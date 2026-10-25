@@ -8,7 +8,7 @@
 | 欄 | 中身 | 元 |
 |---|---|---|
 | 今月の合計・月末の見込み・見積もり | 今月(今日まで)の合計と、月末の見込み(AWS は Cost Explorer の見込み・ほかは日割り)。見積もりの上を超える見込みなら ⚠ | 全部 |
-| 何にいくら(動いている物ごと) | AWS はタグ `Component`(api・web・mail・db・network・shared)・Actions・AI・SaaS は1つずつ | Cost Explorer・Actions・Anthropic・`docs/cost/saas.yaml` |
+| 何にいくら(動いている物ごと) | AWS はタグ `Component`(api・web・mail・db・network・shared)・Actions・SaaS(AI の席などを含む)は1つずつ | Cost Explorer・Actions・`docs/cost/saas.yaml` |
 | 見積もりと実績(区分ごと) | 本番+stg・PR ごとの環境と CI・AI・有料の検査を、見積もりの幅(薄い帯)と並べる。上を超えたら ⚠ | `docs/cost/estimates.yaml`(元は [段階と費用](../concepts/stages.md) の 4.) |
 | 環境ごと・賭けごと | タグ `Environment`・`Bet`(賭けの ID。土台は `core`)。賭けごとは `/ledger`(資産か費用か)の土台 | Cost Explorer・`saas.yaml` の `bet` |
 | AWS の月ごと・日ごと・サービスごと | 前の3か月と今月・今月の日ごと・AWS のサービスの上の10 | Cost Explorer |
@@ -22,10 +22,9 @@
 
 1. **Terraform を apply する**(人が CI で。stg・prod・preview/base)。全部のリソースにタグ `Bet`・`Component` が付き、役割 `…-cost`(Cost Explorer を読むだけ。prod は置き場へ書くのも)・prod に置き場 `module.cost_reports`・費用の急な変化の見張り(`module.cost_watch`)ができる。
 2. **翌日以降に、コスト配分タグを有効にする**: 変数 `activate_cost_allocation_tags = true` で apply(タグが請求に出てからでないと有効にできない)。AWS Organizations の中のアカウントなら、管理のアカウントの「請求 → コスト配分タグ」で `Project`・`Environment`・`Component`・`Bet`・`PullRequest` を有効にする。有効にした日より前の費用には、タグが付かない(「タグなし」に出る)。
-3. **変数を入れる**(Settings → Secrets and variables → Actions → Variables): `AWS_PROD_COST_ROLE_ARN`・`COST_BUCKET`(prod の出力 `cost_bucket`)。あれば `AWS_STG_COST_ROLE_ARN`・`AWS_DEV_COST_ROLE_ARN`。Environment `cost` は `pnpm setup:github --apply` が作る。
-4. **(任意)AI の費用を自動で取る**: Anthropic の管理用の鍵(Admin API key)を Environment `cost` の秘密 `ANTHROPIC_ADMIN_KEY` に。**強い鍵**(組織の人と鍵を作り・消せる)なので、入れるかは設計書 0019 の U-4。入れなければ、AI の席などの月額を `docs/cost/saas.yaml` に手で書く。
-5. **SaaS の月額を書く**: `docs/cost/saas.yaml`。**公開のリポジトリなら金額を書かない**(名前だけ。ページに「金額なし」と出る)。
-6. Actions → Cost → Run workflow(main で)を流す。毎日にするなら、`cost.yml` の「有効にする日」を書いて `schedule` を生かす(1日 最大 約27円。[automation.md](automation.md))。
+3. **変数を入れる**(Settings → Secrets and variables → Actions → Variables): `AWS_PROD_COST_ROLE_ARN`・`COST_BUCKET`(prod の出力 `cost_bucket`)。あれば `AWS_STG_COST_ROLE_ARN`・`AWS_DEV_COST_ROLE_ARN`。役割はどれも main のコードからだけ引ける。
+4. **SaaS の月額を書く**: `docs/cost/saas.yaml`。AI の席・使用料もここ(`category: ai`。API で自動では取らない。設計書 0019 の U-4)。**公開のリポジトリなら金額を書かない**(名前だけ。ページに「金額なし」と出る)。
+5. Actions → Cost → Run workflow(main で)を流す。毎日にするなら、`cost.yml` の「有効にする日」を書いて `schedule` を生かす(1日 最大 約27円。[automation.md](automation.md))。
 
 ## 3. 見る
 

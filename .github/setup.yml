@@ -85,11 +85,6 @@ environments:
   - name: zap
     branches: [main]
     secrets: [ZAP_SCAN_USERNAME, ZAP_SCAN_PASSWORD] # zap-api-scan.yml を使うなら
-  - name: cost
-    branches: [main]
-    # cost.yml(費用のページ)。AWS の役割 …-cost はこの Environment からだけ引ける。
-    # 管理用の鍵は任意(入れれば AI の費用も自動で取る。強い鍵なので、入れるかは設計書 0019 の U-4)
-    secrets: [ANTHROPIC_ADMIN_KEY]
 
 # リポジトリの秘密(名前だけ確かめる。値は人が画面で入れる)。product のリポジトリでだけ聞く
 secrets:

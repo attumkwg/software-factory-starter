@@ -1,4 +1,4 @@
-// 集めた費用(aws-<環境>・github-actions・anthropic・saas・estimates)を、ページの元(summary.json)にまとめる。
+// 集めた費用(aws-<環境>・github-actions・saas・estimates)を、ページの元(summary.json)にまとめる。
 // 金額は円の整数。ドルの物はセントで足してから、estimates.yaml の usd_jpy で円にする。読めなかった物は notes に出す(0円として隠さない)。
 import { centsToJpy, mergeCounts, periodOf, sum } from "./period.mjs";
 
@@ -55,7 +55,7 @@ function categories(est, parts) {
   const actual = {
     infra: (parts.aws.byAccountJpy.stg ?? 0) + (parts.aws.byAccountJpy.prod ?? 0),
     preview_ci: (parts.aws.byAccountJpy.dev ?? 0) + parts.actionsJpy,
-    ai: parts.aiJpy + saasBy(parts.saasItems, "ai"),
+    ai: saasBy(parts.saasItems, "ai"),
     scan: saasBy(parts.saasItems, "scan"),
   };
   const lines = (est?.lines ?? []).map((l) => {
@@ -71,7 +71,6 @@ function categories(est, parts) {
 function components(parts) {
   const rows = { ...parts.aws.byComponent };
   if (parts.actionsJpy > 0) rows["GitHub Actions"] = parts.actionsJpy;
-  if (parts.aiJpy > 0) rows["AI(Anthropic)"] = parts.aiJpy;
   for (const i of parts.saasItems) rows[i.name] = (rows[i.name] ?? 0) + i.monthly_jpy;
   return sorted(rows);
 }
@@ -83,22 +82,19 @@ export function makeSummary(entries, { today, generatedAt }) {
   const est = entries.estimates?.ok ? entries.estimates.data : null;
   const rate = est?.usd_jpy ?? 150;
   const actions = entries["github-actions"]?.ok ? entries["github-actions"].data : null;
-  const ai = entries.anthropic?.ok ? entries.anthropic.data : null;
   const parts = {
     aws: awsPart(entries, rate, period),
     actionsJpy: centsToJpy(actions?.billing?.paid_cents ?? 0, rate),
-    aiJpy: centsToJpy(ai?.total_cents ?? 0, rate),
     saasItems: entries.saas?.ok ? entries.saas.data.items : [],
   };
   const saasJpy = sum(parts.saasItems.map((i) => i.monthly_jpy));
-  const totalJpy = parts.aws.totalJpy + parts.actionsJpy + parts.aiJpy + saasJpy;
-  // 月末の見込み: AWS は Cost Explorer の残りの見込み・Actions と AI は今の日割りを伸ばす・SaaS は月額のまま
+  const totalJpy = parts.aws.totalJpy + parts.actionsJpy + saasJpy;
+  // 月末の見込み: AWS は Cost Explorer の残りの見込み・Actions は今の日割りを伸ばす・SaaS は月額のまま
   const stretch = (jpy) => Math.round((jpy * period.daysInMonth) / period.day);
   const forecastJpy =
     parts.aws.totalJpy +
     (parts.aws.restJpy ?? stretch(parts.aws.totalJpy) - parts.aws.totalJpy) +
     stretch(parts.actionsJpy) +
-    stretch(parts.aiJpy) +
     saasJpy;
   const notes = [
     ...AWS_ACCOUNTS.filter((a) => !entries[`aws-${a}`]?.ok).map((a) =>
@@ -106,7 +102,6 @@ export function makeSummary(entries, { today, generatedAt }) {
     ),
     ...[
       ["github-actions", "GitHub Actions"],
-      ["anthropic", "AI(Anthropic)"],
       ["saas", "そのほかの SaaS"],
       ["estimates", "見積もり"],
     ]

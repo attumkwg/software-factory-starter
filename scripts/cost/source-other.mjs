@@ -1,4 +1,5 @@
-// 費用の集め先(AWS の外): GitHub Actions の分数・AI(Anthropic の使用の金額)・そのほかの SaaS(手で書いた月額)・見積もり。
+// 費用の集め先(AWS の外): GitHub Actions の分数・SaaS と AI の席など(手で書いた月額)・見積もり。
+// AI の使用量は API で取らない(管理用の鍵を置かない。設計書 0019 の U-4)。
 // どれも { ok: true, data } か { ok: false, message } を返す(読めなくても、ほかは集める)。
 import { parse } from "yaml";
 import { periodOf } from "./period.mjs";
@@ -58,65 +59,6 @@ export async function githubActions(ctx) {
       workflows,
       minutes_total: workflows.reduce((a, w) => a + w.minutes, 0),
       billing: billing(ctx, repo.data),
-    },
-  };
-}
-
-const ANTHROPIC_COST_URL = "https://api.anthropic.com/v1/organizations/cost_report";
-
-/**
- * 今月の AI の使用の金額(Anthropic の Usage and Cost API。管理用の鍵 ANTHROPIC_ADMIN_KEY があるときだけ。設計書 0019 の U-4)。
- * 金額はセントの小数の文字列で来る。日ごと・説明(モデルと種類)ごとに足す。鍵の値は投げる文にも入れない
- */
-/** 1日ぶんの結果を足す(説明ごとの合計に足し、その日の合計を返す)。金額はセントの小数の文字列 */
-function addBucket(bucket, byDescription) {
-  let cents = 0;
-  for (const r of bucket.results ?? []) {
-    const c = Math.round(Number(r.amount ?? 0));
-    cents += c;
-    const name = r.description ?? r.model ?? "そのほか";
-    byDescription[name] = (byDescription[name] ?? 0) + c;
-  }
-  return { date: String(bucket.starting_at).slice(0, 10), cents };
-}
-
-function costReportUrl(p, page) {
-  const q = new URLSearchParams({
-    starting_at: `${p.monthStart}T00:00:00Z`,
-    ending_at: `${p.tomorrow}T00:00:00Z`,
-    limit: "31",
-  });
-  q.append("group_by[]", "description");
-  if (page) q.set("page", page);
-  return `${ANTHROPIC_COST_URL}?${q}`;
-}
-
-export async function anthropicCost(ctx) {
-  const key = ctx.env?.ANTHROPIC_ADMIN_KEY;
-  if (!key)
-    return { ok: false, message: "管理用の鍵が無い(ANTHROPIC_ADMIN_KEY。設計書 0019 の U-4)" };
-  const p = periodOf(ctx.today);
-  const byDescription = {};
-  const days = [];
-  let page;
-  for (let i = 0; i < MAX_PAGES; i++) {
-    const res = await ctx.fetch(costReportUrl(p, page), {
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
-    });
-    if (!res.ok)
-      return { ok: false, message: `Anthropic の使用の金額を読めなかった(HTTP ${res.status})` };
-    const body = await res.json();
-    for (const bucket of body.data ?? []) days.push(addBucket(bucket, byDescription));
-    if (!body.has_more || !body.next_page) break;
-    page = body.next_page;
-  }
-  return {
-    ok: true,
-    data: {
-      currency: "USD",
-      total_cents: days.reduce((a, d) => a + d.cents, 0),
-      by_description: byDescription,
-      days,
     },
   };
 }

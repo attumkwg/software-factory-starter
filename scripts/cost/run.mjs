@@ -1,6 +1,6 @@
 // 費用を集めて、ページ(静的な HTML の1枚)を作る。cost.yml が毎日(有効にしたら)流し、非公開の S3 に置く。
 //   pnpm cost --out <dir> --account stg|prod|dev   そのアカウントの AWS の費用(役割の資格情報で)を <dir>/aws-<環境>.json に
-//   pnpm cost --out <dir> --only github,anthropic,saas  AWS の外(Actions の分数・AI の使用の金額・SaaS の月額と見積もり)
+//   pnpm cost --out <dir> --only github,saas          AWS の外(Actions の分数・SaaS と AI の席などの月額と見積もり)
 //   pnpm cost --render <dir>                       <dir> の JSON から summary.json・index.html・manifest.json を作る
 //   pnpm cost --out <dir>                          AWS の外を集めて、そのまま作る(手元で試す)
 // 置き場には送らない(送るのはワークフロー)。ログには名前と件数だけ(金額は出さない。公開のリポジトリのログに残るため)。
@@ -21,16 +21,13 @@ import {
 } from "../evidence/lib.mjs";
 import { renderHtml } from "./render.mjs";
 import { awsCost } from "./source-aws.mjs";
-import { anthropicCost, estimates, githubActions, saas } from "./source-other.mjs";
+import { estimates, githubActions, saas } from "./source-other.mjs";
 import { makeSummary } from "./summary.mjs";
 
 const ACCOUNTS = ["stg", "prod", "dev"];
 const OTHER = {
   github: [
     { name: "github-actions", about: "今月のワークフローごとの実行と分数", collect: githubActions },
-  ],
-  anthropic: [
-    { name: "anthropic", about: "今月の AI の使用の金額(Anthropic)", collect: anthropicCost },
   ],
   saas: [
     { name: "saas", about: "そのほかの SaaS の月額(docs/cost/saas.yaml)", collect: saas },
@@ -77,18 +74,17 @@ function render(dir) {
   );
 }
 
-async function collect(dir, env = process.env) {
+async function collect(dir) {
   const repo = resolveRepo();
   const ctx = {
     ...makeContext({ repo, today }),
     aws: awsCli,
     fetch: (url, init) => fetch(url, init),
-    env: { ANTHROPIC_ADMIN_KEY: env.ANTHROPIC_ADMIN_KEY },
   };
   const account = option("--account");
   if (account !== undefined && !ACCOUNTS.includes(account))
     fail(`--account は ${ACCOUNTS.join(" / ")} のどれか(いま: ${account})`);
-  const kinds = (option("--only") ?? "github,anthropic,saas").split(",").map((s) => s.trim());
+  const kinds = (option("--only") ?? "github,saas").split(",").map((s) => s.trim());
   const sources = account
     ? [
         {

@@ -36,8 +36,8 @@ module "github_oidc" {
       deny_data_reads     = { except_s3_objects = ["arn:aws:s3:::${var.state_bucket}/${local.env}/*"] }
     }
     "${local.name}-cost" = {
-      description = "cost.yml (environment cost, main only): read Cost Explorer"
-      subjects    = ["environment:cost"]
+      description = "cost.yml (main only): read Cost Explorer"
+      subjects    = ["ref:refs/heads/main"]
       policy_json = data.aws_iam_policy_document.cost.json
     }
   }
@@ -194,7 +194,7 @@ data "aws_iam_policy_document" "restore_drill" {
 }
 
 # ── 費用を読む(cost.yml。毎日・有効にしたら)。docs/guides/cost-dashboard.md・ADR 0032 ─────────────
-#   AWS_<環境>_COST_ROLE_ARN … github_role_arns の …-cost。Environment「cost」(main だけ)のジョブからだけ引ける
+#   AWS_<環境>_COST_ROLE_ARN … github_role_arns の …-cost。main のコードからだけ引ける(PR の版は書き換えられるので、請求の詳細を読ませない)
 #   Cost Explorer の集計を読むだけ。1回 $0.01 なので、呼ぶ回数は scripts/cost が決める(1日 6回まで)
 
 data "aws_iam_policy_document" "cost" {

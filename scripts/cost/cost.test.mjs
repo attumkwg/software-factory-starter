@@ -1,4 +1,4 @@
-// 費用の集め方・まとめ方・ページのテスト(AWS・GitHub・Anthropic は偽物)。node --test scripts/cost/cost.test.mjs
+// 費用の集め方・まとめ方・ページのテスト(AWS と GitHub は偽物)。node --test scripts/cost/cost.test.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -9,7 +9,7 @@ import { fakeCtx, ok } from "../checkup/fake-context.mjs";
 import { centsToJpy, periodOf, usdToCents } from "./period.mjs";
 import { renderHtml } from "./render.mjs";
 import { awsCost, groupsToCents, UNTAGGED } from "./source-aws.mjs";
-import { anthropicCost, estimates, githubActions, saas } from "./source-other.mjs";
+import { estimates, githubActions, saas } from "./source-other.mjs";
 import { makeSummary } from "./summary.mjs";
 
 test("期間: 月の初め・明日・来月・3か月前・何日目(月末と年またぎ)", () => {
@@ -127,45 +127,6 @@ test("githubActions: ワークフローごとの分数・公開なら枠の金�
   assert.equal((await githubActions(priv)).data.billing.paid_cents, 300);
 });
 
-test("anthropicCost: 鍵が無ければ呼ばない・セントの文字列を足す・ページをたどる・鍵は文に出さない", async () => {
-  assert.match((await anthropicCost({ today: "2026-10-25", env: {} })).message, /U-4/);
-  const urls = [];
-  const pages = [
-    {
-      data: [
-        {
-          starting_at: "2026-10-01T00:00:00Z",
-          results: [{ amount: "150.4", description: "Opus" }],
-        },
-      ],
-      has_more: true,
-      next_page: "p2",
-    },
-    {
-      data: [
-        { starting_at: "2026-10-02T00:00:00Z", results: [{ amount: "49.6", description: "Opus" }] },
-      ],
-      has_more: false,
-    },
-  ];
-  const ctx = {
-    today: "2026-10-25",
-    env: { ANTHROPIC_ADMIN_KEY: "sk-ant-admin-secret" },
-    fetch: async (url, init) => {
-      urls.push(url);
-      assert.equal(init.headers["x-api-key"], "sk-ant-admin-secret");
-      return { ok: true, json: async () => pages[urls.length - 1] };
-    },
-  };
-  const res = await anthropicCost(ctx);
-  assert.equal(res.data.total_cents, 200);
-  assert.deepEqual(res.data.by_description, { Opus: 200 });
-  assert.match(urls[0], /group_by%5B%5D=description/);
-  assert.match(urls[1], /page=p2/);
-  const denied = await anthropicCost({ ...ctx, fetch: async () => ({ ok: false, status: 401 }) });
-  assert.doesNotMatch(denied.message, /secret/);
-});
-
 const SAAS = `items:
   - { name: A, monthly_jpy: 1000, category: ai, since: 2026-01 }
   - { name: B, monthly_jpy: null, category: other, since: 2026-01 }
@@ -213,7 +174,6 @@ test("まとめ: 区分ごとの実績と見積もり・動いている物ごと
         workflows: [],
         billing: { paid_cents: 100 },
       }),
-      anthropic: { ok: false, reason: "管理用の鍵が無い" },
       saas: entry({
         items: [{ name: "席", monthly_jpy: 30000, category: "ai", bet: "core" }],
         without_amount: ["Sentry"],
@@ -242,7 +202,10 @@ test("まとめ: 区分ごとの実績と見積もり・動いている物ごと
     ["db", "席", "GitHub Actions"],
   );
   assert.ok(s.notes.some((n) => n.includes("AWS(stg)")));
-  assert.ok(s.notes.some((n) => n.includes("管理用の鍵が無い")));
+  assert.ok(
+    s.notes.every((n) => !n.includes("Anthropic")),
+    "AI の使用量は API で取らない(U-4)",
+  );
   assert.deepEqual(s.saas_without_amount, ["Sentry"]);
   assert.equal(s.estimate.max, 100000);
   const html = renderHtml(s);
