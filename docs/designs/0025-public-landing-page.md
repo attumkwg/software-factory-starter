@@ -151,18 +151,18 @@ flowchart LR
 
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
-| LP に要る物の一覧 | 手引き「LP に要る物」 | 手引き(人が読む)。実装の PR で `apps/site` の E2E |
+| LP に要る物の一覧 | 手引き「LP に要る物」 | 手引き(人が読む)・`apps/site/src/site.test.tsx`「LP の中身」 |
 | 事前登録の同意の文の型と版 | 手引き「同意の文の型」・6. 業務ルール | `packages/shared/src/pre-registration.test.ts`・`growth-public.int.test.ts`「同意のチェックが無ければ 400…」「登録すると…」 |
 | 計測の同意の考え方 | 手引き「計測」・1. 設計方針 | 手引き(人が読む) |
 | 事前登録の目的・保存期間・消し方・委託先・組織へのつなぎ | 2. データモデル・5. 連携・6. 業務ルール | `growth-public.int.test.ts`「purge は…」「取り消しのリンクで…」「確認済みの登録だけを組織を作る入力にでき…」 |
 | プライバシーポリシーに足すことが辿れる | `docs/guides/legal-documents.md` の「プライバシーポリシーに書くこと」に1行 | `pnpm self-contained`(リンク切れ) |
 | 試作から LP の手引きへ辿れる | `docs/guides/prototypes.md`・`/prototype` に1行 | `pnpm self-contained` |
-| 本番は検索に載る・本番以外は noindex | 5. 連携・6. 業務ルール | ② の PR: `apps/site` のビルドの単体テストと CloudFront の応答ヘッダー |
-| 同じトークンと部品 | 1. 設計方針 | ② の PR: VRT・axe |
+| 本番は検索に載る・本番以外は noindex | 5. 連携・6. 業務ルール | `apps/site/src/site.test.tsx`「検索に載せるか」(meta・robots.txt・sitemap)。CloudFront の応答ヘッダーは ③ の PR |
+| 同じトークンと部品 | 1. 設計方針 | `apps/site` は `@app/ui` の部品とトークンだけ(Biome・型)。VRT・axe は ③ の PR で E2E とまとめて(CI の変更が要る) |
 | 登録 → 確認のメール → 確認済み・チェックが無いと 400 | 3. API・4. 状態遷移 | `growth-public.int.test.ts`「確認のメールのリンクを開くと confirmed…」「署名の合わない token・期限の切れたリンクは 400」 |
 | 確認しなければ7日で消える | 6. 業務ルール | `growth-public.int.test.ts`「登録すると…」(消す日)・「purge は…」・「期限の切れたリンクは 400」 |
 | 本人のリンク・運営のコマンドで消せる | 3. API・6. 業務ルール | `growth-public.int.test.ts`「取り消しのリンクで…」「delete は…」 |
-| UTM が記録と集計に残る・Cookie なし・外へ送らない | 2. データモデル・6. 業務ルール | `pre-registration.test.ts`(UTM の整え)・`growth-public.int.test.ts`「見た数」・② の PR: E2E(Cookie が無い・外のホストへの要求が無い) |
+| UTM が記録と集計に残る・Cookie なし・外へ送らない | 2. データモデル・6. 業務ルール | `pre-registration.test.ts`(UTM の整え)・`growth-public.int.test.ts`「見た数」・`apps/site/src/site.test.tsx`「外のサイトの読み込みが無い」「URL から読む物」 |
 | 運営のコマンドで率を見る | 6. 業務ルール | `growth-public.int.test.ts`「report は…」 |
 | 確認済みの ID を組織を作る入力に・開通済みにする | 5. 連携 | `growth-public.int.test.ts`「確認済みの登録だけを…」(G-01 のコマンドとつなぐのは G-01 の側) |
 | 同じアドレスへは24時間に1通 | 2. データモデル・6. 業務ルール | `growth-public.int.test.ts`「同じアドレスは行を作らず…」 |
@@ -217,7 +217,8 @@ flowchart LR
 - **UTM は英数と `-_.` だけ** — UTM に個人のメールアドレスなどを入れたリンクを配られても残さない。
 - **メールアドレスの一覧を書き出すコマンドを作らない** — 組織を作るのは ID 1つずつで足りる。一覧があると、人の手で外へ持ち出される道になる。
 - **仕様と設計の PR では手引きと設計まで**(コードを足さない) — 表・API・`apps/site` は U-1 の答えで形が変わる。どの案でも要る物(同意の文の型・計測の考え方・LP に要る物)だけ先に入れた。
-- **実装は2つの PR に分ける**: ① 事前登録の受け口(表・公開の API・運営のコマンド・組織へのつなぎ)② 公開のページ `apps/site` と置き場所(Terraform・配る仕組み)。①だけでも外の CMS のフォームから送れる。
+- **実装は3つの PR に分ける**: ① 事前登録の受け口(表・公開の API・運営のコマンド・組織へのつなぎ)② 公開のページ `apps/site` ③ 置き場所(Terraform の S3+CloudFront・stg と prod へのつなぎ・WAF の数の上限・配る仕組み・E2E と VRT)。①だけでも外の CMS のフォームから送れる。③ は手元で Terraform を確かめられないので分けた。
+- **公開のページは Vite+React で、ビルドのときにページごとの HTML を作る**(TanStack Start にしない) — サーバーが要らず S3 に置ける。検索に載る HTML に中身が入る。部品とトークンは `@app/ui` のまま。設定はビルドのときの環境変数を焼き込む(秘密は無い)。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
 

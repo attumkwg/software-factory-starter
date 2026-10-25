@@ -24,12 +24,16 @@
 │  │  ├─ test/unit/             DB 無しのテスト(権限の表の網羅 ① を含む)
 │  │  ├─ test/integration/      Testcontainers の Postgres(RLS・2社・権限の表 ②)
 │  │  └─ Dockerfile             distroless・root で動かさない(API と移行だけ。画面は配らない)
-│  └─ web/                      TanStack Start の SSR(ログイン → プロジェクト → タスク)と Playwright の E2E
-│     ├─ src/routes/            画面と URL(ファイルの置き場所が URL になる)。loader が SSR でデータを読む
-│     ├─ src/pages/             画面の中身(@app/ui の部品だけ)
-│     ├─ src/api.ts             API の呼び出し(ブラウザからは /api、SSR からは API_INTERNAL_URL)
-│     ├─ server/                本番の Node サーバー(静的ファイル・/readyz・SSR への受け渡し)
-│     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
+│  ├─ web/                      TanStack Start の SSR(ログイン → プロジェクト → タスク)と Playwright の E2E
+│  │  ├─ src/routes/            画面と URL(ファイルの置き場所が URL になる)。loader が SSR でデータを読む
+│  │  ├─ src/pages/             画面の中身(@app/ui の部品だけ)
+│  │  ├─ src/api.ts             API の呼び出し(ブラウザからは /api、SSR からは API_INTERNAL_URL)
+│  │  ├─ server/                本番の Node サーバー(静的ファイル・/readyz・SSR への受け渡し)
+│  │  └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
+│  └─ site/                     公開の LP(静的。ビルドのときにページごとの HTML を作る。本番だけ検索に載る。docs/guides/landing-page.md)
+│     ├─ src/content.ts         LP の言葉(架空の見本。docs/product/positioning.md から写す)
+│     ├─ src/pages/             LP・確認・取り消しのページ(@app/ui の部品だけ)
+│     └─ scripts/prerender.mjs  ページごとの HTML・robots.txt・sitemap.xml を作る
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
 ├─ packages/error-reporting/   error 以上のログを Sentry に送る(値を落としてから。API と画面のサーバー)。ブラウザは apps/web/src/report-error.ts

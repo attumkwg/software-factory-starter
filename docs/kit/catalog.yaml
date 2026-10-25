@@ -1372,6 +1372,7 @@ parts:
       - 電気通信事業法 27条の12(外部送信の決まり。外へ送るタグを入れるときに当たりうる)
     remove:
       delete:
+        - apps/site
         - apps/api/src/domains/growth
         - apps/api/drizzle/0015_growth_pre_registrations.sql
         - apps/api/test/unit/growth-links.test.ts
@@ -1384,6 +1385,8 @@ parts:
         - docs/runbooks/pre-registrations.md
         - docs/domain/growth
       edit:
+        - { path: CLAUDE.md, what: apps/site の行を外す }
+        - { path: docs/reference.md, what: apps/site の木を外す }
         - { path: apps/api/src/app.ts, what: /api/public/* の守り(CORS)と publicGrowthRoutes を外す }
         - { path: apps/api/src/index.ts, what: アウトボックスの受け手の publicSite を外す }
         - { path: apps/api/src/config.ts, what: PUBLIC_SITE_URL を外す }
