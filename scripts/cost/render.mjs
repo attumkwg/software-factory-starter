@@ -132,6 +132,36 @@ function plBlock(pl) {
   );
 }
 
+/** 1社あたりの原価(本番の AWS の按分。仕様 0042)。組織の名前・ID は無い */
+function tenantBlock(t) {
+  if (!t) return "";
+  const small = (b) =>
+    b.small ? ` <span class="muted">(${t.small_below}組織未満。割合が大きく揺れる)</span>` : "";
+  const rows = t.bands.map(
+    (b) =>
+      `<tr><td>${esc(b.band)}${small(b)}</td><td class="n">${b.tenants}</td><td class="n">${range(b.low, b.high)}</td></tr>`,
+  );
+  return card(
+    "1社あたりの原価(本番の AWS の按分。推定)",
+    `<p class="muted">按分の元 ${esc(t.month)}(${esc(t.bases.join("・"))}の割合の幅)・本番の AWS ${yen(t.target_jpy)}(${esc(t.target_how)})・${t.tenants_total}組織。人の時間・SaaS・stg は入れていない。固定の費用も含む平均なので、組織が増えると下がる。</p><table><thead><tr><th>組織の大きさ</th><th class="n">組織</th><th class="n">1社あたり(月)</th></tr></thead><tbody>${rows.join("")}<tr><td>全体の平均</td><td class="n">${t.tenants_total}</td><td class="n">${range(t.average.low, t.average.high)}</td></tr><tr><td>いちばん大きい組織</td><td class="n">1</td><td class="n">${range(t.largest.low, t.largest.high)}</td></tr></tbody></table>`,
+  );
+}
+
+/** 獲得のコスト(届け方ごと。仕様 0043)。個社の名前・人ごとの時間は無い */
+function acquisitionBlock(a) {
+  if (!a) return "";
+  const per = (c) =>
+    `${yen(c.per_won_jpy)}${c.small && c.won > 0 ? ` <span class="muted">(${c.won}組織。少ない)</span>` : ""}`;
+  const tr = (c, name) =>
+    `<tr><td>${esc(name ?? c.channel)}</td><td class="n">${yen(c.ad_jpy)}</td><td class="n">${c.sales_hours ?? "—"}h</td><td class="n">${yen(c.sales_jpy)}</td><td class="n">${yen(c.total_jpy)}</td><td class="n">${c.won}</td><td class="n">${per(c)}</td></tr>`;
+  const head =
+    "<tr><th>届け方</th><th class=n>広告費など</th><th class=n>営業の時間</th><th class=n>営業の費用</th><th class=n>合計</th><th class=n>獲得</th><th class=n>1社を取るのに</th></tr>";
+  return card(
+    `獲得のコスト(届け方ごと。${esc(a.from)}〜${esc(a.to)} の合計・推定)`,
+    `<p class="muted">広告費と営業の時間は手入力(非公開の置き場の acquisition.csv)。営業の費用は時給の既定(rates.json の default)で円にした${a.rate_known ? "" : "(時給が無いので円にしていない)"}。獲得が5組織未満の届け方は、1社の違いで大きく動く。</p><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${a.channels.map((c) => tr(c)).join("")}${tr({ ...a.total, sales_hours: null, sales_jpy: null, small: false }, "全体")}</tbody></table></div>`,
+  );
+}
+
 export function renderHtml(s) {
   const notes = [
     ...s.notes,
@@ -147,6 +177,8 @@ ${tiles(s)}
 ${card("何にいくら(動いている物ごと)", bars(s.components))}
 ${card("見積もりと実績(区分ごと。薄い帯が見積もりの幅)", bars(s.categories, { band: true }))}
 ${plBlock(s.pl)}
+${tenantBlock(s.tenant_cost)}
+${acquisitionBlock(s.acquisition)}
 <div class="split">
 ${card("環境ごと(AWS)", table(s.environments, "環境"))}
 ${card("賭けごと(AWS のタグ Bet と SaaS)", table(s.bets, "賭け"))}

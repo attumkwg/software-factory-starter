@@ -11,6 +11,8 @@
 | 何にいくら(動いている物ごと) | AWS はタグ `Component`(api・web・mail・db・network・shared)・Actions・SaaS(AI の席などを含む)は1つずつ | Cost Explorer・Actions・`docs/cost/saas.yaml` |
 | 見積もりと実績(区分ごと) | 本番+stg・PR ごとの環境と CI・AI・有料の検査を、見積もりの幅(薄い帯)と並べる。上を超えたら ⚠ | `docs/cost/estimates.yaml`(元は [段階と費用](../concepts/stages.md) の 4.) |
 | 環境ごと・賭けごと | タグ `Environment`・`Bet`(賭けの ID。土台は `core`)。賭けごとは `/ledger`(資産か費用か)の土台 | Cost Explorer・`saas.yaml` の `bet` |
+| 1社あたりの原価(推定) | 本番の AWS を、組織の大きさの帯ごとの人数・データの行の数・書き込みの数の割合で按分した幅。組織の ID は出ない(7.) | API の運営のコマンド `tenant-shares` の出力(非公開の置き場の `tenants.json`)・Cost Explorer |
+| 獲得のコスト(推定) | 届け方ごとの広告費・営業の時間・獲得した組織の数と、1社を取るのにいくら(直近3か月。8.) | 非公開の置き場の `acquisition.csv`(手入力)・`rates.json` |
 | AWS の月ごと・日ごと・サービスごと | 前の3か月と今月・今月の日ごと・AWS のサービスの上の10 | Cost Explorer |
 | PR ごとの環境 | タグ `PullRequest`(dev のアカウント) | Cost Explorer |
 | GitHub Actions | ワークフローごとの実行の数と分数(非公開なら、枠を超えた分を金額に) | Actions の API |
@@ -64,3 +66,47 @@
 - 予算(AWS Budgets): 月の上限の 80% を使った・月末の見込みが上限を超える(`monthly_budget_usd`)。前からある
 - 急な変化(Cost Anomaly Detection): このプロダクト(タグ `Project`)の費用が、いつもより急に増え、見込みの影響が `anomaly_threshold_usd`(既定 $10)以上。Slack に来る
 - 見積もりとのずれ: 四半期ごとの点検 `cost-review` で、このページを見て答える
+
+## 7. 1社あたりの原価(推定)
+
+> 値段を決める(小さいお客さんで赤字にならないか)・大きいお客さんを分ける(DB を別にする)ときの根拠。本番の AWS を、組織の大きさの帯ごとの**人数・データの行の数・その月の書き込みの数**の割合で按分し、3つの元の**幅**で出す。決まりは [設計書 0042](../designs/0042-tenant-cost.md)・[ADR 0053](../adr/0053-tenant-cost-by-size-bands.md)。
+
+1. 月に1回(月の初めに、前の月の分)、按分の元を数える。ECS の API のイメージで、移行と同じ接続・`SUPPORT_TENANT_ID` を渡して流す(`usage-report` と同じ。読むだけ。人が打つ):
+
+   ```bash
+   node dist/cli.js tenant-shares --month 2026-10
+   ```
+
+   1行目の JSON(`{"mode":"tenant-shares","month":"2026-10","tenantsTotal":12,…,"bands":[{"band":"1〜5人","tenants":7,…}],"largestPct":{…}}`)は、帯ごとの合計と「いちばん大きい組織が全体の何 %」だけ。**組織の ID・名前は出ない**。要配慮の表は数えない。
+2. 1行目をそのまま `tenants.json` にして、非公開の置き場に置く(形は `docs/cost/inputs-example/tenants.json`):
+
+   ```bash
+   aws s3 cp tenants.json "s3://<COST_BUCKET>/cost/inputs/tenants.json"
+   ```
+
+3. ページの「1社あたりの原価」の表: 帯ごとの組織の数と1社あたり(月)の幅・全体の平均・いちばん大きい組織。按分するのは、元の月の本番の AWS(過ぎた月は実績・今月なら月末の見込み)。
+4. 読み方:
+   - **固定の費用も含む平均**。組織が増えると1社あたりは下がる。値段は「いま赤字か」だけでなく、組織が増えた後の見込みとも比べる。
+   - 人の時間(サポート・導入の手伝い)・SaaS・stg は入れていない。B2B では人の時間のほうが大きいことが多いので、値段を決めるときは別に見る。
+   - `(5組織未満)` の帯は、1社の違いで大きく動く。その帯の数だけで値段を決めない(継続率の `small` と同じ考え方)。
+   - 「いちばん大きい組織」が全体の多く(例: 3割を超える)を占め、伸びているなら、DB を分ける・値段の帯を足す話を始める合図。
+
+## 8. 獲得のコスト(届け方ごと。推定)
+
+> どの届け方(展示会・記事・紹介・広告など)が効いたか・1社を取るのにいくらかを見る。届け方ごとの賭け([bets-and-assets.md](bets-and-assets.md) の「届け方の賭け」)の線を測る。決まりは [設計書 0043](../designs/0043-acquisition-cost.md)・[ADR 0054](../adr/0054-acquisition-cost-from-manual-inputs.md)。
+
+1. 月に1回、届け方ごとに1行を `acquisition.csv` に足す(形は `docs/cost/inputs-example/acquisition.csv`): `month,channel,ad_jpy,sales_hours,won`
+   - `channel` … 届け方の賭けの ID(`B-NNNN`)か名前(紹介・展示会など)
+   - `ad_jpy` … 外に払った額(広告・出展・チラシ・紹介の謝礼。円・税抜き)
+   - `sales_hours` … 営業・説明・デモ・見積もりの時間の合計(人ごとには書かない)
+   - `won` … その月に有料になった組織の数(どの組織かは書かない)
+2. 非公開の置き場に置き直す(リポジトリに置かない):
+
+   ```bash
+   aws s3 cp acquisition.csv "s3://<COST_BUCKET>/cost/inputs/acquisition.csv"
+   ```
+
+3. ページの「獲得のコスト」の表: 直近3か月(今月を含む)の届け方ごとの広告費など・営業の時間と費用(`rates.json` の `default` の時給)・合計・獲得した組織・**1社を取るのに**いくら。獲得が5組織未満の届け方は、1社の違いで大きく動く(印が付く)。
+4. 読み方:
+   - 1社を取る額は、1社の月の粗利(売上 − [7.](#7-1社あたりの原価推定) の1社あたりの原価)の**何か月分**かで見る。目安は1年以内に戻ること(多くは米国の数字。自分たちの解約の速さで直す)。
+   - 来た組織が続けて使っているかは、届け方ごとには分からない(どの組織がどこから来たかを持たない)。続いているかは話を聞くか、届け方ごとに始めた月が分かれていれば `usage-report` の継続率の組(始めた週)で見る。

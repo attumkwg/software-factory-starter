@@ -260,7 +260,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
 - **WAF を「止める」にすること**: stg・prod の ALB の前に WAF はある(`infra/terraform/modules/waf`)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
-- **画面の CSP(Content-Security-Policy)**: SSR が埋め込むスクリプトに nonce を付ける形が要る。いまは他の守りのヘッダー(`X-Frame-Options`・`nosniff` など)だけ。
+- **CSP の違反の知らせを集めること**(`report-to`): 画面の CSP はある([設計書 0045](designs/0045-web-csp.md))が、違反を受け取る口は無い。止めた物は E2E の `csp.spec.ts` で見つける。本番で起きた違反を数えたくなったら、受け口を API に足す。
 
 ## ⚠️ この雛形の注意
 
