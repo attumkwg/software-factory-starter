@@ -14,6 +14,16 @@ describe("いまの人の IP(X-Forwarded-For の右から数える)", () => {
     expect(forwardedClientIp("1.2.3.4, 203.0.113.10, 130.176.0.1", 2)).toBe("203.0.113.10");
   });
 
+  it("CloudFront-Viewer-Address(IP:ポート)は、ポートを外して読む", () => {
+    expect(forwardedClientIp("203.0.113.10:46532", 1)).toBe("203.0.113.10");
+    expect(forwardedClientIp("2001:db8::1:46532", 1)).toBe("2001:db8::1");
+    expect(forwardedClientIp("[2001:db8::1]:443", 1)).toBe("2001:db8::1");
+    expect(forwardedClientIp("2001:db8::1", 1)).toBe("2001:db8::1");
+    expect(forwardedClientIp("example.com:443", 1)).toBeNull();
+    expect(forwardedClientIp("[nope]:443", 1)).toBeNull();
+    expect(forwardedClientIp("203.0.113.10:port", 1)).toBeNull();
+  });
+
   it("足りない・無い・IP の形でなければ null", () => {
     expect(forwardedClientIp("203.0.113.10", 2)).toBeNull();
     expect(forwardedClientIp(undefined, 1)).toBeNull();

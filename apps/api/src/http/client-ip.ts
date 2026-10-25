@@ -3,22 +3,37 @@ import type { Context } from "hono";
 import type { AppEnv } from "../env.ts";
 
 // いまの人の IP(組織ごとの IP の制限。docs/designs/0056-sso-scim-ip-audit-export.md の 6)。
-// 中継(ALB・CloudFront)は X-Forwarded-For の**右端**に、見た相手の IP を足す。左側は呼ぶ側が好きに書けるので信じない。
-// 前にいる中継の数(設定の TRUSTED_PROXY_HOPS。ALB だけなら 1)だけ右から数えた値を、いまの人の IP にする。
-// 画面のサーバー(SSR)からの呼び出しは、画面のサーバーが受け取った X-Forwarded-For をそのまま引き継ぐ
-// (apps/web/src/api.ts の FORWARDED_HEADERS)ので、数え方は同じ。
-// API は ALB と画面のサーバーからしか呼ばれない(セキュリティグループ)ので、このヘッダーを信じてよい。
+// 読むヘッダーと段数は設定で決める(CLIENT_IP_HEADER・TRUSTED_PROXY_HOPS。設計書 0056 の U-9)。
+// - 既定: ALB が X-Forwarded-For の**右端**に足す、見た相手の IP。左側は呼ぶ側が好きに書けるので信じない。
+//   前にいる中継の数(TRUSTED_PROXY_HOPS)だけ右から数えた値を、いまの人の IP にする。
+// - CloudFront を前に置いたら CloudFront-Viewer-Address(CloudFront が付ける「IP:ポート」)を読める。
+// ヘッダーの名前を変えるだけでは、なりすましは止まらない。ALB が CloudFront からしか受けない形(送り元の一覧と
+// CloudFront だけが知る秘密のヘッダー)と組で使う(設計書 0058)。
+// 画面のサーバー(SSR)からの呼び出しは、画面のサーバーが受け取った同じヘッダーをそのまま引き継ぐ
+// (apps/web/src/api.ts)ので、数え方は同じ。API は ALB と画面のサーバーからしか呼ばれない(セキュリティグループ)。
 
 /** いまの人の IP。分からなければ null(制限のある組織では入れない) */
 export function clientIp(c: Context<AppEnv>): string | null {
-  return forwardedClientIp(c.req.header("x-forwarded-for"), c.get("trustedProxyHops"));
+  const { header, hops } = c.get("clientIpSource");
+  return forwardedClientIp(c.req.header(header), hops);
 }
 
-/** X-Forwarded-For の右から hops 個目。足りない・IP の形でなければ null */
+/** ヘッダーの値(カンマ区切り)の右から hops 個目。ポートが付いていれば外す。足りない・IP の形でなければ null */
 export function forwardedClientIp(forwarded: string | undefined, hops: number): string | null {
   const entries = forwarded?.split(",").map((s) => s.trim()) ?? [];
   const value = entries[entries.length - hops];
-  return value && isIP(value) ? value : null;
+  return value ? withoutPort(value) : null;
+}
+
+/** 「IP」「IPv4:ポート」「[IPv6]:ポート」「IPv6:ポート」(CloudFront-Viewer-Address)から IP だけを取る */
+function withoutPort(value: string): string | null {
+  if (isIP(value)) return value;
+  const bracketed = /^\[([^\]]+)\]:\d{1,5}$/.exec(value);
+  if (bracketed?.[1]) return isIP(bracketed[1]) ? bracketed[1] : null;
+  const at = value.lastIndexOf(":");
+  if (at <= 0 || !/^\d{1,5}$/.test(value.slice(at + 1))) return null;
+  const host = value.slice(0, at);
+  return isIP(host) ? host : null;
 }
 
 /** CIDR(203.0.113.0/24・2001:db8::/32)を読む。形が違えば null */

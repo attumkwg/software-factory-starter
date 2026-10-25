@@ -39,8 +39,14 @@ export {
   listUserIds,
 } from "./repository.ts";
 export { organizationRoutes } from "./routes.ts";
-export { ipAllowedFor, ipNotAllowed } from "./security.ts";
-export { type ResolveTxt, securityRoutes } from "./security-routes.ts";
+export {
+  findDomain,
+  hasVerifyRecord,
+  ipAllowedFor,
+  ipNotAllowed,
+  markDomainVerified,
+} from "./security.ts";
+export { securityRoutes } from "./security-routes.ts";
 export {
   endSupportSession,
   exportSupportGrantsPage,

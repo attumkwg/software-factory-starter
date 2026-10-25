@@ -201,3 +201,40 @@ describe("範囲が効く相手", () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe("読むヘッダーを設定で変える(CloudFront を前に置いたとき。U-9)", () => {
+  it("CLIENT_IP_HEADER を CloudFront-Viewer-Address にすると、X-Forwarded-For は見ない", async () => {
+    const cf = createTestApp(
+      inject("appUrl"),
+      { CLIENT_IP_HEADER: "CloudFront-Viewer-Address" },
+      { plans: PLANS },
+    );
+    try {
+      const t = await enterpriseTenant("ip-cloudfront");
+      const viewer = (ip: string) => ({ "cloudfront-viewer-address": `${ip}:46532` });
+      const res = await cf.app.request("/api/auth/dev-login", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...viewer(OFFICE) },
+        body: JSON.stringify({ email: t.users.admin.email }),
+      });
+      const admin = cookieOf(res);
+      const put = await call(cf.app, "PUT", "/api/organization/ip-allowlist", {
+        cookie: admin,
+        body: { cidrs: ["203.0.113.0/24"] },
+        headers: viewer(OFFICE),
+      });
+      expect((await put.json()) as IpAllowlist).toMatchObject({ yourIp: OFFICE });
+      // X-Forwarded-For に会社の IP を書いても、読むのは CloudFront の値
+      const spoofed = await call(cf.app, "GET", "/api/me", {
+        cookie: admin,
+        headers: { ...viewer(HOME), ...from(OFFICE) },
+      });
+      expect(spoofed.status).toBe(403);
+      expect(
+        (await call(cf.app, "GET", "/api/me", { cookie: admin, headers: viewer(OFFICE) })).status,
+      ).toBe(200);
+    } finally {
+      await cf.pool.end();
+    }
+  });
+});

@@ -38,6 +38,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "domain.delete": "会社のドメインを消した",
   "ip_allowlist.update": "組織に入れる IP の範囲を変えた",
   "member.sign_out": "人を強制ログアウトした",
+  "demo.reset": "デモのデータを戻した",
   // 何と答えたかは記録に無い(数の表にだけある)
   "pmf_survey.respond": "「無くなったら困るか」に答えた",
 };

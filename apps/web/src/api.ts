@@ -92,21 +92,17 @@ type Target = {
 };
 
 // SSR のときに API へ引き継ぐヘッダー。これ以外(Host・Authorization など)は渡さない。
-// x-forwarded-for … 組織ごとの IP の制限で、API が ALB の見た相手の IP(右端)を読む(docs/specs/0056-sso-scim-ip-audit-export.md)
-const FORWARDED_HEADERS = [
-  "cookie",
-  "x-request-id",
-  "traceparent",
-  "x-amzn-trace-id",
-  "x-forwarded-for",
-];
+// いまの人の IP のヘッダー(組織ごとの IP の制限。docs/specs/0056-sso-scim-ip-audit-export.md)も引き継ぐ。
+// 名前は API と同じ環境変数 CLIENT_IP_HEADER(既定は ALB が付ける x-forwarded-for。CloudFront なら cloudfront-viewer-address)
+const FORWARDED_HEADERS = ["cookie", "x-request-id", "traceparent", "x-amzn-trace-id"];
+const clientIpHeader = () => (process.env.CLIENT_IP_HEADER ?? "x-forwarded-for").toLowerCase();
 
 const target = createIsomorphicFn()
   .server((method: string): Target => {
     if (method !== "GET") throw new Error("SSR から API に書き込まない(ブラウザから呼ぶ)");
     const incoming = getRequest().headers;
     const headers: Record<string, string> = {};
-    for (const name of FORWARDED_HEADERS) {
+    for (const name of [...FORWARDED_HEADERS, clientIpHeader()]) {
       const value = incoming.get(name);
       if (value) headers[name] = value;
     }

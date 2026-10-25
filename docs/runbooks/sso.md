@@ -37,7 +37,15 @@ COMMIT;
 
 ### いまの人の IP の数え方(ALB の前に中継を足したとき)
 
-API は `X-Forwarded-For` を右から `TRUSTED_PROXY_HOPS` 個目(既定 1 = ALB だけ)を、いまの人の IP にする。ALB の前に CloudFront などを足したら、ECS の環境変数を 2 にする(数が合わないと、全員の IP が中継の IP に見えて、制限のある組織が全員締め出される)。設定の画面の「いまの IP」で、正しい値が出ているかを確かめる。
+API は、環境変数 `CLIENT_IP_HEADER`(既定 `x-forwarded-for`)のヘッダーを右から `TRUSTED_PROXY_HOPS` 個目(既定 1 = ALB だけ)を、いまの人の IP にする。画面のサーバーも同じ `CLIENT_IP_HEADER` を読んで API に引き継ぐので、**API と画面のサーバーの両方に同じ値**を入れる。
+
+| 前の形 | `CLIENT_IP_HEADER` | `TRUSTED_PROXY_HOPS` |
+|---|---|---|
+| ALB だけ(既定) | `x-forwarded-for` | 1 |
+| CloudFront → ALB(CloudFront の値を使う。おすすめ) | `cloudfront-viewer-address` | 1 |
+| CloudFront → ALB(X-Forwarded-For を数える) | `x-forwarded-for` | 2 |
+
+数や名前が合わないと、全員の IP が中継の IP に見えて、制限のある組織が全員締め出される。変えた後は、設定の画面の「いまの IP」で正しい値が出ているかを確かめる。ヘッダーを信じてよいのは、ALB が CloudFront からしか受けない形(設計書 0058)が入っているときだけ。
 
 ## 3. 強制ログアウト
 

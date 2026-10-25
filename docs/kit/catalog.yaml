@@ -610,6 +610,7 @@ parts:
         - apps/web/src/pages/settings/DomainsCard.tsx
       edit:
         - { path: apps/api/src/domains/organizations/security-routes.ts, what: domainRoutes を外す }
+        - { path: apps/api/src/auth/domain-verify-routes.ts, what: DNS で確かめる API を外す(securityRoutes をつなぐだけにする) }
         - { path: apps/api/src/authz/policy.ts, what: sso:manage・domain:verify と4行を外す }
         - { path: apps/api/src/audit/actions.ts, what: domain.* の3つを外す }
         - { path: packages/shared/src/feature-flags.ts, what: sso を外す }
@@ -1613,6 +1614,39 @@ parts:
         - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の /brand の所を外す }
         - { path: .claude/skills/positioning/SKILL.md, what: /brand へのつなぎを外す }
       docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
+  - id: sales-kit
+    name: 営業の道具(デモ・見積・稟議の資料)
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: stg のデモ用の組織をデモの前に人が戻す(運営のコマンド demo-reset と手で流す demo-reset.yml。組織・人・プラン・機能・監査ログは残し、ほかを決まったデモのデータに戻す)・見積書の型と見積から申込・開通の流れ・稟議の資料の束(pnpm sales:pack で仕組みの事実・SLA・取り扱い・委託先を1つに)
+    needed_by: 商談でデモを見せる・見積と申込書を出す・大企業や病院の稟議に資料を渡す
+    not_needed_by: 営業をせず、画面から申し込んでもらうだけ
+    if_removed: デモの組織を毎回手で掃除する。見積と申込書と開通でプランの版がずれる。稟議の資料を毎回ばらばらに集める
+    depends_on: [provisioning, plans, contract-templates]
+    law: []
+    where: [docs/guides/sales.md, apps/api/src/demo/reset.ts, .github/workflows/demo-reset.yml, scripts/sales-pack.mjs, docs/legal/quote.md]
+    remove:
+      delete:
+        - apps/api/src/demo
+        - apps/api/test/unit/demo-reset.test.ts
+        - apps/api/test/integration/demo-reset.int.test.ts
+        - .github/workflows/demo-reset.yml
+        - scripts/sales-pack.mjs
+        - scripts/sales-pack.test.mjs
+        - docs/guides/sales.md
+        - docs/legal/quote.md
+      edit:
+        - { path: apps/api/src/cli.ts, what: demo-reset のコマンドを外す }
+        - { path: apps/api/src/audit/actions.ts, what: demoReset は残してよい(古い記録を読むため。apps/web/src/audit-labels.ts も) }
+        - { path: package.json, what: sales:pack と、test:scripts の scripts/sales-pack.test.mjs を外す }
+        - { path: docs/legal/README.md, what: 見積書の行を外す }
+        - { path: docs/guides/manual-setup.md, what: DEMO_TENANT_ID の行を外す }
+        - { path: docs/reference.md, what: demo-reset.yml の行を外す }
+        - { path: CLAUDE.md, what: pnpm sales:pack の行を外す }
+      docs: [docs/specs/0053-sales-kit.md, docs/designs/0053-sales-kit.md, docs/adr/0064-sales-kit-demo-on-stg.md]
 
   - id: plans
     name: 契約のプランの表

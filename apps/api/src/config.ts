@@ -52,8 +52,15 @@ const EnvObject = z.object({
   PUBLIC_SITE_URL: z.url().optional(),
   // 運営の組織(社員が代理ログインに使う。docs/specs/0004-support-access.md)。無ければ代理ログインは使えない
   SUPPORT_TENANT_ID: z.uuid().optional(),
-  // X-Forwarded-For を右から何個目まで信じるか(前にいる中継の数。ALB だけなら 1・CloudFront → ALB なら 2)。
-  // 組織ごとの IP の制限が、いまの人の IP に使う(docs/designs/0056-sso-scim-ip-audit-export.md の 6)
+  // いまの人の IP をどのヘッダーから読むか(組織ごとの IP の制限。docs/designs/0056-sso-scim-ip-audit-export.md の 6・U-9)。
+  // 既定は ALB が付ける X-Forwarded-For。CloudFront を前に置いたら CloudFront-Viewer-Address(「IP:ポート」)にできる。
+  // 画面のサーバー(SSR)も同じ名前を読んで API に引き継ぐ(apps/web/src/api.ts)
+  CLIENT_IP_HEADER: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{1,64}$/, "ヘッダーの名前の形が正しくありません")
+    .default("x-forwarded-for"),
+  // そのヘッダーを右から何個目まで信じるか(前にいる中継の数。ALB だけなら 1・CloudFront → ALB で X-Forwarded-For なら 2。
+  // CloudFront-Viewer-Address は値が1つなので 1)
   TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).max(5).default(1),
   // 失敗を Sentry に送る先(docs/guides/monitoring.md)。無ければ送らない
   SENTRY_DSN: z.url().optional(),
@@ -241,7 +248,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
     supportTenantId: e.SUPPORT_TENANT_ID ?? null,
-    trustedProxyHops: e.TRUSTED_PROXY_HOPS,
+    clientIp: { header: e.CLIENT_IP_HEADER.toLowerCase(), hops: e.TRUSTED_PROXY_HOPS },
     publicSite: e.PUBLIC_SITE_URL
       ? { url: e.PUBLIC_SITE_URL, origin: new URL(e.PUBLIC_SITE_URL).origin }
       : null,

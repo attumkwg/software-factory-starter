@@ -17,6 +17,8 @@ import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
 import { auditRoutes } from "./audit/index.ts";
 import { accountRoutes } from "./auth/account-routes.ts";
+// 大きなお客さん向けの守りの段1a(ドメイン・IP の範囲・強制ログアウト。docs/specs/0056-sso-scim-ip-audit-export.md)
+import { organizationSecurityRoutes, type ResolveTxt } from "./auth/domain-verify-routes.ts";
 import { invitationAcceptRoutes } from "./auth/invitation-routes.ts";
 import { authenticate } from "./auth/middleware.ts";
 import { CognitoClient } from "./auth/providers.ts";
@@ -31,8 +33,6 @@ import {
   invitationRoutes,
   mfaRequirementRoutes,
   organizationRoutes,
-  type ResolveTxt,
-  securityRoutes,
   supportGrantRoutes,
 } from "./domains/organizations/index.ts";
 import { projectRoutes } from "./domains/projects/index.ts";
@@ -169,7 +169,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/*", async (c, next) => {
     c.set("supportTenantId", config.supportTenantId);
     c.set("mfaEnforced", config.auth.mode === "cognito");
-    c.set("trustedProxyHops", config.trustedProxyHops);
+    c.set("clientIpSource", config.clientIp);
     c.set("legalVersions", legalVersions);
     c.set("featureFlags", featureFlags);
     c.set("plans", plans);
@@ -205,8 +205,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));
   app.route("/api", planRoutes);
-  // 大きなお客さん向けの守りの段1a(ドメイン・IP の範囲・人の一覧と強制ログアウト。docs/specs/0056-sso-scim-ip-audit-export.md)
-  app.route("/api", securityRoutes({ db, resolveTxt: deps.resolveTxt ?? resolveTxt }));
+  app.route("/api", organizationSecurityRoutes({ db, resolveTxt: deps.resolveTxt ?? resolveTxt }));
   app.route("/api", pmfSurveyRoutes);
 
   if (config.exposeOpenApi) {
