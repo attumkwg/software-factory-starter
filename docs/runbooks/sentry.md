@@ -16,7 +16,7 @@
 | 件数のグラフ・`environment` | 1件だけか、増え続けているか。stg か prod か |
 
 - **増え続けている・prod・人数が多い** → まず戻すか決める([alarms.md](alarms.md) の「最初の3分」)。原因はそのあと。
-- **1件だけ・stg** → 急がない。Issue にして AI に渡してもよい(requestId とスタックを貼る。ログの中身は貼らない)。
+- **1件だけ・stg** → 急がない。Issue にして AI に渡してもよい(requestId・タグ・スタックを貼る。ログの中身・「User」の欄の写しは貼らない。[compliance/ai-data.md](../compliance/ai-data.md))。
 
 ## 2. そのリクエストのログを全部見る(3分)
 

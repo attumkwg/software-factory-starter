@@ -8,7 +8,7 @@
 ## 0. 全体像
 
 ① 毎月、GitHub と AWS の設定・訓練の結果・点検の台帳を JSON に集め、使う側の消せない S3 に置く(`evidence.yml`)。管理策の一覧(`controls.yaml`)と点検の台帳(`controls`・`evidence` 欄)と規程の頭の YAML から、適用宣言書(`soa.md`)を作り、CI が古さとリンク切れを見る。認証の準備の項目は台帳の `area: compliance` で分け、`/compliance-check` が1問ずつ聞く。
-② 毎日(有効にしたら)、AWS(Cost Explorer)・Actions の分数・AI の使用量・SaaS の月額を1つの JSON に集め、静的な HTML の1枚にして、非公開の S3 に置く(`cost.yml`)。Terraform は全部のリソースにタグ(`Bet`・`Component` など)を付け、コスト配分タグと費用の急な変化の見張りを足す。
+② 毎日(有効にしたら)、AWS(Cost Explorer)・Actions の分数・SaaS と AI の席などの月額(手で書く)を1つの JSON に集め、静的な HTML の1枚にして、非公開の S3 に置く(`cost.yml`)。Terraform は全部のリソースにタグ(`Bet`・`Component` など)を付け、コスト配分タグと費用の急な変化の見張りを足す。
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,6 @@ flowchart LR
   subgraph daily[cost.yml 毎日 ②]
     CE[Cost Explorer stg・prod] --> K[pnpm cost]
     GA[Actions の実行] --> K
-    AN[Anthropic の使用量] --> K
     SA[docs/cost/saas.yaml] --> K
     ES[docs/cost/estimates.yaml] --> K
   end
@@ -128,11 +127,10 @@ controls: [A.5.1, …]     # 当たる管理策(1件以上・実在)
 
 ### 費用の束(②。`scripts/cost/`)
 
-- 同じ `makeBundle`(`kind: "cost"`)。ファイル: `aws-stg.json`・`aws-prod.json`・`aws-dev.json`(役割があるだけ)・`github-actions.json`・`anthropic.json`・`saas.json`・`estimates.json`・`summary.json`(ページの元)・`index.html`(ページ)・`manifest.json`
+- 同じ `makeBundle`(`kind: "cost"`)。ファイル: `aws-stg.json`・`aws-prod.json`・`aws-dev.json`(役割があるだけ)・`github-actions.json`・`saas.json`・`estimates.json`・`summary.json`(ページの元)・`index.html`(ページ)・`manifest.json`
 - 置き方: `s3://<COST_BUCKET>/cost/<年-月>/`(毎日上書き。古い版は400日で消える)と `cost/latest/index.html`
 - `aws-<環境>.json`: 今月の初めから昨日まで(Cost Explorer は終わりの日を含まない)と前の3か月の、`UnblendedCost` を ① AWS のサービスごと ② タグ `Environment` ③ タグ `Component` ④ タグ `Bet` ⑤ タグ `PullRequest`(dev だけ)で。月末の見込み(`get-cost-forecast`)。呼ぶのは1アカウントにつき 6回まで(1回 $0.01)
 - `github-actions.json`: 今月のワークフローごとの実行の数と分数(実行の `run_started_at` から `updated_at`)。非公開のリポジトリなら、枠と使った分(`settings/billing/actions`)から金額の見込み
-- `anthropic.json`: 管理用の鍵(`ANTHROPIC_ADMIN_KEY`)があるときだけ、今月の使用の金額(Cost Report の API。日ごと・説明ごと)。無ければ `ok: false`(「鍵が無い」)
 - `saas.json`: `docs/cost/saas.yaml` の月額(手で書く。`{ name, what, monthly_jpy, bet?, since, until? }`)
 - `estimates.json`: `docs/cost/estimates.yaml`(段階 `stage` と区分ごとの見積もりの下と上。元は `docs/concepts/stages.md` の 4.)
 - 金額は円とドルの両方を持つ。換算は `docs/cost/estimates.yaml` の `usd_jpy`(既定 150。stages.md と同じ)。金額の計算は小数を使わず、セント・円の整数にしてから(`packages/shared` の `money.ts` の考え方。スクリプトなので同じ考えを中で行う)
@@ -153,7 +151,7 @@ controls: [A.5.1, …]     # 当たる管理策(1件以上・実在)
 | `pnpm compliance` | 2. の形・根拠と相対リンクの実在・台帳と規程が指す管理策と証跡の実在・SoA の古さ | 問題があれば 1 |
 | `pnpm compliance --write` | SoA を作り直す(その後で上を確かめる) | 同上 |
 | `pnpm checkup --area compliance [--json]` | 認証の準備の項目だけを確かめて出す(`compliance: false` でも)。Issue は書かない | 台帳の書き方が違えば 1 |
-| `pnpm cost --out <dir> [--account stg] [--only aws,github,anthropic,saas]`(②) | 費用を集めてフォルダに書く | 読めない物があっても 0 |
+| `pnpm cost --out <dir> [--account stg] [--only github,saas]`(②) | 費用を集めてフォルダに書く | 読めない物があっても 0 |
 | `pnpm cost --render <dir>`(②) | フォルダの JSON から `summary.json` と `index.html` を作る | 0 |
 
 確かめ方(`scripts/checkup/checks/`。①): `evidence-collected`(`evidence.yml` が35日のうちに成功)・`policies-adopted`(規程が全部、制定日があり「要記入」が無い)・`policies-review`(`next_review` を過ぎた規程が無い)。
@@ -170,7 +168,7 @@ controls: [A.5.1, …]     # 当たる管理策(1件以上・実在)
 - GitHub(読むだけ): `gh api`。`CHECKUP_TOKEN`(読むだけの細かい権限)があれば、それで読む(`readEnv`)。無ければジョブのトークン(読めない所は目録に)
 - AWS(①): `aws-actions/configure-aws-credentials` で役割 `…-evidence`(prod。`ref:refs/heads/main` だけ)。`aws s3 cp --recursive` で置く(AWS CLI v2 は既定でチェックサムを付けるので、Object Lock の置き場の条件を満たす)
 - AWS(②): stg・dev・prod の役割 `…-cost` を順に引き、Cost Explorer を読む。最後に prod の役割で置き場へ
-- Anthropic(②): `GET https://api.anthropic.com/v1/organizations/cost_report`(ヘッダ `x-api-key: <管理用の鍵>`・`anthropic-version`)。鍵は Environment `cost`(main だけ)の秘密。鍵が無ければ呼ばない(U-4)
+- AI(②): API では取らない(U-4 の答え)。AI の席・使用料の月額は、ほかの SaaS と同じく `docs/cost/saas.yaml`(`category: ai`)に手で書く
 - 知らせ: 失敗したら Issue(同じ題名が開いていればコメント)。費用の急な変化は Cost Anomaly Detection → SNS → Slack(②)
 
 ## 6. 業務ルール
@@ -305,12 +303,13 @@ controls: [A.5.1, …]     # 当たる管理策(1件以上・実在)
 
 | 番号 | 工程 | 種類 | 仮決め(設計した事実) | なぜそうしたか | 人が判断する問い | 状態 |
 |---|---|---|---|---|---|---|
-| U-1 | 設計 | 戻せないリスク | 証跡の置き場の Object Lock は GOVERNANCE・3年(変数 `evidence_lock_mode`・`evidence_retention_years`) | 審査は直近の3年を見ることが多い。COMPLIANCE は誤って入れた物(人の名前など)も3年は誰も消せず、期間を縮められない。GOVERNANCE なら特別な権限の人だけが消せる道が残る(バックアップの保管庫は COMPLIANCE にしている) | 証跡の置き場を GOVERNANCE(特別な権限の人なら消せる)と COMPLIANCE(期間の間は誰も消せない)のどちらにし、何年残すか | 仮決め |
-| U-2 | 要求 | 事業判断 | 台帳の `compliance` はキットの既定で false(認証の準備の項目は毎週の点検に出ず、`/compliance-check` からだけ見られる) | 認証を目指すかはプロダクトごとに違う。目指さない人に毎週の問いを増やさない | 既定は「毎週の点検に出さない(false)」でよいか(使う人は導入時に決める) | 仮決め |
-| U-3 | 要求 | 事業判断 | SoA の適用・除外はキットの既定で「事務所の設備を持たない」前提(A.7 の 14件のうち 10件と A.8.23 を除外) | 少人数・クラウドだけ・家で仕事をする始め方に合わせた。事務所を持つなら適用にする(README の 3.) | 既定の範囲(事務所なし)でよいか(使う人は導入時に決める) | 仮決め |
-| U-4 | 設計 | 戻せないリスク | (②)AI の費用は、Anthropic の管理用の鍵(`ANTHROPIC_ADMIN_KEY`)を Environment `cost`(main だけ)の秘密に入れたときだけ取る。既定は入れない | 管理用の鍵は使用量を読むだけでなく、組織の人と鍵を作り・消せる強い鍵。漏れると組織ごと取られる。入れなければページの AI の欄は「鍵が無い」になり、台帳の手書き(saas.yaml)で代える | 管理用の鍵を GitHub に置いて AI の費用を自動で取るか、置かずに月額を手で書くか | 仮決め |
+| U-1 | 設計 | 戻せないリスク | 証跡の置き場の Object Lock は GOVERNANCE・3年(変数 `evidence_lock_mode`・`evidence_retention_years`) | 審査は直近の3年を見ることが多い。COMPLIANCE は誤って入れた物(人の名前など)も3年は誰も消せず、期間を縮められない。GOVERNANCE なら特別な権限の人だけが消せる道が残る(バックアップの保管庫は COMPLIANCE にしている) | 証跡の置き場を GOVERNANCE(特別な権限の人なら消せる)と COMPLIANCE(期間の間は誰も消せない)のどちらにし、何年残すか | 導入時に決める(キットの既定は @attumkwg 2026-10-25 に承認。会話で回答) |
+| U-2 | 要求 | 事業判断 | 台帳の `compliance` はキットの既定で false(認証の準備の項目は毎週の点検に出ず、`/compliance-check` からだけ見られる) | 認証を目指すかはプロダクトごとに違う。目指さない人に毎週の問いを増やさない | 既定は「毎週の点検に出さない(false)」でよいか(使う人は導入時に決める) | 導入時に決める(キットの既定は @attumkwg 2026-10-25 に承認。会話で回答) |
+| U-3 | 要求 | 事業判断 | SoA の適用・除外はキットの既定で「事務所の設備を持たない」前提(A.7 の 14件のうち 10件と A.8.23 を除外) | 少人数・クラウドだけ・家で仕事をする始め方に合わせた。事務所を持つなら適用にする(README の 3.) | 既定の範囲(事務所なし)でよいか(使う人は導入時に決める) | 導入時に決める(キットの既定は @attumkwg 2026-10-25 に承認。会話で回答) |
+| U-4 | 設計 | 戻せないリスク | (②)AI の費用は、Anthropic の管理用の鍵(`ANTHROPIC_ADMIN_KEY`)を Environment `cost`(main だけ)の秘密に入れたときだけ取る。既定は入れない | 管理用の鍵は使用量を読むだけでなく、組織の人と鍵を作り・消せる強い鍵。漏れると組織ごと取られる。入れなければページの AI の欄は「鍵が無い」になり、台帳の手書き(saas.yaml)で代える | 管理用の鍵を GitHub に置いて AI の費用を自動で取るか、置かずに月額を手で書くか | 変更(@attumkwg 2026-10-25: AI の費用を Anthropic の管理用の鍵で自動で取る仕組みは入れない。発生していない費用のために強い鍵を置かない。AI の席などの月額が要る人は saas.yaml に手で書く) |
 
 ## 13. 作り直しの記録
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | U-4 が変更(AI の費用を API で自動で取らない) | 設計 | 2.・5.・未確定事項 | 仕様の受け入れ条件・② の `scripts/cost`(Anthropic の集め先を外す)・`cost.yml`(Environment `cost` と管理用の鍵を外し、役割は main からだけ)・`.github/setup.yml`・手引き |

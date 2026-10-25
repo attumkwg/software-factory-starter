@@ -270,6 +270,16 @@ module "security_baseline" {
   findings_topic_arn = module.alerts.topic_arn
 }
 
+# 管理操作の記録(CloudTrail → ロックした S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
+module "audit_trail" {
+  source          = "../../modules/audit-trail"
+  name            = local.name
+  alarm_topic_arn = module.alerts.topic_arn
+  # prod と同じ形(governance・400日)。手順の練習に使う
+  lock_mode      = "governance"
+  retention_days = 400
+}
+
 # ── 見張りと知らせ(アラーム → SNS → Slack)。docs/guides/monitoring.md ────────────────────
 
 module "alerts" {

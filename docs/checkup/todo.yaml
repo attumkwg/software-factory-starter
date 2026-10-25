@@ -902,8 +902,8 @@ items:
     every: yearly
     verify: manual
     steps:
-      - 委託先の一覧(docs/compliance/policies/vendors.md の 1.)を開く
-      - 1件ずつ、第三者の報告書の新しい版・事故の公表・規約とデータの場所の変更を確かめ、最後に見直した日を書く
+      - 委託先の台帳(docs/compliance/vendors.yaml)と、業務委託の一覧(docs/compliance/policies/vendors.md の 1.)を開く
+      - 1件ずつ、第三者の認証の新しい版・事故の公表・約款とデータの場所の変更を確かめ、checked_on(確かめた日)を直す(pnpm vendors --write)
       - 使っていない委託先は、vendors.md の 5. の手順でやめる
     severity: normal
     controls: [ A.5.19, A.5.20, A.5.22, A.5.23 ]

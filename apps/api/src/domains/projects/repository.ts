@@ -76,19 +76,38 @@ export async function findProjectOwner(
   return row ?? null;
 }
 
-/** データの書き出し(docs/specs/0005-offboarding.md)。自社のプロジェクトを全部(作った人も) */
-export async function exportProjects(
+/**
+ * データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。自社のプロジェクトを
+ * 古い順に1ページずつ(作った人も)。索引 projects_tenant_id_created_at_id_idx を前から読む。
+ */
+export async function exportProjectsPage(
   s: TenantScope,
-): Promise<{ id: string; name: string; createdBy: string; createdAt: string }[]> {
+  after: string | null,
+  limit: number,
+): Promise<{
+  rows: { id: string; name: string; createdBy: string; createdAt: string }[];
+  nextCursor: string | null;
+}> {
+  const cursor = after ? decodeCursor(after) : null;
   const rows = await s.tx
-    .select()
+    .select({ ...getTableColumns(projects), cursorAt: cursorTime(projects.createdAt) })
     .from(projects)
-    .where(eq(projects.tenantId, s.tenantId))
-    .orderBy(asc(projects.createdAt));
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    createdBy: r.createdBy,
-    createdAt: r.createdAt.toISOString(),
-  }));
+    .where(
+      and(
+        eq(projects.tenantId, s.tenantId),
+        beyondCursor(cursor, "asc", projects.createdAt, projects.id),
+      ),
+    )
+    .orderBy(asc(projects.createdAt), asc(projects.id))
+    .limit(limit + 1);
+  const page = toPage(rows, limit, (r) => ({ at: r.cursorAt, id: r.id }));
+  return {
+    rows: page.rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      createdBy: r.createdBy,
+      createdAt: r.createdAt.toISOString(),
+    })),
+    nextCursor: page.nextCursor,
+  };
 }

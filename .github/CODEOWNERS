@@ -13,13 +13,14 @@
 /apps/api/src/db/                   @attumkwg
 /docs/authz/                        @attumkwg
 
-# ── 危険度「高」: 個人情報(列の分類表は src/db/ の中)・ログの部品 ──
+# ── 危険度「高」: 個人情報(列の分類表は src/db/ の中)・ログの部品・委託先の台帳 ──
 /apps/api/test/unit/classification.test.ts @attumkwg
 /apps/api/src/logger.ts             @attumkwg
 /packages/error-reporting/          @attumkwg
 /packages/logging/                  @attumkwg
 /apps/web/server/logger.ts          @attumkwg
 /apps/api/test/integration/personal-data-logs.int.test.ts @attumkwg
+/docs/compliance/vendors.yaml       @attumkwg
 
 # ── 危険度「高」: DB の移行 ──
 /apps/api/drizzle/                  @attumkwg

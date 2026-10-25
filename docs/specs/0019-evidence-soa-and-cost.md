@@ -42,7 +42,7 @@
 
 ### コストのダッシュボード(②)
 
-- [ ] 毎日、ワークフロー `cost.yml` が、AWS(Cost Explorer。環境ごと・AWS のサービスごと・賭けのタグ・PR ごとの環境)・GitHub Actions(ワークフローごとの分数)・AI(Anthropic の使用量。管理用の鍵があるときだけ)・そのほかの SaaS(台帳に手で書いた月額)を、1つの JSON に集める
+- [ ] 毎日、ワークフロー `cost.yml` が、AWS(Cost Explorer。環境ごと・AWS のサービスごと・賭けのタグ・PR ごとの環境)・GitHub Actions(ワークフローごとの分数)・そのほかの SaaS と AI の席など(台帳に手で書いた月額。AI の使用量を API で自動で取ることはしない — 持ち主の答え 2026-10-25)を、1つの JSON に集める
 - [ ] 集めた JSON から、静的な HTML のページ(1枚)を作る。今月の合計・月末の見込み・見積もり(段階の表)と実績・何にいくら(動いている物ごと)・過去の月の並び、が見える
 - [ ] ページと JSON は、使う側の**非公開の置き場**(AWS の S3)にだけ置く。公開のリポジトリ・公開の成果物・GitHub Pages には出さない。Actions の成果物にも、リポジトリが非公開のときだけ置く
 - [ ] Terraform: 全部のリソースに既定のタグ(`Project`・`Environment`・`ManagedBy`・`Repository`・`Bet`)が付く。動いている物(api・web・mail・DB など)には `Component` が付く。コスト配分タグの有効化・費用の急な変化の見張り(Cost Anomaly Detection)を足す。予算(AWS Budgets)は今のまま

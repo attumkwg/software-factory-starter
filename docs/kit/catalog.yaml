@@ -728,6 +728,32 @@ parts:
         - { file: infra/terraform/envs/prod/main.tf, module: security_baseline }
       docs: [docs/security.md]
 
+  - id: audit-trail
+    name: 管理操作の記録(CloudTrail)
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: AWS の操作(誰が・いつ・どの API)を、ロックした S3(400日)と CloudWatch Logs に残し、root の利用・記録を止める操作・記録を消す操作で鳴らす
+    needed_by: AWS に出すすべて(事故のあとに「誰が何をしたか」を出す)
+    not_needed_by: まだ AWS に出していない
+    if_removed: 鍵が盗まれて使われても、何をされたかが90日で消え、消されても気づかない
+    depends_on: [alarms]
+    law:
+      - ISMS 8.15(ログ取得)
+      - SOC 2 CC7.2
+    keep_when: [certification=P マーク, certification=ISMS, certification=SOC 2]
+    remove:
+      delete: [infra/terraform/modules/audit-trail, docs/runbooks/audit-trail.md]
+      terraform:
+        - { file: infra/terraform/envs/stg/main.tf, module: audit_trail }
+        - { file: infra/terraform/envs/prod/main.tf, module: audit_trail }
+      edit:
+        - { path: infra/terraform/envs/stg/outputs.tf, what: audit_trail_ の出力を外す }
+        - { path: infra/terraform/envs/prod/outputs.tf, what: 同上 }
+        - { path: docs/compliance/README.md, what: 管理操作の記録の行を外す }
+      docs: [docs/security.md]
+
   # ── 表側(画面)─────────────────────────────────────────────────────────
   - id: web
     name: 画面(SSR)とデザインシステム
@@ -857,6 +883,37 @@ parts:
         - { path: docs/runbooks/tenant-data-leak.md, what: 同上 }
         - { path: docs/runbooks/secret-leak.md, what: 同上 }
 
+  - id: vendor-ledger
+    name: 委託先の台帳と、AI に渡すデータの決まり
+    group: personal
+    status: あり
+    removable: true
+    default: 残す
+    what: 外の会社ごとに預け方・国・渡す区分・契約・認証・消え方を台帳に書き、コード(SDK・AWS のサービス・Actions)と CI で照らす。AI の会社には ID と集計まで(docs/security.md の AI-6)
+    needed_by: 個人情報を扱うすべて(委託先の監督)・認証を取る予定がある
+    not_needed_by: 個人情報をまったく扱わない(まれ)
+    if_removed: SDK や AWS のサービスを足しても、どこに何を預けたかが分からない。AI の会社に個人データが渡っても機械では止まらない
+    depends_on: [column-classification]
+    law:
+      - 個人情報保護法 25条(委託先の監督)・28条(外国にある第三者への提供)
+      - ISMS 5.19〜5.23(供給者関係・クラウドサービス)
+      - P マーク(委託先の監督)
+    keep_when: [certification=P マーク, certification=ISMS, certification=SOC 2]
+    remove:
+      delete:
+        - docs/compliance/vendors.yaml
+        - docs/compliance/vendors.md
+        - scripts/vendors.mjs
+        - scripts/vendors-lib.mjs
+        - scripts/vendors-render.mjs
+        - scripts/vendors.test.mjs
+      edit:
+        - { path: .github/workflows/ci.yml, what: pnpm vendors の段を外す }
+        - { path: package.json, what: vendors と test:scripts の vendors.test.mjs を外す }
+        - { path: .claude/hooks/protected-paths.json, what: docs/compliance/vendors.yaml を外す(settings.json・labeler.yml・CODEOWNERS も。pnpm guards) }
+        - { path: docs/compliance/README.md, what: 台帳の行を外す(AI に渡すデータの決まり ai-data.md は残す) }
+      docs: [docs/security.md, docs/compliance/ai-data.md]
+
   - id: sensitive-isolation
     name: 要配慮個人情報を分けて置く
     group: personal
@@ -954,7 +1011,7 @@ parts:
     status: あり
     removable: true
     default: 消す
-    what: 毎月の証跡を消せない S3 に集める(evidence.yml)・附属書 A の93の管理策と適用宣言書(SoA)の生成・規程と様式のひな形・期限の来た規程の見直し・教育・内部監査を1問ずつ聞く /compliance-check
+    what: 毎月の証跡を消せない S3 に集める(evidence.yml)・附属書 A の93の管理策と適用宣言書(SoA)の生成・規程と様式のひな形・期限の来た規程の見直し・教育・内部監査を1問ずつ聞く /compliance-check。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md
     needed_by: 認証を取る予定がある・お客さまの審査(セキュリティの質問票)に記録で答えたい
     not_needed_by: 予定なし
     if_removed: 審査の前に、その時点の設定をスクショで集め直す。規程を毎回ゼロから書き、見直し・教育・内部監査の記録が残らない
@@ -965,7 +1022,10 @@ parts:
       - SOC 2
     remove:
       delete:
-        - docs/compliance
+        - docs/compliance/controls.yaml
+        - docs/compliance/soa.md
+        - docs/compliance/policies
+        - docs/compliance/records
         - scripts/compliance
         - scripts/evidence
         - .github/workflows/evidence.yml
@@ -984,6 +1044,7 @@ parts:
         - { path: infra/terraform/envs/prod/variables.tf, what: evidence_lock_mode・evidence_retention_years を外す }
         - { path: infra/terraform/envs/prod/outputs.tf, what: evidence_bucket を外す }
         - { path: .claude/hooks/protected-paths.json, what: scripts/evidence/** を外す(.claude/settings.json・.github/labeler.yml・.github/CODEOWNERS も) }
+        - { path: docs/compliance/README.md, what: 1. の controls.yaml・soa.md・policies・records・点検の台帳・毎月の証跡の行と、4.〜7. を外す(委託先の台帳・AI に渡すデータ・管理操作の記録は vendor-ledger の物なので残す) }
         - { path: CLAUDE.md, what: 認証の準備の行を外す }
         - { path: docs/guides/automation.md, what: evidence.yml の行を外す }
       docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md]

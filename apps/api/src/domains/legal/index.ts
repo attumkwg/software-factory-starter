@@ -4,7 +4,7 @@ export { addNotices, countUnnotified, type LegalRef, noticeProblem } from "./not
 export {
   type ConsentSource,
   capacityOf,
-  exportLegalConsents,
+  exportLegalConsentsPage,
   findAcceptedVersions,
   recordConsents,
 } from "./repository.ts";

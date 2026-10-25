@@ -211,6 +211,17 @@ module "security_baseline" {
   findings_topic_arn = module.alerts.topic_arn
 }
 
+# 管理操作の記録(CloudTrail → ロックした S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
+module "audit_trail" {
+  source          = "../../modules/audit-trail"
+  name            = local.name
+  alarm_topic_arn = module.alerts.topic_arn
+  # governance: 外す権限(s3:BypassGovernanceRetention)はバケットの方針で全員に拒否。消す・方針を変えると鳴る。
+  # 誰にも消せなくするなら "compliance"(取り消せない。docs/runbooks/audit-trail.md の 2・設計書 0017 の U-2)
+  lock_mode      = "governance"
+  retention_days = 400
+}
+
 # ── 見張りと知らせ(アラーム → SNS → Slack)。docs/guides/monitoring.md ────────────────────
 
 module "alerts" {
