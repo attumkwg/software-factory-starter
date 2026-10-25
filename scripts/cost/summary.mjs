@@ -2,6 +2,7 @@
 // 金額は円の整数。ドルの物はセントで足してから、estimates.yaml の usd_jpy で円にする。読めなかった物は notes に出す(0円として隠さない)。
 import { centsToJpy, mergeCounts, periodOf, sum } from "./period.mjs";
 import { makePl } from "./pl.mjs";
+import { targetOf, tenantCost } from "./tenants.mjs";
 
 const AWS_ACCOUNTS = ["stg", "prod", "dev"];
 const sorted = (counts) =>
@@ -104,6 +105,23 @@ function actualNotes(actuals) {
   ];
 }
 
+/** 1社あたりの原価(按分の元 tenants.json と、本番の AWS があるときだけ。仕様 0042) */
+function tenantCostOf(entries, rate, period, people) {
+  const shares = people?.inputs?.tenants;
+  const prod = entries["aws-prod"]?.ok ? entries["aws-prod"].data : null;
+  if (!shares || !prod) return null;
+  const toJpy = (cents) => centsToJpy(cents ?? 0, rate);
+  const thisMonth = prod.months.find((m) => m.month === period.month)?.total_cents;
+  const target = targetOf({
+    shares,
+    prodMonths: prod.months,
+    prodThisMonthJpy: toJpy(thisMonth),
+    period,
+    toJpy,
+  });
+  return target ? tenantCost(shares, target) : null;
+}
+
 /** 人の時間と PL で足りない物(0円として隠さない) */
 const peopleNotes = (inputs, prs) => [
   ...(prs?.ok ? [] : [noteOf("人の時間(PR からの目安)", prs)]),
@@ -116,6 +134,9 @@ const peopleNotes = (inputs, prs) => [
   ...(inputs.time ? [] : ["人の時間の手入力: 無い(cost/inputs/time.csv)。自動の目安だけ"]),
   ...(inputs.revenue ? [] : ["売上: 無い(cost/inputs/revenue.csv)"]),
   ...actualNotes(inputs.actuals),
+  ...(inputs.tenants
+    ? []
+    : ["1社あたりの原価: 按分の元が無い(cost/inputs/tenants.json。API の tenant-shares)"]),
 ];
 
 const noteOf = (name, e) => (e ? `${name}: 読めなかった(${e.reason})` : `${name}: 集めていない`);
@@ -152,10 +173,16 @@ export function makeSummary(entries, { today, generatedAt, people }) {
       .map(([k, name]) => noteOf(name, entries[k])),
   ];
   const pl = plOf(entries, parts, people);
+  const tenant_cost = tenantCostOf(entries, rate, period, people);
   if (people) notes.push(...peopleNotes(people.inputs, entries["people-prs"]));
+  if (people?.inputs.tenants && !tenant_cost)
+    notes.push(
+      `1社あたりの原価: 按分の元の月(${people.inputs.tenants.month})の本番の AWS が読めなかった`,
+    );
   return {
     month: period.month,
     pl,
+    tenant_cost,
     today,
     day: period.day,
     days_in_month: period.daysInMonth,

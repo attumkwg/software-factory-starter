@@ -86,6 +86,7 @@ test("入力: CSV と JSON を読み、今月の分だけ・無い物は null", 
     time: null,
     revenue: null,
     actuals: null,
+    tenants: null,
   });
   assert.deepEqual(parseCsv("a,b\n1,2\n"), [{ a: "1", b: "2" }]);
 });
