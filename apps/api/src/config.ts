@@ -47,6 +47,9 @@ const EnvObject = z.object({
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
   // アウトボックスの送り出しを、この API のプロセスで回すか(ADR 0006)。別のサービスに分けたら off に
   OUTBOX_RELAY: z.enum(["on", "off"]).default("on"),
+  // 公開の LP(apps/site)の URL(docs/specs/0025-public-landing-page.md)。事前登録の CORS の相手・確認のメールのリンクの頭。
+  // 無ければ公開の入口(/api/public/*)は全部 404(運営の組織 SUPPORT_TENANT_ID も要る)
+  PUBLIC_SITE_URL: z.url().optional(),
   // 運営の組織(社員が代理ログインに使う。docs/specs/0004-support-access.md)。無ければ代理ログインは使えない
   SUPPORT_TENANT_ID: z.uuid().optional(),
   // 失敗を Sentry に送る先(docs/guides/monitoring.md)。無ければ送らない
@@ -77,6 +80,7 @@ function envIssues(env: Env): Issue[] {
     ...cognitoIssues(env),
     ...sessionIssues(env),
     ...sensitiveIssues(env),
+    ...urlIssues("PUBLIC_SITE_URL", env.PUBLIC_SITE_URL, LOCAL_ONLY.has(env.APP_ENV)),
   ];
 }
 
@@ -234,6 +238,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
     supportTenantId: e.SUPPORT_TENANT_ID ?? null,
+    publicSite: e.PUBLIC_SITE_URL
+      ? { url: e.PUBLIC_SITE_URL, origin: new URL(e.PUBLIC_SITE_URL).origin }
+      : null,
     sentry: {
       dsn: e.SENTRY_DSN,
       release: e.SENTRY_RELEASE,
