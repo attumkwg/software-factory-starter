@@ -33,7 +33,7 @@
 | 相手 | 渡すもの | 受け取るもの |
 |---|---|---|
 | organizations | — | 運営の組織(外部キー) |
-| 組織を作るコマンド(G-01 の `create-tenant`) | 確認済みの登録(`loadPreRegistrationForTenant` → 組織の名前の案・最初の管理者のメールアドレス) | 作った組織の ID(`markPreRegistrationConverted`) |
+| 組織を作るコマンド(`create-tenant --from-pre-registration <ID>`。手順は `docs/runbooks/tenant-provisioning.md` の「事前登録から」) | 確認済みの登録(`loadPreRegistrationForTenant` → 組織の名前の案・最初の管理者のメールアドレス) | 作った組織の ID(`markPreRegistrationConverted`) |
 | アウトボックス・メール | 出来事 `growth.pre_registration_received`(登録の ID だけ) | — |
 
 ## 関係するファイル

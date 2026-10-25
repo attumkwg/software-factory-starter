@@ -1,7 +1,13 @@
-import { createDb } from "./db/client.ts";
+import { createDb, type RootDb } from "./db/client.ts";
+import { withTenant } from "./db/tenant.ts";
+import {
+  loadPreRegistrationForTenant,
+  markPreRegistrationConverted,
+} from "./domains/growth/index.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
+import { withPreRegistration } from "./onboarding/from-pre-registration.ts";
 import { planPersonData } from "./person-data/plan-person-data.ts";
 
 // 組織を作る・1人分を数える・組織を消す、の運営のコマンド(cli.ts から呼ぶ。手順は docs/runbooks/)。
@@ -13,32 +19,41 @@ const migrationUrl = process.env.MIGRATION_DATABASE_URL;
 
 /**
  * 申し込みを受けた組織を作る。--execute が無ければ、流してから取り消す(試し)。結果は JSON 1行(名前・メールは出さない)。
- * 申し込みは置き場(S3)から読む。引数はキーだけ(CloudTrail に名前・メールを残さない)
+ * 申し込みは置き場(S3)から読む。引数はキーだけ(CloudTrail に名前・メールを残さない)。
+ * --from-pre-registration <事前登録の ID> … 公開の LP で本人が確認した事前登録から、組織の名前と最初の管理者のメールを
+ * 埋める(docs/designs/0025-public-landing-page.md の 5)。作ったら事前登録を converted にする(運営の組織の監査ログに残る)
  */
 export async function createTenantCommand(args: string[]) {
   const [key, ...flags] = args;
   if (!key) throw new Error("置き場のキーがありません: create-tenant applications/<申込番号>.json");
-  const source = applicationSourceFor({ appEnv, bucket: process.env.APPLICATIONS_BUCKET });
-  const { application, ignoredKeys } = parseTenantApplication(await source.read(key));
   const execute = flags.includes("--execute");
-  const nameAt = flags.indexOf("--confirm-name");
-  const confirmName = nameAt >= 0 ? flags[nameAt + 1] : undefined;
+  const confirmName = flagValue(flags, "--confirm-name");
+  const preRegistrationId = flagValue(flags, "--from-pre-registration");
   if (execute && !confirmName)
     throw new Error("--execute には --confirm-name <組織の名前> が要ります");
+  const supportTenantId = process.env.SUPPORT_TENANT_ID || null;
+  const source = applicationSourceFor({ appEnv, bucket: process.env.APPLICATIONS_BUCKET });
+  const json = await source.read(key);
   const { db, pool } = createDb(migrationUrl);
   try {
-    const created = await createTenant(db, application, {
-      execute,
-      confirmName,
-      supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
-    });
+    const { application, ignoredKeys } = preRegistrationId
+      ? parseTenantApplication(
+          await fillFromPreRegistration(db, supportTenantId, preRegistrationId, json),
+        )
+      : parseTenantApplication(json);
+    const created = await createTenant(db, application, { execute, confirmName, supportTenantId });
+    if (execute && preRegistrationId && supportTenantId) {
+      await linkPreRegistration(db, supportTenantId, preRegistrationId, created.tenantId);
+    }
+    const from = preRegistrationId ? { preRegistrationId } : {};
     const line = execute
-      ? { mode: "created", ...created, ignoredKeys }
+      ? { mode: "created", ...created, ...from, ignoredKeys }
       : {
           mode: "plan",
           timeZone: created.timeZone,
           mfaRequired: created.mfaRequired,
           adminOtherMemberships: created.adminOtherMemberships,
+          ...from,
           ignoredKeys,
         };
     process.stdout.write(`${JSON.stringify(line)}\n`);
@@ -49,6 +64,58 @@ export async function createTenantCommand(args: string[]) {
     }
   } finally {
     await pool.end();
+  }
+}
+
+function flagValue(flags: string[], name: string): string | undefined {
+  const at = flags.indexOf(name);
+  return at >= 0 ? flags[at + 1] : undefined;
+}
+
+/** 確認済みの事前登録(運営の組織の持ち物)の名前とメールで、申込書を埋めた JSON を返す */
+async function fillFromPreRegistration(
+  db: RootDb,
+  supportTenantId: string | null,
+  id: string,
+  json: string,
+): Promise<string> {
+  if (!supportTenantId) {
+    throw new Error("事前登録は運営の組織の持ち物です。SUPPORT_TENANT_ID を入れてください");
+  }
+  const pre = await withTenant(db, supportTenantId, (tx) =>
+    loadPreRegistrationForTenant(tx, supportTenantId, id),
+  );
+  if (!pre) {
+    throw new Error(
+      `確認済みの事前登録がありません: ${id}(確認待ち・もう組織にした・消えた、のどれか。何も作っていません)`,
+    );
+  }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(json);
+  } catch {
+    throw new Error("申し込みが JSON として読めません(置き場のファイルを確かめてください)");
+  }
+  return JSON.stringify(withPreRegistration(raw, pre));
+}
+
+/**
+ * 作った組織に事前登録をつなぐ(converted)。組織を作ったのとは別のトランザクション(運営の組織の文脈)。
+ * 失敗しても組織は残るので、ID だけを言って止める(流し直しは手順書 tenant-provisioning.md)
+ */
+async function linkPreRegistration(
+  db: RootDb,
+  supportTenantId: string,
+  id: string,
+  tenantId: string,
+) {
+  const linked = await withTenant(db, supportTenantId, (tx) =>
+    markPreRegistrationConverted(tx, supportTenantId, id, tenantId),
+  );
+  if (!linked) {
+    throw new Error(
+      `組織は作りました(${tenantId})が、事前登録 ${id} はほかの組織につながっていました。手順書の「事前登録から」の 4 を見てください`,
+    );
   }
 }
 

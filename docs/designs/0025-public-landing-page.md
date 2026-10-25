@@ -128,6 +128,7 @@ flowchart LR
 - **組織を作るコマンド(G-01 の `create-tenant`)へのつなぎ**: G-01 のファイルは触らない。つなぐ形だけ決める。
   - `growth` 領域が読むための関数を1つ出す: `loadPreRegistrationForTenant(tx, id)` → `{ preRegistrationId, organizationName, adminEmail }`。`status` が `confirmed` でなければ失敗(`pending` は本人の確認が無い・`converted` は二重)。
   - G-01 のコマンドに `--from-pre-registration <id>` を足してもらう(G-01 の側の PR)。組織の名前と最初の管理者のメールアドレスを、この関数の値で埋める(コマンドの試しの表示に出し、人が確かめてから実行)。
+    - 実装(`apps/api/src/tenant-commands.ts`・`onboarding/from-pre-registration.ts`): ほかの項目(管理者の名前・時間帯・プラン)は今までどおり申込書から。申込書にも名前・メールがあって事前登録と違えば止める(項目の名前だけを言う)。試しの表示には名前・メールを出さない(ID だけ。`--confirm-name` は申込書から読み上げる)。手順は `docs/runbooks/tenant-provisioning.md` の「事前登録から」。
   - 組織を作ったら `markPreRegistrationConverted(tx, operatorTenantId, id, tenantId)` を呼び、`converted` にする。組織を作るのは新しい組織の文脈・事前登録は運営の組織の文脈なので、**別のトランザクション**になる。作った後に失敗しても流し直せるよう、同じ組織で2回呼んでも true(別の組織なら false)。
   - 事前登録の同意は「案内と招待」まで。**利用規約への同意は、招待された最初の管理者が登録の画面で取る**(`legal.consents`。いまの流れのまま)。
 - **公開のページの置き場所**: 試作と同じ形の S3(非公開)+CloudFront(OAC)。違いは、合言葉の関数を付けない・本番では `X-Robots-Tag` を付けない・独自のドメイン(`www.<ドメイン>`)。Terraform は新しいモジュール(例 `modules/public-site`)。種類は試作で台帳に載っている CloudFront・S3 と同じなので、台帳は行の確認だけ。

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, inject, it, vi } from "vitest";
 import { createDb } from "../../src/db/client.ts";
+import { withTenant } from "../../src/db/tenant.ts";
 import { createTenantFixture, type TenantFixture } from "../helpers/fixtures.ts";
 
 // 運営のコマンド(src/tenant-commands.ts。cli.ts の create-tenant・person-data・delete-tenant)の入口。
@@ -100,6 +101,120 @@ describe("create-tenant", () => {
     const line = firstJson(done);
     expect(line).toMatchObject({ mode: "created", adminOtherMemberships: 1 });
     expect(typeof line.tenantId).toBe("string");
+  });
+});
+
+// ── 事前登録から(設計書 0025 の 5)の道具 ──
+
+/** 運営の組織に、確認済み(か指定の状態)の事前登録を1件足す */
+async function preRegistration(opsId: string, status = "confirmed") {
+  n += 1;
+  const email = `lead-${n}-${Date.now()}@lead.test`;
+  const organizationName = `事前登録の会社 ${n}-${Date.now()}`;
+  const r = await withTenant(owner.db, opsId, (tx) =>
+    tx.execute<{ id: string }>(sql`
+      insert into growth.pre_registrations
+        (id, tenant_id, email, organization_name, consent_text_version, status, confirmed_at, delete_after)
+      values (gen_random_uuid(), ${opsId}, ${email}, ${organizationName}, 1, ${status}, now(), current_date + 365)
+      returning id`),
+  );
+  return { id: r.rows[0]?.id ?? "", email, organizationName };
+}
+
+async function rowOf(opsId: string, id: string) {
+  const r = await withTenant(owner.db, opsId, (tx) =>
+    tx.execute<{ status: string; converted_tenant_id: string | null }>(
+      sql`select status, converted_tenant_id from growth.pre_registrations where id = ${id}`,
+    ),
+  );
+  return r.rows[0];
+}
+
+/** 管理者の名前だけの申込書(名前・メールは事前登録から埋める) */
+async function bareApplication(extra: Record<string, unknown> = {}) {
+  n += 1;
+  const path = join(dir, `bare-${n}.json`);
+  await writeFile(path, JSON.stringify({ admin: { name: "事前 太郎" }, ...extra }));
+  return path;
+}
+
+describe("create-tenant --from-pre-registration(事前登録から。設計書 0025 の 5)", () => {
+  it("運営の組織(SUPPORT_TENANT_ID)が無いと止まる", async () => {
+    const pre = { id: "0190a000-0000-7000-8000-000000000000" };
+    await expect(
+      commands.createTenantCommand([await bareApplication(), "--from-pre-registration", pre.id]),
+    ).rejects.toThrow("SUPPORT_TENANT_ID");
+  });
+
+  it("試しは何も変えず、本番で事前登録の名前とメールで組織を作り、事前登録を converted にする", async () => {
+    const ops = await createTenantFixture(owner.db, "cmd-ops");
+    vi.stubEnv("SUPPORT_TENANT_ID", ops.tenantId);
+    try {
+      const pre = await preRegistration(ops.tenantId);
+      const path = await bareApplication();
+      const plan = await run(commands.createTenantCommand, [
+        path,
+        "--from-pre-registration",
+        pre.id,
+      ]);
+      expect(firstJson(plan)).toMatchObject({ mode: "plan", preRegistrationId: pre.id });
+      expect(plan.join("\n")).not.toContain(pre.email);
+      expect(plan.join("\n")).not.toContain(pre.organizationName);
+      expect(await rowOf(ops.tenantId, pre.id)).toMatchObject({ status: "confirmed" });
+
+      const done = await run(commands.createTenantCommand, [
+        path,
+        "--from-pre-registration",
+        pre.id,
+        "--execute",
+        "--confirm-name",
+        pre.organizationName,
+      ]);
+      const line = firstJson(done);
+      expect(line).toMatchObject({ mode: "created", preRegistrationId: pre.id });
+      expect(await tenantName(String(line.tenantId))).toBe(pre.organizationName);
+      const admin = await owner.db.execute<{ email: string }>(
+        sql`select email from organizations.users where tenant_id = ${String(line.tenantId)}`,
+      );
+      expect(admin.rows.map((r) => r.email)).toEqual([pre.email]);
+      expect(await rowOf(ops.tenantId, pre.id)).toEqual({
+        status: "converted",
+        converted_tenant_id: line.tenantId,
+      });
+
+      // もう組織にした登録からは、もう一度は作れない
+      await expect(
+        commands.createTenantCommand([path, "--from-pre-registration", pre.id]),
+      ).rejects.toThrow("確認済みの事前登録がありません");
+    } finally {
+      vi.stubEnv("SUPPORT_TENANT_ID", "");
+    }
+  });
+
+  it("確認待ちの登録・申込書と名前やメールが違う登録からは作らない(値は言わない)", async () => {
+    const ops = await createTenantFixture(owner.db, "cmd-ops2");
+    vi.stubEnv("SUPPORT_TENANT_ID", ops.tenantId);
+    try {
+      const pending = await preRegistration(ops.tenantId, "pending");
+      await expect(
+        commands.createTenantCommand([
+          await bareApplication(),
+          "--from-pre-registration",
+          pending.id,
+        ]),
+      ).rejects.toThrow("確認済みの事前登録がありません");
+
+      const pre = await preRegistration(ops.tenantId);
+      const mismatch = commands.createTenantCommand([
+        await bareApplication({ name: "別の会社", admin: { name: "x", email: "other@x.test" } }),
+        "--from-pre-registration",
+        pre.id,
+      ]);
+      await expect(mismatch).rejects.toThrow("name, admin.email");
+      expect(await rowOf(ops.tenantId, pre.id)).toMatchObject({ status: "confirmed" });
+    } finally {
+      vi.stubEnv("SUPPORT_TENANT_ID", "");
+    }
   });
 });
 

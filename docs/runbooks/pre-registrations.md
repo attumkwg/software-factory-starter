@@ -50,7 +50,7 @@ node dist/cli.js pre-registrations-report --from 2026-11-01 --to 2026-11-30
 
 ## 確認済みの登録を、本物の組織にする
 
-組織を作るコマンド(G-01 の `create-tenant`)が、事前登録の ID を受け取れるようになったら、その手順書に従う。つなぐ形:
+組織を作るコマンド `create-tenant` に `--from-pre-registration <事前登録の ID>` を足して流す。手順は [tenant-provisioning.md](tenant-provisioning.md) の「事前登録から」。つなぐ形:
 
 - `loadPreRegistrationForTenant`(`apps/api/src/domains/growth`)が、確認済みの登録から組織の名前の案と最初の管理者のメールアドレスを返す(確認待ち・組織にした登録は返さない)。
 - 組織を作った後に `markPreRegistrationConverted` で「組織にした」にする(作った組織の ID が残る・30日で消える。同じ組織で2回呼んでもよい)。
