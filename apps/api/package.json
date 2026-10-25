@@ -23,6 +23,7 @@
     "@app/logging": "workspace:*",
     "@app/shared": "workspace:*",
     "@aws-sdk/client-kms": "3.1152.0",
+    "@aws-sdk/client-s3": "3.1152.0",
     "@hono/node-server": "2.1.4",
     "@hono/zod-openapi": "1.6.3",
     "drizzle-orm": "0.45.4",

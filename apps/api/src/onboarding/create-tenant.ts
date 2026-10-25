@@ -11,8 +11,10 @@ import { enqueue } from "../outbox/index.ts";
 // 申し込みを受けた組織を作る(運営が、申込書を確かめてから。docs/specs/0026-tenant-provisioning.md・ADR 0039)。
 // 手順は docs/runbooks/tenant-provisioning.md。API は作らない(組織を増やすのは契約の後で、画面や API の鍵1本でできないようにする)。
 //
-//   node dist/cli.js create-tenant '<申し込みの JSON>'                                   … 試し(作って、最後に取り消す)
-//   node dist/cli.js create-tenant '<申し込みの JSON>' --execute --confirm-name <組織の名前> … 本当に作る
+//   node dist/cli.js create-tenant applications/<申込番号>.json                                   … 試し(作って、最後に取り消す)
+//   node dist/cli.js create-tenant applications/<申込番号>.json --execute --confirm-name <組織の名前> … 本当に作る
+//
+// 申し込みの JSON は非公開の S3(申し込みの置き場)に置き、引数はキーだけ(application-source.ts)。
 //
 // 接続は表の持ち主(移行と同じ)。FORCE RLS なので、新しい組織の文脈を付けて、その組織の行だけを書く。
 
@@ -44,7 +46,7 @@ export function parseTenantApplication(json: string): {
   try {
     raw = JSON.parse(json);
   } catch {
-    throw new Error("申し込みが JSON として読めません(1つ目の引数に JSON を渡してください)");
+    throw new Error("申し込みが JSON として読めません(置き場のファイルを確かめてください)");
   }
   const parsed = TenantApplicationSchema.safeParse(raw);
   if (!parsed.success) {

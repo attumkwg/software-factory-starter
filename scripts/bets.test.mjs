@@ -173,3 +173,48 @@ test("会計区分の案の表", () => {
   assert.match(proposalOf("retired", "撤去"), /^除却の候補/);
   assert.match(proposalOf(undefined, "作り込み"), /人が決める/);
 });
+
+// 線に届かなくても、本人の意思で次の段階へ進む(止めない。残す)
+const WILL_BASE = {
+  stage: "psf",
+  lines: [CPF_LINE],
+  ledger: [CPF_LEDGER, "| 2026-07-20 | psf | 費用 | 探索 | 未確定 |"],
+};
+const WILL_PEBBLE = "| 2026-07-20 | cpf | 話を聞いた | 1/5(撤退の線) | 意思で進む(@a) | — |";
+const willsSection = (rows) => [
+  "## 意思で進んだ判断",
+  "| 日付 | 段階 | 引き受けた危なさ | 止める線 | 期限 | 決めた人 |",
+  "|---|---|---|---|---|---|",
+  ...rows,
+];
+const checkWithWills = (spec, rows, today = TODAY) =>
+  checkBet(parseBet([betText(spec), ...willsSection(rows)].join("\n")), today);
+
+test("意思で進む: 名前と、引き受けた危なさ・止める線の行があれば通り、⚑ の数を返す", () => {
+  const row = "| 2026-07-20 | cpf | 困りごとが小さい | 試作で5人中3人 | 2026-12-01 | @a |";
+  const ok = checkWithWills({ ...WILL_BASE, pebbles: [TO_CPF, WILL_PEBBLE] }, [row]);
+  assert.deepEqual(ok.problems, []);
+  assert.equal(ok.wills, 1);
+  assert.deepEqual(ok.willsDue, []);
+  const late = checkWithWills(
+    { ...WILL_BASE, pebbles: [TO_CPF, WILL_PEBBLE] },
+    [row],
+    "2026-12-02",
+  );
+  assert.deepEqual(late.problems, []);
+  assert.equal(late.willsDue[0].due, "2026-12-01");
+});
+
+test("意思で進む: 名前が無い・残す行が無い・止める線が空なら落ちる", () => {
+  const noName = check({
+    ...WILL_BASE,
+    pebbles: [TO_CPF, "| 2026-07-20 | cpf | 話を聞いた | 1/5 | 意思で進む | — |"],
+  });
+  assert.match(noName.problems.join("\n"), /意思で進む\(@名前\)/);
+  const noRow = check({ ...WILL_BASE, pebbles: [TO_CPF, WILL_PEBBLE] });
+  assert.match(noRow.problems.join("\n"), /意思で進んだ判断/);
+  const empty = checkWithWills({ ...WILL_BASE, pebbles: [TO_CPF, WILL_PEBBLE] }, [
+    "| 2026-07-20 | cpf | 困りごとが小さい |  | 2026-12-01 | @a |",
+  ]);
+  assert.match(empty.problems.join("\n"), /止める線を書く/);
+});

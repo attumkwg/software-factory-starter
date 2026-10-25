@@ -70,3 +70,8 @@ output "cost_bucket" {
   description = "費用のページの置き場(リポジトリの変数 COST_BUCKET に入れる)"
   value       = module.cost_reports.bucket
 }
+
+output "applications_bucket" {
+  description = "申し込みの置き場(create-tenant が読む。applications/<申込番号>.json に置き、読み終えたら消す。docs/runbooks/tenant-provisioning.md)"
+  value       = module.applications.bucket
+}

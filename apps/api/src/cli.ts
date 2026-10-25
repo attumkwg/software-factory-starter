@@ -10,6 +10,7 @@ import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
+import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
@@ -18,7 +19,7 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js seed             … 種データ(local / test / preview だけ)
 //   node dist/cli.js init-roles       … 接続ユーザーを作る(使い捨ての DB だけ。SUPERUSER_DATABASE_URL)
 //   node dist/cli.js init-roles migrate seed   … プレビュー環境の起動時
-//   node dist/cli.js create-tenant '<申し込みの JSON>' [--execute --confirm-name <名前>]
+//   node dist/cli.js create-tenant <申し込みの置き場のキー> [--execute --confirm-name <名前>]
 //                                      … 申し込みを受けた組織と最初の管理者を作る(試し → 本番。docs/runbooks/tenant-provisioning.md)
 //   node dist/cli.js delete-tenant <組織の ID> [--execute --confirm-name <名前>]
 //                                      … 解約した組織を消す(試し → 本番。docs/runbooks/offboarding.md)
@@ -27,7 +28,7 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
 //   node dist/cli.js usage-report <機能> [--weeks <週の数>]
-//                                      … 利用の記録を週ごとの数にする(読むだけ。docs/runbooks/usage-records.md)
+//                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 
@@ -52,11 +53,15 @@ async function initRoles() {
   }
 }
 
-/** 申し込みを受けた組織を作る。--execute が無ければ、流してから取り消す(試し)。結果は JSON 1行(名前・メールは出さない) */
+/**
+ * 申し込みを受けた組織を作る。--execute が無ければ、流してから取り消す(試し)。結果は JSON 1行(名前・メールは出さない)。
+ * 申し込みは置き場(S3)から読む。引数はキーだけ(CloudTrail に名前・メールを残さない)
+ */
 async function createTenantCommand(args: string[]) {
-  const [json, ...flags] = args;
-  if (!json) throw new Error("申し込みがありません: create-tenant '<申し込みの JSON>'");
-  const { application, ignoredKeys } = parseTenantApplication(json);
+  const [key, ...flags] = args;
+  if (!key) throw new Error("置き場のキーがありません: create-tenant applications/<申込番号>.json");
+  const source = applicationSourceFor({ appEnv, bucket: process.env.APPLICATIONS_BUCKET });
+  const { application, ignoredKeys } = parseTenantApplication(await source.read(key));
   const execute = flags.includes("--execute");
   const nameAt = flags.indexOf("--confirm-name");
   const confirmName = nameAt >= 0 ? flags[nameAt + 1] : undefined;
