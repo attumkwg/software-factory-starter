@@ -85,6 +85,11 @@ export type CreatedTenant = {
   adminUserId: string;
   timeZone: string;
   mfaRequired: boolean;
+  /**
+   * 最初の管理者のメールが、ほかの組織に所属している数(1人が複数の組織に入れる。ADR 0066)。
+   * 1以上なら、同じ申し込みを2回流していないかを2人で確かめる(設計書 0055 の U-5)
+   */
+  adminOtherMemberships: number;
 };
 
 class DryRun extends Error {}
@@ -93,8 +98,8 @@ class DryRun extends Error {}
  * 1つのトランザクションで、組織と最初の管理者(users の行。Cognito の sub は初めてのログインで結びつく)を作り、
  * その組織の監査ログに「運営が作った」を残す。運営の組織にも同じ記録を残す(名前・メールは残さない)。
  *
- * execute が false(試し)なら、同じことを流してから取り消す。メールアドレスがほかの組織で使われているなど、
- * 本番で落ちる理由は試しでも同じに落ちる(何も残らない)。
+ * execute が false(試し)なら、同じことを流してから取り消す。本番で落ちる理由は、試しでも同じに落ちる(何も残らない)。
+ * 最初の管理者がほかの組織にも所属していれば adminOtherMemberships に数を出す(止めない)。
  */
 export async function createTenant(
   db: RootDb,
@@ -110,6 +115,7 @@ export async function createTenant(
     adminUserId: uuidv7(),
     timeZone: application.timeZone,
     mfaRequired: application.mfaRequired,
+    adminOtherMemberships: await countByEmail(db, application.admin.email),
   };
   const { tenantId, adminUserId } = created;
   try {
@@ -180,14 +186,15 @@ async function withSupportContext(tx: TenantTx, supportTenantId: string, fn: () 
   await tx.execute(sql`select set_config('app.tenant_id', ${current.rows[0]?.t ?? ""}, true)`);
 }
 
-/** 一意の制約(メールアドレス)で落ちたら、どこが重なったかだけを言う(値は出さない) */
+/** 失敗はそのまま投げる(全体の一意は無くなったので、メールの重なりでは落ちない。ADR 0066) */
 function toFriendlyError(e: unknown): unknown {
-  const cause = (e as { cause?: { code?: string; constraint?: string } }).cause ?? e;
-  const pg = cause as { code?: string; constraint?: string };
-  if (pg.code === "23505" && pg.constraint === "users_email_key") {
-    return new Error(
-      "最初の管理者のメールアドレスは、もうどこかの組織で使われています(1人 = 1組織。何も作っていません)",
-    );
-  }
   return e;
+}
+
+/** そのメールの所属の数(全部の組織で。DB の関数。表の持ち主で流す) */
+async function countByEmail(db: RootDb, email: string): Promise<number> {
+  const r = await db.execute<{ n: number }>(
+    sql`select auth_count_memberships_by_email(${email}) as n`,
+  );
+  return r.rows[0]?.n ?? 0;
 }

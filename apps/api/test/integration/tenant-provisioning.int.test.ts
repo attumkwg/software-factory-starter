@@ -87,10 +87,12 @@ describe("試し(--execute なし)", () => {
     expect(await tenantRow(done.tenantId)).toBeDefined();
   });
 
-  it("本番で落ちる理由(ほかの組織で使われているメール)は、試しでも落ちる", async () => {
-    const taken = application({ admin: { email: a.users.member.email, name: "誰か" } });
-    await expect(createTenant(owner.db, taken, opts(false))).rejects.toThrow(
-      /もうどこかの組織で使われています/,
+  it("最初の管理者がほかの組織にも所属していれば、試しに数が出る(止めない。ADR 0066)", async () => {
+    const other = application({ admin: { email: a.users.member.email, name: "誰か" } });
+    const plan = await createTenant(owner.db, other, opts(false));
+    expect(plan.adminOtherMemberships).toBe(1);
+    expect((await createTenant(owner.db, application(), opts(false))).adminOtherMemberships).toBe(
+      0,
     );
   });
 });
@@ -158,12 +160,10 @@ describe("本番(--execute --confirm-name)", () => {
     expect(other.status).toBe(404);
   });
 
-  it("同じ申し込みを2回流しても、2つ目は作らない(最初の管理者のメールが重なる)", async () => {
+  it("同じ申し込みを2回流すと、2回目の試しに「ほかの組織に所属している(1)」が出る(人の確かめで止める。設計書 0055 の U-5)", async () => {
     const app1 = application();
     await createTenant(owner.db, app1, opts(true, app1.name));
-    await expect(createTenant(owner.db, app1, opts(true, app1.name))).rejects.toThrow(
-      /もうどこかの組織で使われています/,
-    );
+    expect((await createTenant(owner.db, app1, opts(false))).adminOtherMemberships).toBe(1);
   });
 
   it("運営の組織が無い環境(SUPPORT_TENANT_ID なし)でも作れる(作った組織にだけ残る)", async () => {

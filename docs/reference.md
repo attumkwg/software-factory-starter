@@ -251,7 +251,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **招待の送り直し・人の無効化・一覧からの人の削除**: 招待は「設定」→「招待」(docs/specs/0027-invitations.md)。送り直しは取り消して招き直す。人を外すのは、いまも SQL(docs/runbooks/cognito-login.md)。
 - **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
 - **サーバー側のセッション保存**: 作らない(ADR 0017)。署名つき Cookie で、無操作1時間・ログインから最長12時間で切れる。端末を選んで切る・管理者による強制ログアウトが要るようになったら DB か Valkey に。
-- **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
+- **1つの画面で組織をまたいで見る**: 1人は複数の組織に所属できる(ADR 0066)が、セッションは1組織分だけ。横断の一覧や検索は作らない。
 - **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
 - **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。設計はある([設計書 0057](designs/0057-ai-egress.md)。人が見ていない作業は、絞った devcontainer か背景の AI でだけ回す)。作るのは段ごとの PR。

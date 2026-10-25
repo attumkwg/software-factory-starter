@@ -127,6 +127,13 @@
       "when": 1792932021799,
       "tag": "0017_multi_org_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792932644709,
+      "tag": "0018_multi_org_contract",
+      "breakpoints": true
     }
   ]
 }
