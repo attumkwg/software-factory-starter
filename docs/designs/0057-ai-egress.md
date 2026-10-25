@@ -2,7 +2,7 @@
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
 > 仕様: [docs/specs/0057-ai-egress.md](../specs/0057-ai-egress.md)・ADR: [0068](../adr/0068-ai-egress-by-where-it-runs.md)(②は [0069](../adr/0069-background-ai-runs-integration-tests.md) で置き換え)
-> 状態: 承認済み(承認した人: @attumkwg 2026-10-25。会話で回答)
+> 状態: 完了(承認した人: @attumkwg 2026-10-25。会話で回答。段1〜5 を出した)
 > 観点の順は [review-viewpoints.md](../review-viewpoints.md)。当てはまらない節も消さずに「該当なし(理由)」と書く。
 
 ## 0. 全体像
