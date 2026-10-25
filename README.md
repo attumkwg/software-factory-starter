@@ -128,7 +128,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
 
 <details>
-<summary>部品の一覧を開く(56件)</summary>
+<summary>部品の一覧を開く(57件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -158,7 +158,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 見張り | 外形監視 `uptime` | 外から本番が開けるかを Route 53 のヘルスチェックで見る | 残す | あり |
 | 見張り | 当番の決まり `on-call` | 夜中と休日に鳴ったアラームを誰が・何分で見るか(一次・予備・上げる先・15分ずつの段)、どのアラームなら起こすか(お客さんに影響がある・約束の水準を割りそう・漏えいのおそれ)、当番の間は改善だけ、SLA の連絡の時間との対応。表(名前・電話)はリポジトリの外。点検の台帳の oncall-rota が半年ごとに体制を聞く | 残す | あり |
 | 見張り | WAF `waf` | ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める) | 残す | あり |
-| 見張り | 費用のページ(何にいくら) `cost-dashboard` | AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL)と獲得のコスト(届け方ごとの広告費と営業の時間・1社を取るのにいくら)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り | 残す | あり |
+| 見張り | 費用のページ(何にいくら) `cost-dashboard` | AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL)と獲得のコスト(届け方ごとの広告費と営業の時間・1社を取るのにいくら)と1社あたりの原価(組織の大きさの帯ごと・組織の ID は出さない)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り | 残す | あり |
 | 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
 | 見張り | 管理操作の記録(CloudTrail) `audit-trail` | AWS の操作(誰が・いつ・どの API)を、ロックした S3(400日)と CloudWatch Logs に残し、root の利用・記録を止める操作・記録を消す操作で鳴らす | 残す | あり |
 | 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
@@ -174,6 +174,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 毎月の証跡を消せない S3 に集める(evidence.yml)・附属書 A の93の管理策と適用宣言書(SoA)の生成・規程と様式のひな形・期限の来た規程の見直し・教育・内部監査を1問ずつ聞く /compliance-check。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md | 消す | あり |
 | 決まりごと | 請求と決済 `billing` | 料金の計算・請求・決済の会社(Stripe など)とのつなぎ。カード情報は持たない | 消す | 未 |
 | 決まりごと | お金と時刻の計算 `money` | 金額は最小単位の整数・時刻は組織のタイムゾーン、の計算を1か所に(packages/shared の money.ts・time.ts) | 残す | あり |
+| 決まりごと | セキュリティの質問票の下書き(/security-questionnaire) `security-questionnaire` | お客さんから届いたセキュリティの質問票に、docs/security.md の決まり・適用宣言書・委託先の一覧・手順書・SLA と取り扱いの取り決めの型・点検の答えから、答えの下書きを根拠のリンクつきで作る。「はい」は根拠があり本番で有効だと確かめた物だけ。下書きはリポジトリの外・出す前に責任者が確かめる | 残す | あり |
 | 開発の道具 | PR ごとのプレビュー環境 `preview-env` | PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す | 残す | あり |
 | 開発の道具 | GitHub の上の Claude(背景エージェント) `claude-actions` | Issue と PR の @claude で、GitHub の上で Claude が作業する(いまは手動。API キーが要る) | 残す | あり |
 | 開発の道具 | 攻撃の形の検査(Schemathesis・ZAP) `dynamic-scans` | 全部の API に変な入力をロールごとに投げる・動いている画面と API を ZAP で叩く(手動) | 残す | あり |

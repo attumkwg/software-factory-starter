@@ -132,6 +132,21 @@ function plBlock(pl) {
   );
 }
 
+/** 1社あたりの原価(本番の AWS の按分。仕様 0042)。組織の名前・ID は無い */
+function tenantBlock(t) {
+  if (!t) return "";
+  const small = (b) =>
+    b.small ? ` <span class="muted">(${t.small_below}組織未満。割合が大きく揺れる)</span>` : "";
+  const rows = t.bands.map(
+    (b) =>
+      `<tr><td>${esc(b.band)}${small(b)}</td><td class="n">${b.tenants}</td><td class="n">${range(b.low, b.high)}</td></tr>`,
+  );
+  return card(
+    "1社あたりの原価(本番の AWS の按分。推定)",
+    `<p class="muted">按分の元 ${esc(t.month)}(${esc(t.bases.join("・"))}の割合の幅)・本番の AWS ${yen(t.target_jpy)}(${esc(t.target_how)})・${t.tenants_total}組織。人の時間・SaaS・stg は入れていない。固定の費用も含む平均なので、組織が増えると下がる。</p><table><thead><tr><th>組織の大きさ</th><th class="n">組織</th><th class="n">1社あたり(月)</th></tr></thead><tbody>${rows.join("")}<tr><td>全体の平均</td><td class="n">${t.tenants_total}</td><td class="n">${range(t.average.low, t.average.high)}</td></tr><tr><td>いちばん大きい組織</td><td class="n">1</td><td class="n">${range(t.largest.low, t.largest.high)}</td></tr></tbody></table>`,
+  );
+}
+
 /** 獲得のコスト(届け方ごと。仕様 0043)。個社の名前・人ごとの時間は無い */
 function acquisitionBlock(a) {
   if (!a) return "";
@@ -162,6 +177,7 @@ ${tiles(s)}
 ${card("何にいくら(動いている物ごと)", bars(s.components))}
 ${card("見積もりと実績(区分ごと。薄い帯が見積もりの幅)", bars(s.categories, { band: true }))}
 ${plBlock(s.pl)}
+${tenantBlock(s.tenant_cost)}
 ${acquisitionBlock(s.acquisition)}
 <div class="split">
 ${card("環境ごと(AWS)", table(s.environments, "環境"))}
