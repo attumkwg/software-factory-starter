@@ -19,7 +19,7 @@ export const tenantPlans = platform.table(
     plan: text("plan").notNull(),
     /** PRICE_LISTS の id(どの版の価格表で契約しているか) */
     priceList: text("price_list").notNull(),
-    /** 人数の上限。null は上限なし */
+    /** 契約の人数。null は上限なし。超えても止めない(運営が plan-report と毎週の点検で知る) */
     seats: integer("seats"),
     /** 据え置き(この価格表のまま)の期限。null は据え置きなし(次の値上げで新しい価格表に移す) */
     priceLockedUntil: dateOnly("price_locked_until"),

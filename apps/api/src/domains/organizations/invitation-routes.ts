@@ -50,8 +50,7 @@ export const invitationRoutes = createRouter()
         ...conflictError,
       },
     }),
-    async (c) =>
-      c.json(await createInvitation(scopeOf(c), c.req.valid("json"), c.get("plans")), 201),
+    async (c) => c.json(await createInvitation(scopeOf(c), c.req.valid("json")), 201),
   )
   .openapi(
     createRoute({

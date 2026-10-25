@@ -47,8 +47,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   invitation_not_pending: "この招待は、もう受けたか取り消してあります",
   invalid_invitation:
     "招待のリンクが正しくないか、期限が切れているか、もう使われています。招いた人に送り直してもらってください",
-  seat_limit_reached:
-    "プランの人数の上限に届いています。受けていない招待を取り消すか、プランの人数を増やしてください(運営に連絡)",
   invitation_email_in_use:
     "このメールアドレスは、ほかの組織で使われているので参加できません。招いた人に別のアドレスを伝えてください",
 };

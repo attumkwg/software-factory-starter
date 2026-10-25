@@ -1455,10 +1455,10 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: 組織ごとのプラン・人数の上限・どの版の価格表か・据え置きの期限を足すだけの表に持ち、機能フラグ(状態 plan)と招待の人数の上限につなぐ。変えるのは運営のコマンド。金額と請求は持たない(会計ソフトで手で)
+    what: 組織ごとのプラン・契約の人数・どの版の価格表か・据え置きの期限を足すだけの表に持ち、機能フラグ(状態 plan)につなぐ。人数は止めず、超えた組織を運営が毎週の点検で知る。変えるのは運営のコマンド。金額と請求は持たない(会計ソフトで手で)
     needed_by: 会社向けでプランや人数で値段を分ける・値上げで今のお客さんを旧価格に残す
     not_needed_by: 値段が1つで人数も数えない・請求の会社(Stripe など)のプランをそのまま正にする
-    if_removed: 上のプランだけの機能を組織ごとに手で入れる。人数の上限を守れない。値上げのとき、誰が旧価格かを外で管理する
+    if_removed: 上のプランだけの機能を組織ごとに手で入れる。人数の超過に気づけない。値上げのとき、誰が旧価格かを外で管理する
     depends_on: [feature-flags, invitations, provisioning]
     law: []
     remove:
@@ -1474,7 +1474,7 @@ parts:
         - { path: apps/api/src/env.ts, what: plans を外す }
         - { path: apps/api/src/cli.ts, what: plan・plan-report のコマンドを外す }
         - { path: apps/api/src/feature-flags/repository.ts, what: 状態 plan とプランの機能を外す(packages/shared/src/feature-flags.ts も) }
-        - { path: apps/api/src/domains/organizations/invitations.ts, what: ensureSeatAvailable を外す }
+        - { path: docs/checkup/todo.yaml, what: plan-seats を status retired に(消さない) }
         - { path: apps/api/src/onboarding/create-tenant.ts, what: 申し込みの plan・seats・priceList・priceLockedUntil を外す }
         - { path: apps/api/src/db/schema.ts, what: plans の表の読み込みを外す(表は消す移行で) }
         - { path: apps/api/src/db/classification.ts, what: platform.tenant_plans の行と監査ログの details の plan・priceList を外す }

@@ -12,13 +12,8 @@ import { DateOnlySchema } from "./time.ts";
 // - プランの名前・価格表の名前は英小文字・数字・「-」(先頭は英字か数字・32文字まで)。重ならない。**一度使った名前は使い回さない**
 // - プランの機能は FEATURE_FLAGS の名前で、状態が plan の物(プランで出し分ける機能)
 
-/**
- * 人数の上限を超えたときの扱い。
- * block … 上限(いる人+受けていない招待)に届いたら、それ以上は招けない(409 seat_limit_reached)
- * count … 止めない(運営のコマンド plan-report が超えた組織を出す。翌月から請求する・話し合う、は人が決める)
- */
-export const SEAT_POLICIES = ["block", "count"] as const;
-export type SeatPolicy = (typeof SEAT_POLICIES)[number];
+// 人数の上限は**止めない**(超えても招ける)。超えた組織は運営のコマンド plan-report と毎週の点検(plan-seats)で
+// 運営に知らせ、申込書の変更や翌月の請求で合わせる(設計書 0047 の U-3。@attumkwg 2026-10-25)。
 
 export type PlanDefinition = {
   /** コマンド・DB・API で使う名前 */
@@ -27,7 +22,6 @@ export type PlanDefinition = {
   label: string;
   /** このプランで入る機能(FEATURE_FLAGS の名前で、状態が plan の物) */
   features: readonly string[];
-  seatPolicy: SeatPolicy;
 };
 
 export type PriceListDefinition = {
@@ -41,10 +35,10 @@ export type PriceListDefinition = {
 
 /**
  * プランの一覧。キットの既定は1つ(機能の出し分けは無い)。足すときは、たとえば:
- *   { id: "pro", label: "プロ", features: ["morning-digest"], seatPolicy: "block" },
+ *   { id: "pro", label: "プロ", features: ["morning-digest"] },
  */
 export const PLANS = [
-  { id: "standard", label: "スタンダード", features: [], seatPolicy: "block" },
+  { id: "standard", label: "スタンダード", features: [] },
 ] as const satisfies readonly PlanDefinition[];
 
 export type PlanId = (typeof PLANS)[number]["id"];
@@ -113,9 +107,8 @@ export const OrganizationPlanSchema = z.object({
       id: z.string(),
       label: z.string(),
       priceList: z.string(),
-      /** 人数の上限。null は上限なし */
+      /** 契約の人数。null は上限なし。超えても止めない(運営が知らせを受けて合わせる) */
       seats: z.number().int().positive().nullable(),
-      seatPolicy: z.enum(SEAT_POLICIES),
       /** 据え置き(旧価格のまま)の期限。null は据え置きなし */
       priceLockedUntil: DateOnlySchema.nullable(),
       /** この契約がいつからか */
@@ -124,7 +117,7 @@ export const OrganizationPlanSchema = z.object({
     .nullable(),
   /** いる人の数 */
   members: z.number().int().nonnegative(),
-  /** 受けていない(期限内の)招待の数。人数の上限は「いる人+受けていない招待」で数える */
+  /** 受けていない(期限内の)招待の数。人数は「いる人+受けていない招待」で数える */
   pendingInvitations: z.number().int().nonnegative(),
 });
 export type OrganizationPlan = z.infer<typeof OrganizationPlanSchema>;

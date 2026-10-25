@@ -5,7 +5,6 @@ import {
   type Invitation,
   type InvitationPage,
   type InvitationStatus,
-  type PlanDefinition,
 } from "@app/shared";
 import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -15,7 +14,6 @@ import type { TenantScope } from "../../db/scope.ts";
 import { ApiError, notFound } from "../../errors.ts";
 import type { MailMessage } from "../../mail/index.ts";
 import { enqueue, type OutboxEvent, type OutboxPayload } from "../../outbox/index.ts";
-import { ensureSeatAvailable } from "../../plans/index.ts";
 import type { NoMail } from "./notifications.ts";
 import { findContact } from "./repository.ts";
 import { invitations, tenants, users } from "./schema.ts";
@@ -120,14 +118,13 @@ export async function listInvitations(
 
 /**
  * 人を招く。招待のメールは同じトランザクションで出来事として積む(送るのは受け手)。
- * 止める(409): その人はもうこの組織にいる・生きている招待がもうある・生きている招待が上限・
- * プランの人数の上限に届いている(いる人+受けていない招待。docs/specs/0047-plans.md)。
+ * 止める(409): その人はもうこの組織にいる・生きている招待がもうある・生きている招待が上限。
+ * プランの人数の上限では止めない(docs/specs/0047-plans.md。超えた組織は運営が plan-report で知る)。
  * **ほかの組織にいるかは確かめない**(管理者に他社の利用者の有無を教えない)。受けるときに止まる。
  */
 export async function createInvitation(
   s: TenantScope,
   input: CreateInvitation,
-  plans: readonly PlanDefinition[],
 ): Promise<Invitation> {
   const now = new Date();
   const [member] = await s.tx
@@ -149,7 +146,6 @@ export async function createInvitation(
   if ((live?.n ?? 0) >= MAX_PENDING_INVITATIONS) {
     throw new ApiError(409, "too_many_invitations", "受けていない招待が多すぎます");
   }
-  await ensureSeatAvailable(s.tx, s.tenantId, plans);
   const [row] = await s.tx
     .insert(invitations)
     .values({

@@ -5,8 +5,8 @@ import { type Defs, type PlanLine, planChange } from "../../src/plans/index.ts";
 
 const defs: Defs = {
   plans: [
-    { id: "standard", label: "スタンダード", features: [], seatPolicy: "block" },
-    { id: "pro", label: "プロ", features: [], seatPolicy: "count" },
+    { id: "standard", label: "スタンダード", features: [] },
+    { id: "pro", label: "プロ", features: [] },
   ],
   priceLists: [
     { id: "2026-10", effectiveFrom: "2026-10-01", description: "最初" },

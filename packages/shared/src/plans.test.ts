@@ -18,7 +18,6 @@ const planFeatureNames = (FEATURE_FLAGS as readonly FeatureFlagDefinition[])
 const plan = (over: Partial<PlanDefinition> & Pick<PlanDefinition, "id">): PlanDefinition => ({
   label: "名前",
   features: [],
-  seatPolicy: "block",
   ...over,
 });
 const list = (id: string, effectiveFrom: string): PriceListDefinition => ({

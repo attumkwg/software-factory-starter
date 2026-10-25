@@ -139,11 +139,11 @@ export function InvitationsPage({
   );
 }
 
-/** プランと人数(docs/specs/0047-plans.md)。人数は「いる人+受けていない招待」で数える */
+/** プランと人数(docs/specs/0047-plans.md)。人数は「いる人+受けていない招待」で数える。超えても招ける(運営から連絡する) */
 function SeatLine({ plan }: { plan: OrganizationPlan }) {
   const used = plan.members + plan.pendingInvitations;
   if (!plan.plan) return <Muted>いまの人数: {used} 人(受けていない招待を含む)</Muted>;
-  const limit = plan.plan.seats === null ? "上限なし" : `${plan.plan.seats} 人まで`;
+  const limit = plan.plan.seats === null ? "人数の上限なし" : `契約の人数 ${plan.plan.seats} 人`;
   return (
     <Muted>
       プラン「{plan.plan.label}」: {limit}・いまの人数 {used} 人(受けていない招待を含む)

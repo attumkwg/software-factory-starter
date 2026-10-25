@@ -20,8 +20,8 @@ const FLAGS: FeatureFlagDefinition[] = [
   { name: "pro-only", bet: "B-0001", description: "上のプランだけ", state: "plan" },
 ];
 const PLANS: PlanDefinition[] = [
-  { id: "standard", label: "スタンダード", features: [], seatPolicy: "block" },
-  { id: "pro", label: "プロ", features: ["pro-only"], seatPolicy: "count" },
+  { id: "standard", label: "スタンダード", features: [] },
+  { id: "pro", label: "プロ", features: ["pro-only"] },
 ];
 const DEFS: Defs = {
   plans: PLANS,
@@ -124,7 +124,6 @@ describe("管理者が見るプランと人数(GET /api/organization/plan)", () 
         label: "スタンダード",
         priceList: "2026-10",
         seats: 10,
-        seatPolicy: "block",
         priceLockedUntil: "2099-12-31",
       },
       members: 3,
@@ -135,26 +134,23 @@ describe("管理者が見るプランと人数(GET /api/organization/plan)", () 
   });
 });
 
-describe("人数の上限(招待)", () => {
-  it("block のプランは、いる人+受けていない招待が上限に届いたら招けない(409)。上限を外せば招ける", async () => {
+describe("人数の上限(止めない・運営が知る)", () => {
+  it("上限を超えても招ける(いる人+受けていない招待が上限を超えても 201)。超えた組織は plan-report に出る", async () => {
     const t = await createTenantFixture(owner.db, "plan-seats");
     const cookie = await login(app, t.users.admin.email);
-    // 3人+受けていない招待1件 = 4
+    // 3人+受けていない招待1件 = 4。上限 4 から、さらに1人招く
     await set(t.tenantId, { plan: "standard", seats: 4 });
-    const res = await invite(cookie, `over-${Date.now()}@plan.test`);
-    expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
-      "seat_limit_reached",
-    );
-    await set(t.tenantId, { plan: "standard", seats: null });
-    expect((await invite(cookie, `ok-${Date.now()}@plan.test`)).status).toBe(201);
+    expect((await invite(cookie, `over-${Date.now()}@plan.test`)).status).toBe(201);
+    expect(await planOf(cookie)).toMatchObject({
+      plan: { seats: 4 },
+      members: 3,
+      pendingInvitations: 2,
+    });
+    const report = await planReport(owner.db, { ...DEFS, withinDays: 0, supportTenantId: null });
+    expect(report.overSeats).toContainEqual({ tenantId: t.tenantId, seats: 4, used: 5 });
   });
 
-  it("count のプランは止めない。プランの無い組織(b)も止めない", async () => {
-    const t = await createTenantFixture(owner.db, "plan-count");
-    const cookie = await login(app, t.users.admin.email);
-    await set(t.tenantId, { plan: "pro", seats: 1 });
-    expect((await invite(cookie, `count-${Date.now()}@plan.test`)).status).toBe(201);
+  it("プランの無い組織(b)も止めない", async () => {
     expect((await invite(bAdmin, `b-${Date.now()}@plan.test`)).status).toBe(201);
   });
 });

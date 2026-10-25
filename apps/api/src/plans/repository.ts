@@ -1,11 +1,10 @@
 import { type OrganizationPlan, type PlanDefinition, toLocalDate } from "@app/shared";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { TenantTx } from "../db/client.ts";
-import { ApiError } from "../errors.ts";
 import { tenantPlans } from "./schema.ts";
 
 // 組織のいまのプランを読む(docs/specs/0047-plans.md)。リクエストの中では c.var.tx(組織の文脈つき)で読む。
-// 組織の領域の入口(index.ts)を読むと、組織 → 招待の人数 → プラン → 組織の輪になるので、人と招待は SQL で数える
+// 人と招待は SQL で数える(組織の領域の入口を読むと、機能フラグ → プラン → 組織 → 機能フラグの輪になる
 // (feature-flags/command.ts・offboarding と同じ)。
 
 export type TenantPlanRow = typeof tenantPlans.$inferSelect;
@@ -73,33 +72,10 @@ export async function getOrganizationPlan(
             label: def.label,
             priceList: row.priceList,
             seats: row.seats,
-            seatPolicy: def.seatPolicy,
             priceLockedUntil: row.priceLockedUntil,
             effectiveOn: row.effectiveOn,
           }
         : null,
     ...usage,
   };
-}
-
-/**
- * 人を招く前の守り: プランの人数の上限が block で、いる人+受けていない招待が上限に届いていれば 409。
- * プランが無い・上限なし・count なら通す。
- */
-export async function ensureSeatAvailable(
-  tx: TenantTx,
-  tenantId: string,
-  plans: readonly PlanDefinition[],
-): Promise<void> {
-  const row = await findCurrentPlanRow(tx, tenantId, await todayIn(tx, tenantId));
-  const def = plans.find((p) => p.id === row?.plan);
-  if (!row || !def || row.seats === null || def.seatPolicy !== "block") return;
-  const { members, pendingInvitations } = await seatUsage(tx, tenantId);
-  if (members + pendingInvitations >= row.seats) {
-    throw new ApiError(
-      409,
-      "seat_limit_reached",
-      "プランの人数の上限に届いています(受けていない招待も数えます)",
-    );
-  }
 }
