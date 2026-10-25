@@ -16,6 +16,7 @@
     "apps/web/Dockerfile",
     "docker/**",
     "docs/authz/**",
+    "docs/compliance/vendors.yaml",
     "infra/**",
     ".github/**",
     ".claude/settings.json",

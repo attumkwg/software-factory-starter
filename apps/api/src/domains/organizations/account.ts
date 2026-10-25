@@ -1,6 +1,7 @@
 import type { Role } from "@app/shared";
-import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, gt, isNull, sql } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
+import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { emailChanges, tenants, users } from "./schema.ts";
 
@@ -143,14 +144,22 @@ export async function isEmailInUse(tx: TenantTx, email: string, userId: string):
   return r.rows[0]?.in_use === true;
 }
 
-/** 書き出し(docs/specs/0005-offboarding.md)。メールの変更の申し込み */
-export async function exportEmailChanges(s: TenantScope) {
+/** 書き出し(docs/specs/0018-export-stream.md)。メールの変更の申し込みを新しい順に1ページずつ */
+export async function exportEmailChangesPage(s: TenantScope, after: string | null, limit: number) {
+  const cursor = after ? decodeCursor(after) : null;
   const rows = await s.tx
-    .select()
+    .select({ ...getTableColumns(emailChanges), cursorAt: cursorTime(emailChanges.requestedAt) })
     .from(emailChanges)
-    .where(eq(emailChanges.tenantId, s.tenantId))
-    .orderBy(desc(emailChanges.requestedAt));
-  return rows.map((r) => ({
+    .where(
+      and(
+        eq(emailChanges.tenantId, s.tenantId),
+        beyondCursor(cursor, "desc", emailChanges.requestedAt, emailChanges.id),
+      ),
+    )
+    .orderBy(desc(emailChanges.requestedAt), desc(emailChanges.id))
+    .limit(limit + 1);
+  const page = toPage(rows, limit, (r) => ({ at: r.cursorAt, id: r.id }));
+  const mapped = page.rows.map((r) => ({
     id: r.id,
     userId: r.userId,
     previousEmail: r.previousEmail,
@@ -158,6 +167,7 @@ export async function exportEmailChanges(s: TenantScope) {
     requestedAt: r.requestedAt.toISOString(),
     confirmedAt: r.confirmedAt?.toISOString() ?? null,
   }));
+  return { rows: mapped, nextCursor: page.nextCursor };
 }
 
 /** 組織の必須の状態と、まだ設定していない人の数(名前は出さない) */

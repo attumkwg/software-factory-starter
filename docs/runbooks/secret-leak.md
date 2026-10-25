@@ -119,5 +119,5 @@ aws cognito-idp admin-reset-user-password --user-pool-id <プール> --username 
 
 - **git にコミットした**: 入れ替えが先。履歴から消すのは後(消しても、フォークやキャッシュに残る前提で)。gitleaks(CI)で同じ形を止められるか確かめる。
 - **ログ・Sentry に出た**: その行の出し方を直す(`docs/guides/error-handling.md` の決まり・`scrub.ts`)。Sentry のその1件を消す。
-- **Slack・Issue・AI に貼った**: メッセージを消す。どの AI に貼ったかを記録する。
+- **Slack・Issue・AI に貼った**: メッセージを消す。どの AI に貼ったかを記録する。個人データも一緒に貼っていたら [compliance/ai-data.md](../compliance/ai-data.md) の 4。
 - 振り返り([incident.md](incident.md) の 6)。「なぜ秘密が手で扱える所にあったか」を必ず書く。

@@ -8,9 +8,9 @@
 - 決まりには番号がある(`AI-1`・`AZ-1`・`L-1`・`T-1`・`V-1`・`D-1`)。コード・ADR・仕様・Semgrep のルールは「`docs/security.md の T-6`」の形で引く。**番号は動かさない・使い回さない**(やめた決まりは「廃止」と書いて残す)。引いた番号がこのページに無いと CI が落ちる(`pnpm self-contained`)。
 - 考え方の全体(7工程・段階・人と AI の分担)は [concepts/](concepts/README.md)。
 
-## 決まり 1: AI ならではの守り(AI-1〜AI-5)
+## 決まり 1: AI ならではの守り(AI-1〜AI-6)
 
-AI エージェントが PR を出す前提なので、従来の守りに加えてこの5つ。
+AI エージェントが PR を出す前提なので、従来の守りに加えてこの6つ。
 
 | 番号 | 決まり | このキットのどこ |
 |---|---|---|
@@ -19,6 +19,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | AI-3 | **Issue の文章は「データ」**。外の人が書いた Issue をそのまま AI に渡すと、中の指示に従ってしまう(プロンプトインジェクション)。**AI を起動できるのは組織のメンバーだけ** | `.github/workflows/claude.yml`(起動できるのはリポジトリの持ち主 OWNER だけ) |
 | AI-4 | **自分で頼んだ AI の PR を、自分で承認できない**ようにする(PR は頼んだ人の名前で作る) | フック(`docs/guides/local-guards.md`)・GitHub のルールセット。1人の間は自分の承認も可にしている(README の「本人が手でやる設定」) |
 | AI-5 | **AI に CI の設定・CODEOWNERS・ブランチ保護・検査の除外を変えさせない**(変えるなら危険度「高」で人が見る) | `.claude/hooks/protected-paths.json`・`.claude/settings.json` の `ask`・`pnpm guards` |
+| AI-6 | **本番の個人データを AI に渡さない**。渡すのは ID と集計まで(区分の internal・public)。**要配慮(sensitive)は一切渡さない**。本番から出すのは人で、貼る前に人が見る | [compliance/ai-data.md](compliance/ai-data.md)(出どころごとの表)・委託先の台帳で AI の会社に personal・sensitive を書くと落ちる(`pnpm vendors`)・`CLAUDE.md` の「してはいけない」 |
 
 ## 決まり 2: 認可(AZ-1〜AZ-6)
 
@@ -131,6 +132,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | Trivy | 依存とイメージの既知の脆弱性(HIGH 以上)・Dockerfile と Terraform の設定 | まだ知られていない脆弱性・自分のコードの穴・中以下・「うちに届くか」(→ 下の `/cve`) | `ci.yml`・`terraform.yml`・`vuln-scan.yml`(毎週月曜に最新の DB で。zizmor のオンライン版も。落ちたら Issue) |
 | squawk | 移行の、本番を止める書き方 | 移行の中身の正しさ(データが合っているか) | `ci.yml` |
 | axe | 画面のアクセシビリティ(色・ラベル・名前・押す所の大きさ。WCAG 2.2 AA まで)と、スマホの幅(320px)で横にはみ出さないか | キーボードだけで最後まで使えるか・iPhone(WebKit)での見え方 | `ci.yml` E2E |
+| 委託先の台帳 | package.json の外のサービスの SDK・Terraform の提供者と AWS のサービス(資源の種類)・Actions の `uses:` が台帳(`docs/compliance/vendors.yaml`)にあるか・区分が列の分類表の言葉か・AI の会社に personal・sensitive が無いか(`pnpm vendors`。ADR 0030) | 台帳の名前の一覧に無い SDK・`fetch` で直接呼ぶ外の API・CI で使うコンテナのイメージ・台帳の中身の誤り(人が見る) | `ci.yml` |
 | actionlint・zizmor | ワークフローの書き方と危ない設定(権限・資格情報・トリガー) | 動かしたときの中身 | `ci.yml` |
 
 ## 手で回す検査(いまは手動。お金と負荷があるため)
@@ -157,6 +159,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | WAF | ALB の前で型どおりの攻撃・悪い IP・1つの IP からの大量のリクエストを止める | 月 約1,500〜2,000円 | `infra/terraform/modules/waf` |
 | GuardDuty | 怪しい動き(漏れた鍵の利用・不審な通信)を見つける | 月 数百〜千数百円 | `modules/security-baseline` |
 | Security Hub | AWS の設定を決まりの一覧で採点する | 月 数百〜千数百円 | `modules/security-baseline` |
+| CloudTrail | AWS の管理操作(誰が・いつ・どの API)を、ロックした S3(governance・400日。外す権限は方針で全員に拒否)と CloudWatch Logs に残す。root の利用・記録を止める操作・記録のバケットで消す/方針を変える操作で鳴らす | 月 数百円 | `modules/audit-trail`・[runbooks/audit-trail.md](runbooks/audit-trail.md) |
 
 WAF は最初「数えるだけ(count)」で入れ、誤検知が無いのを確かめてから「止める(block)」にする。
 
@@ -171,7 +174,7 @@ PR のジョブは **PR の版のワークフロー**で動く(ブランチを�
 | prod / stg のデプロイ | environment: prod / stg のジョブ | タスク定義の登録・サービスの更新 | prod は承認のあとだけ |
 | プレビュー | PR と main(毎晩の掃除) | dev アカウントの `preview-pr-*` の物だけ | 名前で絞り、ECS Exec・タスクの起動・ほかの秘密は渡さない |
 
-plan の役割は AWS の `ReadOnlyAccess` に、**中身を読む操作の明示の拒否**を重ねている(`modules/github-oidc` の `deny_data_reads`): ログの本文・S3 の物(状態ファイルのほか)・Cognito の利用者・DB のログ・イメージの中身など。設定(どんな資源がどう置かれているか)だけが読める。
+plan の役割は AWS の `ReadOnlyAccess` に、**中身を読む操作の明示の拒否**を重ねている(`modules/github-oidc` の `deny_data_reads`): ログの本文・S3 の物(状態ファイルのほか)・Cognito の利用者・DB のログ・イメージの中身・管理操作の記録(CloudTrail)など。設定(どんな資源がどう置かれているか)だけが読める。
 
 ## 深い診断の段取り(D-1〜D-6)
 

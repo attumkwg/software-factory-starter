@@ -15,3 +15,6 @@ ignoredBuiltDependencies:
   - cpu-features
   - protobufjs
   - ssh2
+minimumReleaseAgeExclude:
+  # Renovate security update: nodemailer@10.1.4
+  - nodemailer@10.1.4
