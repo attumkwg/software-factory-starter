@@ -1017,16 +1017,25 @@ parts:
   - id: person-deletion
     name: 1人分の削除と開示
     group: personal
-    status: 未
+    status: あり
     removable: true
     default: 残す
-    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)
+    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)。いまは、どの表に何件あるかと消すときの扱いを数える運営のコマンド(試し)と手順書まで。消すのは手順書で手作業
     needed_by: 個人向け・個人情報を扱うすべて
     not_needed_by: なし
-    if_removed: まだ無い(いまは手で SQL を書くことになる)
+    if_removed: 求めのたびに、どの表にその人のデータがあるかを SQL で探すことになる(表を足したときの見落としに気づけない)
     depends_on: [column-classification, offboarding]
     law:
       - 個人情報保護法 33条(開示)・35条(利用停止・消去)
+    remove:
+      delete:
+        - apps/api/src/person-data
+        - apps/api/test/integration/person-data.int.test.ts
+        - docs/runbooks/person-data.md
+      edit:
+        - { path: apps/api/src/cli.ts, what: person-data のコマンドを外す }
+        - { path: docs/legal/data-processing.md, what: 5-2 の手順書への道しるべを外す(分担の既定は残す) }
+      docs: [docs/specs/0048-person-data.md, docs/adr/0059-person-data-dry-run-first.md]
 
   # ── 決まりごと ─────────────────────────────────────────────────────────
   - id: terms-consent
