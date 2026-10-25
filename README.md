@@ -179,7 +179,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 見張り | 外形監視 `uptime` | 外から本番が開けるかを Route 53 のヘルスチェックで見る | 残す | あり |
 | 見張り | WAF `waf` | ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める) | 残す | あり |
 | 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
-| 見張り | 管理操作の記録(CloudTrail) `audit-trail` | AWS の操作(誰が・いつ・どの API)を、消せない S3(400日)と CloudWatch Logs に残し、root の利用と記録を止める操作で鳴らす | 残す | あり |
+| 見張り | 管理操作の記録(CloudTrail) `audit-trail` | AWS の操作(誰が・いつ・どの API)を、ロックした S3(400日)と CloudWatch Logs に残し、root の利用・記録を止める操作・記録を消す操作で鳴らす | 残す | あり |
 | 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
 | 表側(画面) | 検索に載せない(noindex)とスマホの幅の E2E `noindex-mobile` | 本番以外と、ログインの後の画面を検索に載せない(X-Robots-Tag・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る | 残す | あり |
 | 表側(画面) | 見た目の回帰テスト(VRT)と部品の一覧ページ `vrt` | 主な画面と部品の一覧(/design-system)を、Docker の中の Chromium でパソコンとスマホの幅で撮り、リポジトリの基準の画像と比べる。PR に結果と画面の一覧をコメントする | 残す | あり |
@@ -414,7 +414,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 
 prod のバックアップの保管庫は **compliance のロック**で、apply から3日を過ぎると、ロックも保存の期間も誰にも変えられない(root でも)。**3日のうちに**、保管庫・毎日 35日・毎月 365日・1回目のバックアップが取れたこと、を確かめる([docs/runbooks/db-restore.md](docs/runbooks/db-restore.md) の 6)。prod の戻す訓練は四半期に1回、手で(同じ手順書の 5)。
 
-管理操作の記録(CloudTrail)の S3 も、prod は **compliance のロック**(400日は誰も消せない・猶予なし)。**prod に apply する前に**保存の日数を決め、apply の後に記録が流れていることを確かめる([docs/runbooks/audit-trail.md](docs/runbooks/audit-trail.md) の 1 と 2)。委託先の台帳(`docs/compliance/vendors.yaml`)の契約の欄も、自分の契約に書き直す([docs/compliance/README.md](docs/compliance/README.md))。
+管理操作の記録(CloudTrail)の S3 は、stg・prod とも **governance のロック**(400日。外す権限はバケットの方針で全員に拒否し、消すと鳴る)。**prod に apply する前に**保存の日数と、誰にも消せない compliance にするかを決め、apply の後に記録が流れていることを確かめる([docs/runbooks/audit-trail.md](docs/runbooks/audit-trail.md) の 1 と 2)。委託先の台帳(`docs/compliance/vendors.yaml`)の契約の欄も、自分の契約に書き直す([docs/compliance/README.md](docs/compliance/README.md))。
 
 ### 6. サポートの代理ログイン(運営の組織)
 

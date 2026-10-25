@@ -223,14 +223,14 @@ module "security_baseline" {
   findings_topic_arn = module.alerts.topic_arn
 }
 
-# 管理操作の記録(CloudTrail → 消せない S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
+# 管理操作の記録(CloudTrail → ロックした S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
 module "audit_trail" {
   source          = "../../modules/audit-trail"
   name            = local.name
   alarm_topic_arn = module.alerts.topic_arn
-  # ⚠️ compliance: 保存の期間が過ぎるまで、root でも消せない・バケットも消せない。apply の前に
-  #    保存の日数を確かめる(docs/runbooks/audit-trail.md の 2)
-  lock_mode      = "compliance"
+  # governance: 外す権限(s3:BypassGovernanceRetention)はバケットの方針で全員に拒否。消す・方針を変えると鳴る。
+  # 誰にも消せなくするなら "compliance"(取り消せない。docs/runbooks/audit-trail.md の 2・設計書 0017 の U-2)
+  lock_mode      = "governance"
   retention_days = 400
 }
 

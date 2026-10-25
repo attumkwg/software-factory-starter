@@ -282,12 +282,12 @@ module "security_baseline" {
   findings_topic_arn = module.alerts.topic_arn
 }
 
-# 管理操作の記録(CloudTrail → 消せない S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
+# 管理操作の記録(CloudTrail → ロックした S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
 module "audit_trail" {
   source          = "../../modules/audit-trail"
   name            = local.name
   alarm_topic_arn = module.alerts.topic_arn
-  # stg は外せるロック(作り直しや試しのため)。保存は prod と同じ日数で、手順の練習に使う
+  # prod と同じ形(governance・400日)。手順の練習に使う
   lock_mode      = "governance"
   retention_days = 400
 }

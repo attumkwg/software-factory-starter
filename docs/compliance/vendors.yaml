@@ -87,7 +87,7 @@ vendors:
       - name: CloudTrail(管理操作の記録)
         terraform: [aws_cloudtrail]
         data: [internal]
-        note: 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。消せない S3 に置く(docs/runbooks/audit-trail.md)
+        note: 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。ロックした S3 に置く(docs/runbooks/audit-trail.md)
       - name: S3
         terraform: [aws_s3_*]
         data: [public, internal]
