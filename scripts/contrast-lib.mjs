@@ -40,10 +40,22 @@ export const PAIRS = [
   { fg: "--color-focus", bg: "--color-surface", level: "ui", where: "面の上のフォーカスの枠" },
   { fg: "--color-primary", bg: "--color-bg", level: "ui", where: "選んだチェックボックス" },
   {
+    fg: "--color-border-control",
+    bg: "--color-bg",
+    level: "ui",
+    where: "操作する部品の枠(入力欄・選択・チェックボックス・副のボタン)",
+  },
+  {
+    fg: "--color-border-control",
+    bg: "--color-surface",
+    level: "ui",
+    where: "面の上の操作する部品の枠",
+  },
+  {
     fg: "--color-border",
     bg: "--color-bg",
     level: "info",
-    where: "枠の線(入力欄は見える名前があるので参考)",
+    where: "区切りの線・カードの枠(飾りの線なので参考)",
   },
 ];
 
