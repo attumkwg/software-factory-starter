@@ -1330,6 +1330,51 @@ parts:
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
 
+  - id: positioning
+    name: 約束と売り文句(/positioning)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 話の記録・賭けの小石・計画の代わりの物から、約束(誰の何を、どう変えるか)の案を3つ・売り文句・代わりとの違い・言わないことを根拠つきで出し、1問ずつ選んで docs/product/positioning.md に残す。LP・チラシ・営業の資料・ブランドはここから作る
+    needed_by: PSF の後に、LP・チラシ・営業の言葉を作る
+    not_needed_by: 受託など、売る言葉を自分たちで決めない
+    if_removed: LP・チラシ・ブランドの色が、それぞれ別の言葉から作られて合わなくなる。売り文句の根拠(どの話・どの結果か)が残らない
+    depends_on: [kickoff, bets]
+    law: [景品表示法 5条(根拠の無い優良・有利の表示。言わないことの案に入れる)]
+    where: [.claude/skills/positioning/SKILL.md, docs/product/_template-positioning.md, docs/guides/before-pmf.md]
+    remove:
+      delete: [.claude/skills/positioning, docs/product/_template-positioning.md]
+      edit:
+        - { path: CLAUDE.md, what: /positioning と positioning.md の行を外す }
+        - { path: docs/README.md, what: product/positioning.md の行を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の約束の所を外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
+  - id: brand
+    name: ブランドを決める段取り(/brand・pnpm contrast)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 約束と相手(業種・使う場所)から名前(仮)・話し方のトーン・色の案を2〜3つ出し、色は tokens.css の主な色を置き換えた PR にする。案ごとのコントラストの比を pnpm contrast で計算して添え、画面は VRT のスクショで人が決める。docs/product/brand.md に理由を残す
+    needed_by: 自分たちのブランドで売る(LP・チラシ・画面の色をそろえる)
+    not_needed_by: 受託で、色と名前をお客さんが決める
+    if_removed: 色を約束と相手から決める段取りが無くなり、比を目で決めることになる(トークン・axe・VRT は残る)
+    depends_on: [positioning, vrt]
+    law: [商標法(名前は商標を確かめるまで仮。当てはめは弁理士)]
+    where: [.claude/skills/brand/SKILL.md, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+    remove:
+      delete: [.claude/skills/brand, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+      edit:
+        - { path: package.json, what: contrast を外す・test:scripts から contrast.test.mjs を外す }
+        - { path: CLAUDE.md, what: /brand と brand.md と pnpm contrast の行を外す }
+        - { path: docs/README.md, what: product/brand.md の行を外す }
+        - { path: docs/design-system.md, what: /brand と pnpm contrast の所を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の /brand の所を外す }
+        - { path: .claude/skills/positioning/SKILL.md, what: /brand へのつなぎを外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
   - id: feature-flags
     name: 組織ごとの機能フラグ
     group: process
@@ -1376,7 +1421,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す
+    what: どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数と継続率(初めて使った週ごとの組の N 週後。組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す
     needed_by: 機能を出した後に「使われ続けているか」を数で確かめる
     not_needed_by: 賭けの線を話を聞くことだけで確かめる・個人の行動を記録したくない
     if_removed: 賭けの rollout の線(使う組織の割合・使い続ける割合)を数で測れない
@@ -1388,6 +1433,7 @@ parts:
         - apps/api/src/usage
         - apps/api/drizzle/0012_usage_records.sql
         - apps/api/test/integration/usage-records.int.test.ts
+        - apps/api/test/unit/usage-retention.test.ts
         - docs/runbooks/usage-records.md
       edit:
         - { path: apps/api/src/cli.ts, what: usage-report・usage-purge のコマンドを外す }
@@ -1400,7 +1446,7 @@ parts:
         - { path: CLAUDE.md, what: recordUsage の文を外す }
         - { path: apps/api/CLAUDE.md, what: recordUsage の文を外す }
       migration: 表 platform.feature_usage と関数 operator_tenant_ids を消す移行を足す(.claude/skills/db-migration。0012 は書き換えない)
-      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
+      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/specs/0022-usage-retention.md, docs/adr/0025-feature-flags-and-usage-records.md]
 
   - id: ledger
     name: 資産と費用の台帳(/ledger)

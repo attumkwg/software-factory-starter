@@ -45,11 +45,13 @@
 
 **新しい色や余白が要るとき**は、トークンを足す提案を PR の「人に判断してほしい所」に書く(トークンを決めるのは人)。
 
+**ブランドの色(主な色)を決める・変えるとき**は `/brand`。約束(`docs/product/positioning.md`)と相手から案を出し、`pnpm contrast` の比を添えて、`tokens.css` を置き換えた PR にする(理由は `docs/product/brand.md`)。
+
 ## 人と AI の分担
 
 | | 人(デザイナー・プロダクトの人) | AI |
 |---|---|---|
-| ブランドの色・文字・余白(トークン) | 決める | 案を出す・コントラストを計算する |
+| ブランドの色・文字・余白(トークン) | 決める(約束の後。`/brand` の PR を VRT のスクショで見て) | 案を出す・コントラストを計算する(`pnpm contrast`)・トークンの PR を作る |
 | 部品の種類と振る舞い | 決める(何が要るか・どう動くべきか) | 作る・テストする |
 | 画面 | 受け入れ条件と、見本の絵(あれば) | 部品を組み合わせて作る |
 | アクセシビリティ | キーボードと読み上げで最後に触って確かめる | axe を通す・名前とラベルを付ける |
@@ -59,6 +61,7 @@
 | 何を | どうやって | いつ |
 |---|---|---|
 | 生の色・直書きのスタイル・画面の CSS | Semgrep(`.semgrep/design/`、テストつき) | 毎 PR(`ci.yml`) |
+| トークンの色の組ごとのコントラストの比(明るいテーマ・暗いテーマ。文字 4.5:1・フォーカスの枠など 3:1) | `pnpm contrast`(`scripts/contrast-lib.mjs`。いまの `tokens.css` が届くかは `pnpm test:scripts` のテスト) | 色の案を出すとき(`/brand`)・毎 PR(`ci.yml` の fast) |
 | 色のコントラスト・ラベル・名前の漏れ・押す所の大きさ | axe(E2E の各画面。WCAG 2.2 AA まで) | 毎 PR(`ci.yml` の E2E) |
 | スマホの幅で横にはみ出さない | E2E の `expectAccessible`(`scrollWidth <= clientWidth`)。スマホの組(幅 320px)は主な流れと、表・入力の画面を見て回る `narrow-screens.spec.ts`(`playwright.config.ts`) | 毎 PR(`ci.yml` の E2E) |
 | 見た目が前と変わっていないか(部品の一覧と主な画面。パソコン・スマホの幅) | VRT(`pnpm vrt`。Docker の中の Chromium で撮り、基準の画像と比べる。[guides/vrt.md](guides/vrt.md)) | 毎 PR(`vrt.yml`。結果と画面は PR のコメントに) |

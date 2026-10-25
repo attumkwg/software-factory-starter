@@ -104,6 +104,12 @@ docker compose -f docker-compose.vrt.yml up -d --wait
 pnpm vrt
 ```
 
+色のトークンのコントラストの比(明るいテーマと暗いテーマ。WCAG 2.2 AA。色の案を出すときは `/brand` が案のファイルを並べて渡す。[docs/design-system.md](design-system.md)):
+
+```bash
+pnpm contrast
+```
+
 開発するとき(API は 3000、画面は 5173。画面は SSR のまま自動で読み直し、/api は API へ中継する):
 
 ```bash
