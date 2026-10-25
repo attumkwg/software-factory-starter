@@ -1,0 +1,41 @@
+# AI の環境から出てよい宛先(docs/designs/0057-ai-egress.md の 3)。1行に1つ。* は前に付けて下の階層をまとめて許す。
+# 足すのは PR で(危険度「高」)。止まった宛先は `.devcontainer/egress/blocked.sh` で見る。
+
+# パッケージの取得
+registry.npmjs.org
+
+# GitHub(git・gh・Actions の部品)
+github.com
+api.github.com
+codeload.github.com
+objects.githubusercontent.com
+uploads.github.com
+
+# モデルの API と、Claude Code のログイン
+*.anthropic.com
+claude.ai
+*.claude.ai
+*.claude.com
+
+# コンテナの置き場(結合テストの DB・E2E のブラウザ・画面のイメージ)
+registry-1.docker.io
+auth.docker.io
+production.cloudflare.docker.com
+production.cloudfront.docker.com
+*.r2.cloudflarestorage.com
+mcr.microsoft.com
+*.data.mcr.microsoft.com
+ghcr.io
+gcr.io
+pkg-containers.githubusercontent.com
+
+# 画面と API のイメージを作るとき(apps/api/Dockerfile が RDS の証明書の束を取る)
+truststore.pki.rds.amazonaws.com
+# メールの中継のイメージ(docker/postfix/Dockerfile の apt)
+deb.debian.org
+
+# E2E のブラウザは devcontainer を作るときに入れる(.devcontainer/Dockerfile)。置き場は許可しない
+
+# Terraform(init・validate。apply は AI に許していない)
+registry.terraform.io
+releases.hashicorp.com

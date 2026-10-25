@@ -37,6 +37,7 @@
 /.github/                           @attumkwg
 /.claude/settings.json              @attumkwg
 /.claude/hooks/                     @attumkwg
+/.devcontainer/                     @attumkwg
 /.semgrep/                          @attumkwg
 /scripts/checkup/                   @attumkwg
 /scripts/setup/                     @attumkwg

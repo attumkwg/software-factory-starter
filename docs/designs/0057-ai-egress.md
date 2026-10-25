@@ -90,6 +90,20 @@ flowchart LR
 - 絞りの設定は root の持ち物にし、開発の利用者(AI)は書けない。キットの一覧(`.claude/hooks/protected-paths.json`)に `.devcontainer/**` を足す(危険度「高」)。
 - 受け入れ: 中で `pnpm test:integration`・`pnpm test:e2e`・`pnpm vrt` が通る。`curl https://example.com` が止まり、記録に残る。
 
+**作った形と確かめたこと(段3・2026-10-25)**:
+
+- 作り: `.devcontainer/Dockerfile`(元のイメージ+tinyproxy+iptables。E2E のブラウザと OS の部品は作るときに入れる)・`egress/allowlist.txt`・`egress/tinyproxy.conf`・`egress/egress-up.sh`(root。プロキシを起動・中の Docker の取得とビルドにプロキシを渡す・firewall・node のふつうの sudo を取り上げる)・`egress/blocked.sh`(止めた宛先を数える)。node が sudo で動かせるのは `egress-up.sh` だけ。
+- 中の Docker のコンテナから外へは `DOCKER-USER` で止める。イメージを作るときの `pnpm install` は、プロキシを通す(`~/.docker/config.json` の宛先は起動のたびに中の網の IP で書く。`NODE_USE_ENV_PROXY` を `docker-compose.yml` の `build.args` から `apps/*/Dockerfile` の `ARG` に渡す。外では空なので何も変わらない)。
+- 手元(Windows の Docker Desktop)で、この形のコンテナを立てて確かめた: npm・GitHub は通る/`example.com` はプロキシでも直でも止まり、`blocked.sh` に出る/node の `sudo` は使えない/**結合テスト 31 ファイル・358件が通る/`docker compose up --build` で画面・API が立つ/E2E 37件が通る(4件は既定で飛ばす物)/VRT 18件が基準と一致**。
+- 許可リストは、止まった宛先を見て足した: Docker Hub の置き場(`production.cloudfront.docker.com`)・distroless(`gcr.io`)・RDS の証明書(`truststore.pki.rds.amazonaws.com`)・メールの中継の apt(`deb.debian.org`)。`telemetry.vercel.com`(turbo の利用の知らせ)は止めたまま(`TURBO_TELEMETRY_DISABLED=1`)。
+- 元のイメージのタグ `1-24-bookworm` は置き場に無かった(devcontainer が立たなかった)。`24-bookworm` に直した。
+
+**わざと残る穴(人が知っておくこと)**:
+
+- 許可リストに、だれでも使える保存先の名前がある(Docker の置き場が使う `*.r2.cloudflarestorage.com`)。名前だけでは、自分たちの物と他人の物を区別できない。ブラウザの置き場(`storage.googleapis.com`)は、作るときに入れることで許可しないで済ませた。
+- プロキシは宛先の名前で決める(TLS の中は見ない)。名前を偽る形(domain fronting)は止められない。
+- 中の Docker で `--network host` と、プロキシと同じ利用者の番号で動くコンテナを作れば、firewall の外へ出られる。うっかり送る形(この設計が止めたい物)ではなく、わざと抜ける形なので、残す。
+
 ### ② 背景の AI(`claude.yml`)
 
 - `--disallowedTools` に `WebFetch`・`WebSearch` を足す。MCP は action が足す GitHub の物だけ(このリポジトリだけに届く)で、ほかの MCP(`mcp_config`)は渡さない。

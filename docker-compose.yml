@@ -9,6 +9,8 @@ x-app: &app
   build:
     context: .
     dockerfile: apps/api/Dockerfile
+    # 絞った devcontainer の中だけ 1 が入る(外では空。apps/api/Dockerfile の ARG)
+    args: [NODE_USE_ENV_PROXY]
 
 # 起動の間(start_period)だけ、1秒ごとに「動いたか」を確かめる。確かめ方と、動いた後の間隔(10秒)はイメージの HEALTHCHECK のまま。
 # これが無いと、postfix → api → web → alb の順に「次の確かめ(10秒後)」を待ち、起動のたびに約30秒を捨てる(CI の E2E・VRT も)
@@ -82,6 +84,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args: [NODE_USE_ENV_PROXY]
     environment:
       # SSR から API を読む先(ECS では Service Connect の http://api:3000)
       API_INTERNAL_URL: http://api:3000
