@@ -1,0 +1,25 @@
+# 人の時間の見積もりの決まり(金額は書かない。時給・時間の手入力・売上は非公開の置き場。docs/guides/cost-dashboard.md の 6.)
+# 費用のページ(pnpm cost)が、今月作った PR を本文の「取り組み」(bet:B-NNNN か土台)ごとに数え、ここの分数を掛けて「自動の目安」にする。
+# あくまで推定。手入力(週ごとの割合)と並べて幅で見る。人の評価には使わない。設計: docs/designs/0020-people-time-and-bet-pl.md
+
+# 1件あたりの分数(人の時間)。自分たちの実感に合わせて直してよい
+minutes:
+  ai_pr_check: 15 # AI が書いた PR を、人が確かめる(全体像・人に判断してほしい所を読む。10〜20分)
+  human_pr: 120 # 人が自分で書いた PR(書いて確かめるまで)
+  bot_pr_check: 5 # Renovate などのボットの PR を確かめる(担当者に付ける)
+  review: 20 # 人のレビュー1回(作った人以外)
+  comment: 3 # PR のコメント1件(作った人に付ける)
+
+# AI が書いた PR の見分け方(本文にこのどれかがあれば AI の PR)
+ai_markers:
+  - "Generated with [Claude Code]"
+  - "Co-Authored-By: Claude"
+
+# 共通の費用(土台 core・タグなし の AWS・共通の SaaS・Actions)を賭けに配るか(設計書 0020 の U-1)
+#   people_auto   … 人の時間(PR からの目安)の割合で配る
+#   people_manual … 人の時間(手入力)の割合で配る
+#   none          … 配らない(土台の行に残す)
+allocation: people_auto
+
+# 1か月に数える PR の上限(GitHub の API の使いすぎを防ぐ)
+max_prs: 300

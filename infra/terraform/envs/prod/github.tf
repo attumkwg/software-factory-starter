@@ -134,7 +134,23 @@ data "aws_iam_policy_document" "cost" {
   }
   statement {
     sid       = "EncryptCostPage"
-    actions   = ["kms:GenerateDataKey", "kms:Encrypt"]
+    actions   = ["kms:GenerateDataKey", "kms:Encrypt", "kms:Decrypt"]
     resources = [module.cost_reports.kms_key_arn]
+  }
+  # 人が置く非公開の入力(時給・時間の手入力・売上。仕様 0020)を読む。書くのは人だけ
+  statement {
+    sid       = "ReadCostInputs"
+    actions   = ["s3:GetObject"]
+    resources = ["${module.cost_reports.bucket_arn}/cost/inputs/*"]
+  }
+  statement {
+    sid       = "ListCostInputs"
+    actions   = ["s3:ListBucket"]
+    resources = [module.cost_reports.bucket_arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["cost/inputs/*"]
+    }
   }
 }

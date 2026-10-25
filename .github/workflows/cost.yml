@@ -4,6 +4,7 @@
 # 決まりは docs/designs/0019-evidence-soa-and-cost.md・手引きは docs/guides/cost-dashboard.md・ADR 0032
 #
 # 要るもの(Terraform の出力。docs/guides/cost-dashboard.md の 2.):
+#   非公開の入力(任意): s3://<COST_BUCKET>/cost/inputs/ の rates.json・time.csv・revenue.csv(人の時給・時間の手入力・売上。仕様 0020)
 #   変数 AWS_PROD_COST_ROLE_ARN・COST_BUCKET(prod の出力 cost_bucket)。あれば AWS_STG_COST_ROLE_ARN・AWS_DEV_COST_ROLE_ARN
 #   役割はどれも main のコードからだけ引ける(PR の版は書き換えられるので、請求の詳細を読ませない)
 # 無ければ、失敗せずに飛ばす。
@@ -46,11 +47,11 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: AWS の外(Actions の分数・SaaS と AI の席など・見積もり)
+      - name: AWS の外(Actions の分数・SaaS と AI の席など・見積もり・PR からの人の時間)
         env:
           GH_TOKEN: ${{ github.token }}
           CHECKUP_READ_TOKEN: ${{ secrets.CHECKUP_TOKEN }}
-        run: pnpm cost --out "$RUNNER_TEMP/cost" --only github,saas
+        run: pnpm cost --out "$RUNNER_TEMP/cost" --only github,saas,people
       - if: vars.AWS_STG_COST_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
@@ -74,8 +75,13 @@ jobs:
           aws-region: ap-northeast-1
           unset-current-credentials: true
       - run: pnpm cost --out "$RUNNER_TEMP/cost" --account prod
-      - name: ページを作る
-        run: pnpm cost --render "$RUNNER_TEMP/cost"
+      # 時給・時間の手入力・売上は非公開の置き場にだけある(人が置く。docs/guides/cost-dashboard.md の 6.)。無くてもページは作る
+      - name: 非公開の入力を落とす(cost/inputs/)
+        env:
+          BUCKET: ${{ vars.COST_BUCKET }}
+        run: aws s3 cp --recursive --only-show-errors "s3://$BUCKET/cost/inputs/" "$RUNNER_TEMP/inputs/"
+      - name: ページと ledger.csv を作る
+        run: pnpm cost --render "$RUNNER_TEMP/cost" --inputs "$RUNNER_TEMP/inputs"
       - name: 非公開の置き場に置く(cost/<年-月>/ と cost/latest/index.html)
         env:
           BUCKET: ${{ vars.COST_BUCKET }}

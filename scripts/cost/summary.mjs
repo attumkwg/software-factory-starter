@@ -1,6 +1,7 @@
 // 集めた費用(aws-<環境>・github-actions・saas・estimates)を、ページの元(summary.json)にまとめる。
 // 金額は円の整数。ドルの物はセントで足してから、estimates.yaml の usd_jpy で円にする。読めなかった物は notes に出す(0円として隠さない)。
 import { centsToJpy, mergeCounts, periodOf, sum } from "./period.mjs";
+import { makePl } from "./pl.mjs";
 
 const AWS_ACCOUNTS = ["stg", "prod", "dev"];
 const sorted = (counts) =>
@@ -75,9 +76,37 @@ function components(parts) {
   return sorted(rows);
 }
 
+/** 人の時間と賭けごとの PL(people を渡したときだけ。仕様 0020) */
+function plOf(entries, parts, people) {
+  const prs = entries["people-prs"]?.ok ? entries["people-prs"].data.prs : null;
+  if (!people || !(prs || people.inputs.time)) return null;
+  return makePl({
+    awsByBet: parts.aws.byBet,
+    saasItems: parts.saasItems,
+    actionsJpy: parts.actionsJpy,
+    prs: prs ?? [],
+    inputs: people.inputs,
+    allocation: people.allocation,
+    stages: people.stages,
+  });
+}
+
+/** 人の時間と PL で足りない物(0円として隠さない) */
+const peopleNotes = (inputs, prs) => [
+  ...(prs?.ok ? [] : [noteOf("人の時間(PR からの目安)", prs)]),
+  ...(prs?.ok && prs.data.truncated
+    ? ["人の時間(PR からの目安): PR が多く、先頭の分だけ数えた"]
+    : []),
+  ...(inputs.rates
+    ? []
+    : ["人の時給: 無い(非公開の置き場の cost/inputs/rates.json)。人の費用を円にしていない"]),
+  ...(inputs.time ? [] : ["人の時間の手入力: 無い(cost/inputs/time.csv)。自動の目安だけ"]),
+  ...(inputs.revenue ? [] : ["売上: 無い(cost/inputs/revenue.csv)"]),
+];
+
 const noteOf = (name, e) => (e ? `${name}: 読めなかった(${e.reason})` : `${name}: 集めていない`);
 
-export function makeSummary(entries, { today, generatedAt }) {
+export function makeSummary(entries, { today, generatedAt, people }) {
   const period = periodOf(today);
   const est = entries.estimates?.ok ? entries.estimates.data : null;
   const rate = est?.usd_jpy ?? 150;
@@ -108,8 +137,11 @@ export function makeSummary(entries, { today, generatedAt }) {
       .filter(([k]) => !entries[k]?.ok)
       .map(([k, name]) => noteOf(name, entries[k])),
   ];
+  const pl = plOf(entries, parts, people);
+  if (people) notes.push(...peopleNotes(people.inputs, entries["people-prs"]));
   return {
     month: period.month,
+    pl,
     today,
     day: period.day,
     days_in_month: period.daysInMonth,

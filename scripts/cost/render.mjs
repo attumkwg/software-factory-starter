@@ -106,6 +106,32 @@ function actionsBlock(a) {
   return `<p class="muted">${a.private ? "非公開のリポジトリ(枠を超えた分が金額になる)" : "公開のリポジトリ(標準の実行環境は無料)"}・今月 ${a.minutes}分</p><table><thead><tr><th>ワークフロー</th><th class="n">実行</th><th class="n">分</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
 }
 
+const range = (lo, hi) => (lo === null ? "—" : lo === hi ? yen(lo) : `${yen(lo)}〜${yen(hi)}`);
+const VERDICT = { 赤字: "⚠ 赤字", 黒字: "黒字" };
+
+/** 賭けごとの損益(PL)。人の時間は自動の目安と手入力の幅(仕様 0020) */
+function plBlock(pl) {
+  if (!pl) return "";
+  const tr = (r, name) => {
+    const v = VERDICT[r.verdict] ?? r.verdict;
+    const cls = r.verdict === "赤字" ? ' class="over"' : "";
+    return `<tr><td>${esc(name ?? r.bet)}${r.stage ? ` <span class="muted">${esc(r.stage)}</span>` : ""}</td><td class="n">${yen(r.revenue)}</td><td class="n">${yen(r.infra + r.saas)}</td><td class="n">${yen(r.shared)}</td><td class="n">${r.hours_auto}h / ${r.hours_manual ?? "—"}h</td><td class="n">${range(r.people_low, r.people_high)}</td><td class="n">${range(r.cost_low, r.cost_high)}</td><td class="n">${range(r.profit_low, r.profit_high)}</td><td${cls}>${esc(v)}</td></tr>`;
+  };
+  const head =
+    "<tr><th>賭け</th><th class=n>売上</th><th class=n>インフラ・SaaS</th><th class=n>共通の配り分</th><th class=n>人の時間(目安/手入力)</th><th class=n>人の費用</th><th class=n>原価</th><th class=n>粗利</th><th>判定</th></tr>";
+  const rows = pl.rows.map((r) => tr(r, r.bet === "core" ? "土台(core)" : r.bet));
+  const how =
+    {
+      people_auto: "人の時間(PR からの目安)の割合で配った",
+      people_manual: "人の時間(手入力)の割合で配った",
+      none: "配っていない(土台の行に残す)",
+    }[pl.allocation] ?? pl.allocation;
+  return card(
+    "賭けごとの損益(PL。推定)",
+    `<p class="muted">人の時間は推定: 自動の目安(今月作った PR × 1件あたりの分数。docs/cost/people.yaml)と手入力(週ごとの割合)の幅。共通の費用 ${yen(pl.shared_jpy)} は${esc(how)}。人の評価には使わない。</p><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows.join("")}${tr(pl.total, "全体")}</tbody></table></div>`,
+  );
+}
+
 export function renderHtml(s) {
   const notes = [
     ...s.notes,
@@ -120,6 +146,7 @@ export function renderHtml(s) {
 ${tiles(s)}
 ${card("何にいくら(動いている物ごと)", bars(s.components))}
 ${card("見積もりと実績(区分ごと。薄い帯が見積もりの幅)", bars(s.categories, { band: true }))}
+${plBlock(s.pl)}
 <div class="split">
 ${card("環境ごと(AWS)", table(s.environments, "環境"))}
 ${card("賭けごと(AWS のタグ Bet と SaaS)", table(s.bets, "賭け"))}
