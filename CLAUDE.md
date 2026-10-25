@@ -38,6 +38,7 @@
 - `docs/cost/`・`scripts/cost/` … 費用のページ(何にいくら・動いている物ごと・見積もりとの比べ)。`cost.yml` が非公開の S3 に置く(公開の場所に出さない)。AWS のリソースにはタグ `Component`(provider の別名で付ける)と `Bet`。SaaS の月額は `docs/cost/saas.yaml`・見積もりは `estimates.yaml`。人の時間(PR からの目安と手入力の幅)と賭けごとの PL も出す(分数は `people.yaml`。時給・売上は非公開の S3 の `cost/inputs/` だけ。リポジトリに金額を置かない)。月1回の資産と費用の区分の案は `/ledger`。`docs/guides/cost-dashboard.md`
 - `docs/product/plan.md` … 始め方の計画(誰の困りごと・確かめ方・合格と撤退の線)。`/kickoff` が書く。考え方は `docs/guides/before-pmf.md`
 - `docs/product/bets/` … 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。`/bet` が書き、`pnpm bets` が確かめる。PR の本文に「取り組み」と「作業の種類」。`docs/guides/bets-and-assets.md`
+- `docs/product/positioning.md` … 約束(誰の何を、どう変えるか)・売り文句・代わりとの違い・言わないこと・根拠(どの記録・小石か)。`/positioning` が書く(PSF の後。LP・ブランドはここから)
 - `docs/concepts/` … 考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)。`docs/security.md` … セキュリティの決まり(`AI-n`・`AZ-n`・`L-n`・`T-n`・`V-n`・`D-n`。番号は動かさない)と確かめ方。**根拠はこの2つを指す**(外の資料や PR の番号を根拠にしない。`pnpm self-contained`)
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ。番号は仕様と対で同じ。`pnpm adr` が出す「仕様と設計書の次の番号」)/ `docs/adr` 設計判断(番号は `pnpm adr` が出す「次の番号」。仕様・設計書・設計判断とも、同じフォルダで重なると CI が落ちる)/ `docs/runbooks` 手順(障害のときの入口は `incident.md`)
 - `docs/compliance/` … 認証の準備(P マーク・ISMS)の入口。委託先の台帳 `vendors.yaml`(外の会社ごとに預け方・国・区分・契約・消え方)。**外のサービスの SDK・新しい種類の AWS の資源・Actions を足したら台帳に1件か1行**(無ければ CI が落ちる。台帳は人の確認が要る)。AI に渡すデータの決まり `ai-data.md`。AWS の管理操作の記録は `infra/terraform/modules/audit-trail`(手順は `docs/runbooks/audit-trail.md`)
@@ -49,7 +50,7 @@
 
 - 仕様(Issue の受け入れ条件か `docs/specs/`)の無い変更はしない。分からなければ PR で「人に判断してほしい所」に書く。
 - 1 Issue = 1 PR。PR テンプレートの欄(危険度・テスト結果・判断してほしい所)を全部埋める。
-- 何を作るか・作る前に何を確かめるか → `/kickoff`。キットの部品の残す・消す → `/tailor`(正は `docs/kit/catalog.yaml`。部品を足したら1件足す。`pnpm kit:catalog`)。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。点検で担当者に聞くこと・手でやること → `/checkup`(1問ずつ。答えは台帳に書いて PR)。認証(P マーク・ISMS)の準備の期限(規程の見直し・教育・内部監査)→ `/compliance-check`(`/checkup` の一種)。点検の台帳に世の中の変化を取り込む(月1回・人が起動)→ `/checkup-refresh`。脆弱性(CVE・Dependabot の通知)の精査と対応方針 → `/cve`(届く・まだ直していない穴の中身はリポジトリにも Issue にも書かない。`docs/guides/vulnerabilities.md`)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
+- 何を作るか・作る前に何を確かめるか → `/kickoff`。キットの部品の残す・消す → `/tailor`(正は `docs/kit/catalog.yaml`。部品を足したら1件足す。`pnpm kit:catalog`)。機能1つぶんを確かめながら作る → `/bet`(新しい機能は賭けの ID から)。約束と売り文句(LP・チラシ・営業の言葉の元。PSF の後)→ `/positioning`。点検で担当者に聞くこと・手でやること → `/checkup`(1問ずつ。答えは台帳に書いて PR)。認証(P マーク・ISMS)の準備の期限(規程の見直し・教育・内部監査)→ `/compliance-check`(`/checkup` の一種)。点検の台帳に世の中の変化を取り込む(月1回・人が起動)→ `/checkup-refresh`。脆弱性(CVE・Dependabot の通知)の精査と対応方針 → `/cve`(届く・まだ直していない穴の中身はリポジトリにも Issue にも書かない。`docs/guides/vulnerabilities.md`)。新しい API → `.claude/skills/add-api-endpoint`。DB の変更 → `.claude/skills/db-migration`。設計 → `/design`。直す → `/rework`。
 - **人に聞くのは4つだけ**: 事業判断・利用者の挙動・他チームとの契約や制約・戻せないリスク。それ以外は聞かずに決め、設計書の「決めたこと」に理由を書く。4つに当たる判断は止まらずに仮に決め、設計書の「未確定事項」に `仮決め` で残す(人の答えなしに `承認` にしない)。`仮決め` が残る PR はマージに回さない(`pnpm decisions --strict`)。
 - **誤りは、入った工程から作り直す**(ナレッジ → 要求 → 設計 → 実装 → テスト)。上流の誤りをコードだけで継ぎ当てない(`/rework`)。
 - CI が落ちたら直すのは2回まで。3回目は止めて、PR に状況を書いて人に渡す。
