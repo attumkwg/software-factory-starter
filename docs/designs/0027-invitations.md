@@ -136,7 +136,7 @@ pending ──受ける(1回)──▶ accepted
 
 - 性能: 招く = 3つの小さな SELECT(索引あり)と2つの INSERT。受ける = 関数1回+2つの小さな SELECT+監査ログ。一覧はページング(索引 `invitations_list_idx`)。
 - セキュリティ: 仕様の STRIDE。札の比較は `timingSafeEqual`。署名を確かめてから DB に聞く(当てずっぽうで DB を叩かせない)。受ける API のログは `invitationId`・`reason` だけ(メール・名前・札は出さない)。
-- 運用: 手順書 `docs/runbooks/cognito-login.md`(新しい人を入れる・招待を受けられないと言われたら)・`tenant-provisioning.md` の 4(開通の案内)。秘密の入れ替え(`secret-leak.md`)で、受けていない招待のリンクが全部切れることを書いた。
+- 運用: 手順書 `docs/runbooks/cognito-login.md`(新しい人を入れる・招待を受けられないと言われたら)・`tenant-provisioning.md` の 6(開通の案内)。秘密の入れ替え(`secret-leak.md`)で、受けていない招待のリンクが全部切れることを書いた。
 - 費用: メール1通ぶん(SES 1,000通 約15円)。
 
 ## 9. このプロダクト特有
