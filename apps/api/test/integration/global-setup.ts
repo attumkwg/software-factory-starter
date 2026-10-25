@@ -21,7 +21,7 @@ declare module "vitest" {
 
 // 本番と同じ形: superuser で接続ユーザーを作る → 持ち主で移行 → アプリは持ち主ではないユーザーでつなぐ
 export default async function setup(project: TestProject) {
-  const container: StartedPostgreSqlContainer = await new PostgreSqlContainer("postgres:17-alpine")
+  const container: StartedPostgreSqlContainer = await new PostgreSqlContainer("postgres:17-alpine@sha256:eee6c6e1b0894fa4fe0075eb054af9fd1cf39a35321c2d4110626cfe506411fb")
     .withDatabase("app")
     // 既定の待ち方(コンテナ内でポートを調べる)は古い Docker Desktop で止まることがあるので、
     // pg_isready のヘルスチェックだけで待つ
