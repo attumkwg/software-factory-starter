@@ -22,7 +22,7 @@ import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
-import { linkKey, publicGrowthRoutes } from "./domains/growth/index.ts";
+import { linkKey } from "./domains/growth/index.ts";
 import { legalRoutes } from "./domains/legal/index.ts";
 import {
   invitationRoutes,
@@ -37,6 +37,7 @@ import { payloadTooLarge, toApiError } from "./errors.ts";
 import { exportRoutes } from "./export/routes.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
+import { publicGrowthRoutes } from "./pre-registrations/index.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
 import type { SensitiveStore } from "./sensitive/index.ts";
 

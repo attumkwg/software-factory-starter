@@ -5,22 +5,24 @@ import {
   PreRegistrationRequestSchema,
 } from "@app/shared";
 import { createRoute } from "@hono/zod-openapi";
-import type { RootDb } from "../../db/client.ts";
-import { withTenant } from "../../db/tenant.ts";
-import { badRequest, notFound } from "../../errors.ts";
-import { bodyErrors, createRouter, jsonBody, notFoundError } from "../../http/common.ts";
+import type { RootDb } from "../db/client.ts";
+import { withTenant } from "../db/tenant.ts";
 import {
   confirmPreRegistration,
   countView,
   type PublicScope,
   registerPreRegistration,
   withdrawPreRegistration,
-} from "./repository.ts";
+} from "../domains/growth/index.ts";
+import { badRequest, notFound } from "../errors.ts";
+import { bodyErrors, createRouter, jsonBody, notFoundError } from "../http/common.ts";
 
 // 公開の LP(apps/site)から呼ばれる入口(docs/specs/0025-public-landing-page.md・設計書 0025 の 3)。
 // 権限は policy.ts の public(ログインを見ない)。テナントはリクエストから決めず、設定の運営の組織に固定する。
 // 公開のページの URL と運営の組織が設定に無ければ、全部 404(公開の入口ごと使わない)。
 // CORS(公開のページの origin だけ・資格情報なし)は app.ts が /api/public/* に付ける。
+// 運営の組織の文脈(withTenant)をここで開くので、領域(domains/growth)の外に置く(Semgrep の tenant-scoped-db-only)。
+// 読み書きの中身は領域の index.ts の関数。
 
 export type PublicGrowthDeps = {
   db: RootDb;

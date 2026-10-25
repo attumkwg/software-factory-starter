@@ -1376,6 +1376,7 @@ parts:
         - infra/terraform/modules/public-site
         - .github/scripts/deploy-site.sh
         - apps/api/src/domains/growth
+        - apps/api/src/pre-registrations
         - apps/api/drizzle/0015_growth_pre_registrations.sql
         - apps/api/test/unit/growth-links.test.ts
         - apps/api/test/integration/growth-public.int.test.ts
