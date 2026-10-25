@@ -91,3 +91,12 @@ output "applications_bucket" {
   description = "申し込みの置き場(create-tenant が読む。applications/<申込番号>.json に置き、読み終えたら消す。docs/runbooks/tenant-provisioning.md)"
   value       = module.applications.bucket
 }
+
+output "public_site" {
+  description = "公開の LP の置き場所(GitHub の変数 STG_SITE_BUCKET・STG_SITE_DISTRIBUTION_ID・STG_SITE_URL に)。public_site_domain が無ければ null"
+  value = var.public_site_domain == null ? null : {
+    bucket          = module.public_site[0].bucket
+    distribution_id = module.public_site[0].distribution_id
+    url             = module.public_site[0].url
+  }
+}

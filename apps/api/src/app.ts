@@ -10,6 +10,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { compress } from "hono/compress";
+import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
@@ -23,6 +24,7 @@ import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
+import { linkKey } from "./domains/growth/index.ts";
 import { legalRoutes } from "./domains/legal/index.ts";
 import {
   invitationRoutes,
@@ -39,6 +41,7 @@ import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
 import { planRoutes } from "./plans/index.ts";
 import { pmfSurveyRoutes } from "./pmf-survey/index.ts";
+import { publicGrowthRoutes } from "./pre-registrations/index.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
 import type { SensitiveStore } from "./sensitive/index.ts";
 
@@ -90,6 +93,37 @@ function requestContext(logger: Logger): MiddlewareHandler<AppEnv> {
   };
 }
 
+/**
+ * 公開の LP(apps/site。別の origin)から呼ばれる入口(/api/public/*)だけに付ける守り。
+ * CORS はその origin にだけ開く(資格情報なし・Cookie を送らせない)。下見(OPTIONS)はここで答える(関所まで行かない)。
+ * 公開の LP の URL が無ければ、どの origin にも開かない。本文は 8KB まで。
+ */
+function publicEntranceGuards(config: Config): MiddlewareHandler<AppEnv>[] {
+  const publicSiteOrigin = config.publicSite?.origin ?? null;
+  return [
+    cors({
+      origin: (origin) => (publicSiteOrigin && origin === publicSiteOrigin ? origin : null),
+      allowMethods: ["POST"],
+      allowHeaders: ["content-type"],
+      credentials: false,
+      maxAge: 600,
+    }),
+    bodyLimit({
+      maxSize: 8 * 1024,
+      onError: () => {
+        throw payloadTooLarge();
+      },
+    }),
+  ];
+}
+
+/** 公開の入口が使う運営の組織とリンクの鍵。公開の LP の URL か運営の組織が無ければ null(公開の入口は全部 404) */
+function publicGrowthSite(config: Config) {
+  return config.publicSite && config.supportTenantId
+    ? { tenantId: config.supportTenantId, key: linkKey(config.session.secret) }
+    : null;
+}
+
 export function createApp(deps: AppDeps) {
   const { config, db, logger } = deps;
   const lifecycle = deps.lifecycle ?? { shuttingDown: false };
@@ -118,6 +152,7 @@ export function createApp(deps: AppDeps) {
       },
     }),
   );
+  app.use("/api/public/*", ...publicEntranceGuards(config));
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
   // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う。
@@ -158,6 +193,8 @@ export function createApp(deps: AppDeps) {
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
   app.route("/api", legalRoutes);
+  // 公開の LP の事前登録と見た数(docs/specs/0025-public-landing-page.md)。運営の組織の持ち物
+  app.route("/api", publicGrowthRoutes({ db, site: publicGrowthSite(config) }));
   // 共通の仕組み(領域ではない)
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));

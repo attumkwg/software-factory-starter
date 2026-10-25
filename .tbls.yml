@@ -74,6 +74,13 @@ comments:
     tableComment: 規約の変更のお知らせのメールを送ると決めた記録(運営のコマンド legal-notify が足す)。周知の証拠と、2回送らない守り。docs/runbooks/legal-notice.md
     columnComments:
       created_at: 送ると決めた時刻(Postfix に渡した時刻は platform.outbox の sent_at)
+  - table: growth.pre_registrations
+    tableComment: 公開の LP の事前登録(運営の組織の持ち物)。確認待ち → 確認済み → 組織にした。消す日を過ぎたら pre-registrations-purge が消す。docs/domain/growth
+    columnComments:
+      confirm_sent_at: 確認のメールを積んだ時刻(同じアドレスへは24時間に1通。確認のリンクの署名はこの時刻から作る)
+      delete_after: この日を過ぎたら消す(確認待ち7日・確認済みは登録から1年・組織にしてから30日)
+  - table: growth.lp_daily_counts
+    tableComment: 公開の LP の日ごと・ページ・来た所(UTM)ごとの見た数・登録・確認(個人の行は持たない。3年で消す)。docs/domain/growth
   - table: organizations.email_changes
     tableComment: 本人のメールアドレスの変更の申し込み。生きているのは本人の最新・未確認・24時間以内の1件。docs/specs/0006-account-security.md
     columnComments:
