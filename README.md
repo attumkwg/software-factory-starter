@@ -128,7 +128,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
 
 <details>
-<summary>部品の一覧を開く(62件)</summary>
+<summary>部品の一覧を開く(63件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
