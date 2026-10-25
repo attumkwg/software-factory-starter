@@ -114,7 +114,7 @@ flowchart LR
 - セキュリティ: 仕様の STRIDE のとおり。
 - 運用: `pnpm contrast` は手元で打つ。CI はテスト(`pnpm test:scripts`)で、いまの `tokens.css` を確かめる。
 - 費用: 0円。
-- 分かっていること(今回は直さない): 枠の線(`--color-border` と背景)は明るいテーマで 1.45:1・暗いテーマで 1.92:1。入力欄は見える名前(label)があるので参考にした。WCAG 2.2 の 1.4.11 をどこまで当てるかは、デザインシステムの判断として人に回す(PR の本文に書く)。
+- 分かっていること: 枠の線(`--color-border` と背景)は明るいテーマで 1.45:1・暗いテーマで 1.92:1。人に回したところ、操作する部品の枠だけを濃くすると決まった(@attumkwg 2026-10-25)。新しいトークン `--color-border-control` を足し、`pnpm contrast` の組にした([仕様 0037](../specs/0037-control-border-contrast.md))。`--color-border` は飾りの線として参考のまま。
 
 ## 9. このプロダクト特有
 
