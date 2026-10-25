@@ -125,6 +125,13 @@ function tenantCostOf(entries, rate, period, people) {
   return target ? tenantCost(shares, target) : null;
 }
 
+/** 賭けごとの予算の枠(仕様 0054)。形の合わない行は notes に足す */
+function budgetsOf(people, { pl, period, notes }) {
+  const budgets = budgetStatus(people?.inputs.budgets ?? null, { pl, period });
+  if (budgets?.bad) notes.push(`賭けの予算の枠: 形の合わない行 ${budgets.bad}行を数えていない`);
+  return budgets;
+}
+
 /** 人の時間と PL で足りない物(0円として隠さない) */
 const peopleNotes = (inputs, prs) => [
   ...(prs?.ok ? [] : [noteOf("人の時間(PR からの目安)", prs)]),
@@ -192,9 +199,7 @@ export function makeSummary(entries, { today, generatedAt, people }) {
         rates: people.inputs.rates,
       })
     : null;
-  // 賭けごとの予算の枠(仕様 0054)
-  const budgets = budgetStatus(people?.inputs.budgets ?? null, { pl, period });
-  if (budgets?.bad) notes.push(`賭けの予算の枠: 形の合わない行 ${budgets.bad}行を数えていない`);
+  const budgets = budgetsOf(people, { pl, period, notes });
   return {
     month: period.month,
     pl,
