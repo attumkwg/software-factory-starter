@@ -1598,6 +1598,7 @@ parts:
         - { path: apps/api/src/authz/policy.ts, what: /api/public/* の4行を外す }
         - { path: docs/authz/matrix.yaml, what: /api/public/* の4行を外す }
         - { path: apps/api/src/cli.ts, what: pre-registrations-* のコマンドを外す }
+        - { path: apps/api/src/tenant-commands.ts, what: create-tenant の --from-pre-registration を外す(onboarding/from-pre-registration.ts と test/unit/from-pre-registration.test.ts も消す) }
         - { path: apps/api/src/outbox/topics.ts, what: growth.pre_registration_received を外す(足すだけの決まりなので、積んだ物が残っていないか確かめてから) }
         - { path: apps/api/src/outbox/handlers.ts, what: growth.pre_registration_received の受け手を外す }
         - { path: apps/api/src/db/schema.ts, what: growth の表の読み込みを外す }

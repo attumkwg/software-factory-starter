@@ -20,8 +20,9 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //   node dist/cli.js seed             … 種データ(local / test / preview だけ)
 //   node dist/cli.js init-roles       … 接続ユーザーを作る(使い捨ての DB だけ。SUPERUSER_DATABASE_URL)
 //   node dist/cli.js init-roles migrate seed   … プレビュー環境の起動時
-//   node dist/cli.js create-tenant <申し込みの置き場のキー> [--execute --confirm-name <名前>]
-//                                      … 申し込みを受けた組織と最初の管理者を作る(試し → 本番。docs/runbooks/tenant-provisioning.md)
+//   node dist/cli.js create-tenant <申し込みの置き場のキー> [--from-pre-registration <事前登録の ID>] [--execute --confirm-name <名前>]
+//                                      … 申し込みを受けた組織と最初の管理者を作る(試し → 本番。docs/runbooks/tenant-provisioning.md)。
+//                                        事前登録からなら、組織の名前と管理者のメールはその値で埋め、作ったら converted に
 //   node dist/cli.js person-data <組織の ID> <利用者の ID>
 //                                      … 利用者1人分の開示・削除の試し(数えるだけ。docs/runbooks/person-data.md)
 //   node dist/cli.js delete-tenant <組織の ID> [--execute --confirm-name <名前>]
