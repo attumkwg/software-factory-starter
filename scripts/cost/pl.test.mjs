@@ -26,6 +26,14 @@ test("PR 1件の分数: AI の PR は確認だけ・人の PR は書く時間・
   assert.deepEqual(ai.minutes, { "@a": 15 + 2 * 3, "@b": 20 });
   const human = prMinutes({ user: { login: "a" }, body: "", comments: 0 }, [], config);
   assert.deepEqual(human.minutes, { "@a": 120 });
+  // 本文に印が無くても、ラベル ai:assisted があれば AI の PR(週の数字と同じ見分け方)
+  const labeled = prMinutes(
+    { user: { login: "a" }, body: "", comments: 0, labels: [{ name: "ai:assisted" }] },
+    [],
+    config,
+  );
+  assert.equal(labeled.ai, true);
+  assert.deepEqual(labeled.minutes, { "@a": 15 });
   const bot = prMinutes({ user: { login: "renovate[bot]" }, body: "", comments: 5 }, [], config);
   assert.deepEqual(bot.minutes, { "(ボットの PR の確認)": 5 });
 });

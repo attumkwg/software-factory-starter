@@ -122,7 +122,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 種データは **必ず2社**: Acme(`admin@acme.test` / `member@acme.test` / `viewer@acme.test`)と Globex(`admin@globex.test`)。
 
-その他: `pnpm lint`(Biome)・`pnpm typecheck`・`pnpm openapi`(apps/api/openapi.json を書き出す)・`pnpm --filter @app/api db:lint`(squawk)。
+その他: `pnpm lint`(Biome)・`pnpm typecheck`・`pnpm metrics`(週の数字。gh で読むだけ。[docs/guides/metrics.md](guides/metrics.md))・`pnpm openapi`(apps/api/openapi.json を書き出す)・`pnpm --filter @app/api db:lint`(squawk)。
 
 
 ---
@@ -223,6 +223,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `ci.yml` | 自動: PR・main | 全部動く(AWS 不要) |
 | `terraform.yml` | 自動: infra を変えた PR | fmt・validate・tflint・Trivy |
 | `labeler.yml` | 自動: PR | 危険度のラベル |
+| `ai-label.yml` | 自動: PR を開いた・本文を直した | AI が手伝った PR にラベル `ai:assisted`(本文の印から。[docs/guides/metrics.md](guides/metrics.md)) |
 | `terraform-plan.yml` | 手動(PR の plan は stg だけ。prod は main のときだけ) | 飛ばす(notice を出す) |
 | `preview.yml` | 手動(PR の番号を入れる) | 飛ばす(notice を出す) |
 | `cleanup-previews.yml` | 手動 | 飛ばす |
@@ -232,6 +233,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
 | `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットのリポジトリでも回す)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
 | `checkup.yml` | 自動: 毎週月曜 8:00・急ぎは毎日 8:00(キットから作ったリポジトリだけ)・手動でも(点検の知らせ。[docs/checkup/README.md](checkup/README.md)) | 動く(秘密 `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL` は任意) |
+| `metrics.yml` | 自動: 毎週月曜 8:30(キットから作ったリポジトリだけ)・手動でも(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫を Actions の要約に。[docs/guides/metrics.md](guides/metrics.md)) | 動く(AWS も秘密も要らない) |
 
 **定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](guides/github-setup.md))。
 
