@@ -7,4 +7,6 @@ export const DOMAIN_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = 
   tasks: ["organizations", "projects"],
   // 規約と同意(docs/specs/0009-legal-consent.md)。同意する人・お知らせの宛先は組織の領域の人
   legal: ["organizations"],
+  // 集客(公開の LP の事前登録。docs/specs/0025-public-landing-page.md)。表は運営の組織の持ち物(外部キーだけ)
+  growth: ["organizations"],
 };
