@@ -136,6 +136,11 @@ export const ERROR_CODES = [
   "invitation_not_pending", // 受けた・取り消した招待は取り消せない(409)
   "invalid_invitation", // 招待のリンクが正しくない・期限切れ・使用済み・取り消し済み(400。どれかは言わない)
   "invitation_email_in_use", // 招待のメールアドレスは、もうどこかの組織で使われている(409。1人 = 1組織)
+  // 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)
+  "domain_taken", // そのドメインは、ほかの組織がもう確かめている(409)
+  "domain_not_verified", // DNS にまだ確かめの文字が見えない(409)
+  "ip_not_allowed", // 組織が決めた IP の範囲の外から(403)
+  "allowlist_excludes_you", // いまの IP を含まない一覧は保存できない(409。自分を締め出さない)
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -240,6 +245,11 @@ export const ExportSchema = z.object({
     name: z.string(),
     timeZone: TimeZoneSchema,
     createdAt: InstantSchema,
+    /** 会社のドメイン(確かめた時刻つき)と、組織に入れる IP の範囲(お客さんの設定。docs/specs/0056-sso-scim-ip-audit-export.md) */
+    domains: z
+      .array(z.object({ domain: z.string(), verifiedAt: InstantSchema.nullable() }))
+      .optional(),
+    ipAllowlist: z.array(z.string()).optional(),
   }),
   /** 認証の製品の ID(Cognito の sub)は入れない */
   users: z.array(

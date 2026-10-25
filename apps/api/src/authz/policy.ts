@@ -40,6 +40,15 @@ export const PERMISSIONS = {
   // 「無くなったら困るか」に答える(docs/specs/0046-pmf-survey.md)。使っている人みんな。代理の最中は使えない(NOT_DURING_SUPPORT)。
   // 聞くのは機能フラグ pmf-survey を入れた組織だけ(入っていなければハンドラーが 404)
   "pmf_survey:answer": ["admin", "member", "viewer"],
+  // 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)。どれも管理者だけ。代理の社員は閲覧者なので使えない
+  // 会社のドメインの登録・消す(プランの機能 sso)
+  "sso:manage": ["admin"],
+  // ドメインを DNS で確かめる(外を待つので OUTSIDE_TRANSACTION)
+  "domain:verify": ["admin"],
+  // 組織に入れる IP の範囲(プランの機能 ip-allowlist)
+  "ip_allowlist:manage": ["admin"],
+  // 組織の人の一覧と、強制ログアウト(全部の組織で使える)
+  "member:manage": ["admin"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -105,6 +114,14 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   // いまこの人に聞くか(だれでも読める。聞かないときも ask: false)
   "GET /api/pmf-survey": "me:read",
   "POST /api/pmf-survey": "pmf_survey:answer",
+  "GET /api/organization/domains": "sso:manage",
+  "POST /api/organization/domains": "sso:manage",
+  "POST /api/organization/domains/{domainId}/verify": "domain:verify",
+  "DELETE /api/organization/domains/{domainId}": "sso:manage",
+  "GET /api/organization/ip-allowlist": "ip_allowlist:manage",
+  "PUT /api/organization/ip-allowlist": "ip_allowlist:manage",
+  "GET /api/organization/members": "member:manage",
+  "POST /api/organization/members/{memberId}/sign-out": "member:manage",
 };
 
 /**
@@ -124,7 +141,11 @@ export const NOT_DURING_SUPPORT: ReadonlySet<Permission> = new Set([
  * その間 DB のトランザクションを開いたままにしない(apps/api/CLAUDE.md の DB の時間切れ)。
  * ハンドラーは c.var.tx を使わず、Cognito の後に自分で withTenant を開く。
  */
-export const OUTSIDE_TRANSACTION: ReadonlySet<Permission> = new Set(["account:manage"]);
+export const OUTSIDE_TRANSACTION: ReadonlySet<Permission> = new Set([
+  "account:manage",
+  // ドメインの確認は DNS を待つ(docs/specs/0056-sso-scim-ip-audit-export.md)
+  "domain:verify",
+]);
 
 /**
  * 組織が二段階認証を必須にしていて、本人がまだ設定していない(設定待ち)の間に通る API。

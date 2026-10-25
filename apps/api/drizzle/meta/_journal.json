@@ -127,6 +127,13 @@
       "when": 1792931362410,
       "tag": "0017_growth_pre_registrations",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792933269448,
+      "tag": "0018_domains_ip_allowlist",
+      "breakpoints": true
     }
   ]
 }

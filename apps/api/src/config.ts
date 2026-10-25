@@ -52,6 +52,9 @@ const EnvObject = z.object({
   PUBLIC_SITE_URL: z.url().optional(),
   // 運営の組織(社員が代理ログインに使う。docs/specs/0004-support-access.md)。無ければ代理ログインは使えない
   SUPPORT_TENANT_ID: z.uuid().optional(),
+  // X-Forwarded-For を右から何個目まで信じるか(前にいる中継の数。ALB だけなら 1・CloudFront → ALB なら 2)。
+  // 組織ごとの IP の制限が、いまの人の IP に使う(docs/designs/0056-sso-scim-ip-audit-export.md の 6)
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).max(5).default(1),
   // 失敗を Sentry に送る先(docs/guides/monitoring.md)。無ければ送らない
   SENTRY_DSN: z.url().optional(),
   // どの版の失敗か(Sentry で「この版から増えた」が分かる)。deploy.yml がイメージの digest を入れる
@@ -238,6 +241,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     shutdownTimeoutMs: e.SHUTDOWN_TIMEOUT_MS,
     outboxRelay: e.OUTBOX_RELAY === "on",
     supportTenantId: e.SUPPORT_TENANT_ID ?? null,
+    trustedProxyHops: e.TRUSTED_PROXY_HOPS,
     publicSite: e.PUBLIC_SITE_URL
       ? { url: e.PUBLIC_SITE_URL, origin: new URL(e.PUBLIC_SITE_URL).origin }
       : null,

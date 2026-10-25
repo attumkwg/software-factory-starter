@@ -87,6 +87,18 @@
 | `version` | internal | 知らせた版(施行日の数字) |
 | `created_at` | internal | 送ると決めた時刻(周知の証拠) |
 
+### `organizations.domains`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | ドメインの行の ID |
+| `tenant_id` | internal | 登録した組織 |
+| `domain` | internal | 会社のドメイン(SSO で、どの組織の人かを決める) |
+| `verify_token` | internal | DNS の TXT に置く確かめの文字(公開の DNS に出る。秘密ではない) |
+| `verified_at` | internal | DNS で確かめた時刻(全体で1つの組織だけ) |
+| `created_at` | internal | 登録した時刻 |
+| `created_by` | internal | 登録した管理者 |
+
 ### `organizations.email_changes`
 
 | 列 | 区分 | 利用目的 |
@@ -114,6 +126,16 @@
 | `accepted_user_id` | internal | 受けてできた人の ID |
 | `revoked_at` | internal | 取り消した時刻 |
 | `revoked_by` | internal | 取り消した管理者 |
+
+### `organizations.ip_allowlist`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 範囲の行の ID |
+| `tenant_id` | internal | 範囲を決めた組織 |
+| `cidr` | internal | 組織に入れる IP の範囲(会社のネットワーク) |
+| `created_at` | internal | 足した時刻 |
+| `created_by` | internal | 足した管理者 |
 
 ### `organizations.support_grants`
 
@@ -185,6 +207,8 @@
 | `details` の `taskId` | internal | パスのタスクの ID |
 | `details` の `grantId` | internal | パスの許可の ID |
 | `details` の `invitationId` | internal | パスの招待の ID |
+| `details` の `domainId` | internal | パスの会社のドメインの ID |
+| `details` の `memberId` | internal | パスの強制ログアウトした人の ID |
 | `details` の `fields` | internal | 直した項目の名前の一覧(値は入れない) |
 | `details` の `route` | internal | 代理の社員が呼んだ API の形(メソッドとパスの型) |
 | `details` の `counts` | internal | 解約で消した表ごとの行数 |

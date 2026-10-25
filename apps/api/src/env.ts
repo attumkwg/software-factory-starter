@@ -47,6 +47,8 @@ export type AppEnv = {
      * docs/specs/0006-account-security.md
      */
     mfaEnforced: boolean;
+    /** X-Forwarded-For を右から何個目まで信じるか(src/http/client-ip.ts。設定の TRUSTED_PROXY_HOPS) */
+    trustedProxyHops: number;
     /** 利用規約・プライバシーポリシーの版の一覧(既定は @app/shared の LEGAL_VERSIONS。結合テストが差し替える) */
     legalVersions: readonly LegalVersion[];
     /**

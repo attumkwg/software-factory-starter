@@ -142,14 +142,14 @@ sequenceDiagram
 
 | 受け入れ条件(仕様) | 設計のどこ | テスト(実装の PR で) |
 |---|---|---|
-| ドメインを DNS で確かめる・1ドメイン1組織 | 2・3・5 | `sso-domains.int.test.ts`(DNS を差し替え) |
+| ドメインを DNS で確かめる・1ドメイン1組織 | 2・3・5 | `organization-domains.int.test.ts`(DNS を差し替え)・`client-ip.test.ts`(TXT をつなぐ) |
 | 運営が IdP をつなぐ | 5 | コマンドの結合テスト(Cognito を偽物に) |
 | メールで IdP へ回り、戻るとその組織に | 0・3・5 | `sso-login.int.test.ts`・E2E `sso.spec.ts`(偽物の IdP) |
 | その IdP の組織・確かめたドメインの人だけ | 6 | 「他社の IdP から入れない」「ドメインが違えば入れない」 |
 | いない人は入れない(JIT なし) | 6・U-2 | 「行が無ければ入れない」 |
 | 必須・緊急用2人・二段階認証 | 6 | 「必須でパスワードを断る」「緊急用は通る」 |
-| IP の制限 20 個・締め出さない | 6 | `ip-allowlist.int.test.ts`(ヘッダーの数え方を含む) |
-| 強制ログアウト | 6 | 「次のリクエストから 401」 |
+| IP の制限 20 個・締め出さない | 6 | `ip-allowlist.int.test.ts`・`client-ip.test.ts`(ヘッダーの数え方) |
+| 強制ログアウト | 6 | `organization-domains.int.test.ts` の「次のリクエストから 401」 |
 | 変更が監査ログに | 3 | `audit-coverage.test.ts`(自動) |
 | SCIM の鍵・Users・止める・消す=止める | 3・6 | `scim.int.test.ts`(2社) |
 | SCIM の操作が監査ログに | 3 | 同上 |

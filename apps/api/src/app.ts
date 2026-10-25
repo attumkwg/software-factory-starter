@@ -1,3 +1,4 @@
+import { resolveTxt } from "node:dns/promises";
 import {
   FEATURE_FLAGS,
   type FeatureFlagDefinition,
@@ -30,6 +31,8 @@ import {
   invitationRoutes,
   mfaRequirementRoutes,
   organizationRoutes,
+  type ResolveTxt,
+  securityRoutes,
   supportGrantRoutes,
 } from "./domains/organizations/index.ts";
 import { projectRoutes } from "./domains/projects/index.ts";
@@ -56,6 +59,8 @@ export type AppDeps = {
   legalVersions?: readonly LegalVersion[];
   /** テスト用: 機能フラグの定義を差し替える(キットには1つも無いので)。既定は FEATURE_FLAGS */
   featureFlags?: readonly FeatureFlagDefinition[];
+  /** テスト用: DNS の TXT を引く関数(ドメインの確認。docs/specs/0056-sso-scim-ip-audit-export.md)。既定は node:dns */
+  resolveTxt?: ResolveTxt;
   /** テスト用: プランの定義を差し替える(機能つきのプランを作る)。既定は PLANS */
   plans?: readonly PlanDefinition[];
   /** 要配慮個人情報の入口(ADR 0029。index.ts が設定から作る)。無ければ null(段0) */
@@ -164,6 +169,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/*", async (c, next) => {
     c.set("supportTenantId", config.supportTenantId);
     c.set("mfaEnforced", config.auth.mode === "cognito");
+    c.set("trustedProxyHops", config.trustedProxyHops);
     c.set("legalVersions", legalVersions);
     c.set("featureFlags", featureFlags);
     c.set("plans", plans);
@@ -199,6 +205,8 @@ export function createApp(deps: AppDeps) {
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));
   app.route("/api", planRoutes);
+  // 大きなお客さん向けの守りの段1a(ドメイン・IP の範囲・人の一覧と強制ログアウト。docs/specs/0056-sso-scim-ip-audit-export.md)
+  app.route("/api", securityRoutes({ db, resolveTxt: deps.resolveTxt ?? resolveTxt }));
   app.route("/api", pmfSurveyRoutes);
 
   if (config.exposeOpenApi) {

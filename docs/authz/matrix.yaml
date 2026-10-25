@@ -288,6 +288,53 @@ routes:
     note: 必須を切る。運営の組織では切れない(409。account-security.int.test.ts)
     expect: { admin: 204, member: 403, viewer: 403, anonymous: 401 }
 
+  # ── 大きなお客さん向けの守りの段1a(docs/specs/0056-sso-scim-ip-audit-export.md) ───────────────
+  # どれも管理者だけ。代理の社員(閲覧者に固定)も 403。
+  # ドメインと IP の範囲はプランの機能(sso・ip-allowlist)。キットの既定のプランには入れない(設計書 0056 の U-6)ので、
+  # この表の組織では管理者でも 404。機能を入れた組織での流れ・他社の物の 404 は organization-security.int.test.ts。
+
+  - route: GET /api/organization/domains
+    permission: sso:manage
+    note: 会社のドメインと、DNS に置く確かめのレコード。プランの機能 sso が入っていなければ 404
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/organization/domains
+    permission: sso:manage
+    note: 会社のドメインを登録する(DNS で確かめるまで使えない)。同じ組織に同じドメインは 409
+    body: { domain: example.com }
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/organization/domains/{domainId}/verify
+    permission: domain:verify
+    note: DNS の TXT を見て確かめる(外を待つので関所のトランザクションの外)。見えなければ 409 domain_not_verified・ほかの組織が確かめ済みなら 409 domain_taken
+    expect: { admin: 404, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: DELETE /api/organization/domains/{domainId}
+    permission: sso:manage
+    note: 会社のドメインを消す
+    expect: { admin: 404, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: GET /api/organization/ip-allowlist
+    permission: ip_allowlist:manage
+    note: 組織に入れる IP の範囲(空なら制限しない)と、いまの IP。プランの機能 ip-allowlist が入っていなければ 404
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: PUT /api/organization/ip-allowlist
+    permission: ip_allowlist:manage
+    note: 一覧ごと入れ替える(20 まで)。いまの IP を含まない一覧は 409 allowlist_excludes_you(自分を締め出さない)。すぐ効く
+    body: { cidrs: [] }
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: GET /api/organization/members
+    permission: member:manage
+    note: 組織の人(古い順に1ページずつ)。強制ログアウトする人を選ぶ。全部の組織で使える
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/organization/members/{memberId}/sign-out
+    permission: member:manage
+    note: その人のこの組織のセッションを全部切る(sessions_valid_after を今に。次のリクエストから 401)。他社の人は 404
+    expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
   # ── 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md) ─────────────────
   # 対象はいつもセッションの本人だけ(パスに人の ID が無いので、他社の物を指す道が無い)。
   # 代理の社員(閲覧者に固定)でも 403(policy.ts の NOT_DURING_SUPPORT。support-access.int.test.ts)。

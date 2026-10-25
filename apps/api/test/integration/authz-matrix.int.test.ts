@@ -38,6 +38,9 @@ function fill(template: string, self: TenantFixture): string {
       .replaceAll("{invitationId}", self.invitationId)
       .replaceAll("{inviteeEmail}", `invitee-${self.tenantId.slice(-12)}@self.test`)
       .replaceAll("{adminEmail}", self.users.admin.email)
+      // 無いドメイン(この表の組織にはプランの機能 sso が無いので、どれも 404)
+      .replaceAll("{domainId}", self.projectId)
+      .replaceAll("{memberId}", self.users.member.id)
       // いまの利用規約の版(数のまま入れる。版を足しても表を直さずに済むように)
       .replaceAll('"{currentTermsVersion}"', String(currentVersion("terms", new Date())?.version))
   );

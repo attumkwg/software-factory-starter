@@ -12,10 +12,15 @@ import type {
   CreateTask,
   Invitation,
   InvitationPage,
+  IpAllowlist,
   LegalVersionRef,
   Me,
   MfaRequirement,
   MfaSetup,
+  OrganizationDomain,
+  OrganizationDomainList,
+  OrganizationMember,
+  OrganizationMemberPage,
   OrganizationPlan,
   PmfSurveyAnswer,
   PmfSurveyStatus,
@@ -87,7 +92,14 @@ type Target = {
 };
 
 // SSR のときに API へ引き継ぐヘッダー。これ以外(Host・Authorization など)は渡さない。
-const FORWARDED_HEADERS = ["cookie", "x-request-id", "traceparent", "x-amzn-trace-id"];
+// x-forwarded-for … 組織ごとの IP の制限で、API が ALB の見た相手の IP(右端)を読む(docs/specs/0056-sso-scim-ip-audit-export.md)
+const FORWARDED_HEADERS = [
+  "cookie",
+  "x-request-id",
+  "traceparent",
+  "x-amzn-trace-id",
+  "x-forwarded-for",
+];
 
 const target = createIsomorphicFn()
   .server((method: string): Target => {
@@ -272,6 +284,23 @@ export const api = {
   revokeInvitation: (id: string) => request<void>("DELETE", `/invitations/${id}`),
   // 組織のプランと人数(docs/specs/0047-plans.md)。管理者だけ
   getOrganizationPlan: () => request<OrganizationPlan>("GET", "/organization/plan"),
+  // 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)
+  listDomains: () => request<OrganizationDomainList>("GET", "/organization/domains"),
+  createDomain: (domain: string) =>
+    request<OrganizationDomain>("POST", "/organization/domains", { domain }),
+  verifyDomain: (id: string) =>
+    request<OrganizationDomain>("POST", `/organization/domains/${id}/verify`),
+  deleteDomain: (id: string) => request<void>("DELETE", `/organization/domains/${id}`),
+  getIpAllowlist: () => request<IpAllowlist>("GET", "/organization/ip-allowlist"),
+  putIpAllowlist: (cidrs: string[]) =>
+    request<IpAllowlist>("PUT", "/organization/ip-allowlist", { cidrs }),
+  listMembers: async (): Promise<{ members: OrganizationMember[] }> => ({
+    members: await readPages<OrganizationMemberPage, OrganizationMember>(
+      "/organization/members",
+      (p) => p.members,
+    ),
+  }),
+  signOutMember: (id: string) => request<void>("POST", `/organization/members/${id}/sign-out`),
   acceptInvitation: (token: string, name: string) =>
     request<AcceptedInvitation>("POST", "/invitations/accept", { token, name }),
   startSupport: (input: StartSupport) =>

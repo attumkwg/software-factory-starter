@@ -117,6 +117,7 @@ export function createTestApp(
     legalVersions?: readonly LegalVersion[];
     featureFlags?: readonly FeatureFlagDefinition[];
     plans?: readonly PlanDefinition[];
+    resolveTxt?: (name: string) => Promise<string[][]>;
   } = {},
 ) {
   const { db, pool } = createDb(appUrl);
@@ -135,6 +136,7 @@ export function createTestApp(
     ...(opts.legalVersions ? { legalVersions: opts.legalVersions } : {}),
     ...(opts.featureFlags ? { featureFlags: opts.featureFlags } : {}),
     ...(opts.plans ? { plans: opts.plans } : {}),
+    ...(opts.resolveTxt ? { resolveTxt: opts.resolveTxt } : {}),
   });
   return { app, pool, lifecycle };
 }

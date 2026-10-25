@@ -47,6 +47,12 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   invitation_not_pending: "この招待は、もう受けたか取り消してあります",
   invalid_invitation:
     "招待のリンクが正しくないか、期限が切れているか、もう使われています。招いた人に送り直してもらってください",
+  domain_taken: "このドメインは、ほかの組織がもう確かめています",
+  domain_not_verified:
+    "DNS にまだ確かめの文字が見えません。DNS に置いてから、少し待ってもう一度試してください",
+  ip_not_allowed: "この組織は、決めた場所(IP)の外からは入れません。組織の管理者に確かめてください",
+  allowlist_excludes_you:
+    "いまの場所(IP)が入っていないので保存できません。自分の IP を含めてください",
   invitation_email_in_use:
     "このメールアドレスは、ほかの組織で使われているので参加できません。招いた人に別のアドレスを伝えてください",
 };

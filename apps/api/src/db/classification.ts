@@ -66,6 +66,22 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.invitations.revoked_at": internal("取り消した時刻"),
   "organizations.invitations.revoked_by": internal("取り消した管理者"),
 
+  // 会社のドメインと IP の範囲(docs/specs/0056-sso-scim-ip-audit-export.md)。お客さんの会社の設定で、人の情報ではない
+  "organizations.domains.id": internal("ドメインの行の ID"),
+  "organizations.domains.tenant_id": internal("登録した組織"),
+  "organizations.domains.domain": internal("会社のドメイン(SSO で、どの組織の人かを決める)"),
+  "organizations.domains.verify_token": internal(
+    "DNS の TXT に置く確かめの文字(公開の DNS に出る。秘密ではない)",
+  ),
+  "organizations.domains.verified_at": internal("DNS で確かめた時刻(全体で1つの組織だけ)"),
+  "organizations.domains.created_at": internal("登録した時刻"),
+  "organizations.domains.created_by": internal("登録した管理者"),
+  "organizations.ip_allowlist.id": internal("範囲の行の ID"),
+  "organizations.ip_allowlist.tenant_id": internal("範囲を決めた組織"),
+  "organizations.ip_allowlist.cidr": internal("組織に入れる IP の範囲(会社のネットワーク)"),
+  "organizations.ip_allowlist.created_at": internal("足した時刻"),
+  "organizations.ip_allowlist.created_by": internal("足した管理者"),
+
   "organizations.support_grants.id": internal("許可の ID"),
   "organizations.support_grants.tenant_id": internal("許可を出した組織"),
   "organizations.support_grants.granted_by": internal("許可を出した人の ID"),
@@ -185,6 +201,8 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       taskId: internal("パスのタスクの ID"),
       grantId: internal("パスの許可の ID"),
       invitationId: internal("パスの招待の ID"),
+      domainId: internal("パスの会社のドメインの ID"),
+      memberId: internal("パスの強制ログアウトした人の ID"),
       fields: internal("直した項目の名前の一覧(値は入れない)"),
       route: internal("代理の社員が呼んだ API の形(メソッドとパスの型)"),
       counts: internal("解約で消した表ごとの行数"),

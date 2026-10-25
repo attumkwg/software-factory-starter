@@ -91,6 +91,15 @@ comments:
     columnComments:
       code_hash: サポート番号の SHA-256(番号そのものは保存しない)
       revoked_at: 取り消した時刻(入っている社員も次のリクエストから入れない)
+  - table: organizations.domains
+    tableComment: 組織が登録した会社のドメイン(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067)。DNS の TXT で確かめた物だけを SSO に使う。確かめたドメインは全体で1つの組織だけ(domains_verified_domain_key)
+    columnComments:
+      verify_token: DNS の TXT(_sfs-verify.<ドメイン>)に置く確かめの文字。公開の DNS に出るので秘密ではない
+      verified_at: DNS で確かめた時刻(アプリが書けるのはこの列だけ)
+  - table: organizations.ip_allowlist
+    tableComment: 組織に入れる IP の範囲(docs/specs/0056-sso-scim-ip-audit-export.md)。空なら制限しない。管理者が一覧ごと入れ替える(20 まで)。プランの機能 ip-allowlist が入っているときだけ効く
+    columnComments:
+      cidr: IP の範囲(203.0.113.0/24・2001:db8::/32 の形)
   - table: organizations.invitations
     tableComment: 管理者が出した招待(docs/specs/0027-invitations.md・ADR 0040)。リンクの札は持たない(招待の ID とサーバーの秘密の署名)。受けるのは auth_accept_invitation 関数だけ(1回きり)
     columnComments:

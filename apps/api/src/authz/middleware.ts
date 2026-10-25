@@ -11,9 +11,12 @@ import {
   type Access,
   findAccess,
   findActiveSupportSession,
+  ipAllowedFor,
+  ipNotAllowed,
 } from "../domains/organizations/index.ts";
 import type { AppEnv, Session } from "../env.ts";
 import { ApiError, forbidden, unauthorized } from "../errors.ts";
+import { clientIp } from "../http/client-ip.ts";
 import type { Logger } from "../logger.ts";
 import {
   ALLOWED_DURING_MFA_SETUP,
@@ -50,6 +53,8 @@ class SupportEnded extends Error {}
  * 9. 社員の代理ログイン(docs/specs/0004-support-access.md)なら、ロールは**閲覧者に固定**。
  *    いまも運営の組織の人か・入室が生きているか(終わっていない・期限内・許可が取り消されていない)を毎回 DB で確かめ、
  *    外れていたら Cookie を社員の本来の組織に戻して 401。**読んだことも**お客さんの監査ログに残す。
+ * 10. 組織が IP の範囲を決めていれば(プランの機能 ip-allowlist)、いまの IP が外なら 403 ip_not_allowed。
+ *    代理の社員は対象外(docs/designs/0056-sso-scim-ip-audit-export.md の U-4)。
  */
 export function authorize(deps: Deps): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -222,7 +227,8 @@ function allowedEntry(c: Context<AppEnv>, gate: Gate) {
 
 /**
  * そのテナントでのロール。代理の社員は、入室が生きていれば閲覧者に固定(本人のアカウントの API は使えない)。
- * ふつうの人は、ほかの端末を切った後のセッションか・規約の同意待ちか・二段階認証の設定待ちか、も見る。
+ * ふつうの人は、ほかの端末を切った後のセッションか・組織の IP の範囲の中か・規約の同意待ちか・
+ * 二段階認証の設定待ちか、も見る。
  */
 async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Role> {
   const { session } = gate;
@@ -240,6 +246,8 @@ async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Rol
   }
   const access = await findAccess(tx, session.tenantId, session.userId);
   if (!access || endedByChange(access, session)) throw unauthorized();
+  const defs = { featureFlags: c.get("featureFlags"), plans: c.get("plans") };
+  if (!(await ipAllowedFor(tx, session.tenantId, clientIp(c), defs))) throw ipNotAllowed();
   const legal = await legalStatusOf(c, tx, session);
   const waitingForMfa = c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled;
   // 止める理由は同意を先に(画面も同意 → 二段階認証の設定の順に回す)
