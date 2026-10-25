@@ -699,7 +699,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: AWS の操作(誰が・いつ・どの API)を、消せない S3(400日)と CloudWatch Logs に残し、root の利用と記録を止める操作で鳴らす
+    what: AWS の操作(誰が・いつ・どの API)を、ロックした S3(400日)と CloudWatch Logs に残し、root の利用・記録を止める操作・記録を消す操作で鳴らす
     needed_by: AWS に出すすべて(事故のあとに「誰が何をしたか」を出す)
     not_needed_by: まだ AWS に出していない
     if_removed: 鍵が盗まれて使われても、何をされたかが90日で消え、消されても気づかない

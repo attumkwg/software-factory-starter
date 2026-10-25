@@ -4,7 +4,7 @@ variable "name" {
 }
 
 variable "lock_mode" {
-  description = "S3 の Object Lock。governance(外せる。stg)か compliance(誰も外せない。期限まで消せない。prod)"
+  description = "S3 の Object Lock。governance(既定。s3:BypassGovernanceRetention を許した人だけが外せる)か compliance(誰も外せない。期限まで消せない。導入時に選ぶ)"
   type        = string
   default     = "governance"
   validation {
@@ -39,4 +39,10 @@ variable "organization_id" {
   description = "組織のトレイルにするときの Organizations の ID(o-…)。管理アカウントで使うときだけ。null ならこのアカウントだけ"
   type        = string
   default     = null
+}
+
+variable "governance_bypass_principal_arns" {
+  description = "governance のロックを外して消してよい IAM の役割・人の ARN(* も使える)。空なら誰も外せない(外すには、まずバケットの方針を変える)"
+  type        = list(string)
+  default     = []
 }

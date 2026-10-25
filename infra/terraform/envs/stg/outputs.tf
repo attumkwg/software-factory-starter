@@ -74,7 +74,7 @@ output "audit_trail_arn" {
 }
 
 output "audit_trail_bucket" {
-  description = "管理操作の記録の置き場(消せない S3)"
+  description = "管理操作の記録の置き場(ロックした S3)"
   value       = module.audit_trail.bucket_name
 }
 

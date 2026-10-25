@@ -9,7 +9,7 @@
 |---|---|---|---|
 | [委託先の台帳](vendors.yaml)(人が読む一覧: [vendors.md](vendors.md)) | 外の会社ごとに、預け方・国・渡す区分・契約(DPA)・第三者の認証・消え方 | `vendors.yaml` | `pnpm vendors`(CI。コードの SDK・Terraform の AWS のサービス・Actions が台帳にあるか) |
 | [AI に渡すデータの決まり](ai-data.md) | 本番の個人データは渡さない(ID と集計まで)・要配慮は一切。出どころごとの表と、渡してしまったとき | `docs/security.md` の AI-6 | 台帳の AI の会社に personal・sensitive が無いか(`pnpm vendors`) |
-| 管理操作の記録(CloudTrail) | AWS の操作を、消せない S3 に400日 | `infra/terraform/modules/audit-trail` | 手順書 [runbooks/audit-trail.md](../runbooks/audit-trail.md)(入れ方・調べ方・書き換えの検証) |
+| 管理操作の記録(CloudTrail) | AWS の操作を、ロックした S3 に400日(消す・方針を変えると鳴る) | `infra/terraform/modules/audit-trail` | 手順書 [runbooks/audit-trail.md](../runbooks/audit-trail.md)(入れ方・調べ方・書き換えの検証) |
 
 足すときは、この表に1行(何か・正・確かめ方)。
 
@@ -33,5 +33,5 @@
 
 1. **台帳を自分の契約に書き直す**: `vendors.yaml` の `contract.dpa`(結んだ日・プラン)・`country`(Sentry などは置き場所を選んだか)・`checked_on`。使わない会社は `status: ended`。直したら `pnpm vendors --write`。
 2. **越境の扱いを専門家に確かめる**: 米国の委託先(AI・Sentry・GitHub・Slack)に ID を渡すことを、プライバシーポリシーにどう書くか(設計書 0017 の U-1)。
-3. **管理操作の記録の保存の日数を決めてから、prod に apply**(手順書 audit-trail.md の 2。prod は消せないロック)。
+3. **管理操作の記録の保存の日数とロックの強さを決めてから、prod に apply**(手順書 audit-trail.md の 2。既定は governance。誰にも消せなくするなら compliance)。
 4. 年に1回、台帳を見直す(会社の認証・約款・置き場所が変わっていないか)。`checked_on` を直す。

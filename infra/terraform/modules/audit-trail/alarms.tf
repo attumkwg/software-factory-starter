@@ -13,6 +13,11 @@ locals {
       pattern     = "{ ($.eventSource = \"cloudtrail.amazonaws.com\") && (($.eventName = \"StopLogging\") || ($.eventName = \"DeleteTrail\") || ($.eventName = \"UpdateTrail\") || ($.eventName = \"PutEventSelectors\") || ($.eventName = \"PutInsightSelectors\")) }"
       description = "管理操作の記録(CloudTrail)が止められた・変えられた"
     }
+    # 記録のバケットの物を消す・ロックを変える・方針やライフサイクルを変える(governance を外す前に、まずここを触る)
+    trail-bucket-changes = {
+      pattern     = "{ ($.eventSource = \"s3.amazonaws.com\") && ($.requestParameters.bucketName = \"${aws_s3_bucket.this.id}\") && (($.eventName = \"DeleteObject\") || ($.eventName = \"DeleteObjects\") || ($.eventName = \"PutObjectRetention\") || ($.eventName = \"PutObjectLegalHold\") || ($.eventName = \"PutObjectLockConfiguration\") || ($.eventName = \"PutBucketPolicy\") || ($.eventName = \"DeleteBucketPolicy\") || ($.eventName = \"PutBucketLifecycle\") || ($.eventName = \"PutBucketVersioning\") || ($.eventName = \"DeleteBucket\")) }"
+      description = "管理操作の記録のバケットで、物が消された・ロックや方針が変えられた"
+    }
   }
 }
 

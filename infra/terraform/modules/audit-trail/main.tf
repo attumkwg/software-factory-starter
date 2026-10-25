@@ -1,9 +1,11 @@
-# 管理操作の記録(CloudTrail)。誰が・いつ・どの AWS の API を呼んだかを、消せない S3 に残す(アカウントごとに1つ)。
+# 管理操作の記録(CloudTrail)。誰が・いつ・どの AWS の API を呼んだかを、ロックした S3 に残す(アカウントごとに1つ)。
 #
-#   S3          … Object Lock で、保存の期間(retention_days)が過ぎるまで誰も消せない・書き換えられない
-#                 governance … 特別な権限があれば外せる(stg。作り直しや試しのため)
-#                 compliance … AWS のサポートでも root でも外せない。期限まで消せず、バケットも消せない(prod)
-#                              ⚠️ 取り消せない。prod の apply の前に、保存の期間を確かめる(docs/runbooks/audit-trail.md の 2)
+#   S3          … Object Lock で、保存の期間(retention_days)が過ぎるまで消せない・書き換えられない
+#                 governance … 既定(stg・prod)。特別な権限 s3:BypassGovernanceRetention を持つ人だけが外せる。
+#                              その権限はバケットの方針で、governance_bypass_principal_arns の外の全員に拒否する
+#                              (既定は空 = 誰も外せない。外すには、まずバケットの方針を変える → アラームが鳴る)
+#                 compliance … 導入時に選べる。AWS のサポートでも root でも外せない。期限まで消せず、バケットも消せない
+#                              ⚠️ 取り消せない。選ぶなら apply の前に保存の期間を確かめる(docs/runbooks/audit-trail.md の 2)
 #   KMS         … 記録とロググループを、このモジュールの鍵で暗号化する(鍵の利用も記録に残る)
 #   CloudWatch  … 同じ記録をロググループにも流す。アラーム(下の root の利用・記録を止める)と調べ物はこちら
 #                 ほかのアラーム(例: 要配慮の鍵の利用)は、出力の log_group_name にメトリクスフィルターを置く
@@ -11,7 +13,8 @@
 #
 # 管理の出来事(読みと書き)を全部、全部のリージョンで。KMS と RDS Data API の出来事も外さない
 # (鍵の利用を見張るため。exclude_management_event_sources は空のまま)。
-# データの出来事(S3 の物の読み書き・Lambda の呼び出し)は量で費用が増えるので取らない(足すなら advanced_event_selector)。
+# データの出来事(S3 の物の読み書き・Lambda の呼び出し)は量で費用が増えるので取らない。例外は、このバケットの記録を
+# 消す・ロックを変える操作だけ(DeleteObject・PutObjectRetention など。ふだんは0件。鳴らすため)。
 #
 # Organizations は Terraform で持っていないので、いまはアカウントのトレイル(stg・prod に1つずつ)。
 # 管理アカウントを Terraform で持ったら、organization_id を入れて組織のトレイルにできる(docs/runbooks/audit-trail.md の 4)。
@@ -105,7 +108,7 @@ resource "aws_kms_alias" "this" {
   target_key_id = aws_kms_key.this.key_id
 }
 
-# ── 消せない S3 ─────────────────────────────────────────────────────────────────────
+# ── ロックした S3 ─────────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "this" {
   bucket              = "${var.name}-audit-trail-${local.account_id}"
@@ -217,6 +220,25 @@ data "aws_iam_policy_document" "bucket" {
       values   = [local.trail_arn]
     }
   }
+  # ロックを外す権限(governance を飛ばして消す)は、決めた人の外の全員に拒否する(管理者の IAM の権限があっても)
+  statement {
+    sid       = "DenyGovernanceBypass"
+    effect    = "Deny"
+    actions   = ["s3:BypassGovernanceRetention"]
+    resources = [aws_s3_bucket.this.arn, "${aws_s3_bucket.this.arn}/*"]
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    dynamic "condition" {
+      for_each = length(var.governance_bypass_principal_arns) == 0 ? [] : [1]
+      content {
+        test     = "ArnNotLike"
+        variable = "aws:PrincipalArn"
+        values   = var.governance_bypass_principal_arns
+      }
+    }
+  }
   statement {
     sid       = "DenyInsecureTransport"
     effect    = "Deny"
@@ -294,9 +316,33 @@ resource "aws_cloudtrail" "this" {
   cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.this.arn}:*"
   cloud_watch_logs_role_arn     = aws_iam_role.cloudwatch.arn
 
-  event_selector {
-    read_write_type           = "All"
-    include_management_events = true
+  advanced_event_selector {
+    name = "management"
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Management"]
+    }
+  }
+
+  # このバケットの記録を消す・ロックを変える操作だけ(CloudTrail 自身の書き込み PutObject は取らない)
+  advanced_event_selector {
+    name = "trail-bucket-deletes"
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Data"]
+    }
+    field_selector {
+      field  = "resources.type"
+      equals = ["AWS::S3::Object"]
+    }
+    field_selector {
+      field       = "resources.ARN"
+      starts_with = ["${aws_s3_bucket.this.arn}/"]
+    }
+    field_selector {
+      field  = "eventName"
+      equals = ["DeleteObject", "DeleteObjects", "PutObjectRetention", "PutObjectLegalHold"]
+    }
   }
 
   depends_on = [aws_s3_bucket_policy.this, aws_iam_role_policy.cloudwatch]

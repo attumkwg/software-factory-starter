@@ -151,7 +151,7 @@
 | ELB(ALB。入口) | internal・personal | `aws_lb`・`aws_lb_*` | 通るだけ(TLS をここで解く)。アクセスログは取っていない |
 | WAF | internal・personal | `aws_wafv2_*` | ログは IP・URL(検索の値が入る)・ヘッダー(Cookie と Authorization は伏せる)。30日 |
 | CloudWatch(ログ・メトリクス・アラーム)・EventBridge | internal・personal | `aws_cloudwatch_*` | アプリのログは許可リストの項目だけ(ADR 0019)。personal が入るのは WAF のログ(URL の検索の値)だけ |
-| CloudTrail(管理操作の記録) | internal | `aws_cloudtrail` | 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。消せない S3 に置く(docs/runbooks/audit-trail.md) |
+| CloudTrail(管理操作の記録) | internal | `aws_cloudtrail` | 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。ロックした S3 に置く(docs/runbooks/audit-trail.md) |
 | S3 | public・internal | `aws_s3_*` | 管理操作の記録と、試作の画面(偽のデータだけ)。お客さんのデータは置かない |
 | CloudFront(試作の画面の配信) | public | `aws_cloudfront_*` |  |
 | VPC(ネットワーク) | internal | `aws_vpc`・`aws_vpc_*`・`aws_subnet`・`aws_subnets`・`aws_route`・`aws_route_table`・`aws_route_table_association`・`aws_internet_gateway`・`aws_nat_gateway`・`aws_eip`・`aws_security_group`・`aws_default_security_group`・`aws_flow_log`・`aws_availability_zones` | フローログ(IP と通信の量。中身は無い) |

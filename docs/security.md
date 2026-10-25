@@ -159,7 +159,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | WAF | ALB の前で型どおりの攻撃・悪い IP・1つの IP からの大量のリクエストを止める | 月 約1,500〜2,000円 | `infra/terraform/modules/waf` |
 | GuardDuty | 怪しい動き(漏れた鍵の利用・不審な通信)を見つける | 月 数百〜千数百円 | `modules/security-baseline` |
 | Security Hub | AWS の設定を決まりの一覧で採点する | 月 数百〜千数百円 | `modules/security-baseline` |
-| CloudTrail | AWS の管理操作(誰が・いつ・どの API)を、消せない S3(400日。prod は root でも消せない)と CloudWatch Logs に残す。root の利用と、記録を止める操作で鳴らす | 月 数百円 | `modules/audit-trail`・[runbooks/audit-trail.md](runbooks/audit-trail.md) |
+| CloudTrail | AWS の管理操作(誰が・いつ・どの API)を、ロックした S3(governance・400日。外す権限は方針で全員に拒否)と CloudWatch Logs に残す。root の利用・記録を止める操作・記録のバケットで消す/方針を変える操作で鳴らす | 月 数百円 | `modules/audit-trail`・[runbooks/audit-trail.md](runbooks/audit-trail.md) |
 
 WAF は最初「数えるだけ(count)」で入れ、誤検知が無いのを確かめてから「止める(block)」にする。
 
