@@ -3,14 +3,14 @@
 > 商談でデモを見せ、見積を出し、申込書を受け、稟議の資料を渡す、を毎回作らずに回す。仕様は [specs/0053](../specs/0053-sales-kit.md)・設計は [designs/0053](../designs/0053-sales-kit.md)・判断は [ADR 0064](../adr/0064-sales-kit-demo-on-stg.md)。
 > **本番の個人データは使わない。** デモは stg の偽のデータだけ。お客さんの名前・金額・商談の記録はリポジトリに書かない(CRM や契約の管理の置き場へ。道具の扱いは [sales-tools.md](sales-tools.md))。
 
-## 1. デモ用の組織(stg・毎晩きれいに戻る)
+## 1. デモ用の組織(stg・デモの前に戻す)
 
 1. **一度だけ: stg にデモの組織を作る**。申し込みの JSON(`name` は「デモ 株式会社」など・`admin.email` は営業の会社のアドレス・`plan` は見せたいプラン)で `create-tenant` を流す([runbooks/tenant-provisioning.md](../runbooks/tenant-provisioning.md)。stg で)。管理者が招待から登録し、ほかのデモのアカウント(メンバー・閲覧者)を画面「招待」で足す。
 2. 見せる機能を入れる(`feature-flag <デモの組織の ID> <機能> on --execute`。[runbooks/feature-flags.md](../runbooks/feature-flags.md))。
 3. GitHub の変数 `DEMO_TENANT_ID` にデモの組織の ID を入れる(Settings → Secrets and variables → Actions → Variables。人が入れる)。
-4. 毎晩 3:00(日本時間)に `demo-reset.yml` が、stg の移行のタスクで `demo-reset --execute` を流す。戻すのは**計画・タスク・招待・利用の記録など**(組織の行のある表のうち、下の「残す物」のほか全部)。**組織・人(ログイン)・契約のプラン・入れた機能・同意・監査ログは残す**。そのあと決まったデモのデータ(`apps/api/src/demo/reset.ts` の `DEMO_DATA`)を入れ直す。
+4. **デモの前に**(商談の前の日か、始まる 10分前までに)、Actions → Demo reset → Run workflow を押す。`demo-reset.yml` が、stg の移行のタスクで `demo-reset --execute` を流す(数分。終わると要約に「戻しました」)。定期では流れないので、デモの無い日は何も動かない。戻すのは**計画・タスク・招待・利用の記録など**(組織の行のある表のうち、下の「残す物」のほか全部)。**組織・人(ログイン)・契約のプラン・入れた機能・同意・監査ログは残す**。そのあと決まったデモのデータ(`apps/api/src/demo/reset.ts` の `DEMO_DATA`)を入れ直す。
    - デモのデータは自分のプロダクトに合わせて `DEMO_DATA` を直す(偽の題名だけ。本物のお客さんのデータを写さない)。
-   - 商談の前に手で戻すなら Actions → Demo reset → Run workflow。手元で試すなら `APP_ENV=local DEMO_TENANT_ID=<ID> node dist/cli.js demo-reset`(試し)→ `--execute`。
+   - 失敗したら(赤くなったら)CloudWatch Logs の `migrate` を見る。手元で試すなら `APP_ENV=local DEMO_TENANT_ID=<ID> node dist/cli.js demo-reset`(試し)→ `--execute`。
    - コマンドは、`APP_ENV` がはっきり stg・手元・テスト・プレビューで、`DEMO_TENANT_ID` があるときだけ動く(本番では止まる。運営の組織も指せない)。
 5. デモの中で相手が足した人(招待を受けて登録した人)は残る。消すなら [runbooks/person-data.md](../runbooks/person-data.md) の手順で。
 

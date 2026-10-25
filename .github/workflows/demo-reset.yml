@@ -1,15 +1,13 @@
-# 営業のデモ用の組織を、毎晩きれいな状態に戻す(stg だけ。docs/guides/sales.md の 1・設計書 0053)。
+# 営業のデモ用の組織を、きれいな状態に戻す(stg だけ。docs/guides/sales.md の 1・設計書 0053)。
+# **デモの前に人が手で流す**(Actions → Demo reset → Run workflow)。定期では流さない(デモの前に一度戻せば足りる。設計書 0053 の 11)。
 # stg の移行のタスク(最後にデプロイした版のイメージ)を、コマンドだけ demo-reset --execute に替えて1回流す。
 # 本番には流さない: 使う役割は stg のデプロイの役割だけ(environment: stg・main からだけ)、コマンドも APP_ENV=stg と DEMO_TENANT_ID が無いと止まる。
 # 要るもの: 変数 DEMO_TENANT_ID(デモ用の組織の ID。先に create-tenant で作る)・AWS_STG_DEPLOY_ROLE_ARN(deploy.yml と同じ)
-# 費用: 毎晩 1〜2分の Actions と、Fargate の小さなタスク1回(0.25 vCPU・数十秒)
+# 費用: 流すたびに 1〜2分の Actions と、Fargate の小さなタスク1回(0.25 vCPU・数十秒)
 name: Demo reset
 
 on:
   workflow_dispatch:
-  # 有効にする日: 2026-10-25
-  schedule:
-    - cron: "0 18 * * *" # 日本時間 3:00
 
 permissions:
   contents: read
@@ -24,9 +22,8 @@ env:
 jobs:
   reset:
     name: デモ用の組織を戻す(stg)
-    # 定期で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)だけ。デモの組織と役割の変数が無ければ飛ばす
+    # main からだけ。デモの組織と役割の変数が無ければ飛ばす
     if: >-
-      (github.event_name != 'schedule' || vars.KIT_ROLE == 'product') &&
       github.ref == 'refs/heads/main' &&
       vars.DEMO_TENANT_ID != '' && vars.AWS_STG_DEPLOY_ROLE_ARN != ''
     runs-on: ubuntu-latest

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DEMO_RESET_TABLES, demoTarget } from "../../src/demo/index.ts";
 import { TENANT_TABLES } from "../../src/offboarding/delete-tenant.ts";
@@ -39,5 +42,19 @@ describe("戻す表", () => {
     // 子の表が先(TENANT_TABLES の順のまま)
     const order = DEMO_RESET_TABLES.map((t) => TENANT_TABLES.indexOf(t));
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+});
+
+describe("ワークフローは手動だけ", () => {
+  // デモの前に人が流す(設計書 0053 の 11・13。毎晩の定期は持ち主の指摘でやめた)
+  const WORKFLOW = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../../.github/workflows/demo-reset.yml",
+  );
+  it("workflow_dispatch だけで、schedule(定期)を持たない", () => {
+    const text = readFileSync(WORKFLOW, "utf8");
+    expect(text).toMatch(/^ {2}workflow_dispatch:/m);
+    expect(text).not.toMatch(/^\s*schedule:/m);
+    expect(text).not.toMatch(/cron:/);
   });
 });

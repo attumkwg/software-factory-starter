@@ -1,4 +1,4 @@
-# 設計: 営業の道具(毎晩戻るデモの組織・見積から申込・稟議の資料の束)
+# 設計: 営業の道具(デモの前に戻せるデモの組織・見積から申込・稟議の資料の束)
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
 > 仕様: [docs/specs/0053-sales-kit.md](../specs/0053-sales-kit.md)・ADR: [0064](../adr/0064-sales-kit-demo-on-stg.md)
@@ -7,11 +7,11 @@
 
 ## 0. 全体像
 
-3つを足す。① 運営のコマンド `demo-reset`(`apps/api/src/demo/reset.ts`)と毎晩のワークフロー `demo-reset.yml`: stg のデモ用の組織を、組織・人・プラン・機能・同意・監査ログを残したまま、決まったデモのデータに戻す。② 見積書の型(`docs/legal/quote.md`)と、見積 → 申込 → 開通でプランと価格表の版をそろえる流れ(`docs/guides/sales.md`)。③ 稟議の資料の束を作るスクリプト `pnpm sales:pack`(`scripts/sales-pack.mjs`)。
+3つを足す。① 運営のコマンド `demo-reset`(`apps/api/src/demo/reset.ts`)と、デモの前に人が手で流すワークフロー `demo-reset.yml`(定期では流さない): stg のデモ用の組織を、組織・人・プラン・機能・同意・監査ログを残したまま、決まったデモのデータに戻す。② 見積書の型(`docs/legal/quote.md`)と、見積 → 申込 → 開通でプランと価格表の版をそろえる流れ(`docs/guides/sales.md`)。③ 稟議の資料の束を作るスクリプト `pnpm sales:pack`(`scripts/sales-pack.mjs`)。
 
 ```mermaid
 flowchart LR
-  W[demo-reset.yml<br/>毎晩 3:00・stg の役割] -->|移行のタスクを<br/>コマンドだけ替えて| C[demo-reset --execute<br/>APP_ENV=stg・DEMO_TENANT_ID]
+  W[demo-reset.yml<br/>デモの前に手で・stg の役割] -->|移行のタスクを<br/>コマンドだけ替えて| C[demo-reset --execute<br/>APP_ENV=stg・DEMO_TENANT_ID]
   C --> D[(stg の DB<br/>デモの組織だけ)]
   Q[見積書の型] --> O[申込書の型] --> J[申し込みの JSON] --> T[create-tenant]
   P[pnpm sales:pack] --> R[稟議の資料の束<br/>リポジトリの外]
@@ -44,7 +44,7 @@ DB は変えない。
 |---|---|
 | `organizations.tenants`・`organizations.users` | デモのログイン(Cognito の利用者と結びついている)をそのまま使う |
 | `platform.tenant_plans`・`platform.feature_flags` | 見せるプランと機能は運営が選んだ物 |
-| `legal.consents`・`legal.notices` | 毎晩同意の画面に回されないため |
+| `legal.consents`・`legal.notices` | 戻すたびに同意の画面に回されないため |
 | `platform.audit_events` | 足すだけの記録(消すには解約の手順が要る) |
 | `sensitive.*` | デモに要配慮を置かない(触らない) |
 
@@ -65,8 +65,8 @@ API は足さない。
 
 | 項目 | 中身 |
 |---|---|
-| いつ | 毎晩 `0 18 * * *`(日本時間 3:00)・手動 |
-| 条件 | 定期は `vars.KIT_ROLE == 'product'`・main だけ・`vars.DEMO_TENANT_ID` と `vars.AWS_STG_DEPLOY_ROLE_ARN` がある |
+| いつ | **手動だけ**(`workflow_dispatch`。デモの前に営業か運営が Actions → Demo reset → Run workflow)。定期(`schedule`)は持たない |
+| 条件 | main だけ・`vars.DEMO_TENANT_ID` と `vars.AWS_STG_DEPLOY_ROLE_ARN` がある(定期ではないので `KIT_ROLE` の見分けは要らない) |
 | 権限 | `contents: read`・`id-token: write`。Environment `stg` |
 | すること | stg のデプロイの役割を引き、`<cluster>-migrate` を `--overrides` で `command: ["dist/cli.js","demo-reset","--execute"]`・`APP_ENV=stg`・`DEMO_TENANT_ID` にして run-task。止まるのを待ち、終わりの番号が 0 でなければ失敗 |
 
@@ -74,7 +74,7 @@ API は足さない。
 
 ## 4. 状態遷移
 
-デモの組織: 使われて散らかる → 毎晩(か手で)戻る → 決まったデモのデータ。戻すたびに監査ログに1行。
+デモの組織: 使われて散らかる → デモの前に人が流して戻る → 決まったデモのデータ。戻すたびに監査ログに1行。
 
 ## 5. システム間連携
 
@@ -112,7 +112,7 @@ API は足さない。
 | 組織・人・プラン・機能・同意・監査ログを残す・監査ログに残る | 2.・6. D-3 | 同上(人の数がそのまま・`demo.reset` が1行)・`test/unit/demo-reset.test.ts` の「戻す表」 |
 | 環境と組織の決まりで止まる | 6. D-1・D-2 | 単体の「デモを戻してよい環境」・結合の「コマンドの入口」(prod・無い組織) |
 | ほかの組織に触れない・ID を出さない | 6. D-3・3. | 結合の「試しは…」(ほかの組織の計画とタスクがそのまま)・「コマンドの入口」 |
-| 毎晩 stg で自動で戻る | 3. のワークフロー | `pnpm setup:check`(定期の見分け `KIT_ROLE`)・CI の actionlint と zizmor |
+| デモの前に手で流して stg で戻る・定期では流さない | 3. のワークフロー | `test/unit/demo-reset.test.ts` の「ワークフローは手動だけ」(`schedule` が無い)・CI の actionlint と zizmor |
 | 見積書の型と流れ | 6. Q-1・Q-2 | 文書(`docs/legal/quote.md`・`docs/guides/sales.md` の 2) |
 | 束をまとめる・埋める所・リンク・無いファイル | 6. S-1〜S-4 | `scripts/sales-pack.test.mjs`(4本。いまのキットの型で作れることも) |
 
@@ -121,7 +121,7 @@ API は足さない。
 - 性能: デモの1組織だけを1トランザクションで。夜中に1回。
 - セキュリティ: 仕様の STRIDE のとおり。ワークフローは stg の役割だけ・main だけ・Environment stg。コマンドは環境を二重に確かめる。
 - 運用: 手引き `docs/guides/sales.md`・変数は `docs/guides/manual-setup.md`。失敗したら CloudWatch Logs の `migrate`。
-- 費用: 毎晩 Actions 1〜2分と Fargate の小さなタスク1回。
+- 費用: 流すときだけ(1回で Actions 1〜2分と Fargate の小さなタスク1回)。デモの無い日は0。
 
 ## 9. このプロダクト特有
 
@@ -154,9 +154,9 @@ API は足さない。
 - 戻すのは今ある stg の移行のタスクをコマンドだけ上書きして流す — 新しいタスク定義・役割を足すと infra の apply が要る。デプロイの役割は移行のタスクの run-task と役割の受け渡しを持っている
 - コマンドは `APP_ENV` を**はっきり**求める — 移行のタスクは `APP_ENV` を持たず、`cli.ts` の既定は `local` なので、既定に頼ると本番の移行のタスクでも通ってしまう。ワークフローが `APP_ENV=stg` を渡す
 - 戻す表は `TENANT_TABLES` から残す表を引く — プロダクトが表を足しても戻し忘れない。順も解約の削除と同じ(子から先)
-- 人・プラン・機能・同意・監査ログを残す — デモのログインと見せる構成を毎晩作り直さない。監査ログは足すだけの記録
+- 人・プラン・機能・同意・監査ログを残す — デモのログインと見せる構成を戻すたびに作り直さない。監査ログは足すだけの記録
 - デモのデータはコードの中の偽の題名(`DEMO_DATA`) — 種データと同じく本番の個人データを使わない。プロダクトに合わせて直す所
-- 毎晩 3:00 — 商談の時間に重ならない
+- **定期にせず、デモの前に人が手で流す**(@attumkwg 2026-10-25 の指摘で作り直した) — デモの前に一度戻せば足りる。毎晩だと、デモの無い日にも Actions と Fargate が動き(費用)、失敗の知らせを誰かが見る手間が出る。流し忘れても、デモの直前に Run workflow を押せば数分で戻る
 - 見積は型と手引きだけ — 金額はキットに持たない(価格表の金額は会計ソフト。仕様 0047)
 - 束は Markdown 1つ — 稟議の資料はお客さんの側で Word や PDF にされることが多い。Markdown なら写しやすい。PDF にするのは人
 - 束に質問票の答えを入れない — 会社ごとの答えはリポジトリの外(`/security-questionnaire` の決まり)
@@ -174,3 +174,4 @@ API は足さない。
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | 持ち主の指摘(PR #89。「求められた時にやるんでいいような気がしますけど、毎晩やる必要ってあるんでしょうか」) | 要求(仕様の受け入れ条件が「毎晩自動で戻る」だった。始めの依頼の言葉を写していた) | 仕様 0053 の受け入れ条件・STRIDE・決めたこと | 設計書の 0・2・3・4・7・8・11・ADR 0064・`demo-reset.yml`(定期をやめて手動だけ)・コードの注・手引き(`sales.md`・`manual-setup.md`・`reference.md`・`CLAUDE.md`・カタログ)・テスト(ワークフローに `schedule` が無いこと) |

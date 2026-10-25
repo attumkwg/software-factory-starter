@@ -5,7 +5,7 @@ import { projects, tasks } from "../db/schema.ts";
 import { withTenant } from "../db/tenant.ts";
 import { TENANT_TABLES } from "../offboarding/delete-tenant.ts";
 
-// 営業のデモ用の組織を、毎晩きれいな状態に戻す(運営のコマンド demo-reset。docs/specs/0053-sales-kit.md)。
+// 営業のデモ用の組織を、デモの前にきれいな状態に戻す(運営のコマンド demo-reset。docs/specs/0053-sales-kit.md)。
 // **stg(か手元・プレビュー)だけ**。デモの組織は DEMO_TENANT_ID で1つだけ指し、運営の組織とは別。
 // 組織・人(ログインはそのまま)・契約のプラン・入れた機能・同意・監査ログは残し、ほかの組織のデータを消して、決まったデモのデータを入れ直す。
 // 本番の個人データは使わない(デモのデータは下の DEMO_DATA だけ)。
