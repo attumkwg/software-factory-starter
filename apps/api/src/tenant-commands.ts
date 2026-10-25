@@ -34,7 +34,13 @@ export async function createTenantCommand(args: string[]) {
     });
     const line = execute
       ? { mode: "created", ...created, ignoredKeys }
-      : { mode: "plan", timeZone: created.timeZone, mfaRequired: created.mfaRequired, ignoredKeys };
+      : {
+          mode: "plan",
+          timeZone: created.timeZone,
+          mfaRequired: created.mfaRequired,
+          adminOtherMemberships: created.adminOtherMemberships,
+          ignoredKeys,
+        };
     process.stdout.write(`${JSON.stringify(line)}\n`);
     if (!execute) {
       process.stdout.write(

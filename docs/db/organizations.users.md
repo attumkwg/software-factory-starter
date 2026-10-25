@@ -33,8 +33,6 @@
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | users_pkey                   | CREATE UNIQUE INDEX users_pkey ON organizations.users USING btree (id)                                       |
 | users_tenant_id_id_key       | CREATE UNIQUE INDEX users_tenant_id_id_key ON organizations.users USING btree (tenant_id, id)                |
-| users_email_key              | CREATE UNIQUE INDEX users_email_key ON organizations.users USING btree (email)                               |
-| users_external_id_key        | CREATE UNIQUE INDEX users_external_id_key ON organizations.users USING btree (external_id)                   |
 | users_tenant_email_key       | CREATE UNIQUE INDEX users_tenant_email_key ON organizations.users USING btree (tenant_id, email)             |
 | users_tenant_external_id_key | CREATE UNIQUE INDEX users_tenant_external_id_key ON organizations.users USING btree (tenant_id, external_id) |
 

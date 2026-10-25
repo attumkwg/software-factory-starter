@@ -51,9 +51,9 @@ sequenceDiagram
 
 | 段 | 移行 | 中身 | 戻し方 |
 |---|---|---|---|
-| ① 拡張 | `0018_multi_org_keys`(仮) | `(tenant_id, email)`・`(tenant_id, external_id)` の一意の索引を足す(`CREATE UNIQUE INDEX CONCURRENTLY`。`drizzle/concurrent/`)。関数 `auth_find_memberships(p_external_id text, p_email text)` を足す(sub か、sub の無い行は確認済みのメールで。返すのは `user_id, tenant_id, tenant_name, role, last_used_at`) | 索引と関数を消す |
+| ① 拡張 | `0018_multi_org_expand`(索引は `concurrent/0018_multi_org_keys`) | `(tenant_id, email)`・`(tenant_id, external_id)` の一意の索引を足す(`CREATE UNIQUE INDEX CONCURRENTLY`。`drizzle/concurrent/`)。関数 `auth_find_memberships(p_external_id text, p_email text)` を足す(sub か、sub の無い行は確認済みのメールで。返すのは `user_id, tenant_id, tenant_name, role, last_used_at`) | 索引と関数を消す |
 | ② 両方 | アプリ | ログイン・切り替えが新しい関数を使う。古い一意は残っているので、まだ2つ目の所属はできない | 前の版に戻す |
-| ③ 縮小 | `0019_drop_global_user_keys`(仮) | `users_email_key`・`users_external_id_key`(全体の一意)を消す。`auth_link_external_id` を「確認済みのメールで、sub の無い行を全部」結びつける形に。`auth_accept_invitation` は一意の失敗を `(tenant_id, email)` の重なり(もうその組織にいる)だけにする。`auth_email_in_use` は「ほかの人(別の sub)が使っているか」に | **戻せない**(2つ目の所属ができた後は、全体の一意を張り直せない)→ U-3 |
+| ③ 縮小 | `0019_multi_org_contract`(索引は `concurrent/0019_drop_global_user_keys`) | `users_email_key`・`users_external_id_key`(全体の一意)を消す。`auth_link_external_id` を「確認済みのメールで、sub の無い行を全部」結びつける形に。`auth_accept_invitation` は一意の失敗を `(tenant_id, email)` の重なり(もうその組織にいる)だけにする。`auth_email_in_use` は「ほかの人(別の sub)が使っているか」に | **戻せない**(2つ目の所属ができた後は、全体の一意を張り直せない)→ U-3 |
 
 足す列(① で):
 
@@ -125,7 +125,7 @@ sequenceDiagram
 - セキュリティ: 仕様の STRIDE。本文に組織の ID を取る API が1本増える → 所属の確かめは DB の関数(sub で)。結合テストで他社の ID・消された所属・代理の最中。
 - 運用: 手順書 `cognito-login.md`(結びつきを直す・所属の一覧の見方)・`offboarding.md` の 3・`person-data.md` の 5。
 - 費用: なし。
-- 移行: ③ は戻せない(U-3)。① と ② を出して1週間見てから ③。
+- 移行: ③ は戻せない(U-3)。① と ② を出して1週間見てから ③(持ち主の決め 2026-10-25。手順は `docs/runbooks/multi-org-rollout.md`)。
 
 ## 9. このプロダクト特有
 

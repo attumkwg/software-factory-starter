@@ -27,24 +27,25 @@
 
 ## Stored procedures and functions
 
-| Name                                 | ReturnType | Arguments                                                                                                | Type     |
-| ------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| public.app_current_tenant            | uuid       |                                                                                                          | FUNCTION |
-| public.auth_find_user_by_email       | record     | p_email text                                                                                             | FUNCTION |
-| public.auth_find_user_by_external_id | record     | p_external_id text                                                                                       | FUNCTION |
-| public.outbox_claim                  | outbox     | p_limit integer, p_lease_seconds integer                                                                 | FUNCTION |
-| public.outbox_mark_sent              | void       | p_id uuid                                                                                                | FUNCTION |
-| public.outbox_mark_failed            | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean                                         | FUNCTION |
-| public.auth_link_external_id         | record     | p_email text, p_external_id text                                                                         | FUNCTION |
-| platform.audit_events_append_only    | trigger    |                                                                                                          | FUNCTION |
-| public.support_find_grant            | record     | p_code_hash text                                                                                         | FUNCTION |
-| public.auth_email_in_use             | bool       | p_email text, p_user_id uuid                                                                             | FUNCTION |
-| public.legal_notice_tenants          | uuid       |                                                                                                          | FUNCTION |
-| public.operator_tenant_ids           | uuid       |                                                                                                          | FUNCTION |
-| public.auth_accept_invitation        | record     | p_id uuid, p_user_id uuid, p_name text                                                                   | FUNCTION |
-| public.auth_find_memberships         | record     | p_external_id text, p_email text                                                                         | FUNCTION |
-| public.auth_sync_person              | int4       | p_external_id text, p_email text, p_mfa_enabled boolean, p_sessions_valid_after timestamp with time zone | FUNCTION |
-| public.auth_count_memberships        | int4       | p_external_id text                                                                                       | FUNCTION |
+| Name                                   | ReturnType | Arguments                                                                                                | Type     |
+| -------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- | -------- |
+| public.app_current_tenant              | uuid       |                                                                                                          | FUNCTION |
+| public.auth_find_user_by_email         | record     | p_email text                                                                                             | FUNCTION |
+| public.auth_find_user_by_external_id   | record     | p_external_id text                                                                                       | FUNCTION |
+| public.outbox_claim                    | outbox     | p_limit integer, p_lease_seconds integer                                                                 | FUNCTION |
+| public.outbox_mark_sent                | void       | p_id uuid                                                                                                | FUNCTION |
+| public.outbox_mark_failed              | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean                                         | FUNCTION |
+| public.auth_link_external_id           | record     | p_email text, p_external_id text                                                                         | FUNCTION |
+| platform.audit_events_append_only      | trigger    |                                                                                                          | FUNCTION |
+| public.support_find_grant              | record     | p_code_hash text                                                                                         | FUNCTION |
+| public.auth_email_in_use               | bool       | p_email text, p_user_id uuid                                                                             | FUNCTION |
+| public.legal_notice_tenants            | uuid       |                                                                                                          | FUNCTION |
+| public.operator_tenant_ids             | uuid       |                                                                                                          | FUNCTION |
+| public.auth_accept_invitation          | record     | p_id uuid, p_user_id uuid, p_name text                                                                   | FUNCTION |
+| public.auth_find_memberships           | record     | p_external_id text, p_email text                                                                         | FUNCTION |
+| public.auth_sync_person                | int4       | p_external_id text, p_email text, p_mfa_enabled boolean, p_sessions_valid_after timestamp with time zone | FUNCTION |
+| public.auth_count_memberships          | int4       | p_external_id text                                                                                       | FUNCTION |
+| public.auth_count_memberships_by_email | int4       | p_email text                                                                                             | FUNCTION |
 
 ## Enums
 

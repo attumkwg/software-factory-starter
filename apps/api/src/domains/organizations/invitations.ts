@@ -199,7 +199,8 @@ export type AcceptedInvitation = {
 /**
  * 招待を受ける: 生きている招待を1回だけ使い、その組織に人(users の行)を足す。
  * 組織は**札が指す招待**から決まる(リクエストの値からは決めない)。行を足すのは DB の関数だけ(移行 0014)。
- * 生きていなければ null。メールがもうどこかの組織で使われていれば invitation_email_in_use(何も変わらない)。
+ * 生きていなければ null。ほかの組織にもういる人なら、この組織への所属が増える(ADR 0066)。
+ * この組織にもういれば already_member(何も変わらない)。
  * after … 同じトランザクションで、組織の文脈を付けた後にすること(監査ログ)
  */
 export async function acceptInvitation(
@@ -229,12 +230,9 @@ export async function acceptInvitation(
     });
   } catch (e) {
     const cause = ((e as { cause?: unknown }).cause ?? e) as { code?: string; constraint?: string };
-    if (cause.code === "23505" && cause.constraint === "users_email_key") {
-      throw new ApiError(
-        409,
-        "invitation_email_in_use",
-        "このメールアドレスは、ほかの組織で使われています",
-      );
+    // 組織ごとの一意(移行 0017)。招く時点で止めているが、受ける間に足された(運営の SQL など)ときだけ
+    if (cause.code === "23505" && cause.constraint === "users_tenant_email_key") {
+      throw new ApiError(409, "already_member", "このメールアドレスの人は、もうこの組織にいます");
     }
     throw e;
   }
