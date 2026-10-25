@@ -1,6 +1,6 @@
 # 仕様: 1人が複数の組織に入る(組織を選び直す)
 
-> 状態: 下書き
+> 状態: 承認済み(承認した人: @attumkwg 2026-10-25。会話で: 設計書 0055 の U-1〜U-5 を「全部おすすめどおり」)
 > 設計: [docs/designs/0055-multi-org-membership.md](../designs/0055-multi-org-membership.md)・ADR: [0066](../adr/0066-multi-org-membership.md)(ADR 0001 の「1人 = 1組織」を置き換える)
 > 穴 G-21(`docs/scenarios/gaps.md`)。**この PR は仕様と設計まで**(実装は答えが出てから)。
 
