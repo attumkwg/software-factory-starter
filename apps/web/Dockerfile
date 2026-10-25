@@ -3,6 +3,9 @@
 # 画面のサービス(TanStack Start の SSR)。API とは別のイメージ・別の ECS サービス。本番もプレビューも同じイメージ。
 
 FROM node:24-trixie-slim AS build
+# 外への通信を絞った devcontainer の中で作るとき、corepack と pnpm(Node の fetch)にプロキシを使わせる。
+# 空のとき(CI・本番)は何も変わらない(docs/designs/0057-ai-egress.md の 5 ①)
+ARG NODE_USE_ENV_PROXY
 WORKDIR /repo
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
