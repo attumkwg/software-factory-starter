@@ -1,0 +1,14 @@
+{
+  "_comment": "見本(偽の数字)。本物は API の運営のコマンド node dist/cli.js tenant-shares --month YYYY-MM の1行目をそのまま、非公開の置き場(S3 の cost/inputs/tenants.json)に置く。組織の ID は入らない",
+  "mode": "tenant-shares",
+  "month": "2026-09",
+  "tenantsTotal": 12,
+  "smallBelow": 5,
+  "totals": { "users": 160, "rows": 48000, "writes": 9000 },
+  "bands": [
+    { "band": "1〜5人", "tenants": 7, "small": false, "users": 25, "rows": 9000, "writes": 1500 },
+    { "band": "6〜20人", "tenants": 4, "small": true, "users": 55, "rows": 15000, "writes": 3000 },
+    { "band": "21〜100人", "tenants": 1, "small": true, "users": 80, "rows": 24000, "writes": 4500 }
+  ],
+  "largestPct": { "users": 50, "rows": 50, "writes": 50 }
+}
