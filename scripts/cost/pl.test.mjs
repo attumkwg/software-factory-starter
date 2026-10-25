@@ -81,7 +81,12 @@ test("入力: CSV と JSON を読み、今月の分だけ・無い物は null", 
   assert.deepEqual(inputs.time, [{ person: "@a", bet: "B-0002", hours: 20 }]);
   assert.equal(inputs.revenue, null);
   assert.equal(inputs.rates.default, 4000);
-  assert.deepEqual(readInputs(undefined, "2026-10"), { rates: null, time: null, revenue: null });
+  assert.deepEqual(readInputs(undefined, "2026-10"), {
+    rates: null,
+    time: null,
+    revenue: null,
+    tenants: null,
+  });
   assert.deepEqual(parseCsv("a,b\n1,2\n"), [{ a: "1", b: "2" }]);
 });
 

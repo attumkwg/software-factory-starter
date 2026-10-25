@@ -13,7 +13,7 @@ import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { planPersonData } from "./person-data/plan-person-data.ts";
-import { runUsagePurge, runUsageReport } from "./usage/index.ts";
+import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
 //   node dist/cli.js migrate          … 移行(表の持ち主で。MIGRATION_DATABASE_URL か PG* の環境変数)
@@ -32,6 +32,8 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
 //   node dist/cli.js usage-report <機能> [--weeks <週の数>]
 //                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
+//   node dist/cli.js tenant-shares [--month YYYY-MM]
+//                                      … 1社あたりの原価の按分の元(組織の大きさの帯ごとの数。読むだけ。docs/guides/cost-dashboard.md の 7)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 
@@ -214,13 +216,18 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / usage-report / tenant-shares / usage-purge)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
   await usageCommand((db) =>
     runUsageReport(db, commands.slice(1), { defs: FEATURE_FLAGS, supportTenantId }),
   );
+  process.exit(0);
+}
+if (commands[0] === "tenant-shares") {
+  const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
+  await usageCommand((db) => runTenantShares(db, commands.slice(1), { supportTenantId }));
   process.exit(0);
 }
 if (commands[0] === "usage-purge") {

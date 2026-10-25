@@ -158,7 +158,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 見張り | 外形監視 `uptime` | 外から本番が開けるかを Route 53 のヘルスチェックで見る | 残す | あり |
 | 見張り | 当番の決まり `on-call` | 夜中と休日に鳴ったアラームを誰が・何分で見るか(一次・予備・上げる先・15分ずつの段)、どのアラームなら起こすか(お客さんに影響がある・約束の水準を割りそう・漏えいのおそれ)、当番の間は改善だけ、SLA の連絡の時間との対応。表(名前・電話)はリポジトリの外。点検の台帳の oncall-rota が半年ごとに体制を聞く | 残す | あり |
 | 見張り | WAF `waf` | ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める) | 残す | あり |
-| 見張り | 費用のページ(何にいくら) `cost-dashboard` | AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り | 残す | あり |
+| 見張り | 費用のページ(何にいくら) `cost-dashboard` | AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL)と1社あたりの原価(組織の大きさの帯ごと・組織の ID は出さない)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り | 残す | あり |
 | 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
 | 見張り | 管理操作の記録(CloudTrail) `audit-trail` | AWS の操作(誰が・いつ・どの API)を、ロックした S3(400日)と CloudWatch Logs に残し、root の利用・記録を止める操作・記録を消す操作で鳴らす | 残す | あり |
 | 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
