@@ -9,7 +9,7 @@
 |---|---|---|
 | Trivy(`ci.yml`) | PR ごとに依存とイメージの既知の CVE。HIGH・CRITICAL で止める | 中以下は見ない・コードが動いていない間に出た CVE は拾えない |
 | `vuln-scan.yml` | Trivy と zizmor を最新の DB で(毎週月曜 5:00 に自動・手動でも)。落ちたら Issue | 「関係あるか」は人が読む |
-| Dependabot の通知 | GitHub の勧告と lockfile を突き合わせる(README の「本人が手でやる設定」で有効に) | 開発用か本番か・届くかは見ない(pnpm の間接の開発用の依存も runtime と出る) |
+| Dependabot の通知 | GitHub の勧告と lockfile を突き合わせる([manual-setup.md](manual-setup.md) の 1 の 7 で有効に) | 開発用か本番か・届くかは見ない(pnpm の間接の開発用の依存も runtime と出る) |
 | Renovate(`renovate.json`) | 上げる PR を出す(脆弱性は待たずに) | どれを急ぐかは決めない |
 
 ## 2. 呼び方

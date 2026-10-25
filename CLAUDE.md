@@ -19,6 +19,8 @@
 
 ## 地図
 
+- **入口の分け方**: ルートの `README.md` は使い始める人向けの短い入口(手で直してよいが、詳しい中身は足さない。`<!-- kit:readme -->` の間は `pnpm kit:readme` が作る)。**どこに何があるかを探すときは `docs/reference.md`**(ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物・わざとやっていないこと・注意)と `docs/README.md`(docs の地図)から。手でやる設定(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織)は `docs/guides/manual-setup.md`
+- `docs/scenarios/` … 想定の場面(架空の A 社 10人・B 社 100人が企画から運用まで回す台本)と、足りない物の一覧 `gaps.md`(G-01 など)。**部品を足した・穴を埋めた PR では、当たる場面の判定と `gaps.md` の行も直す**。何を足すか迷ったら `gaps.md` の上から
 - `apps/api` … Hono の API。領域ごとに `src/domains/<領域>/`。ルールは `apps/api/CLAUDE.md`
 - `apps/web` … TanStack Start の画面(SSR。API とは別のサービス)。ルールは `apps/web/CLAUDE.md`
 - `docker/postfix` … メールの中継(本番は ECS で SES へ・手元は Mailpit へ。http://localhost:8025)。`docs/guides/mail.md`

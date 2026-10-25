@@ -2,131 +2,105 @@
 
 > 🚧 **作成中です。** 一通りそろったら MIT ライセンスで公開します。それまでは読む・参考にするのは自由ですが、コードの複製・改変・再配布はご遠慮ください。
 
-AI エージェント前提でゼロから作るプロダクトの **動く雛形+設定一式**(TypeScript・AWS・Terraform・GitHub Actions)。
+**AI エージェント(Claude Code)に PR を出させる前提で、会社向けの SaaS をゼロから作り・回すための雛形**です。
+動くアプリ(TypeScript・AWS・Terraform・GitHub Actions)と、作る前に確かめる・安全に出す・長く回すための仕組みが、最初から入っています。
 
-題材は小さな **マルチテナントの TODO アプリ**(組織 → プロジェクト → タスク。ロールは admin / member / viewer)。
-中身より「ライン」(検査・権限の表・テナント分離・プレビュー環境・危険度で分けたレビュー・AI のハーネス)を見るための物です。
+## 🙋 こんな人のため
 
-- ✅ 手元で動く: `docker compose up --build` で API+画面(SSR)+DB+ALB の代わり、`pnpm test` で単体、`pnpm test:integration` で本物の Postgres を使った結合テスト、`pnpm test:e2e` で画面の E2E。
-- ✅ CI は **AWS も API キーも無しで緑**。AWS・Claude を使うジョブは、変数が無ければ失敗せずに飛ぶ。
-- ⛔ AWS へのデプロイはしていない。Terraform は `fmt` と `validate` まで(apply は下の「本人がやる設定」のあと)。
+| 向いている | 向いていない(いまは) |
+|---|---|
+| 会社向け(B2B)の SaaS を、1〜15人ほどで始める | 個人向けのアプリ・記事で人を集めるサイト(軽い型・SEO の型はまだ無い) |
+| AI に実装を任せたいが、事故(他社のデータが見える・鍵が漏れる)は起こしたくない | スマホのネイティブアプリが最初から要る(スマホのブラウザなら動く) |
+| 詳しい人がいなくても、点検や更新を回したい | 1,000人規模の会社(100人までを狙っている) |
 
-📘 **はじめての人は [docs/getting-started.md](docs/getting-started.md)(使い始めの手引き)から**。なぜこう作るかは [docs/concepts/](docs/concepts/README.md)。docs 全体の地図は [docs/README.md](docs/README.md)。
+## 🎁 使うと何が手に入るか
 
----
+- 🧭 **作る前に確かめる段取り**: 「何を作るか」を1問ずつ決める `/kickoff`、機能ごとに当たり外れを確かめる `/bet`、押せる画面だけの試作 `/prototype`。
+- 🏭 **AI が作って人が決めるライン**: 一言から仕様と設計を作る `/new-feature`。PR は危険度で人の出番を変え、人が見るのは「判断が要る所」だけ。
+- 🔒 **後から直せない所は最初から固い**: 組織(テナント)ごとにデータを分ける・認証は Cognito・秘密は Secrets Manager・消せないバックアップ・監査ログ。
+- 🛡 **守りが続く仕組み**: ライブラリの自動の更新・CVE の精査 `/cve`・毎週の点検 `/checkup`・攻撃と漏えいの手順書・ISMS や P マークの準備。
+- 💴 **お金の見える化**: 何にいくらかかっているか・機能(賭け)ごとの損益・月の締めの案 `/ledger`。
 
-## 🗺 全体の地図
+題材は小さな**マルチテナントの TODO アプリ**(組織 → プロジェクト → タスク)。中身は自分のプロダクトに差し替え、仕組みはそのまま使います。
 
-```
-.
-├─ apps/
-│  ├─ api/                      Hono+Zod+zod-openapi の API(OpenAPI を自動生成)
-│  │  ├─ src/app.ts             組み立て(request ID → セッション → 認可の関所 → ルート)
-│  │  ├─ src/index.ts           起動と SIGTERM での停止
-│  │  ├─ src/cli.ts             移行・種データ・使い捨て DB のロール作成
-│  │  ├─ src/auth/              認証: 開発用ログイン / Cognito(自前の画面 → API → Cognito の API。トークンはサーバーの中だけ)・署名つき Cookie
-│  │  ├─ src/authz/             認可: 既定は拒否のポリシー(policy.ts)と関所(middleware.ts)
-│  │  ├─ src/db/                Drizzle のスキーマ・withTenant(SET LOCAL)・種データ
-│  │  ├─ src/domains/           領域ごと(organizations・projects・tasks)の表・読み書き・API。ほかからは index.ts だけ
-│  │  ├─ src/outbox/            送信待ち(アウトボックス)と、その送り出し
-│  │  ├─ src/http/              API の入力と出力の共通の形
-│  │  ├─ drizzle/               移行の SQL(0001_rls.sql が RLS)
-│  │  ├─ db/init/               手元・テスト用の接続ユーザーの作成
-│  │  ├─ test/unit/             DB 無しのテスト(権限の表の網羅 ① を含む)
-│  │  ├─ test/integration/      Testcontainers の Postgres(RLS・2社・権限の表 ②)
-│  │  └─ Dockerfile             distroless・root で動かさない(API と移行だけ。画面は配らない)
-│  └─ web/                      TanStack Start の SSR(ログイン → プロジェクト → タスク)と Playwright の E2E
-│     ├─ src/routes/            画面と URL(ファイルの置き場所が URL になる)。loader が SSR でデータを読む
-│     ├─ src/pages/             画面の中身(@app/ui の部品だけ)
-│     ├─ src/api.ts             API の呼び出し(ブラウザからは /api、SSR からは API_INTERNAL_URL)
-│     ├─ server/                本番の Node サーバー(静的ファイル・/readyz・SSR への受け渡し)
-│     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
-├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
-├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
-├─ packages/error-reporting/   error 以上のログを Sentry に送る(値を落としてから。API と画面のサーバー)。ブラウザは apps/web/src/report-error.ts
-├─ packages/fake-cognito/       開発とテスト専用の偽物の Cognito(依存なし)と、本物と比べる契約テスト(contract/)
-├─ docker/postfix/              メールの中継(Postfix)。本番は ECS(送り待ちは EFS)→ SES、手元は Mailpit
-├─ docs/
-│  ├─ authz/matrix.yaml         権限の表(人がレビューする「誰に何を許すか」)
-│  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
-│  ├─ designs/                  設計書のテンプレート(AI 用で網羅的に。AI の仮決めを追う「未確定事項」)
-│  ├─ review-viewpoints.md      設計とレビューの観点(共通の8つ+このプロダクト特有。溜めていく)
-│  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
-│  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
-├─ infra/terraform/
-│  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・backup(消せない保管庫)・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
-│  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
-├─ .github/
-│  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
-│  ├─ pull_request_template.md  仕様・危険度・テスト結果・プレビュー・スクショ・判断してほしい所
-│  ├─ ISSUE_TEMPLATE/           受け入れ条件つきの Issue
-│  ├─ CODEOWNERS / labeler.yml  危険度「高」のパス
-│  └─ scripts/run-migration.sh  ECS の1回きりのタスクで移行
-├─ .claude/                     ハーネス(フック・スキル)。settings.json は下の注意を参照
-├─ .semgrep/                    自社専用の検査ルールとそのテスト
-├─ .devcontainer/               人も AI も同じ開発環境
-├─ CLAUDE.md                    全体のルール(apps/api・apps/web にも短いものがある)
-├─ docker-compose.yml           手元で丸ごと動かす(docker/alb.Caddyfile が ALB の代わり)
-└─ renovate.json                依存の更新(危険度のラベルつき)
-```
+## 💴 どれくらいかかるか
 
-## 🚀 手元での動かし方
+| 段階 | 月の目安 | 中身 |
+|---|---|---|
+| 手元で試す・話を聞く・画面だけで確かめる | **0円** | AWS は要らない。CI は AWS も鍵も無しで緑になる |
+| 少人数に使ってもらう(stg だけ) | **約2.2万円〜** | AWS の stg |
+| 本番を出す | **約5.3万円〜** | AWS の本番(+stg・プレビューで 約9.5万円〜) |
+| AI の席 | **1人 月3万〜6万円** | Claude Code。いちばんの速さの元なので、削らない |
 
-前提: **Node.js 24(LTS)**・Docker。pnpm は Node に入っている corepack で入る。
+人数・段階ごとの全体の費用は [docs/concepts/stages.md](docs/concepts/stages.md) の 4、AWS の内訳と節約は [docs/getting-started.md](docs/getting-started.md) の ④。
+
+## 🚀 始め方
+
+要るもの: **Node.js 24**・**Docker**・**GitHub のアカウント**(公開のリポジトリか Pro / Team。非公開の Free ではブランチ保護が使えない)・**Claude Code**。
+
+**1. 手元で動かす(30分)**
 
 ```bash
 corepack enable
 ```
 
 ```bash
-pnpm install
+pnpm install && pnpm test
 ```
-
-```bash
-pnpm test
-```
-
-DB を使う結合テスト(Docker が要る。Testcontainers が Postgres を立てて消す):
-
-```bash
-pnpm test:integration
-```
-
-丸ごと起動(DB → 移行 → 種データ → API → 画面の SSR → ALB の代わり)。http://localhost:8080 を開き、`admin@acme.test` などでログイン:
 
 ```bash
 docker compose up --build
 ```
 
-画面の E2E(上の起動のあとで。初回だけ `pnpm --filter @app/web exec playwright install chromium`):
+http://localhost:8080 を開き、`admin@acme.test` でログイン(開発用。パスワードなし)。`admin@globex.test` に替えると、Acme のデータが見えない(組織が分かれている)ことを確かめられる。
+
+**2. 自分のリポジトリにして、GitHub を一括で整える(10分)**
 
 ```bash
-pnpm test:e2e
+pnpm setup:github
 ```
 
-画面の見た目を前と比べる(VRT。ブラウザは Docker の中。画面を変えたら `pnpm vrt:update` で撮り直す。[docs/guides/vrt.md](docs/guides/vrt.md)):
+試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
 
-```bash
-docker compose -f docker-compose.vrt.yml up -d --wait
+**3. 何を作るかを決める(半日〜)**
+
+Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ聞かれるので答えるだけ。話を聞く・画面だけで確かめる段階では AWS は要らない。
+
+**4. 部品を選ぶ(30分〜)**
+
+`/tailor` と打つ。会社向けか・個人情報・お金・メールなどを聞かれ、要らない部品を消す。**迷ったら残す**。
+
+この先(題材の差し替え・AWS・Slack・毎週の運用)は **[docs/getting-started.md](docs/getting-started.md)** に順番どおりに書いてある。
+
+## 👥 立場ごとの入口
+
+| あなたが | まず読む | よく使う |
+|---|---|---|
+| 経営・事業の責任者 | [想定の場面](docs/scenarios/README.md)(自分の規模の会社で、どこが回りどこで詰まるか) | `/kickoff`・`/bet`・費用のページ |
+| PdM | [PMF の前の進め方](docs/guides/before-pmf.md)・[機能ごとの賭け](docs/guides/bets-and-assets.md) | `/bet`・`/new-feature`・`pnpm bets` |
+| エンジニア・EM | [開発の進め方](docs/playbook.md)・[ラインの作り](docs/concepts/line.md) | `/new-feature`・`/review-pr`・`/rework` |
+| 営業・CS | [運用の場面](docs/scenarios/05-run.md)・[サポートの代理ログイン](docs/runbooks/support-access.md) | `/report-bug`・`/release-notes` |
+| 法務・管理部門 | [規約と同意](docs/guides/legal-documents.md)・[認証の準備](docs/compliance/README.md)・[費用のページ](docs/guides/cost-dashboard.md) | `/ledger`・`/compliance-check` |
+| セキュリティ・情シス | [セキュリティの決まり](docs/security.md)・[障害の手順書](docs/runbooks/incident.md) | `/cve`・`/checkup` |
+
+## 🔁 1つの機能が出るまで(人が止まるのは3か所)
+
+```
+「これ作りたい」 → /new-feature(1問ずつ) → 仕様と設計の PR ──② 人が承認
+  → AI が実装 → PR(危険度のラベルが自動で付く) → CI ──⑦ 人がレビュー(中は1人・高は2人)
+  → stg → 本番 ──⑨ 人が承認 → 見守る(アラーム・手順書)
 ```
 
-```bash
-pnpm vrt
-```
+人が見るのは「判断が要る所」だけ(事業判断・利用者の挙動・他チームとの契約・戻せないリスク)。詳しくは [docs/playbook.md](docs/playbook.md)。
 
-開発するとき(API は 3000、画面は 5173。画面は SSR のまま自動で読み直し、/api は API へ中継する):
+## 🗓 回し続けること
 
-```bash
-docker compose up -d db
-```
-
-```bash
-cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnpm dev
-```
-
-種データは **必ず2社**: Acme(`admin@acme.test` / `member@acme.test` / `viewer@acme.test`)と Globex(`admin@globex.test`)。
-
-その他: `pnpm lint`(Biome)・`pnpm typecheck`・`pnpm openapi`(apps/api/openapi.json を書き出す)・`pnpm --filter @app/api db:lint`(squawk)。
+| いつ | やること | 使うもの |
+|---|---|---|
+| 毎週(30分) | 点検の Issue に答える・ライブラリの更新をまとめてマージ・仕様の在庫を見る | `/checkup`・Renovate・`pnpm bets` |
+| 毎週(自動) | 脆弱性のチェック(落ちたら Issue) | `/cve` |
+| 毎月 | 費用と見積もりの比べ・資産と費用の区分の案・世の中の変化の取り込み | 費用のページ・`/ledger`・`/checkup-refresh` |
+| 四半期・年1 | 本番の戻す訓練・外部の診断・規約の見直し | 点検の台帳が知らせる |
 
 ---
 
@@ -140,7 +114,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | ① | GitHub を一括で整える | `pnpm setup:github`: 試しで今の設定との差分を見て、--apply で反映する(ブランチ保護と必須のチェック・ラベル・Environments・Actions の設定・定期の運用を始める印 KIT_ROLE)。何度流しても同じ。秘密の値・Renovate の App など人がやることも一覧で出す。ラベルの意味は docs/guides/labels.md | [手順](docs/guides/github-setup.md) | あり |
 | ② | 何を作るかを決める | `/kickoff`: 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決める | `docs/product/plan.md` | あり |
 | ③ | 部品を選ぶ | `/tailor`: 会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を聞き、部品ごとに「残す・消す」を決める。消す部品は1つずつ PR で | `docs/product/tailoring.md` | あり |
-| ④ | 手でやる設定 | Renovate の App と秘密の値(GitHub の残りは pnpm setup:github が一覧で出す)、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](#-本人が手でやる設定) | あり |
+| ④ | 手でやる設定 | Renovate の App と秘密の値(GitHub の残りは pnpm setup:github が一覧で出す)、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ | [手順](docs/guides/manual-setup.md) | あり |
 | ⑤ | 点検を立ち上げる | `pnpm checkup:adopt`: 台帳の使い始めた日と担当者を自分の物にし(pnpm checkup:adopt --by @自分)、最初の /checkup-refresh を流す。pnpm checkup がいまの段階でやること(守りが効いているか・取り返せない所)を出し、自動で確かめられる物は確かめる。毎週月曜の朝に GitHub の Issue で知らせる(急ぎは毎日。キットから作ったリポジトリだけ)。人に聞くことは /checkup で1問ずつ答える | `docs/checkup/todo.yaml`・[手順](docs/checkup/README.md) | あり |
 | ⑥ | キットが既定で決めた所を決める | `pnpm decisions --adopt`: 設計書の未確定事項のうち、答えがプロダクトごとに違う物(導入時に決める)を出す。/tailor で設計書ごとに「既定のままでよいか」を答え、承認か変更にする。本番に出す前に pnpm decisions --launch が通ることを確かめる | `docs/designs/*.md`・[手順](docs/guides/human-review.md) | あり |
 
@@ -152,6 +126,9 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - 既定は、迷ったときのおすすめ。**迷ったら残す**(消すのは後からでもできる。足し直すほうが高い)。
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
 
+<details>
+<summary>部品の一覧を開く(50件)</summary>
+
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
 | 土台(消さない) | 🔒 テナント分離と RLS `tenant-isolation` | 全部の表に tenant_id を持ち、DB の RLS とアプリの両方で、他社のデータを読めなくする | 残す | あり |
@@ -162,7 +139,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 土台(消さない) | 🔒 バックアップと戻す訓練 `backup` | 消せない保管庫に毎日と毎月。毎月 stg で戻す訓練 | 残す | あり |
 | 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)・ADR の番号の重なり | 残す | あり |
 | 土台(消さない) | 🔒 ログの決まり `logging` | 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない) | 残す | あり |
-| 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | 作成中(PR #10) |
+| 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | あり |
 | 土台(消さない) | 🔒 AI のハーネス(守りの一覧とフック) `harness` | 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる | 残す | あり |
 | 土台(消さない) | 🔒 GitHub の一括のセットアップとラベルの一覧 `github-setup` | GitHub の設定(ブランチ保護と必須のチェック・Environments・Actions・守りの機能・ラベル)をファイル(.github/setup.yml・labels.yml)に置き、pnpm setup:github が差分を出して一括で反映する。使うラベル・必須のチェック・Environment がファイルに無ければ CI が落ちる。ひな形と使う側を変数 KIT_ROLE で見分け、定期の運用は使う側でだけ動く | 残す | あり |
 | 土台(消さない) | 🔒 列の分類表とログ `column-classification` | 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする。台帳(docs/db/personal-data.md)はここから作る | 残す | あり |
@@ -202,244 +179,29 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 進め方 | 機能ごとの賭け(/bet) `bets` | 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く | 残す | あり |
 | 進め方 | 組織ごとの機能フラグ `feature-flags` | 賭けの psf / rollout で、運営が選んだ組織にだけ機能を出す・止める(定義はコード・組織ごとの状態は DB・切り替えは運営のコマンド)。A/B テストの土台 | 残す | あり |
 | 進め方 | 利用の記録 `usage-records` | どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す | 残す | あり |
-| 進め方 | 資産と費用の台帳(/ledger) `ledger` | 作った物(資産)とかかったお金を1つの台帳にする | 残す | 未 |
+| 進め方 | 資産と費用の台帳(/ledger) `ledger` | 月1回、賭けごとの人の時間とインフラ・SaaS を「資産の候補・費用・除却の候補」に分けた案(費用のページの ledger.csv)を1つずつ確かめ、賭けのファイルの「会計区分の判定」に足す。会計・税の当てはめは専門家が確かめる | 残す | あり |
 | 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする | 残す | あり |
+
+</details>
 <!-- kit:readme:end -->
 
 ---
 
-## 🧭 考え方とこの雛形の対応
+## 🧱 まだ無いもの
 
-考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)は [docs/concepts/](docs/concepts/README.md)、セキュリティの決まり(AI ならではの守り・認可・テナント分離)は [docs/security.md](docs/security.md)。ここでは、それがこの雛形のどのファイルに当たるかを並べる。
-
-### 7工程
-
-| 工程 | この雛形のどこ |
-|---|---|
-| ① 受付 | `.github/ISSUE_TEMPLATE/`(機能・不具合。不具合には requestId の欄) |
-| ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル(ラベルの意味は [docs/guides/labels.md](docs/guides/labels.md)) |
-| ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
-| ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
-| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
-| ⑥ レビュー | `pull_request_template.md`(全体像と判断してほしい所を一番上。問いは「事実・理由・問い」)・`docs/review-viewpoints.md`(観点ごとの扱い)・`CODEOWNERS`・`labeler.yml`。直しは `/rework`(上流から作り直す)。考え方は `docs/guides/human-review.md` |
-| ⑦ 出荷と監視 | `deploy.yml`(stg 自動 → prod 承認 → ECS の blue/green)・`ecs-service` の 5xx アラームで自動で戻す・構造化ログ |
-
-### 危険度(人が見る量を決める)
-
-| | どこで決まるか |
-|---|---|
-| パスで自動でラベル | `.github/labeler.yml`(`risk:high` / `risk:medium` / `risk:low`。全部のラベルの意味・誰が付けるか・付いたらどうするかは [docs/guides/labels.md](docs/guides/labels.md)) |
-| 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
-| PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
-| 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
-| AI に変えさせない所 | 編集と Bash のフック `.claude/hooks/guard-edit.mjs`・`guard-bash.mjs`(CI・権限・移行・infra を編集するときは人の確認。手元だけで外せる。[docs/guides/local-guards.md](docs/guides/local-guards.md)) |
-
-### ハーネス3層
-
-| 層 | この雛形のどこ |
-|---|---|
-| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート / 脆弱性の精査 `/cve`)・`.devcontainer/` |
-| ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。起動できるのはリポジトリの持ち主 OWNER だけ。[docs/security.md の AI-3](docs/security.md)) |
-| ③ 自前のファクトリー | まだ作らない(PR が週に数十件を超えてから) |
-
-### テナント分離(共有の表+RLS)
-
-| 層 | この雛形のどこ |
-|---|---|
-| 全テーブルに tenant_id(UUIDv7)・(tenant_id, id) の組で参照 | `apps/api/src/domains/*/schema.ts` |
-| テナントはセッションからだけ | `src/auth/session.ts`(署名つき Cookie)・`src/authz/middleware.ts` |
-| トランザクションごとに `SET LOCAL app.tenant_id` | `src/db/tenant.ts`(`set_config(..., true)`) |
-| RLS+FORCE・接続ユーザーは持ち主ではない | `drizzle/0001_rls.sql`・`db/init/001-roles.sql` |
-| アプリ側でも絞る | `src/domains/*/repository.ts`(`tenantId` で WHERE) |
-| 書き忘れを機械で止める | `.semgrep/rules.yml`(`tenant-scoped-db-only` / `tenant-from-request`) |
-| 確かめるテスト | `test/integration/rls.int.test.ts`(全テーブルに RLS・持ち主でない・文脈が漏れない)・`tenant-isolation.int.test.ts`(2社)・E2E の `tenant-isolation.spec.ts` |
-| 設計判断 | `docs/adr/0001-shared-tables-with-rls.md`・`docs/runbooks/tenant-data-leak.md` |
-
-### 権限の表
-
-| | どこ |
-|---|---|
-| 判断を1か所に・既定は拒否 | `apps/api/src/authz/policy.ts`(`ROUTE_RULES` に無い API は 403)・`middleware.ts` |
-| 人が読む表 | `docs/authz/matrix.yaml`(他社は 404) |
-| ① OpenAPI の全 API が表にあるか | `test/unit/authz-coverage.test.ts`(DB 不要・`pnpm test`) |
-| ② 表の全行を各ロール+他社+未ログインで叩く | `test/integration/authz-matrix.int.test.ts` |
-| AI が API を足すとき | `.claude/skills/add-api-endpoint/SKILL.md` |
-
-### PR ごとのプレビュー環境
-
-| | どこ |
-|---|---|
-| 流れ(開く → 立てる → E2E・ZAP → コメント / 閉じる → 消す) | `.github/workflows/preview.yml` |
-| 毎晩の掃除 | `.github/workflows/cleanup-previews.yml` |
-| PR ごとの ECS サービス+共有 ALB のルール(`pr-<番号>.preview.<domain>`) | `infra/terraform/modules/preview-env`・`envs/preview/pr` |
-| 共有の土台(ALB・ワイルドカード証明書・VPC・ECR・役割) | `infra/terraform/envs/preview/base` |
-| DB はコンテナの Postgres+種データ(本番の個人データは使わない) | `modules/preview-env/main.tf` の `db` / `setup` コンテナ |
-
-### セキュリティの検査(docs/security.md の「毎回の検査」)
-
-| 対象 | 道具 | どこ |
-|---|---|---|
-| 自分のコード | Semgrep CE(公開のルール+自社ルール) | `ci.yml` の semgrep |
-| 依存 | Trivy fs・Renovate・Dependabot alerts・精査と対応方針(`/cve`) | `ci.yml` の trivy-fs・`vuln-scan.yml`(定期)・`renovate.json`・`pnpm vulns`([docs/guides/vulnerabilities.md](docs/guides/vulnerabilities.md)) |
-| 秘密情報 | gitleaks(全履歴) | `ci.yml` の gitleaks |
-| イメージ | Trivy image | `ci.yml` の image |
-| インフラ定義 | Trivy config・tflint | `ci.yml`・`terraform.yml` |
-| 移行 | squawk | `ci.yml` の migrations |
-| ワークフロー | actionlint・zizmor(PR ごとはオフライン。定期はオンライン) | `ci.yml` の workflows・`vuln-scan.yml` |
-| 動いている画面 | ZAP ベースライン | `preview.yml` |
-| 全 API に変な入力(ロールごと) | Schemathesis | `pnpm security:fuzz`・`security-fuzz.yml` |
-| ログインした状態の API | ZAP API スキャン | `zap-api-scan.yml`(stg) |
-| AWS の中 | WAF・GuardDuty・Security Hub | `infra/terraform/modules/waf`・`security-baseline` |
-
-何を確かめていて何を確かめていないかの一覧と、深い診断の段取りは [docs/security.md](docs/security.md)。
-
----
-
-## ✅ CI で回るもの
-
-お金がかかりうるもの(AWS・Claude の API)は、**いまは手動だけ**にしてあります。有効にする手順と費用は [docs/guides/automation.md](docs/guides/automation.md)。
-
-| ワークフロー | いつ | AWS / キーが無いとき |
-|---|---|---|
-| `ci.yml` | 自動: PR・main | 全部動く(AWS 不要) |
-| `terraform.yml` | 自動: infra を変えた PR | fmt・validate・tflint・Trivy |
-| `labeler.yml` | 自動: PR | 危険度のラベル |
-| `terraform-plan.yml` | 手動(PR の plan は stg だけ。prod は main のときだけ) | 飛ばす(notice を出す) |
-| `preview.yml` | 手動(PR の番号を入れる) | 飛ばす(notice を出す) |
-| `cleanup-previews.yml` | 手動 | 飛ばす |
-| `deploy.yml` | 手動 | 飛ばす |
-| `claude.yml` | 手動(頼むことを書く) | 飛ばす(notice を出す) |
-| `security-fuzz.yml` | 手動 | 動く(相手はジョブの中の compose) |
-| `zap-api-scan.yml` | 手動 | 飛ばす(stg とスキャン用の利用者が要る) |
-| `vuln-scan.yml` | 自動: 毎週月曜 5:00(キットのリポジトリでも回す)・手動でも(定期の脆弱性チェック。Trivy fs と zizmor のオンライン版。落ちたら Issue → `/cve`) | 動く(AWS も秘密も要らない) |
-| `checkup.yml` | 自動: 毎週月曜 8:00・急ぎは毎日 8:00(キットから作ったリポジトリだけ)・手動でも(点検の知らせ。[docs/checkup/README.md](docs/checkup/README.md)) | 動く(秘密 `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL` は任意) |
-
-**定期で動く物は、キットから作ったリポジトリでだけ動く**(`pnpm setup:github --apply` が変数 `KIT_ROLE=product` を書く)。キットのリポジトリ(ひな形)とセットアップの前は飛ぶ。例外は `vuln-scan.yml`(ひな形でも毎週回す。`.github/setup.yml` の `template_schedules`)。手で流すのはどこでもできる([docs/guides/github-setup.md](docs/guides/github-setup.md))。
-
-`ci.yml` は、画面の JS の大きさ・関数の複雑さとファイルの長さ・テストのカバレッジにも上限を持つ(超えると落ちる)。値と根拠は [docs/guides/ci-limits.md](docs/guides/ci-limits.md)。文書だけの PR では重いジョブ(結合・E2E・イメージ・VRT など)の中身を省いて成功を返す。待ちの内訳と、並んだ PR を入れるときのこつは [docs/guides/ci-speed.md](docs/guides/ci-speed.md)。
-
-日々の進め方は [docs/playbook.md](docs/playbook.md)、Slack から頼む形にしたいときは [docs/guides/slack.md](docs/guides/slack.md)。
-
----
+- 想定の場面で見つけた「足りない物」と、いつまでに要るか: **[docs/scenarios/gaps.md](docs/scenarios/gaps.md)**(例: 申し込みから組織を作るコマンド・招待の画面・プランの表・SSO)。
+- わざとやっていないこと(次の一歩)と注意: [docs/reference.md](docs/reference.md) の「📏 わざとやっていないこと」「⚠️ この雛形の注意」。
 
 ## 🙋 本人が手でやる設定
 
-> 雛形を作っただけでは、AWS にもリポジトリの設定にも何も変えていない。下は人が判断して行う。
+GitHub・AWS・OIDC の変数と秘密・Slack・バックアップの確かめ・運営の組織の作り方は **[docs/guides/manual-setup.md](docs/guides/manual-setup.md)** に移した(`pnpm setup:github` で一括でそろわない物だけ)。
 
-### 1. GitHub のリポジトリ設定
+## 📚 もっと詳しく
 
-> **まず `pnpm setup:github`(試し: 差分だけ)→ よければ `pnpm setup:github --apply`。** 下の 1〜3・5〜7 は、これで一括でそろう(何度流しても同じ)。
-> 値の正は `.github/setup.yml`(ブランチ保護・Environments・Actions・守りの機能)と `.github/labels.yml`(ラベル)。理由はファイルのコメントに、流し方と困ったときは [docs/guides/github-setup.md](docs/guides/github-setup.md)。
-> 人が画面でやるのは 4(Renovate)と秘密の値だけ(セットアップが「人がやること」に出す)。設定ファイルを直した PR は、マージの後に `--apply` を流す。
->
-> 🧍 **1人の間**と 👥 **人が増えたら**(レビューできる人が2人以上)で変わる所は、`.github/setup.yml` の値を変えて流し直す。
-> 🌐 **公開か非公開か**でも使える物が変わる。非公開+Free では 1 と 3 ができない(表は [docs/guides/local-guards.md](docs/guides/local-guards.md))。
-
-1. **ブランチ保護(main のルールセット)**: PR 必須・必須のチェック(`required_checks`。CI のジョブの名前と `pnpm setup:check` が突き合わせる)・最新の main に追いついてから(並べて出した PR が、合わさって main を赤くするのを防ぐ)・直線の履歴(マージは Squash か Rebase だけ)・消せない・強制 push できない。**例外(Bypass list)は空**(持ち主も例外にしない)
-   - 🧍 1人の間: **承認は 0**。GitHub では自分の PR を自分で承認できず、AI の PR も自分のアカウントで出るので、1 にすると全部の PR が止まる。人の目の代わりに、必須のチェックと手元の守り([docs/guides/local-guards.md](docs/guides/local-guards.md))で止める
-   - 👥 人が増えたら: 承認 1・CODEOWNERS の承認。危険度「高」を2人にするなら、`.github/CODEOWNERS` の「高」の行に2つのチームを並べて承認 2
-   - マージキューを使うなら、`取り組みと作業の種類(PR の本文)` を必須から外す(キューの中では流れない)
-2. **ラベル**: `.github/labels.yml` の全部(危険度・場所・Issue の種類・依存の更新・点検の知らせ・訓練の記録・VRT の撮り直し)。**何のラベルか・誰が付けるか・付いたらどうするかは [docs/guides/labels.md](docs/guides/labels.md)**(ほとんど自動で付き、人が手で付けるのは2つだけ)。コードが使うラベルが一覧に無ければ CI が落ちるので、「使うのに無い」は起きない。一覧に無いラベルは消さない
-3. **Environments**: stg・prod・claude・zap を、どれも **main からだけ**使えるようにする。ワークフローの中でも main 以外は飛ばすが、ブランチのワークフローは書き換えられるので、GitHub の側でも止める(これが本当の守り)。main 以外のブランチを stg に出せると、prod は stg のイメージを引くので、承認1回でレビューされていないコードが本番に出てしまう
-   - prod の承認する人: 🧍 1人の間は自分(流した人)・**自分の承認を許す**(止めると、自分でマージしたデプロイを誰も承認できない。承認は「本番に出す前に一度止まって見る」一手間)。👥 人が増えたら2人以上にして自分の承認を止める。🔒 非公開のリポジトリでは、Pro / Team でも承認する人を置けない(公開か Enterprise だけ)
-   - 秘密の値は人が画面で: `claude` に `ANTHROPIC_API_KEY`(claude.yml)・`zap` に `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD`(zap-api-scan.yml)。下の 3. の表
-4. **Renovate**(人が画面で): https://github.com/apps/renovate → Install(入っていれば Configure)→ 自分のアカウント → 「Only select repositories」でこのリポジトリだけ → Install。Mend の画面に移ったら GitHub でサインインして規約に同意する
-   - `renovate.json` があるので、最初の設定の PR は出ずにそのまま動く。更新の PR は毎週月曜の朝9時前に最大5本(出てから3日たった版だけ)。脆弱性の直しはいつでも。自動マージはしない
-   - 大きい版は PR にならず、Dependency Dashboard の Issue の「Pending Approval」に並ぶ。上げるときにチェックを入れる(Node と Postgres は PR の本文の ⚠️ のとおり、Renovate が読めない所も同じ PR で直す)
-   - Mend の画面(https://developer.mend.io)でリポジトリの Mode が「Silent」だと、動いても PR も Dependency Dashboard も出ない。入れた後に Dashboard の Issue が出なければ、Settings で Silent を外す
-5. **Secret scanning と push 保護**(秘密を含む push をその場で止める): 🌐 公開なら無料でオン。🔒 非公開は有料(GitHub Secret Protection)なのでセットアップは飛ばし、CI の gitleaks で代える。CI の gitleaks はどちらでも外さない(履歴の全部を毎回見る・`.gitleaksignore` で理由つきに除外できる)
-6. **Actions の設定**: 書き込みが要るワークフローは、ファイルの中で `permissions:` を1つずつ足してあるので、既定は**読み取りだけ**。AI や Actions が自分の PR を**承認できない**。外の人の PR の実行は**毎回人が中身を見てから**(公開だと誰でも PR を出せる)。SHA で固定した Action だけ。成果物とログは**7日**(ZAP のレポートは `zaproxy/action-api-scan` が成果物を作るので、ワークフローから日数を決められない。レポートにはリクエストの中身が入りうる)
-7. **Dependabot alerts**: オン(依存の脆弱性の知らせ。直す PR は Renovate が出すので、Dependabot の security updates はオフ)。🌐 公開なら「Private vulnerability reporting」もオン(外の人が脆弱性を Issue に書かずに、非公開で知らせられる)
-8. **プレビューは dev アカウントだけ**: PR のプレビューが引く AWS の役割(`AWS_PREVIEW_ROLE_ARN`)は、PR の版のワークフローからも引ける(OIDC の `pull_request`)ので、PR を書ける人なら dev の中で動かせる。dev には**本物の秘密・本物のデータを置かない**(プレビューの DB はコンテナの Postgres+種データ)。prod の役割は PR から引けない
-
-### 2. AWS アカウントと状態の置き場
-
-1. AWS Organizations で **dev(プレビュー)・stg・prod** のアカウントを分ける(本番だけ別の鍵。AI が触れるのは dev まで)
-2. 状態の S3 バケットを作る(バージョニング・暗号化・公開ブロックを有効に)。名前を GitHub の変数 `TF_STATE_BUCKET` に
-3. 各 env で `*.example.tfvars` を `*.auto.tfvars` に写して値を入れ(コミットしない)、**人が** apply する:
-
-```bash
-cd infra/terraform/envs/stg && terraform init -backend-config="bucket=<バケット>" -backend-config="key=stg/terraform.tfstate" -backend-config="region=ap-northeast-1" -backend-config="use_lockfile=true" && terraform apply
-```
-
-   順番: `envs/preview/base`(dev)→ `envs/stg` → `envs/prod`。最初はイメージが無いので、ECS のサービスは deploy.yml の初回で動き出す。
-
-4. **アプリの接続ユーザーを1回だけ作る**(stg と prod)。RDS のコンソール → クエリエディタで、マスターユーザー(`app_owner`。パスワードは Secrets Manager の RDS 管理の秘密)でつなぎ、パスワードは Secrets Manager の `<name>/database-url` の中の値を使う:
-
-```sql
-CREATE ROLE app_rw NOLOGIN;
-CREATE ROLE app LOGIN PASSWORD '<database-url の中のパスワード>' NOSUPERUSER NOBYPASSRLS IN ROLE app_rw;
-```
-
-   要配慮個人情報を扱うとき(Terraform の `sensitive_data_enabled = true` にした後)だけ、要配慮だけの接続ユーザーも作る(パスワードは `<name>/sensitive-database-url` の中の値。ロール `app_sensitive` は移行が作る。[docs/runbooks/sensitive-data-tiers.md](docs/runbooks/sensitive-data-tiers.md) の 1):
-
-```sql
-CREATE ROLE app_sensitive_login LOGIN PASSWORD '<sensitive-database-url の中のパスワード>' NOSUPERUSER NOBYPASSRLS IN ROLE app_sensitive;
-```
-
-### 3. OIDC の役割と GitHub の変数・秘密
-
-Terraform の出力(`github_role_arns` など)を、Settings → Secrets and variables → Actions の **Variables** に入れる(秘密ではないので Variables):
-
-| 変数 | 値 | 使うワークフロー |
-|---|---|---|
-| `TF_STATE_BUCKET` | 状態のバケット | terraform・preview・cleanup |
-| `AWS_STG_PLAN_ROLE_ARN` / `AWS_PROD_PLAN_ROLE_ARN` | `<project>-<env>-plan`(**prod は main からだけ**引ける。PR の plan は stg だけ) | terraform(plan) |
-| `TF_VARS_STG` / `TF_VARS_PROD` | `*.auto.tfvars` の中身(秘密は入れない) | terraform(plan) |
-| `AWS_PREVIEW_ROLE_ARN` | `preview-github` | preview・cleanup |
-| `PREVIEW_ECR_REPOSITORY` / `PREVIEW_WEB_ECR_REPOSITORY` / `PREVIEW_DOMAIN` | preview/base の出力(API / 画面)/ `example.com` | preview |
-| `AWS_STG_DEPLOY_ROLE_ARN` / `AWS_PROD_DEPLOY_ROLE_ARN` | `<project>-<env>-deploy` | deploy |
-| `ECR_REPOSITORY_URL` / `WEB_ECR_REPOSITORY_URL` | stg の出力(API / 画面) | deploy |
-| `MAIL_ECR_REPOSITORY_URL` | stg の出力 `mail_ecr_repository_url`(メールの中継) | deploy-mail-relay |
-| `AWS_STG_RESTORE_DRILL_ROLE_ARN` / `STG_DB_CLUSTER` | stg の出力(`github_role_arns` の `…-restore-drill`・`db_cluster_identifier`) | restore-drill(毎月の戻す訓練) |
-| `AWS_STG_COGNITO_CONTRACT_ROLE_ARN` / `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` | stg の出力(`github_role_arns` の `…-cognito-contract`・`cognito_user_pool_id`・`cognito_client_id`) | cognito-contract |
-| `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
-| `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
-
-**Secrets** は、リポジトリ全体(Repository secrets)には置かず、**使う Environment の秘密**(Settings → Environments → 名前 → Environment secrets)に置く。Environment は main だけに絞ってあるので(上の 1. の 3)、PR のブランチのワークフローからは読めない:
-
-| 秘密 | 置く Environment | 使うワークフロー |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | `claude` | claude(`@claude`)。Claude の GitHub App を入れて使う方法もある |
-| `ZAP_SCAN_USERNAME`・`ZAP_SCAN_PASSWORD` | `zap` | zap-api-scan(stg のスキャン用の利用者) |
-
-すでに Repository secrets に入れていたら、Environment に入れ直してから Repository secrets の方を消す。
-
-### 4. 見張りの知らせを Slack に流す
-
-1. stg と prod の AWS アカウントそれぞれで、コンソールの「Amazon Q Developer in chat applications」(旧 AWS Chatbot)から Slack のワークスペースを許可する(ワークスペースの ID `T…` が分かる)
-2. Slack に `#alerts-stg` と `#alerts-prod` を作り、チャンネルの ID(`C…`)を `*.auto.tfvars` の `slack_team_id` / `slack_channel_id` に入れて apply
-3. 試しに鳴らして Slack に出るのを確かめる。月の上限(`monthly_budget_usd`)も見直す
-
-### 5. バックアップと管理操作の記録(prod は確かめてから)
-
-prod のバックアップの保管庫は **compliance のロック**で、apply から3日を過ぎると、ロックも保存の期間も誰にも変えられない(root でも)。**3日のうちに**、保管庫・毎日 35日・毎月 365日・1回目のバックアップが取れたこと、を確かめる([docs/runbooks/db-restore.md](docs/runbooks/db-restore.md) の 6)。prod の戻す訓練は四半期に1回、手で(同じ手順書の 5)。
-
-管理操作の記録(CloudTrail)の S3 は、stg・prod とも **governance のロック**(400日。外す権限はバケットの方針で全員に拒否し、消すと鳴る)。**prod に apply する前に**保存の日数と、誰にも消せない compliance にするかを決め、apply の後に記録が流れていることを確かめる([docs/runbooks/audit-trail.md](docs/runbooks/audit-trail.md) の 1 と 2)。委託先の台帳(`docs/compliance/vendors.yaml`)の契約の欄も、自分の契約に書き直す([docs/compliance/README.md](docs/compliance/README.md))。
-
-### 6. サポートの代理ログイン(運営の組織)
-
-社員がお客さんの画面を見るのは、お客さんの管理者が許可した間だけ・見るだけ(docs/specs/0004-support-access.md)。本番の DB に「運営の組織」と社員を1回だけ作り、その ID を `*.auto.tfvars` の `support_tenant_id` に入れて apply する。手順は [docs/runbooks/support-access.md](docs/runbooks/support-access.md)。手元とプレビューは種データの `support@ops.test` で試せる。
-
-手順・何を見張っているか・費用は [docs/guides/monitoring.md](docs/guides/monitoring.md)。鳴ったら [docs/runbooks/alarms.md](docs/runbooks/alarms.md)、Sentry に来たら [docs/runbooks/sentry.md](docs/runbooks/sentry.md)。
-
----
-
-## 📏 わざとやっていないこと(次の一歩)
-
-- **二段階認証の予備のコード・管理者が人の二段階認証を外す画面**: 二段階認証の設定・メールアドレスとパスワードの変更・組織の必須は画面「アカウント」と「設定」にある(docs/specs/0006-account-security.md)。認証アプリを無くした人は、運営が手順書で戻す([docs/runbooks/mfa-reset.md](docs/runbooks/mfa-reset.md))。
-- **メールの受け取らない設定・まとめ送り・HTML のメール**(spec 0002 の「やらないこと」)。
-- **招待の画面**: いまは users に行を足すのは SQL(docs/runbooks/cognito-login.md)。
-- **Cognito の独自ドメイン・パスキー**: いまは `<接頭辞>.auth.<region>.amazoncognito.com` とパスワード+TOTP。
-- **サーバー側のセッション保存**: 作らない(ADR 0017)。署名つき Cookie で、無操作1時間・ログインから最長12時間で切れる。端末を選んで切る・管理者による強制ログアウトが要るようになったら DB か Valkey に。
-- **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
-- **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
-- **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
-- **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
-- **WAF を「止める」にすること**: stg・prod の ALB の前に WAF はある(`infra/terraform/modules/waf`)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](docs/security.md))。
-- **画面の CSP(Content-Security-Policy)**: SSR が埋め込むスクリプトに nonce を付ける形が要る。いまは他の守りのヘッダー(`X-Frame-Options`・`nosniff` など)だけ。
-
-## ⚠️ この雛形の注意
-
-- 編集のフック(`.claude/hooks/guard-edit.mjs`)は、CI・認可・移行・infra のファイルを Claude Code が書くとき人の確認を求める(AI に勝手に変えさせない)。並べたセッションで邪魔なら、手元の `~/.claude/settings.json` の `env` に `KIT_EDIT_GUARD=pr` と書くと確認が出なくなり、PR の段(`risk:high`・CODEOWNERS・「人に判断してほしい所」)が最後の確認になる([docs/guides/local-guards.md](docs/guides/local-guards.md))。
-- Windows では `pnpm test:integration` に Docker Desktop が要る。古い Docker Desktop で Testcontainers が待ち続けるときのため、ヘルスチェックだけで待つようにしてある(`test/integration/global-setup.ts`)。
+| 知りたいこと | どこ |
+|---|---|
+| 使い始めの順番(手元 → 置き換え → GitHub → AWS → Slack → 運用) | [docs/getting-started.md](docs/getting-started.md) |
+| ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物 | [docs/reference.md](docs/reference.md) |
+| なぜこう作るか(7工程・ハーネス3層・段階と費用・人と AI の分担) | [docs/concepts/](docs/concepts/README.md) |
+| docs 全体の地図 | [docs/README.md](docs/README.md) |
+| AI(Claude Code)が読むルール | [CLAUDE.md](CLAUDE.md) |
