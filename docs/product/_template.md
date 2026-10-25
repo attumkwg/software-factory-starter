@@ -1,7 +1,7 @@
 # 始め方の計画: <プロダクトの名前(仮でよい)>
 
 > `/kickoff` が書く。**いまの正**(上の方は今の計画に書き換える)。下の「これまでの判断」は足すだけ。
-> 考え方: [../guides/before-pmf.md](../guides/before-pmf.md)
+> 考え方: [../guides/before-pmf.md](../guides/before-pmf.md)。本業の計画は `docs/product/plan.md`、2つ目からの客層は `docs/product/plans/<名前>.md`(同じ形。[plans/README.md](plans/README.md))
 > 最終更新: YYYY-MM-DD
 
 ## 何を作りたいか

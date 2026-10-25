@@ -8,6 +8,7 @@ import { checkPrBody, idOfFile, parseBet } from "../bets-lib.mjs";
 import { AI_LABEL } from "../metrics/ai-assisted.mjs";
 import { readAcquisition } from "./acquisition.mjs";
 import { readActuals } from "./actuals.mjs";
+import { readBudgets } from "./budgets.mjs";
 import { periodOf } from "./period.mjs";
 import { parseShares } from "./tenants.mjs";
 
@@ -119,6 +120,7 @@ export function parseCsv(text) {
  *   time.csv     … week_start,person,bet,percent,hours(週ごと・人ごとに、賭けの割合と、その週に働いた時間)
  *   revenue.csv  … month,bet,jpy(bet は B-NNNN か「全体」)
  *   tenants.json … 1社あたりの原価の按分の元(API の運営のコマンド tenant-shares の1行目。組織の ID は無い。設計書 0042)
+ *   budgets.csv  … bet,monthly_jpy,from,until,warn_pct(賭けごとの予算の枠。設計書 0054)
  *   acquisition.csv … month,channel,ad_jpy,sales_hours,won(届け方ごとの広告費・営業の時間・獲得した組織の数。設計書 0043)
  *   actuals.csv  … date,person,bet,phase,hours,approved_by(人の時間の実績。週の記録と開発の段階。設計書 0044)
  */
@@ -143,6 +145,7 @@ export function readInputs(dir, month) {
     revenue: read("revenue.csv") === null ? null : revenue,
     tenants: parseShares(read("tenants.json")),
     acquisition: readAcquisition(read("acquisition.csv")),
+    budgets: readBudgets(read("budgets.csv"), parseCsv),
     actuals: readActuals(read("actuals.csv"), month, parseCsv),
   };
 }
