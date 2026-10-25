@@ -6,6 +6,9 @@
 {
   "name": "software-factory-starter",
   "build": { "dockerfile": "Dockerfile" },
+  // コンテナは root で起動し(中の Docker・firewall に要る)、人も AI も node で入る
+  "containerUser": "root",
+  "remoteUser": "node",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/terraform:1": { "tflint": "latest" },

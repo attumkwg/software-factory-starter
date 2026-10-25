@@ -28,3 +28,7 @@ RUN chmod 755 /usr/local/share/egress/*.sh \
   # 中の Docker で作る・動かすコンテナにもプロキシを渡す(取得とビルドの pnpm install)。宛先は egress-up.sh が起動のたびに書く
   && mkdir -p /home/node/.docker \
   && chown -R node:node /home/node/.docker
+
+# 開発の利用者で使う(root で動かさない)。コンテナ自体は devcontainer.json の containerUser で root として起動する
+# (中の Docker の起動に要る)。人も AI も node で入る(remoteUser)
+USER node
