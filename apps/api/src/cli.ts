@@ -6,17 +6,17 @@ import pg from "pg";
 import { createDb, type RootDb } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { seed } from "./db/seed.ts";
-import {
-  runPreRegistrationDelete,
-  runPreRegistrationPurge,
-  runPreRegistrationReport,
-} from "./domains/growth/index.ts";
 import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
+import {
+  runPreRegistrationDelete,
+  runPreRegistrationPurge,
+  runPreRegistrationReport,
+} from "./pre-registrations/index.ts";
 import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。

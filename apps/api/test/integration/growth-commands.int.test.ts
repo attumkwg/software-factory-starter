@@ -5,10 +5,12 @@ import { auditEvents, preRegistrations } from "../../src/db/schema.ts";
 import {
   loadPreRegistrationForTenant,
   markPreRegistrationConverted,
+} from "../../src/domains/growth/index.ts";
+import {
   runPreRegistrationDelete,
   runPreRegistrationPurge,
   runPreRegistrationReport,
-} from "../../src/domains/growth/index.ts";
+} from "../../src/pre-registrations/index.ts";
 import {
   createGrowthHarness,
   newLeadEmail as email,

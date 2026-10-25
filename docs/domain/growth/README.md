@@ -39,7 +39,8 @@
 ## 関係するファイル
 
 - `packages/shared/src/pre-registration.ts`(同意の文・保存期間・入力の形・UTM の整え方)
-- `apps/api/src/domains/growth/`(Postgres のスキーマ `growth`。`routes.ts` = 公開の入口・`command.ts` = 運営のコマンドと組織へのつなぎ・`links.ts` = リンクの署名)
+- `apps/api/src/domains/growth/`(Postgres のスキーマ `growth`。`repository.ts` = 公開の入口の読み書き・`operator.ts` = 運営のコマンドと組織へのつなぎの読み書き・`links.ts` = リンクの署名)
+- `apps/api/src/pre-registrations/`(運営の組織の文脈を開く所: `routes.ts` = 公開の入口・`command.ts` = 運営のコマンド。領域の中では接続プールに触らない決まり = Semgrep の `tenant-scoped-db-only`)
 - `docs/guides/landing-page.md`(LP の決まり)・`docs/runbooks/pre-registrations.md`(運営のコマンド)
 - `docs/db/growth.pre_registrations.md`・`docs/db/growth.lp_daily_counts.md`(表の説明書)
 
