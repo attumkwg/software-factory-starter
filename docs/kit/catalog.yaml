@@ -754,7 +754,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL)と獲得のコスト(届け方ごとの広告費と営業の時間・1社を取るのにいくら)と1社あたりの原価(組織の大きさの帯ごと・組織の ID は出さない)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り
+    what: AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL。人の時間の実績=週の記録があれば実績で・開発の段階の区分)と獲得のコスト(届け方ごとの広告費と営業の時間・1社を取るのにいくら)と1社あたりの原価(組織の大きさの帯ごと・組織の ID は出さない)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り
     needed_by: 費用を自分で払っている・機能(賭け)ごとの費用と採算を知りたい・見積もりとずれていないかを見たい・月1回、資産と費用の区分の案を会計の側に渡したい(/ledger)
     not_needed_by: 費用を見る人が別にいて、Cost Explorer の画面で足りる
     if_removed: 「何にいくら」が AWS・GitHub・AI の画面に散ったまま。賭けごとの費用が分からず、/ledger(資産か費用か)の元が無い
@@ -783,7 +783,7 @@ parts:
         - { path: docs/README.md, what: guides の費用のページを外す }
         - { path: docs/guides/bets-and-assets.md, what: 月1回の集計(/ledger)と PL の行を「まだ無い」に戻す }
         - { path: scripts/bets-lib.mjs, what: isBetId の書き出しは残してよい }
-      docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md, docs/specs/0020-people-time-and-bet-pl.md, docs/designs/0020-people-time-and-bet-pl.md, docs/adr/0033-people-time-and-bet-pl.md, docs/specs/0042-tenant-cost.md, docs/designs/0042-tenant-cost.md, docs/adr/0053-tenant-cost-by-size-bands.md, docs/specs/0043-acquisition-cost.md, docs/designs/0043-acquisition-cost.md, docs/adr/0054-acquisition-cost-from-manual-inputs.md]
+      docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md, docs/specs/0020-people-time-and-bet-pl.md, docs/designs/0020-people-time-and-bet-pl.md, docs/adr/0033-people-time-and-bet-pl.md, docs/specs/0042-tenant-cost.md, docs/designs/0042-tenant-cost.md, docs/adr/0053-tenant-cost-by-size-bands.md, docs/specs/0043-acquisition-cost.md, docs/designs/0043-acquisition-cost.md, docs/adr/0054-acquisition-cost-from-manual-inputs.md, docs/specs/0044-actual-hours.md, docs/designs/0044-actual-hours.md, docs/adr/0055-actual-hours-weekly-record.md]
 
   - id: security-baseline
     name: GuardDuty と Security Hub

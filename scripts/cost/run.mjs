@@ -87,7 +87,13 @@ function render(dir) {
     const prs = entries["people-prs"]?.ok ? entries["people-prs"].data.prs : [];
     files.set(
       "ledger.csv",
-      makeLedgerCsv({ month: summary.month, prs, rates: inputs.rates, pl: summary.pl }),
+      makeLedgerCsv({
+        month: summary.month,
+        prs,
+        rates: inputs.rates,
+        pl: summary.pl,
+        actuals: inputs.actuals,
+      }),
     );
   }
   files.set(
