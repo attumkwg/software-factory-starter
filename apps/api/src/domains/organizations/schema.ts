@@ -48,12 +48,18 @@ export const users = organizations.table(
     mfaEnabled: boolean("mfa_enabled").notNull().default(false),
     // これより前にログインしたセッションの Cookie は使えない(パスワードなどを変えたら、ほかの端末を切る)
     sessionsValidAfter: instant("sessions_valid_after"),
+    // その組織に最後に入った(ログイン・組織の切り替え)時刻。ログインで「前回の組織」を選ぶ(docs/specs/0055-multi-org-membership.md)
+    lastUsedAt: instant("last_used_at"),
     createdAt: createdAt(),
   },
   (t) => [
     unique("users_tenant_id_id_key").on(t.tenantId, t.id),
+    // 全体で一意(1人 = 1組織)。複数の組織に入る形の段 ③ で消す(ADR 0066)。それまでは下の組織ごとの一意と両方
     uniqueIndex("users_email_key").on(t.email),
     uniqueIndex("users_external_id_key").on(t.externalId),
+    // 組織ごとの一意(段 ①。1人が複数の組織に所属する行を持てる形)
+    uniqueIndex("users_tenant_email_key").on(t.tenantId, t.email),
+    uniqueIndex("users_tenant_external_id_key").on(t.tenantId, t.externalId),
   ],
 );
 

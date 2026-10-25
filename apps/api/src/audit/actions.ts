@@ -73,6 +73,12 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
     action: "member.sign_out",
     target: "member",
   },
+  // 組織の選び直し(docs/specs/0055-multi-org-membership.md)。関所が元の組織に「出た」を残す。先の組織の「入った」はハンドラーが手で
+  "POST /api/session/organization": {
+    action: "auth.switch_out",
+    target: "organization",
+    param: "none",
+  },
   "DELETE /api/invitations/{invitationId}": { action: "invitation.revoke", target: "invitation" },
   // 「無くなったら困るか」に答えた(docs/specs/0046-pmf-survey.md)。**何と答えたかは details に入れない**(数の表にだけある)
   "POST /api/pmf-survey": { action: "pmf_survey.respond", target: "user", param: "none" },
@@ -100,6 +106,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   preRegistrationPurged: "pre_registration.purged",
   preRegistrationDeleted: "pre_registration.deleted",
   preRegistrationConverted: "pre_registration.converted",
+  // 組織を選び直して、この組織に入った(元の組織には関所が auth.switch_out を残す)
+  switchIn: "auth.switch_in",
   // 運営のコマンド demo-reset が、デモ用の組織のデータを戻した(docs/specs/0053-sales-kit.md。stg だけ)
   demoReset: "demo.reset",
 } as const;

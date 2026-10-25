@@ -36,6 +36,7 @@ function fill(template: string, self: TenantFixture): string {
       .replaceAll("{taskId}", self.taskId)
       .replaceAll("{grantId}", self.supportGrantId)
       .replaceAll("{invitationId}", self.invitationId)
+      .replaceAll("{tenantId}", self.tenantId)
       .replaceAll("{inviteeEmail}", `invitee-${self.tenantId.slice(-12)}@self.test`)
       .replaceAll("{adminEmail}", self.users.admin.email)
       // 無いドメイン(この表の組織にはプランの機能 sso が無いので、どれも 404)

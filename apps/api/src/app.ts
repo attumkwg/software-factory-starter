@@ -21,6 +21,7 @@ import { accountRoutes } from "./auth/account-routes.ts";
 import { organizationSecurityRoutes, type ResolveTxt } from "./auth/domain-verify-routes.ts";
 import { invitationAcceptRoutes } from "./auth/invitation-routes.ts";
 import { authenticate } from "./auth/middleware.ts";
+import { organizationSwitchRoutes } from "./auth/organization-routes.ts";
 import { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
 import { supportSessionRoutes } from "./auth/support-routes.ts";
@@ -129,6 +130,29 @@ function publicGrowthSite(config: Config) {
     : null;
 }
 
+/**
+ * 関所とハンドラーが読む設定を、リクエストの文脈(c.var)に置く。
+ * 運営の組織(社員の代理ログイン。ハンドラーと /api/me が「社員か」を判断する)・二段階認証の必須を効かせるか
+ * (関所と /api/me)・いまの人の IP を読むヘッダー(組織ごとの IP の制限)・規約の版の一覧(関所と同意の API)・
+ * 機能フラグとプランの定義(/api/me と requireFeature)・要配慮個人情報の入口(sensitiveOf(c))
+ */
+function appContext(deps: AppDeps): MiddlewareHandler<AppEnv> {
+  const { config } = deps;
+  const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
+  const featureFlags = deps.featureFlags ?? FEATURE_FLAGS;
+  const plans = deps.plans ?? PLANS;
+  return async (c, next) => {
+    c.set("supportTenantId", config.supportTenantId);
+    c.set("mfaEnforced", config.auth.mode === "cognito");
+    c.set("clientIpSource", config.clientIp);
+    c.set("legalVersions", legalVersions);
+    c.set("featureFlags", featureFlags);
+    c.set("plans", plans);
+    c.set("sensitive", deps.sensitive ?? null);
+    await next();
+  };
+}
+
 export function createApp(deps: AppDeps) {
   const { config, db, logger } = deps;
   const lifecycle = deps.lifecycle ?? { shuttingDown: false };
@@ -160,22 +184,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/public/*", ...publicEntranceGuards(config));
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
-  // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う。
-  // 二段階認証の必須を効かせるか(関所と /api/me が使う)。規約の版の一覧(関所と同意の API が使う)。
-  // 機能フラグの定義(/api/me と機能の API の requireFeature が使う)。要配慮個人情報の入口(sensitiveOf(c) が使う)
-  const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
-  const featureFlags = deps.featureFlags ?? FEATURE_FLAGS;
-  const plans = deps.plans ?? PLANS;
-  app.use("/api/*", async (c, next) => {
-    c.set("supportTenantId", config.supportTenantId);
-    c.set("mfaEnforced", config.auth.mode === "cognito");
-    c.set("clientIpSource", config.clientIp);
-    c.set("legalVersions", legalVersions);
-    c.set("featureFlags", featureFlags);
-    c.set("plans", plans);
-    c.set("sensitive", deps.sensitive ?? null);
-    await next();
-  });
+  app.use("/api/*", appContext(deps));
   app.use("/api/*", authorize({ db, logger, session: config.session }));
 
   // Cognito のときだけ(開発用ログインには Cognito が無い)。ログインと本人のアカウントで同じつなぎ方を使う
@@ -196,6 +205,8 @@ export function createApp(deps: AppDeps) {
   app.route("/api", invitationRoutes);
   // 社員の代理ログイン(組織を切り替えるので認証の側)
   app.route("/api", supportSessionRoutes({ db, session: config.session }));
+  // 所属している組織と、組織の選び直し(組織を切り替えるので認証の側。docs/specs/0055-multi-org-membership.md)
+  app.route("/api", organizationSwitchRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
   app.route("/api", legalRoutes);

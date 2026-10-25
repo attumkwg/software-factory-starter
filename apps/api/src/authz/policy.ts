@@ -49,6 +49,9 @@ export const PERMISSIONS = {
   "ip_allowlist:manage": ["admin"],
   // 組織の人の一覧と、強制ログアウト(全部の組織で使える)
   "member:manage": ["admin"],
+  // 本人が所属しているほかの組織へ選び直す(docs/specs/0055-multi-org-membership.md)。所属しているかはハンドラーが
+  // DB の関数で確かめる。代理の最中は使えない(NOT_DURING_SUPPORT)
+  "session:switch": ["admin", "member", "viewer"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -122,6 +125,8 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "PUT /api/organization/ip-allowlist": "ip_allowlist:manage",
   "GET /api/organization/members": "member:manage",
   "POST /api/organization/members/{memberId}/sign-out": "member:manage",
+  "GET /api/me/organizations": "me:read",
+  "POST /api/session/organization": "session:switch",
 };
 
 /**
@@ -134,6 +139,8 @@ export const NOT_DURING_SUPPORT: ReadonlySet<Permission> = new Set([
   "legal:accept",
   // 社員がお客さんの代わりに「無くなったら困るか」に答えない(docs/specs/0046-pmf-survey.md)
   "pmf_survey:answer",
+  // 代理の最中に組織を選び直さない(代理を終えてから。docs/specs/0055-multi-org-membership.md)
+  "session:switch",
 ]);
 
 /**
@@ -153,6 +160,9 @@ export const OUTSIDE_TRANSACTION: ReadonlySet<Permission> = new Set([
  */
 export const ALLOWED_DURING_MFA_SETUP: ReadonlySet<string> = new Set([
   "GET /api/me",
+  // 必須の組織で行き詰まらないよう、ほかの組織へは選び直せる(docs/specs/0055-multi-org-membership.md)
+  "GET /api/me/organizations",
+  "POST /api/session/organization",
   "GET /api/account",
   "POST /api/account/reauth",
   "POST /api/account/mfa/setup",
@@ -167,6 +177,8 @@ export const ALLOWED_DURING_MFA_SETUP: ReadonlySet<string> = new Set([
  */
 export const ALLOWED_DURING_TERMS_ACCEPTANCE: ReadonlySet<string> = new Set([
   "GET /api/me",
+  "GET /api/me/organizations",
+  "POST /api/session/organization",
   "POST /api/legal/consents",
 ]);
 

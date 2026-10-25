@@ -1,5 +1,5 @@
 {
-  "id": "c9a9fe62-aecb-4880-a2d4-805ca05bc50b",
+  "id": "3a75a8e2-8268-4eb4-8f1a-3d19f778f0fb",
   "prevId": "7946f454-bc00-4a82-bfe3-b0ab6328e930",
   "version": "7",
   "dialect": "postgresql",
@@ -624,140 +624,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "organizations.domains": {
-      "name": "domains",
-      "schema": "organizations",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "domain": {
-          "name": "domain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "verify_token": {
-          "name": "verify_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "verified_at": {
-          "name": "verified_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "domains_tenant_domain_key": {
-          "name": "domains_tenant_domain_key",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "domain",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "domains_verified_domain_key": {
-          "name": "domains_verified_domain_key",
-          "columns": [
-            {
-              "expression": "domain",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "verified_at is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "domains_tenant_id_tenants_tenant_id_fk": {
-          "name": "domains_tenant_id_tenants_tenant_id_fk",
-          "tableFrom": "domains",
-          "tableTo": "tenants",
-          "schemaTo": "organizations",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "tenant_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "domains_created_by_fkey": {
-          "name": "domains_created_by_fkey",
-          "tableFrom": "domains",
-          "tableTo": "users",
-          "schemaTo": "organizations",
-          "columnsFrom": [
-            "tenant_id",
-            "created_by"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "domains_tenant_id_id_key": {
-          "name": "domains_tenant_id_id_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "organizations.email_changes": {
       "name": "email_changes",
       "schema": "organizations",
@@ -1039,97 +905,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "organizations.ip_allowlist": {
-      "name": "ip_allowlist",
-      "schema": "organizations",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cidr": {
-          "name": "cidr",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "ip_allowlist_tenant_idx": {
-          "name": "ip_allowlist_tenant_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "ip_allowlist_tenant_id_tenants_tenant_id_fk": {
-          "name": "ip_allowlist_tenant_id_tenants_tenant_id_fk",
-          "tableFrom": "ip_allowlist",
-          "tableTo": "tenants",
-          "schemaTo": "organizations",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "tenant_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "ip_allowlist_created_by_fkey": {
-          "name": "ip_allowlist_created_by_fkey",
-          "tableFrom": "ip_allowlist",
-          "tableTo": "users",
-          "schemaTo": "organizations",
-          "columnsFrom": [
-            "tenant_id",
-            "created_by"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1451,6 +1226,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1478,6 +1259,48 @@
         "users_external_id_key": {
           "name": "users_external_id_key",
           "columns": [
+            {
+              "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_tenant_email_key": {
+          "name": "users_tenant_email_key",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_tenant_external_id_key": {
+          "name": "users_tenant_external_id_key",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
             {
               "expression": "external_id",
               "isExpression": false,

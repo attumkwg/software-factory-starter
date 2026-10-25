@@ -149,7 +149,7 @@ sequenceDiagram
 | その IdP の組織・確かめたドメインの人だけ | 6 | 「他社の IdP から入れない」「ドメインが違えば入れない」 |
 | いない人は入れない(JIT なし) | 6・U-2 | 「行が無ければ入れない」 |
 | 必須・緊急用2人・二段階認証 | 6 | 「必須でパスワードを断る」「緊急用は通る」 |
-| IP の制限 20 個・締め出さない | 6 | `ip-allowlist.int.test.ts`・`client-ip.test.ts`(ヘッダーの数え方) |
+| IP の制限 20 個・締め出さない | 6 | `ip-allowlist.int.test.ts`・`client-ip.test.ts`(ヘッダーの数え方)・`multi-org.int.test.ts`(組織の選び直しも外からは 403) |
 | 強制ログアウト | 6 | `organization-domains.int.test.ts` の「次のリクエストから 401」 |
 | 変更が監査ログに | 3 | `audit-coverage.test.ts`(自動) |
 | SCIM の鍵・Users・止める・消す=止める | 3・6 | `scim.int.test.ts`(2社) |

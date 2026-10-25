@@ -3,6 +3,7 @@ import { and, count, desc, eq, getTableColumns, gt, isNull, sql } from "drizzle-
 import type { TenantTx } from "../../db/client.ts";
 import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
+import { syncPerson } from "./memberships.ts";
 import { emailChanges, tenants, users } from "./schema.ts";
 
 // アカウントの安全(docs/specs/0006-account-security.md)の読み書き。Cognito は呼ばない(auth/account-routes.ts が呼ぶ)。
@@ -61,6 +62,8 @@ export async function setMfaEnabled(s: TenantScope, enabled: boolean) {
     .update(users)
     .set({ mfaEnabled: enabled })
     .where(and(eq(users.id, s.userId), eq(users.tenantId, s.tenantId)));
+  // 二段階認証は人に1つ(Cognito)。ほかの組織の所属の写しもそろえる(docs/specs/0055-multi-org-membership.md)
+  await syncPerson(s, { mfaEnabled: enabled });
 }
 
 /** ほかの端末のログインを切る(at より前にログインしたセッションを使えなくする) */
@@ -69,6 +72,8 @@ export async function endOtherSessions(s: TenantScope, at: Date) {
     .update(users)
     .set({ sessionsValidAfter: at })
     .where(and(eq(users.id, s.userId), eq(users.tenantId, s.tenantId)));
+  // ほかの組織の所属のセッションも切る(パスワードなどは人に1つ)
+  await syncPerson(s, { sessionsValidAfter: at });
 }
 
 /** メールの変更を申し込む(前の申し込みは使われなくなる。消さずに残す) */
@@ -127,6 +132,8 @@ export async function confirmEmailChange(
             isNull(emailChanges.confirmedAt),
           ),
         );
+      // メールは人に1つ(Cognito)。ほかの組織の所属の写しもそろえる
+      await syncPerson({ ...s, tx: sp }, { email: change.newEmail });
     });
     return true;
   } catch (e) {

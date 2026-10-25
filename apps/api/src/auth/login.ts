@@ -2,7 +2,12 @@ import type { Context } from "hono";
 import { MANUAL_AUDIT_ACTIONS, recordAudit } from "../audit/index.ts";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
-import { ipAllowedFor, ipNotAllowed, setMfaEnabled } from "../domains/organizations/index.ts";
+import {
+  ipAllowedFor,
+  ipNotAllowed,
+  markMembershipUsed,
+  setMfaEnabled,
+} from "../domains/organizations/index.ts";
 import type { AppEnv } from "../env.ts";
 import { ApiError } from "../errors.ts";
 import { clientIp } from "../http/client-ip.ts";
@@ -49,6 +54,8 @@ export async function logIn(
     const scope = { tx, tenantId: session.tenantId, userId: session.userId };
     // 運営が Cognito で外した(認証アプリを無くした人の回復)なども、次のログインでそろう
     if (opts.mfa !== undefined) await setMfaEnabled(scope, opts.mfa);
+    // 次のログインで「前回の組織」になる(docs/specs/0055-multi-org-membership.md)
+    await markMembershipUsed(tx, session.tenantId, session.userId);
     await recordAudit(tx, {
       tenantId: session.tenantId,
       actor: { kind: "user", id: session.userId },

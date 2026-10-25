@@ -17,5 +17,7 @@ export const canManageInvitations = (me: Me) => me.role === "admin" && !me.suppo
 export const canStartSupport = (me: Me) => me.isSupportStaff === true && !me.support;
 /** 自分のアカウント(二段階認証・メール・パスワード)を変える。代理の社員は変えられない(API も 403) */
 export const canManageAccount = (me: Me) => !me.support;
+/** 組織を選び直す(2つ以上に所属している人だけ。代理の社員には出ない。docs/specs/0055-multi-org-membership.md) */
+export const canSwitchOrganization = (me: Me) => (me.organizationsCount ?? 1) > 1 && !me.support;
 /** 「設定」(監査ログ・サポートへの許可・データの書き出し)。組織の管理者だけ。代理の社員には出ない */
 export const canOpenSettings = (me: Me) => me.role === "admin" && !me.support;
