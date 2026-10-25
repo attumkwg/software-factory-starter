@@ -90,8 +90,8 @@ vendors:
         note: 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。ロックした S3 に置く(docs/runbooks/audit-trail.md)
       - name: S3
         terraform: [aws_s3_*]
-        data: [public, internal]
-        note: 管理操作の記録・毎月の証跡(設定の写し。社員の GitHub と IAM の名前を含む)・費用のページ・試作の画面(偽のデータだけ)。お客さんのデータは置かない
+        data: [public, internal, personal]
+        note: 管理操作の記録・毎月の証跡(設定の写し。社員の GitHub と IAM の名前を含む)・費用のページ・試作の画面(偽のデータだけ)。personal は申し込みの置き場だけ(開通のとき、申込書の JSON = 組織の名前・最初の管理者の名前とメールを置き、create-tenant が読む。読み終えたら人が消す・今の版は7日・古い版は1日で消える。docs/runbooks/tenant-provisioning.md)。それ以外にお客さんのデータは置かない
       - name: CloudFront(試作の画面の配信)
         terraform: [aws_cloudfront_*]
         data: [public]

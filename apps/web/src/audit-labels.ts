@@ -28,6 +28,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "legal.consent": "利用規約などに同意した",
   "feature_flag.enable": "機能を入れた",
   "feature_flag.disable": "機能を切った",
+  "tenant.create": "組織を作った",
 };
 
 const TARGET_LABELS: Record<string, string> = {

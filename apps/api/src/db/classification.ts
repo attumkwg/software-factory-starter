@@ -136,6 +136,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       route: internal("代理の社員が呼んだ API の形(メソッドとパスの型)"),
       counts: internal("解約で消した表ごとの行数"),
       flag: internal("運営が入れた・切った機能の名前(FEATURE_FLAGS の name)"),
+      adminUserId: internal("運営が組織を作ったときの、最初の管理者の ID"),
     },
   },
 
