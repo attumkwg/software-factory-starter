@@ -1,5 +1,6 @@
 // 賭け(docs/product/bets/B-NNNN-*.md)と PR の本文を読んで確かめる中身。入口は bets.mjs。
 // 決まりは docs/guides/bets-and-assets.md。Semgrep の regex_dos に当たらないよう、正規表現を使わずに読む。
+// PR の本文(取り組み・作業の種類)を確かめる中身は bets-pr-lib.mjs(ここから出し直す)。
 
 export const STAGES = ["idea", "cpf", "psf", "rollout", "adopted", "retired", "dropped"];
 const TESTED = ["cpf", "psf", "rollout"];
@@ -9,6 +10,7 @@ const DECISIONS = [
   "開く",
   "続ける",
   "進む",
+  "意思で進む",
   "飛ばす",
   "変える",
   "戻る",
@@ -17,10 +19,10 @@ const DECISIONS = [
   "撤去する",
 ];
 // 結果を見て決める判断。この段階の線が、先に決まっていないといけない
-const NEEDS_LINE = ["続ける", "進む", "変える", "戻る", "線を動かす"];
+const NEEDS_LINE = ["続ける", "進む", "意思で進む", "変える", "戻る", "線を動かす"];
+// 本人の名前(@名前)を残す判断
+const NEEDS_NAME = ["線を動かす", "意思で進む"];
 const CATEGORIES = ["費用", "資産の候補", "除却の候補"];
-export const WORKS = ["保守", "不具合", "基盤", "セキュリティ"];
-export const KINDS = ["探索", "作り込み", "保守", "撤去"];
 
 const isDigits = (s) => s.length > 0 && [...s].every((c) => c >= "0" && c <= "9");
 export const isDate = (s) => {
@@ -100,6 +102,7 @@ export const parseBet = (text) => {
     lines: find("線と期限"),
     pebbles: find("小石"),
     ledger: find("会計区分"),
+    wills: find("意思で進んだ判断"),
   };
 };
 
@@ -131,7 +134,7 @@ const checkLineRows = (rows, problems) => {
 // 判断を1つ当てたあとの段階。当てられなければ undefined
 const apply = (cur, head) => {
   if (["開く", "続ける", "変える", "線を動かす"].includes(head)) return cur;
-  if (head === "進む") return NEXT[cur];
+  if (head === "進む" || head === "意思で進む") return NEXT[cur];
   if (head === "飛ばす") return TESTED.includes(cur) ? NEXT[cur] : undefined;
   if (head === "戻る") return PREV[cur];
   if (head === "やめる") return NEXT[cur] ? "dropped" : undefined;
@@ -157,8 +160,8 @@ const checkPebble = (p, ctx) => {
   if (shape) return shape;
   if (p.stage !== ctx.cur)
     return `段階「${p.stage}」は、ここまでの判断をたどった段階「${ctx.cur}」と合わない(飛ばすなら「飛ばす」の小石を)`;
-  if (head === "線を動かす" && !p.decision.includes("@"))
-    return "線を動かすのは本人の判断。「線を動かす(@名前)」と名前を残す";
+  if (NEEDS_NAME.includes(head) && !p.decision.includes("@"))
+    return `${head}のは本人の判断。「${head}(@名前)」と名前を残す`;
   if (NEEDS_LINE.includes(head) && TESTED.includes(p.stage)) {
     const ok = ctx.lines.some((l) => l.stage === p.stage && l.decided <= p.date);
     if (!ok) return `${p.stage} の線と期限が、この結果(${p.date})より前に決まっていない`;
@@ -166,13 +169,22 @@ const checkPebble = (p, ctx) => {
   const next = apply(ctx.cur, head);
   if (!next) return `段階 ${ctx.cur} では「${head}」はできない`;
   ctx.moves[p.stage] = (ctx.moves[p.stage] ?? 0) + (head === "線を動かす" ? 1 : 0);
+  if (head === "意思で進む") ctx.wills.push({ date: p.date, stage: p.stage, at: p.at });
   ctx.cur = next;
   ctx.visited.add(next);
   return undefined;
 };
 
 const walkPebbles = (rows, lines, problems) => {
-  const ctx = { cur: "idea", first: true, lastDate: "", lines, moves: {}, visited: new Set() };
+  const ctx = {
+    cur: "idea",
+    first: true,
+    lastDate: "",
+    lines,
+    moves: {},
+    visited: new Set(),
+    wills: [],
+  };
   ctx.visited.add("idea");
   for (const p of rows) {
     const problem = checkPebble(p, ctx);
@@ -213,6 +225,31 @@ const checkLedger = (ledger, visited, problems) => {
   }
 };
 
+// 「意思で進む」の小石ごとに、引き受けた危なさ・止める線・期限・決めた人の行があるか。
+// 止めはしない(線に届かなくても進んでよい)。残っていなければ落とす。期限を過ぎた物は返して一覧に出す
+const checkWills = (section, wills, today, problems) => {
+  const rows = (section?.rows ?? []).map(({ cells, at }) => ({ cells, at }));
+  for (const w of wills) {
+    const row = rows.find((r) => r.cells[0] === w.date && r.cells[1] === w.stage);
+    if (!row) {
+      problems.push(
+        `${w.at}行目: 「意思で進む」には「## 意思で進んだ判断」の表に同じ日付と段階の行(引き受けた危なさ・止める線・期限・決めた人)を足す`,
+      );
+      continue;
+    }
+    const [, , risk, stopLine, due, who] = row.cells;
+    if (row.cells.length !== 6)
+      problems.push(`${row.at}行目: 意思で進んだ判断の列の数が6ではない(${row.cells.length})`);
+    else if (!risk || !stopLine)
+      problems.push(`${row.at}行目: 引き受けた危なさと止める線を書く(空にしない)`);
+    else if (!isDate(due)) problems.push(`${row.at}行目: 止める線の期限は YYYY-MM-DD で`);
+    else if (!who.startsWith("@")) problems.push(`${row.at}行目: 決めた人は「@名前」`);
+  }
+  return rows
+    .filter((r) => r.cells.length === 6 && isDate(r.cells[4]) && r.cells[4] < today)
+    .map((r) => ({ date: r.cells[0], stage: r.cells[1], stopLine: r.cells[3], due: r.cells[4] }));
+};
+
 // 1つの賭けを確かめる。problems は CI を落とす物。due・noLine は一覧に出すだけ
 export const checkBet = (bet, today) => {
   const problems = [];
@@ -236,67 +273,17 @@ export const checkBet = (bet, today) => {
     problems.push(`いまの状態の段階「${bet.stage}」が、小石をたどった段階「${ctx.cur}」と合わない`);
   checkMoves(lines, ctx, problems);
   checkLedger(bet.ledger, ctx.visited, problems);
+  const ended = ["dropped", "retired"].includes(ctx.cur);
+  const willsDue = checkWills(bet.wills, ctx.wills, today, problems);
   const latest = lines.filter((l) => l.stage === ctx.cur).at(-1);
   const testing = TESTED.includes(ctx.cur);
   return {
     problems,
     due: testing && latest && latest.due < today ? latest.due : undefined,
     noLine: testing && !latest,
+    wills: ctx.wills.length,
+    willsDue: ended ? [] : willsDue,
   };
 };
 
-// その PR の会計区分の案(docs/guides/bets-and-assets.md の「案の表」)
-export const proposalOf = (stage, kind) => {
-  if (kind === "保守" || kind === "探索") return "費用";
-  if (kind === "撤去") return "除却の候補(資産に載せた物があれば)";
-  if (stage === undefined) return "人が決める(賭けの外の作り込み)";
-  return stage === "rollout" || stage === "adopted" ? "資産の候補" : "費用";
-};
-
-// PR の本文の「- 取り組み: …」「- 作業の種類: …」の値(バッククォートは外す)
-const fieldOf = (lines, key) => {
-  const line = lines.find((l) => l.startsWith(`- ${key}:`));
-  return (line?.slice(key.length + 3) ?? "").replaceAll("`", "").trim();
-};
-
-// 値の頭の言葉だけを見る(「保守(依存の更新)」「bet:B-0001 タスクのメール」も通す)
-const checkWork = (work, kind, bets) => {
-  const problems = [];
-  const betId = work.startsWith("bet:") ? work.slice(4).trim().slice(0, 6) : undefined;
-  if (!work) problems.push(`「- 取り組み:」が空。bet:B-NNNN / ${WORKS.join(" / ")} のどれか`);
-  else if (betId === undefined && !WORKS.some((w) => work.startsWith(w)))
-    problems.push(`取り組み「${work}」は bet:B-NNNN / ${WORKS.join(" / ")} のどれか`);
-  else if (betId !== undefined && !Object.hasOwn(bets, betId))
-    problems.push(`賭け ${betId} のファイルが docs/product/bets/ に無い(先に /bet で開く)`);
-  const kindHead = KINDS.find((k) => kind.startsWith(k));
-  if (!kindHead)
-    problems.push(`作業の種類「${kind}」は ${KINDS.join(" / ")} のどれか(空ならここを埋める)`);
-  return { problems, betId, kindHead };
-};
-
-// PR の本文を確かめる。author がボット(…[bot])で2つとも空なら「保守 / 保守」とみなす
-export const checkPrBody = (body, { author = "", bets = {} } = {}) => {
-  const lines = stripComments(body ?? "")
-    .split("\n")
-    .map((l) => l.trim());
-  let work = fieldOf(lines, "取り組み");
-  let kind = fieldOf(lines, "作業の種類");
-  const notes = [];
-  if (author.endsWith("[bot]") && !work && !kind) {
-    work = "保守";
-    kind = "保守";
-    notes.push(`${author} の PR なので、取り組み・作業の種類を「保守」とみなしました`);
-  }
-  const checked = checkWork(work, kind, bets);
-  const { problems, betId } = checked;
-  if (problems.length > 0) return { problems, notes };
-  kind = checked.kindHead;
-  const stage = betId ? bets[betId] : undefined;
-  if ((stage === "dropped" || stage === "retired") && kind !== "撤去")
-    problems.push(`賭け ${betId} は ${stage}(終わった賭け)。この賭けでできるのは「撤去」だけ`);
-  if (["idea", "cpf", "psf"].includes(stage) && kind === "作り込み")
-    notes.push(
-      `賭け ${betId} は ${stage}。この段階の作り込みは費用の案(合格の線を通ってから作り込みへ)`,
-    );
-  return { problems, notes, work, kind, stage, proposal: proposalOf(stage, kind) };
-};
+export { checkPrBody, KINDS, proposalOf, WORKS } from "./bets-pr-lib.mjs";

@@ -40,6 +40,7 @@
 │  ├─ specs/                    仕様のテンプレートと例(受け入れ条件・悪用のされ方)
 │  ├─ designs/                  設計書のテンプレート(AI 用で網羅的に。AI の仮決めを追う「未確定事項」)
 │  ├─ review-viewpoints.md      設計とレビューの観点(共通の8つ+このプロダクト特有。溜めていく)
+│  ├─ legal/                    お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い。文面は書かず、既定・根拠・使う人が決めること)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
 ├─ infra/terraform/
@@ -101,6 +102,12 @@ docker compose -f docker-compose.vrt.yml up -d --wait
 
 ```bash
 pnpm vrt
+```
+
+色のトークンのコントラストの比(明るいテーマと暗いテーマ。WCAG 2.2 AA。色の案を出すときは `/brand` が案のファイルを並べて渡す。[docs/design-system.md](design-system.md)):
+
+```bash
+pnpm contrast
 ```
 
 開発するとき(API は 3000、画面は 5173。画面は SSR のまま自動で読み直し、/api は API へ中継する):
