@@ -74,6 +74,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `AWS_STG_COGNITO_CONTRACT_ROLE_ARN` / `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` | stg の出力(`github_role_arns` の `…-cognito-contract`・`cognito_user_pool_id`・`cognito_client_id`) | cognito-contract |
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
+| `DEMO_TENANT_ID` | stg のデモ用の組織の ID(先に stg で `create-tenant`。[sales.md](sales.md) の 1) | demo-reset(毎晩) |
 
 **Secrets** は、リポジトリ全体(Repository secrets)には置かず、**使う Environment の秘密**(Settings → Environments → 名前 → Environment secrets)に置く。Environment は main だけに絞ってあるので(上の 1. の 3)、PR のブランチのワークフローからは読めない:
 

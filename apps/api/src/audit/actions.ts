@@ -82,6 +82,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド plan・create-tenant が、組織の契約のプランを変えた(docs/specs/0047-plans.md)。
   // details.plan・details.priceList に名前(PLANS・PRICE_LISTS。人数・日付は platform.tenant_plans の行)
   planChange: "plan.change",
+  // 運営のコマンド demo-reset が、デモ用の組織のデータを戻した(docs/specs/0053-sales-kit.md。stg だけ)
+  demoReset: "demo.reset",
 } as const;
 
 /**
