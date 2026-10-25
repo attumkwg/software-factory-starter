@@ -2,6 +2,7 @@
 // 金額は円の整数。ドルの物はセントで足してから、estimates.yaml の usd_jpy で円にする。読めなかった物は notes に出す(0円として隠さない)。
 
 import { acquisitionCost } from "./acquisition.mjs";
+import { budgetStatus } from "./budgets.mjs";
 import { centsToJpy, mergeCounts, periodOf, sum } from "./period.mjs";
 import { makePl } from "./pl.mjs";
 import { targetOf, tenantCost } from "./tenants.mjs";
@@ -124,6 +125,13 @@ function tenantCostOf(entries, rate, period, people) {
   return target ? tenantCost(shares, target) : null;
 }
 
+/** 賭けごとの予算の枠(仕様 0054)。形の合わない行は notes に足す */
+function budgetsOf(people, { pl, period, notes }) {
+  const budgets = budgetStatus(people?.inputs.budgets ?? null, { pl, period });
+  if (budgets?.bad) notes.push(`賭けの予算の枠: 形の合わない行 ${budgets.bad}行を数えていない`);
+  return budgets;
+}
+
 /** 人の時間と PL で足りない物(0円として隠さない) */
 const peopleNotes = (inputs, prs) => [
   ...(prs?.ok ? [] : [noteOf("人の時間(PR からの目安)", prs)]),
@@ -191,11 +199,13 @@ export function makeSummary(entries, { today, generatedAt, people }) {
         rates: people.inputs.rates,
       })
     : null;
+  const budgets = budgetsOf(people, { pl, period, notes });
   return {
     month: period.month,
     pl,
     tenant_cost,
     acquisition,
+    budgets,
     today,
     day: period.day,
     days_in_month: period.daysInMonth,

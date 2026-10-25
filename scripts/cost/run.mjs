@@ -4,6 +4,7 @@
 //   pnpm cost --render <dir> [--inputs <dir>]      <dir> の JSON から summary.json・index.html・ledger.csv・manifest.json を作る
 //                                                  --inputs は非公開の入力(時給・時間の手入力・売上。S3 の cost/inputs/。リポジトリに置かない)
 //   pnpm cost --out <dir>                          AWS の外を集めて、そのまま作る(手元で試す)
+//   pnpm cost --budget-alerts <dir>                <dir>/summary.json から予算の枠の知らせの文(賭けの ID と割合だけ。cost.yml が Slack へ)
 // 置き場には送らない(送るのはワークフロー)。ログには名前と件数だけ(金額は出さない。公開のリポジトリのログに残るため)。
 // 設計: docs/designs/0019-evidence-soa-and-cost.md・0020(人の時間と賭けごとの PL)・手引き: docs/guides/cost-dashboard.md・ADR 0032・0033
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -20,6 +21,7 @@ import {
   monthOf,
   writeBundle,
 } from "../evidence/lib.mjs";
+import { budgetAlerts } from "./budgets.mjs";
 import { makeLedgerCsv } from "./ledger.mjs";
 import { renderHtml } from "./render.mjs";
 import { awsCost } from "./source-aws.mjs";
@@ -142,6 +144,13 @@ async function collect(dir) {
   return account === undefined && option("--only") === undefined;
 }
 
+// pnpm cost --budget-alerts <dir> … summary.json から、予算の枠の知らせの文を1行ずつ(賭けの ID と割合だけ。cost.yml が Slack へ)
+const alertsDir = option("--budget-alerts");
+if (alertsDir) {
+  const summary = JSON.parse(readFileSync(join(alertsDir, "summary.json"), "utf8"));
+  for (const line of budgetAlerts(summary.budgets, summary.month)) console.log(line);
+  process.exit(0);
+}
 const renderDir = option("--render");
 if (renderDir) {
   if (!existsSync(renderDir)) fail(`${renderDir} が無い`);
