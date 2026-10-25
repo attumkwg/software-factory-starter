@@ -27,7 +27,8 @@ description: コードの変更(ブランチの差分)を読み、ドメイン�
    - 用語集: 日本語・コードでの名前・意味・例 の4つをそろえる。画面の文言と同じ言葉にする。
    - 領域の README: エンティティ・状態・守るルール・境目・関係するファイル・これから決めること の見出しを保つ。
    - `docs/db/`: 手で直さない。`docker compose up -d` のあと `pnpm docs:db`。個人情報の台帳 `docs/db/personal-data.md` は列の分類表から作る(`pnpm docs:db` の続きで作られる。DB 無しなら `pnpm docs:personal-data`)。新しい表なら `.tbls.yml` の `comments` に1行の説明と `docs/domain/<領域>` への道しるべを足す。
-   - 新しい領域ができたら `docs/domain/<領域>/README.md` を、既存の領域の README と同じ見出しで作る。
+   - 新しい領域ができたら `docs/domain/<領域>/README.md` を、既存の領域の README と同じ見出しで作る。領域ごとの CLAUDE.md(`apps/api/src/domains/<領域>/CLAUDE.md`。型は `docs/domain/_template-CLAUDE.md`)も無ければ作る。
+   - 領域の外との出入り(`index.ts` から出す関数・出来事・監査ログの名前・使ってよい向き)が変わったら、その領域の CLAUDE.md の「外との出入り」と「触らない所」も直す。
 4. コードと資料が食い違っていて、**どちらが正しいか分からない**ときは直さずに、PR の「人に判断してほしい所」に書く。
 
 ## してはいけない
