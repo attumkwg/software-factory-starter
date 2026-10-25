@@ -79,7 +79,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 経営・事業の責任者 | [想定の場面](docs/scenarios/README.md)(自分の規模の会社で、どこが回りどこで詰まるか) | `/kickoff`・`/bet`・費用のページ |
 | PdM | [PMF の前の進め方](docs/guides/before-pmf.md)・[機能ごとの賭け](docs/guides/bets-and-assets.md) | `/bet`・`/new-feature`・`pnpm bets` |
 | エンジニア・EM | [開発の進め方](docs/playbook.md)・[ラインの作り](docs/concepts/line.md) | `/new-feature`・`/review-pr`・`/rework` |
-| マーケ・広報・営業 | [売る場面](docs/scenarios/08-gtm.md)・[決めることの地図](docs/scenarios/fit-journey.md)(売り文句 → LP → ブランドの色の順) | `/positioning`・`/kickoff`・`/prototype`・`/release-notes` |
+| マーケ・広報・営業 | [売る場面](docs/scenarios/08-gtm.md)・[決めることの地図](docs/scenarios/fit-journey.md)(売り文句 → LP → ブランドの色の順) | `/positioning`・`/brand`・`/kickoff`・`/prototype`・`/release-notes` |
 | CS | [運用の場面](docs/scenarios/05-run.md)・[サポートの代理ログイン](docs/runbooks/support-access.md) | `/report-bug`・`/release-notes` |
 | 法務・管理部門 | [規約と同意](docs/guides/legal-documents.md)・[認証の準備](docs/compliance/README.md)・[費用のページ](docs/guides/cost-dashboard.md) | `/ledger`・`/compliance-check` |
 | セキュリティ・情シス | [セキュリティの決まり](docs/security.md)・[障害の手順書](docs/runbooks/incident.md) | `/cve`・`/checkup` |
@@ -128,7 +128,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
 
 <details>
-<summary>部品の一覧を開く(52件)</summary>
+<summary>部品の一覧を開く(54件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -146,6 +146,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 土台(消さない) | 🔒 列の分類表とログ `column-classification` | 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする。台帳(docs/db/personal-data.md)はここから作る | 残す | あり |
 | 会社向け | 監査ログ `audit-log` | 誰が・いつ・何をしたかを残し、お客さんの管理者が画面で見られる。書き込みの API は関所が自動で残す | 残す | あり |
 | 会社向け | サポートの代理ログイン `support-access` | お客さんの管理者が許可した間だけ、運営の社員がその組織の画面を「見るだけ」で開ける | 残す | あり |
+| 会社向け | 開通(組織を作るコマンド) `provisioning` | 申し込みを受けた会社を、運営がコマンドで組織にし、最初の管理者を作る(試し → 名前の確認 → 実行・監査ログ) | 残す | あり |
 | 会社向け | 解約(書き出しと削除) `offboarding` | 管理者が自社のデータを書き出せる。解約した組織を、試し → 名前の確認つきで丸ごと消すコマンド | 残す | あり |
 | 会社向け | 組織ごとの二段階認証の必須化 `mfa-required` | 組織の管理者が「全員に二段階認証を必須にする」を選べる | 残す | あり |
 | 会社向け | 招待の画面 `invitations` | 管理者が画面から人を招く(いまは SQL で users に行を足す) | 残す | 未 |
@@ -180,8 +181,9 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 進め方 | 始め方の計画(/kickoff) `kickoff` | 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決めて計画にする | 残す | あり |
 | 進め方 | 機能ごとの賭け(/bet) `bets` | 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く | 残す | あり |
 | 進め方 | 約束と売り文句(/positioning) `positioning` | 話の記録・賭けの小石・計画の代わりの物から、約束(誰の何を、どう変えるか)の案を3つ・売り文句・代わりとの違い・言わないことを根拠つきで出し、1問ずつ選んで docs/product/positioning.md に残す。LP・チラシ・営業の資料・ブランドはここから作る | 残す | あり |
+| 進め方 | ブランドを決める段取り(/brand・pnpm contrast) `brand` | 約束と相手(業種・使う場所)から名前(仮)・話し方のトーン・色の案を2〜3つ出し、色は tokens.css の主な色を置き換えた PR にする。案ごとのコントラストの比を pnpm contrast で計算して添え、画面は VRT のスクショで人が決める。docs/product/brand.md に理由を残す | 残す | あり |
 | 進め方 | 組織ごとの機能フラグ `feature-flags` | 賭けの psf / rollout で、運営が選んだ組織にだけ機能を出す・止める(定義はコード・組織ごとの状態は DB・切り替えは運営のコマンド)。A/B テストの土台 | 残す | あり |
-| 進め方 | 利用の記録 `usage-records` | どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す | 残す | あり |
+| 進め方 | 利用の記録 `usage-records` | どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数と継続率(初めて使った週ごとの組の N 週後。組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す | 残す | あり |
 | 進め方 | 資産と費用の台帳(/ledger) `ledger` | 月1回、賭けごとの人の時間とインフラ・SaaS を「資産の候補・費用・除却の候補」に分けた案(費用のページの ledger.csv)を1つずつ確かめ、賭けのファイルの「会計区分の判定」に足す。会計・税の当てはめは専門家が確かめる | 残す | あり |
 | 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする | 残す | あり |
 

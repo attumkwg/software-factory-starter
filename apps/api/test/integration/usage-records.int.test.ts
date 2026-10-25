@@ -20,19 +20,23 @@ import { createTenantFixture, type TenantFixture } from "../helpers/fixtures.ts"
 // ほかのテストと DB を分け合うので、機能の名前はこのファイルだけの物にする。
 
 const FEATURE = "usage-picked" as FeatureFlagName;
+const COHORT = "usage-cohort" as FeatureFlagName;
 const DEFS: FeatureFlagDefinition[] = [
   { name: FEATURE, bet: "B-0001", description: "選んだ組織だけ", state: "rollout" },
+  { name: COHORT, bet: "B-0001", description: "継続率を数える", state: "rollout" },
 ];
 
 const owner = createDb(inject("ownerUrl"));
 const appDb = createDb(inject("appUrl"));
 let a: TenantFixture;
 let b: TenantFixture;
+let c: TenantFixture;
 let ops: TenantFixture;
 
 beforeAll(async () => {
   a = await createTenantFixture(owner.db, "acme");
   b = await createTenantFixture(owner.db, "globex");
+  c = await createTenantFixture(owner.db, "initech");
   ops = await createTenantFixture(owner.db, "ops");
 });
 afterAll(async () => {
@@ -65,11 +69,16 @@ async function rowsOf(tenantId: string) {
   return r.rows;
 }
 
-const insertDay = (t: TenantFixture, role: "admin" | "member" | "viewer", day: string) =>
+const insertDay = (
+  t: TenantFixture,
+  role: "admin" | "member" | "viewer",
+  day: string,
+  feature: FeatureFlagName = FEATURE,
+) =>
   withTenant(owner.db, t.tenantId, (tx) =>
     tx.execute(
       sql`insert into platform.feature_usage (id, tenant_id, user_id, feature, day)
-        values (gen_random_uuid(), ${t.tenantId}, ${t.users[role].id}, ${FEATURE}, ${day})`,
+        values (gen_random_uuid(), ${t.tenantId}, ${t.users[role].id}, ${feature}, ${day})`,
     ),
   );
 
@@ -165,7 +174,7 @@ describe("運営のコマンド", () => {
       { week: "2026-10-19", tenants: 1, users: 1 },
     ]);
     const text = JSON.stringify(report);
-    for (const t of [a, b, ops]) {
+    for (const t of [a, b, c, ops]) {
       expect(text).not.toContain(t.tenantId);
       for (const u of Object.values(t.users)) expect(text).not.toContain(u.id);
     }
@@ -184,12 +193,13 @@ describe("運営のコマンド", () => {
   });
 
   it("コマンドの入口: 出す行は JSON 1行(試しは案内も)。引数が違えば止まる", async () => {
-    const [report] = await runUsageReport(owner.db, [FEATURE, "--weeks", "2"], {
+    const [report, cohorts] = await runUsageReport(owner.db, [FEATURE, "--weeks", "2"], {
       defs: DEFS,
       supportTenantId: ops.tenantId,
       now,
     });
     expect(JSON.parse(report as string)).toMatchObject({ mode: "report", feature: FEATURE });
+    expect(JSON.parse(cohorts as string)).toMatchObject({ mode: "retention", feature: FEATURE });
     await expect(
       runUsageReport(owner.db, [FEATURE, "--weeks", "0"], { defs: DEFS, supportTenantId: null }),
     ).rejects.toThrow("--weeks は 1〜60 の整数です");
@@ -202,5 +212,59 @@ describe("運営のコマンド", () => {
     expect(JSON.parse(plan[0] as string)).toMatchObject({ mode: "plan", days: 400, count: 0 });
     const done = await runUsagePurge(owner.db, ["--execute"], { now });
     expect(done.map((l) => JSON.parse(l).mode)).toEqual(["purged"]);
+  });
+});
+
+describe("継続率(docs/specs/0022-usage-retention.md)", () => {
+  const now = new Date("2026-10-21T03:00:00Z"); // 水曜(その週の月曜は 10-19)
+
+  it("継続率: 初めて使った週の組ごとに、N 週後の数と割合(数え終わった週まで・ID を出さない)", async () => {
+    // 数える週は 09-28・10-05・10-12(数え終わった最後)。今週 10-19 は途中なので N 週後に入れない
+    await setFeatureFlag(owner.db, a.tenantId, COHORT, true, { defs: DEFS, execute: true });
+    await setFeatureFlag(owner.db, c.tenantId, COHORT, true, { defs: DEFS, execute: true });
+    await insertDay(a, "admin", "2026-09-29", COHORT);
+    await insertDay(a, "admin", "2026-10-06", COHORT);
+    await insertDay(a, "admin", "2026-10-20", COHORT);
+    await insertDay(a, "member", "2026-10-13", COHORT);
+    await insertDay(b, "admin", "2026-09-30", COHORT);
+    await insertDay(b, "viewer", "2026-09-15", COHORT); // 数える週より前に始めた(b は組に入らない)
+    await insertDay(b, "viewer", "2026-10-14", COHORT);
+    await insertDay(ops, "admin", "2026-09-29", COHORT); // 運営の組織は数えない
+
+    const { retention } = await usageReport(owner.db, COHORT, {
+      weeks: 4,
+      defs: DEFS,
+      supportTenantId: ops.tenantId,
+      now,
+    });
+    expect(retention).toMatchObject({
+      cohortsFrom: "2026-09-28",
+      lastFullWeek: "2026-10-12",
+      smallBelow: 5,
+      enabledNeverUsed: 1, // c は入っているのに使っていない
+    });
+    const full = (after: number, n: number, size: number) => ({
+      after,
+      active: n,
+      activePct: Math.round((n / size) * 100),
+      continued: n,
+      continuedPct: Math.round((n / size) * 100),
+    });
+    expect(retention.tenants.cohorts).toEqual([
+      { start: "2026-09-28", size: 1, small: true, after: [full(1, 1, 1), full(2, 1, 1)] },
+    ]);
+    expect(retention.users.cohorts).toEqual([
+      { start: "2026-09-28", size: 2, small: true, after: [full(1, 1, 2), full(2, 0, 2)] },
+      { start: "2026-10-12", size: 1, small: true, after: [] },
+    ]);
+    expect(retention.users.overall).toEqual([
+      { ...full(1, 1, 2), size: 2, small: true },
+      { ...full(2, 0, 2), size: 2, small: true },
+    ]);
+    const text = JSON.stringify(retention);
+    for (const t of [a, b, c, ops]) {
+      expect(text).not.toContain(t.tenantId);
+      for (const u of Object.values(t.users)) expect(text).not.toContain(u.id);
+    }
   });
 });
