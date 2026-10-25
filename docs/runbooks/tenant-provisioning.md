@@ -7,7 +7,7 @@
 
 ## 1. 受け渡し(営業 → CS → 開発)
 
-申込書・事前登録の記録から、次の項目を **JSON 1つ** にする。知らない項目(プラン・人数・始まりの日・申込番号など)は入っていてよい(読み飛ばして、項目の名前だけ出る)。
+申込書・事前登録の記録から、次の項目を **JSON 1つ** にする。知らない項目(始まりの日・申込番号など)は入っていてよい(読み飛ばして、項目の名前だけ出る)。
 
 ```json
 {
@@ -28,6 +28,10 @@
 | `mfaRequired` | なくてよい(`false`) | 全員に二段階認証を必須にするか(後から管理者が画面「設定」で変えられる) |
 | `admin.email` | 要る | 最初の管理者のメールアドレス(この人が Cognito で登録する。大文字は小文字になる) |
 | `admin.name` | 要る | 最初の管理者の名前 |
+| `plan` | なくてよい(プランを入れない。後から [plans.md](plans.md)) | 申込書のプラン(`@app/shared` の `PLANS` の id)。定義に無ければ試しで止まる |
+| `seats` | なくてよい(上限なし) | 申込書の人数(人数の上限) |
+| `priceList` | なくてよい(その日の価格表の版) | どの版の価格表で契約したか(`PRICE_LISTS` の id) |
+| `priceLockedUntil` | なくてよい(据え置きなし) | 据え置き(この価格表のまま)の期限 `YYYY-MM-DD` |
 
 - 渡す前に確かめる: 契約(申込書)がある・最初の管理者のメールアドレスを本人に確かめた(打ち間違いのアドレスでは、誰も入れない)。
 - JSON は作業の記録のスレッドに貼らない(名前とメールが入っている)。打つ人(開発)に直接渡す。
@@ -64,7 +68,7 @@ aws ecs run-task --cluster $CLUSTER --task-definition $CLUSTER-migrate --launch-
 ロググループ `/ecs/<名前>-prod` の `migrate/…` に1行出る(名前とメールは出ない):
 
 ```json
-{"mode":"plan","timeZone":"Asia/Tokyo","mfaRequired":false,"ignoredKeys":["plan","seats","startDate"]}
+{"mode":"plan","timeZone":"Asia/Tokyo","mfaRequired":false,"ignoredKeys":["startDate"]}
 ```
 
 - 試しは**本当に作ってから取り消している**。ここで落ちる理由は、本番でも落ちる。

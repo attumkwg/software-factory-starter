@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FEATURE_FLAGS, LegalDocumentSchema } from "@app/shared";
+import { FEATURE_FLAGS, LegalDocumentSchema, PLANS, PRICE_LISTS } from "@app/shared";
 import pg from "pg";
 import { createDb, type RootDb } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
@@ -13,6 +13,7 @@ import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { planPersonData } from "./person-data/plan-person-data.ts";
+import { type PlanInput, planReport, setPlan, showPlan } from "./plans/index.ts";
 import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
@@ -30,6 +31,11 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //                                      … 規約の変更のお知らせを全員に積む(試し → 本番。docs/runbooks/legal-notice.md)
 //   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
+//   node dist/cli.js plan <組織の ID> [--plan <プラン> [--seats <数>|none] [--price-list <版>]
+//                       [--locked-until <日>|none] [--effective-on <日>] [--execute]]
+//                                      … 組織の契約のプランを見る・変える(見る → 試し → 本番。docs/runbooks/plans.md)
+//   node dist/cli.js plan-report [--within-days <日数>]
+//                                      … 全部の組織のプランを数える・据え置きの期限・人数の超過(読むだけ。docs/runbooks/plans.md)
 //   node dist/cli.js usage-report <機能> [--weeks <週の数>]
 //                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js tenant-shares [--month YYYY-MM]
@@ -201,13 +207,79 @@ async function featureFlagCommand(args: string[]) {
   }
 }
 
+/** --name <値> の値。無ければ undefined */
+const flagValue = (flags: string[], name: string): string | undefined => {
+  const at = flags.indexOf(name);
+  return at >= 0 ? flags[at + 1] : undefined;
+};
+
+/** none は null(上限なし・据え置きなし)。省けば undefined(決まりで埋める) */
+function noneOr<T>(value: string | undefined, parse: (v: string) => T): T | null | undefined {
+  if (value === undefined) return undefined;
+  return value === "none" ? null : parse(value);
+}
+
+/** 組織の契約のプラン。--plan が無ければ見るだけ、--execute が無ければ試し。結果は JSON 1行(組織の名前は出さない) */
+async function planCommand(args: string[]) {
+  const [tenantId, ...flags] = args;
+  if (!tenantId) throw new Error("使い方: plan <組織の ID> [--plan <プラン> … [--execute]]");
+  const plan = flagValue(flags, "--plan");
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    if (plan === undefined) {
+      process.stdout.write(
+        `${JSON.stringify({ mode: "show", tenantId, ...(await showPlan(db, tenantId)) })}\n`,
+      );
+      return;
+    }
+    const input: PlanInput = {
+      plan,
+      priceList: flagValue(flags, "--price-list"),
+      seats: noneOr(flagValue(flags, "--seats"), Number),
+      priceLockedUntil: noneOr(flagValue(flags, "--locked-until"), (v) => v),
+      effectiveOn: flagValue(flags, "--effective-on"),
+    };
+    const execute = flags.includes("--execute");
+    const r = await setPlan(db, tenantId, input, {
+      plans: PLANS,
+      priceLists: PRICE_LISTS,
+      execute,
+    });
+    const mode = !r.changed ? "unchanged" : execute ? "changed" : "plan";
+    process.stdout.write(`${JSON.stringify({ mode, tenantId, ...r })}\n`);
+    if (mode === "plan") {
+      process.stdout.write(
+        "まだ変えていません。組織と中身を確かめて --execute を付けて流してください\n",
+      );
+    }
+  } finally {
+    await pool.end();
+  }
+}
+
+/** 全部の組織のプランを数える(読むだけ)。出すのは組織の ID と数だけ */
+async function planReportCommand(args: string[]) {
+  const days = Number(flagValue(args, "--within-days") ?? 60);
+  if (!Number.isInteger(days) || days < 0) throw new Error("--within-days は0以上の整数");
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    const report = await planReport(db, {
+      plans: PLANS,
+      priceLists: PRICE_LISTS,
+      withinDays: days,
+      supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
+    });
+    process.stdout.write(`${JSON.stringify({ mode: "report", withinDays: days, ...report })}\n`);
+  } finally {
+    await pool.end();
+  }
+}
+
 /** 利用の記録の集計・古い記録の削除(中身は src/usage/command.ts)。出すのは数だけ(組織の ID・名前・人の ID は出さない) */
 async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
   const { db, pool } = createDb(migrationUrl);
   try {
-    for (const line of await run(db))
-      process.stdout.write(`${line}
-`);
+    for (const line of await run(db)) process.stdout.write(`${line}\n`);
   } finally {
     await pool.end();
   }
@@ -216,7 +288,7 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / usage-report / tenant-shares / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -244,6 +316,14 @@ if (commands[0] === "person-data") {
 }
 if (commands[0] === "delete-tenant") {
   await deleteTenantCommand(commands.slice(1));
+  process.exit(0);
+}
+if (commands[0] === "plan") {
+  await planCommand(commands.slice(1));
+  process.exit(0);
+}
+if (commands[0] === "plan-report") {
+  await planReportCommand(commands.slice(1));
   process.exit(0);
 }
 if (commands[0] === "feature-flag") {

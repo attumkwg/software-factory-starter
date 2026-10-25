@@ -1664,6 +1664,114 @@
           ]
         }
       ]
+    },
+    {
+      "name": "platform.tenant_plans",
+      "type": "BASE TABLE",
+      "comment": "組織の契約のプラン(docs/specs/0047-plans.md・ADR 0058)。足すだけ。いまの行は effective_on が今日までで一番新しい行。書くのは運営のコマンド plan・create-tenant だけ。金額は持たない",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "plan",
+          "type": "text",
+          "nullable": false,
+          "comment": "@app/shared の PLANS の id"
+        },
+        {
+          "name": "price_list",
+          "type": "text",
+          "nullable": false,
+          "comment": "どの版の価格表で契約しているか(PRICE_LISTS の id)"
+        },
+        {
+          "name": "seats",
+          "type": "integer",
+          "nullable": true,
+          "comment": "人数の上限(NULL は上限なし)"
+        },
+        {
+          "name": "price_locked_until",
+          "type": "date",
+          "nullable": true,
+          "comment": "据え置き(この価格表のまま)の期限"
+        },
+        {
+          "name": "effective_on",
+          "type": "date",
+          "nullable": false,
+          "comment": "効き始めの日(組織の時間帯)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "tenant_plans_pkey",
+          "def": "CREATE UNIQUE INDEX tenant_plans_pkey ON platform.tenant_plans USING btree (id)",
+          "table": "platform.tenant_plans",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "tenant_plans_current_idx",
+          "def": "CREATE INDEX tenant_plans_current_idx ON platform.tenant_plans USING btree (tenant_id, effective_on DESC NULLS LAST, created_at DESC NULLS LAST)",
+          "table": "platform.tenant_plans",
+          "columns": [
+            "tenant_id",
+            "effective_on",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "tenant_plans_seats_positive",
+          "type": "CHECK",
+          "def": "CHECK (((seats IS NULL) OR (seats \u003e 0)))",
+          "table": "platform.tenant_plans",
+          "referenced_table": "",
+          "columns": [
+            "seats"
+          ]
+        },
+        {
+          "name": "tenant_plans_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "platform.tenant_plans",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "tenant_plans_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "platform.tenant_plans",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -1970,6 +2078,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id, invited_by) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "platform.tenant_plans",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
     }
   ],
   "functions": [
