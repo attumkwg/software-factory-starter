@@ -32,7 +32,7 @@ flowchart LR
   - `apps/api/src/auth/reauth.ts` … AES-256-GCM・12バイトの nonce の前例
   - `infra/terraform/modules/aurora`・`ecs-service` … 鍵・秘密・タスクの役割。移行のタスクがアプリと同じ役割だった
   - `.semgrep/rules.yml` … `tenant-scoped-db-only` の形(読み込みの正規表現で止める)
-- ほかのセッションの物: CloudTrail のトレイル(委託先の台帳と CloudTrail の PR)は、まだ main に無い。ロググループの名前を変数で受け取る形にした
+- `infra/terraform/modules/audit-trail` … 管理操作の記録(CloudTrail。アカウントごと)。ロググループ(出力 `log_group_name`)に KMS の出来事も入る(`exclude_management_event_sources` は空)。鍵の利用の見張りはここに置く
 
 ## 1. 設計方針
 
@@ -93,11 +93,11 @@ const note = await store.run(scopeOf(c), async (s) => {
   - 秘密 `<名前>/sensitive-database-url`(Aurora の鍵で暗号化。ECS の実行の役割が読める)。API のタスクに `SENSITIVE_DATABASE_URL`(秘密)と `SENSITIVE_KMS_KEY_ID`(鍵の ARN)を渡す。
   - plan の役割は、この秘密も比べられるように読める(ほかの秘密と同じ理由)。
   - **移行・運営のコマンドの役割を分けた**(`modules/ecs-service` の `aws_iam_role.migrate`)。前はアプリと同じ役割だったので、鍵を許すとコマンドからも使えてしまう。デプロイの役割の PassRole に足した。
-  - 見張り(`cloudtrail_log_group_name` があるときだけ): メトリクスフィルター3つ → アラーム3つ(SNS → Slack)。
+  - 見張り(`cloudtrail_log_group_name` があるときだけ。envs は `module.audit_trail.log_group_name` を渡す): メトリクスフィルター3つ → アラーム3つ(SNS → Slack)。
     - `…-sensitive-key-other-principals`: 鍵で `Decrypt`・`Encrypt`・`GenerateDataKey*`・`ReEncrypt` を、API のタスクの役割以外が呼んだ(断られた物も)。1回で鳴る
     - `…-sensitive-key-admin-changes`: `ScheduleKeyDeletion`・`DisableKey`・`PutKeyPolicy`・`CreateGrant`。1回で鳴る(Terraform で鍵のポリシーを変えたときも鳴る。それは予定どおりと確かめて閉じる)
     - `…-sensitive-key-api-decrypts`: API のタスクの `Decrypt` が5分に `decrypt_alarm_threshold`(既定 500)を超えた
-  - CloudTrail のロググループは、別の PR が入れる(アカウントごとのトレイル。KMS の出来事を外さない)。入ったら `cloudtrail_log_group_name = module.audit_trail.log_group_name` にする。
+  - CloudTrail のロググループは `module.audit_trail.log_group_name`(管理操作の記録。KMS の出来事も入っている)。モジュールは null なら見張りを作らない(トレイルの無い環境でも使える)。
 - **ログ・Sentry**: モジュールはログを書かない。値・鍵は投げる失敗の文にも入れない。分類表の `sensitive` の列の名前は、ログの部品が深さを問わず伏せる(既存の単体テストが、分類表とログの一覧を突き合わせる)。
 - **アウトボックス・メール**: 要配慮の値を出来事の中身に入れない(既存の単体テスト「どちらにも personal / sensitive のキーは置けない」)。
 
@@ -130,7 +130,7 @@ const note = await store.run(scopeOf(c), async (s) => {
 | 代理ログインの最中は 403 | 3. | `sensitive.int.test.ts`「社員の代理ログインの最中は使えない(403)」 |
 | KMS の鍵と接続の秘密(既定は作らない) | 5. | `terraform validate`・tflint・Trivy(terraform.yml) |
 | 鍵は API のタスクだけ・コマンドの役割では使えない | 5. | 鍵のポリシー(`modules/sensitive-data`)・移行のタスクの役割(`modules/ecs-service`)。`terraform validate` |
-| 鍵の利用の見張り | 5. | アラームは CloudTrail が入ってからつなぐ(PR の「残り」)。形は `terraform validate` |
+| 鍵の利用の見張り | 5. | `modules/sensitive-data` のメトリクスフィルターとアラーム(`module.audit_trail.log_group_name` につなぐ)。`terraform validate`・tflint・Trivy。鳴るかは stg で使い始めるときに確かめる(手順書の 1) |
 | ログ・AI に渡さない(文書) | 8. | `docs/runbooks/incident.md`・`personal-data-breach.md`・`CLAUDE.md`(人が読んで確かめる) |
 | スキルで聞く | 8. | `.claude/skills/new-feature`・`bet`・`db-migration`(人が読んで確かめる) |
 | 段2・段3の手順と目安 | 8. | `docs/runbooks/sensitive-data-tiers.md`(人が読んで確かめる) |

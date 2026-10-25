@@ -99,9 +99,3 @@ variable "sensitive_data_enabled" {
   type        = bool
   default     = false
 }
-
-variable "cloudtrail_log_group_name" {
-  description = "CloudTrail を受けているロググループ(このアカウント・この地域)。あれば要配慮の鍵の利用を見張る。null の間は見張らない"
-  type        = string
-  default     = null
-}

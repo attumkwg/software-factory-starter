@@ -8,7 +8,6 @@ import type {
   CreateProject,
   CreateSupportGrant,
   CreateTask,
-  ExportData,
   LegalVersionRef,
   Me,
   MfaRequirement,
@@ -131,8 +130,29 @@ const target = createIsomorphicFn()
 const isApiError = (v: unknown): v is ApiError =>
   typeof v === "object" && v !== null && typeof (v as ApiError).error?.code === "string";
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/**
+ * 送って、失敗(4xx / 5xx・届かない・時間切れ)なら投げる。成功なら本文を読む前の応答を返す。
+ * untilHeaders … 時間切れを「応答が始まるまで」にだけ掛ける(本文が長く流れる書き出し用)。
+ *   ふだんは本文を読み終えるまでを含めて timeoutMs。
+ */
+async function send(
+  method: string,
+  path: string,
+  body?: unknown,
+  opts: { untilHeaders?: boolean } = {},
+): Promise<Response> {
   const { side, base, headers, timeoutMs, report, relay } = target(method);
+  const timeout = AbortSignal.timeout(timeoutMs);
+  let signal = timeout;
+  let headersArrived = () => {};
+  if (opts.untilHeaders) {
+    // 時間切れを別の信号に写し、応答が始まったら写すのをやめる(その後は本文が流れきるまで待つ)
+    const untilHeaders = new AbortController();
+    const onTimeout = () => untilHeaders.abort(timeout.reason);
+    timeout.addEventListener("abort", onTimeout);
+    headersArrived = () => timeout.removeEventListener("abort", onTimeout);
+    signal = untilHeaders.signal;
+  }
   let res: Response;
   try {
     res = await fetch(`${base}/api${path}`, {
@@ -140,13 +160,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       credentials: "same-origin",
       headers: body === undefined ? headers : { ...headers, "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal,
     });
   } catch (cause) {
     const reason =
       cause instanceof DOMException && cause.name === "TimeoutError" ? "timeout" : "unreachable";
     report({ method, path, reason });
     throw new NetworkError(reason, side, { cause });
+  } finally {
+    headersArrived();
   }
   relay(res);
   if (!res.ok) {
@@ -156,7 +178,27 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     if (res.status !== 401) report({ method, path, status: res.status });
     throw new HttpError(res.status, isApiError(parsed) ? parsed : null);
   }
+  return res;
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await send(method, path, body);
   return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/**
+ * データの書き出し(docs/specs/0018-export-stream.md)。API が少しずつ流す JSON を、読み直さずに
+ * そのままファイルの中身として受け取る(1社の全部を JS の値にしない)。途中で切れたら NetworkError。
+ */
+async function download(path: string): Promise<{ blob: Blob; filename: string }> {
+  const res = await send("POST", path, undefined, { untilHeaders: true });
+  const filename =
+    res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "export.json";
+  try {
+    return { blob: await res.blob(), filename };
+  } catch (cause) {
+    throw new NetworkError("unreachable", "browser", { cause });
+  }
 }
 
 // 一覧は API がページで返す(1回に最大 PAGE_LIMIT.max 件。docs/guides/api-changes.md)。
@@ -232,8 +274,8 @@ export const api = {
   getMfaRequirement: () => request<MfaRequirement>("GET", "/organization/mfa-requirement"),
   requireMfa: () => request<void>("POST", "/organization/mfa-requirement"),
   unrequireMfa: () => request<void>("DELETE", "/organization/mfa-requirement"),
-  // データの書き出し(docs/specs/0005-offboarding.md)。管理者だけ
-  exportData: () => request<ExportData>("POST", "/exports"),
+  // データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。管理者だけ
+  exportData: () => download("/exports"),
   listAuditEvents: (before?: string) =>
     request<AuditEventPage>(
       "GET",

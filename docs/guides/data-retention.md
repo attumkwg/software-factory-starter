@@ -21,6 +21,8 @@
 | CloudWatch Logs(メールの中継のログ) | 送った・送れなかった・やり直しの記録(キューの ID・Message-ID・相手のサーバーの答え)。**宛先・送り元のメールアドレスは伏せてから出す**(`docker/postfix/entrypoint.sh`) | 消さない | **30日**(`modules/mail-relay` の `log_retention_days`) | 期限で自動で消える |
 | 送り待ち(メールの中継の EFS) | まだ渡せていないメール(**宛先・件名・本文が入る**) | 消さない | 渡せたらすぐ消える。渡せなければ**最長5日**でやり直しをやめて消す(`maximal_queue_lifetime`)。バックアップは取らない | Postfix が自動で消す |
 | CloudWatch Logs(WAF のログ) | 来たリクエストの IP・URL(**検索の値が入る**)・ヘッダー(Cookie と Authorization は伏せる)・止めたかどうか | 消さない | **30日**(`modules/waf` の `log_retention_days`) | 期限で自動で消える |
+| S3(管理操作の記録 CloudTrail) | 社員と CI の AWS の操作(誰が・いつ・どの API・IP)。お客さんのデータは入らない | 関係しない | **400日**(prod は誰にも消せない。`modules/audit-trail`) | 監査と事故の調べ物(docs/runbooks/audit-trail.md) |
+| CloudWatch Logs(管理操作の記録) | 同じ記録の写し(アラームと最近の調べ物) | 関係しない | **90日** | 期限で自動で消える |
 | 送ったメール | 相手の受信箱にある物 | 消せない | — | こちらの手を離れている |
 | 書き出したファイル | お客さんの手元 | 消せない | — | お客さんの物 |
 

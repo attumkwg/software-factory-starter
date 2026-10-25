@@ -1,6 +1,6 @@
 import type { Task, TaskPage, UpdateTask } from "@app/shared";
 import { and, asc, eq, getTableColumns, sql } from "drizzle-orm";
-import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
+import { beyondCursor, type Cursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { tasks } from "./schema.ts";
 
@@ -80,12 +80,38 @@ export async function deleteTask(s: TenantScope, id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-/** データの書き出し(docs/specs/0005-offboarding.md)。自社のタスクを全部 */
-export async function exportTasks(s: TenantScope): Promise<Task[]> {
+/** 書き出しの続きの印(プロジェクト → 古い順。索引 tasks_tenant_id_project_id_created_at_id_idx の順) */
+export type TaskExportCursor = Cursor & { projectId: string };
+
+/**
+ * データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。自社のタスクを1ページずつ。
+ * 1社の全部を一度に読まない(メモリに載せない)。プロジェクトごとの一覧と同じ索引を、プロジェクトをまたいで読む。
+ */
+export async function exportTasksPage(
+  s: TenantScope,
+  after: TaskExportCursor | null,
+  limit: number,
+): Promise<{ rows: Task[]; nextCursor: TaskExportCursor | null }> {
   const rows = await s.tx
-    .select()
+    .select({ ...getTableColumns(tasks), cursorAt: cursorTime(tasks.createdAt) })
     .from(tasks)
-    .where(eq(tasks.tenantId, s.tenantId))
-    .orderBy(asc(tasks.createdAt));
-  return rows.map(toTask);
+    .where(
+      and(
+        eq(tasks.tenantId, s.tenantId),
+        after
+          ? sql`(${tasks.projectId}, ${tasks.createdAt}, ${tasks.id}) > (${after.projectId}::uuid, ${after.at}::timestamptz, ${after.id}::uuid)`
+          : undefined,
+      ),
+    )
+    .orderBy(asc(tasks.projectId), asc(tasks.createdAt), asc(tasks.id))
+    .limit(limit + 1);
+  const page = rows.slice(0, limit);
+  const last = page.at(-1);
+  return {
+    rows: page.map(toTask),
+    nextCursor:
+      rows.length > limit && last
+        ? { projectId: last.projectId, at: last.cursorAt, id: last.id }
+        : null,
+  };
 }

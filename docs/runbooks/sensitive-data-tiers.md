@@ -20,7 +20,7 @@
 
 前に: 要配慮の列を足す機能の仕様が承認されている。プライバシーポリシーに取得する要配慮の項目と目的を書き、取る前に本人の同意を取る画面がある(個人情報保護法 20条2項。`docs/guides/legal-documents.md`)。
 
-1. **Terraform**(stg → prod の順。人が): `*.auto.tfvars` に `sensitive_data_enabled = true`(CloudTrail のロググループがあれば `cloudtrail_log_group_name` も)→ plan を見る(足されるのは KMS の鍵と別名・秘密 `<名前>/sensitive-database-url`・API のタスクの環境変数 2つ)→ apply。
+1. **Terraform**(stg → prod の順。人が): `*.auto.tfvars` に `sensitive_data_enabled = true` → plan を見る(足されるのは KMS の鍵と別名・秘密 `<名前>/sensitive-database-url`・API のタスクの環境変数 2つ・鍵の利用のメトリクスフィルターとアラーム 3つ(管理操作の記録 `audit_trail` のロググループに置く))→ apply。
 2. **DB の接続ユーザーを1回だけ作る**(README の「アプリの接続ユーザーを1回だけ作る」と同じ所で。ロール `app_sensitive` は移行 0013 が作ってある。パスワードは Secrets Manager の `<名前>/sensitive-database-url` の中の値):
 
 ```sql
@@ -31,7 +31,7 @@ CREATE ROLE app_sensitive_login LOGIN PASSWORD '<sensitive-database-url の中�
 4. **確かめる**(stg で):
    - API のログに「設定が正しくありません」が無い(stg・prod は KMS の鍵が無いと起動しない)
    - 要配慮の機能を1回使い、CloudTrail(コンソール → CloudTrail → イベント履歴、イベント名 `GenerateDataKey`)に、API のタスクの役割・文脈 `tenant_id` つきで1件ある
-   - 見張りがあるなら、アラーム `…-sensitive-key-*` の3つが「OK」か「データ不足」
+   - アラーム `…-sensitive-key-*` の3つが「OK」か「データ不足」(CloudTrail がロググループに届くまで数分かかる)
 
 ## 2. 段2: 別の Aurora クラスターへ(段1 → 段2)
 

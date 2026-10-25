@@ -155,7 +155,7 @@ WAF が5分に100回以上(`alarm_threshold`)止めた。WAF が「数えるだ�
 
 **<名前>-sensitive-key-{other-principals,admin-changes,api-decrypts}**(要配慮個人情報の鍵。`modules/sensitive-data`。ADR 0029)
 
-**要配慮のデータの事故として扱う**(S1 の候補)。値・暗号文・鍵の中身は Slack・Issue・AI に貼らない(役割の名前・時刻・件数まで)。
+**要配慮のデータの事故として扱う**(S1 の候補)。値・暗号文・鍵の中身は Slack・Issue に貼らない(貼ってよいのは役割の名前・時刻・件数まで)。AI には件数も渡さない(docs/security.md の AI-6)。
 
 | アラーム | 意味 | まずやること |
 |---|---|---|

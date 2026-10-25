@@ -147,7 +147,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", legalRoutes);
   // 共通の仕組み(領域ではない)
   app.route("/api", auditRoutes);
-  app.route("/api", exportRoutes);
+  app.route("/api", exportRoutes({ db, logger }));
 
   if (config.exposeOpenApi) {
     app.doc31("/api/openapi.json", {

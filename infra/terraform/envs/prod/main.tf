@@ -62,6 +62,7 @@ module "aurora" {
 
 # 要配慮個人情報の段1(ADR 0018・0029)。要配慮の列を足す仕様が承認されたら sensitive_data_enabled = true にして、
 # README の「接続ユーザーを1回だけ作る」で app_sensitive_login も作る。段を上げるときは docs/runbooks/sensitive-data-tiers.md
+# 鍵の利用の見張りは、管理操作の記録(CloudTrail)のロググループに置く(KMS の出来事も入っている)
 module "sensitive_data" {
   count                     = var.sensitive_data_enabled ? 1 : 0
   source                    = "../../modules/sensitive-data"
@@ -70,7 +71,7 @@ module "sensitive_data" {
   db_endpoint               = module.aurora.endpoint
   database_name             = module.aurora.database_name
   secrets_kms_key_arn       = module.aurora.kms_key_arn
-  cloudtrail_log_group_name = var.cloudtrail_log_group_name
+  cloudtrail_log_group_name = module.audit_trail.log_group_name
   alarm_topic_arn           = module.alerts.topic_arn
 }
 
@@ -220,6 +221,17 @@ module "security_baseline" {
   source             = "../../modules/security-baseline"
   name               = local.name
   findings_topic_arn = module.alerts.topic_arn
+}
+
+# 管理操作の記録(CloudTrail → 消せない S3 と CloudWatch Logs)。docs/runbooks/audit-trail.md
+module "audit_trail" {
+  source          = "../../modules/audit-trail"
+  name            = local.name
+  alarm_topic_arn = module.alerts.topic_arn
+  # ⚠️ compliance: 保存の期間が過ぎるまで、root でも消せない・バケットも消せない。apply の前に
+  #    保存の日数を確かめる(docs/runbooks/audit-trail.md の 2)
+  lock_mode      = "compliance"
+  retention_days = 400
 }
 
 # ── 見張りと知らせ(アラーム → SNS → Slack)。docs/guides/monitoring.md ────────────────────
