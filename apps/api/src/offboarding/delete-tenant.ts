@@ -28,6 +28,8 @@ export const TENANT_TABLES = [
   "organizations.support_sessions",
   "organizations.support_grants",
   "platform.tenant_plans",
+  "platform.pmf_survey_counts",
+  "platform.pmf_survey_asked",
   "platform.feature_usage",
   "platform.feature_flags",
   "tasks.tasks",

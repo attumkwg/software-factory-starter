@@ -40,6 +40,7 @@ import { exportRoutes } from "./export/routes.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
 import { planRoutes } from "./plans/index.ts";
+import { pmfSurveyRoutes } from "./pmf-survey/index.ts";
 import { publicGrowthRoutes } from "./pre-registrations/index.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
 import type { SensitiveStore } from "./sensitive/index.ts";
@@ -198,6 +199,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));
   app.route("/api", planRoutes);
+  app.route("/api", pmfSurveyRoutes);
 
   if (config.exposeOpenApi) {
     app.doc31("/api/openapi.json", {

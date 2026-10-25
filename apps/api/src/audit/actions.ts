@@ -61,6 +61,8 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   // 招待(docs/specs/0027-invitations.md)。メールアドレス・ロールは details に入れない(招待の行にある)
   "POST /api/invitations": { action: "invitation.create", target: "invitation" },
   "DELETE /api/invitations/{invitationId}": { action: "invitation.revoke", target: "invitation" },
+  // 「無くなったら困るか」に答えた(docs/specs/0046-pmf-survey.md)。**何と答えたかは details に入れない**(数の表にだけある)
+  "POST /api/pmf-survey": { action: "pmf_survey.respond", target: "user", param: "none" },
 };
 
 /** 関所の外(ログインの API など)で、手で記録する物 */

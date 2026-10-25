@@ -298,3 +298,19 @@ routes:
     note: 規約の版に同意する。管理者の利用規約は「組織として」、ほかは「本人として」(ロールで決まる)。同じ版への2回目は何もしない。無い版・公開前・古い版は 400
     body: { consents: [{ document: terms, version: "{currentTermsVersion}" }] }
     expect: { admin: 204, member: 204, viewer: 204, anonymous: 401 }
+
+  # ── 「無くなったら困るか」(docs/specs/0046-pmf-survey.md) ─────────────────────────────────
+  # 対象はいつもセッションの本人だけ(パスに人の ID が無いので、他社の物を指す道が無い)。
+  # 聞くのは機能フラグ pmf-survey を入れた組織の、使い始めて14日たった人だけ。この表の人は作ったばかりなので、
+  # 権限は通るが答えられない(POST は 404)。答えられる流れ・1人1回(409)・代理の社員(403)は pmf-survey.int.test.ts。
+
+  - route: GET /api/pmf-survey
+    permission: me:read
+    note: いまこの人に聞くか。聞かないとき(フラグが無い・使い始めたばかり・もう答えた)も 200 で ask false
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 401 }
+
+  - route: POST /api/pmf-survey
+    permission: pmf_survey:answer
+    note: 答える(数に1つ足すだけ。だれが何と答えたかは残さない)。聞けない人は 404・この回にもう答えた人は 409
+    body: { answer: very_disappointed }
+    expect: { admin: 404, member: 404, viewer: 404, anonymous: 401 }
