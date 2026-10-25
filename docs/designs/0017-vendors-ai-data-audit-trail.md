@@ -81,7 +81,7 @@ flowchart LR
 
 台帳の会社: `active` → `ended`(戻すなら `active` に戻して `ended_on` を消す。記録は git に残る)。消さない。
 
-CloudTrail の記録: 書かれる → 90日で Glacier Instant Retrieval へ → 400日(保存の期間)でロックが切れる → 401日で消える指示 → 古い版が翌日に消える。ロックの間は誰も消せない(compliance)/ 特別な権限でだけ消せる(governance)。
+CloudTrail の記録: 書かれる → 90日で Glacier Instant Retrieval へ → 400日(保存の期間)でロックが切れる → 401日で消える指示 → 古い版が翌日に消える。ロックの間は特別な権限 `s3:BypassGovernanceRetention` でだけ消せる(governance。既定。その権限はバケットの方針で、`governance_bypass_principal_arns` の外の全員に拒否)/ 誰も消せない(compliance。導入時に選べる)。
 
 ## 5. システム間連携
 
@@ -96,7 +96,7 @@ CloudTrail の記録: 書かれる → 90日で Glacier Instant Retrieval へ �
 - AI に渡してよいのは internal と public まで(AI-6)。数人の集計は ID と同じ扱い。要配慮は件数も渡さない(ai-data.md の 1)。
 - 委託先を足す・区分を変えるのは人の確認(危険度「高」)。使うのをやめた会社は `ended` にして残す。
 - 区分の言葉は `classification.ts` が正。台帳で新しい言葉を作らない。
-- 管理操作の記録の保存は400日(1年+監査の準備)。prod は compliance(U-2)。
+- 管理操作の記録の保存は400日(1年+監査の準備)。ロックは stg・prod とも governance(U-2)。外す権限は方針で全員に拒否し、記録のバケットで消す・方針を変える操作で鳴らす。
 - AWS の資源の種類は、サービスごとに区分を書く(新しいサービスを足すと、何のデータをそこに置くかを書かないと CI が通らない)。
 
 ## 7. 要求との対応
@@ -116,7 +116,7 @@ CloudTrail の記録: 書かれる → 90日で Glacier Instant Retrieval へ �
 | 越境は未確定事項 | 12. | `pnpm decisions` |
 | トレイル(全リージョン・管理の出来事・KMS・Object Lock・検証) | 5.・`modules/audit-trail` | `terraform validate`・tflint・Trivy の設定の検査(CloudTrail と S3 の決まり。CI の Terraform) |
 | ロググループの名前・ARN の出力 | 5. | `terraform validate`(envs の outputs) |
-| root の利用・記録を止める でアラーム | `modules/audit-trail/alarms.tf` | stg で鳴らして確かめる(手順書の 1 の 4。apply の後に人が) |
+| root の利用・記録を止める・記録のバケットで消す/方針を変える でアラーム | `modules/audit-trail/alarms.tf` | stg で鳴らして確かめる(手順書の 1 の 4。apply の後に人が) |
 | Organizations が無いことを確かめた・手順書 | 0.・`docs/runbooks/audit-trail.md` の 4 | 文書 |
 | plan の役割から記録が読めない | 8. | `terraform validate`(github-oidc)。plan の役割で `aws cloudtrail lookup-events` が AccessDenied(apply の後に人が) |
 | compliance/README.md が入口 | — | `pnpm self-contained`(リンク先がキットの中) |
@@ -182,12 +182,14 @@ CloudTrail の記録: 書かれる → 90日で Glacier Instant Retrieval へ �
 > 4つに当たる判断だけ。状態の書き方は [guides/human-review.md](../guides/human-review.md) の 2。`pnpm decisions` がここを読む。**`仮決め` が残る PR はマージしない。**
 > 答えがプロダクトごとに違う問い(使う人の事業・利用者・契約で変わる)は、キットの持ち主が承認したあと `導入時に決める(キットの既定は @名前 YYYY-MM-DD に承認)` にする(使い始めた人が `pnpm decisions --adopt` で決める)。
 >
+> 答え(U-2 の既定の変更): 作者 @attumkwg が 2026-10-25 に「消せないということができないことは増やしたくない」「(prod の操作記録の既定を)ガバナンスにそろえるで直してください」。キットの既定を compliance から governance に変えた(13. の作り直しの記録)。
+>
 > 答え: 作者 @attumkwg が 2026-10-25 に「U-1・U-2 とも、おすすめどおりキットの既定として承認して『導入時に決める』にしてください」(PR #37 の「人に判断してほしい所」のおすすめどおり)。使う人は、越境を専門家に確かめた答え(U-1)と、prod の記録を残す日数とロックの強さ(U-2)を、`pnpm decisions --adopt` で自分のプロダクトの答えにする。
 
 | 番号 | 工程 | 種類 | 仮決め(設計した事実) | なぜそうしたか | 人が判断する問い | 状態 |
 |---|---|---|---|---|---|---|
 | U-1 | 要求 | 他チームとの契約や制約 | 米国の委託先(Anthropic・Sentry・GitHub・Slack)には ID と集計(internal)だけを渡し、台帳では「委託」とした。越境(個人情報保護法 28条)に当たるか・本人への情報提供や同意が要るかは決めず、**専門家に確かめる**としてキットの既定を置いた(プライバシーポリシーに委託先の国を書く前提) | ID もこちらの DB と突き合わせれば人に結びつくので、「渡さない」とは言えない。法令の当てはめは AI が決められない | キットの既定を「ID と集計まで・委託として台帳に載せ、越境の扱いは使う人が専門家に確かめる」でよいか(よければ `導入時に決める` にして、使う人ごとに専門家の答えを書く) | 導入時に決める(キットの既定は @attumkwg 2026-10-25 に承認) |
-| U-2 | 設計 | 戻せないリスク | prod の管理操作の記録は、S3 の Object Lock を **compliance・400日**にした(apply すると、400日は root でも AWS のサポートでも消せず、バケットも消せない)。stg は governance・400日 | 鍵が漏れたときに痕跡を消されないため(バックアップの保管庫の prod と同じ強さ。ADR 0012)。日数は1年+監査の準備 | prod を compliance・400日で入れてよいか(日数は使う人の契約・認証で変わるので、よければ `導入時に決める`) | 導入時に決める(キットの既定は @attumkwg 2026-10-25 に承認) |
+| U-2 | 設計 | 戻せないリスク | 管理操作の記録の S3 の Object Lock は、stg・prod とも **governance・400日**。ロックを外す権限 `s3:BypassGovernanceRetention` はバケットの方針で `governance_bypass_principal_arns`(既定は空)の外の全員に拒否し、記録のバケットで消す・ロックや方針を変える操作でアラーム(`trail-bucket-changes`)。誰にも消せない compliance は、使う人が導入時に `lock_mode` で選べる | 持ち主の方針「消せないということができないことは増やしたくない」(2026-10-25)。compliance は取り消せないので、キットの既定にしない。governance でも、外すには方針を変える必要があり、それが記録に残って鳴る | 使う人のプロダクトで、prod を governance のままにするか・compliance にするか(監査・契約で「誰にも消せない」を求められるか)。外せる人を誰にするか | 導入時に決める(キットの既定は GOVERNANCE。@attumkwg 2026-10-25 に承認) |
 
 ## 13. 作り直しの記録
 
@@ -195,3 +197,4 @@ CloudTrail の記録: 書かれる → 90日で Glacier Instant Retrieval へ �
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | U-2 への答え「変更」(prod の既定を governance にそろえる。消せない物を増やさない) | 設計 | 4.・6.・7. の表・12. の U-2 | `modules/audit-trail`(外す権限の拒否・記録のバケットで消す操作を取る・アラーム `trail-bucket-changes`)・envs/prod の `lock_mode`・ADR 0030 の追記・手順書 audit-trail.md の 0〜3・README・security.md・data-retention.md・compliance/README.md |

@@ -3,7 +3,7 @@ output "trail_arn" {
 }
 
 output "bucket_name" {
-  description = "記録の置き場(消せない S3)"
+  description = "記録の置き場(ロックした S3)"
   value       = aws_s3_bucket.this.id
 }
 

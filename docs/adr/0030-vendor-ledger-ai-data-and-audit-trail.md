@@ -40,10 +40,18 @@ P マーク・ISMS の準備で、最初に求められる3つが無かった。
 
 - 委託先は **B**: `docs/compliance/vendors.yaml` を正にして、`pnpm vendors` が CI で照らす。AWS はサービスごとに区分を書く。区分は `classification.ts` から読む。台帳は危険度「高」。
 - AI に渡すのは **B**(持ち主が決めた): `docs/security.md` の AI-6。台帳の AI の会社に personal・sensitive を書くと CI が落ちる。渡し方は `docs/compliance/ai-data.md`。越境の扱いは専門家に確かめる(設計書 0017 の U-1)。
-- 管理操作の記録は **B**: `infra/terraform/modules/audit-trail` を stg・prod に。管理の出来事を全部・全リージョン・KMS で暗号化した S3(Object Lock・400日。prod は compliance)と CloudWatch Logs(90日)へ。root の利用と、記録を止める操作でアラーム。組織のトレイルへの移り方は `docs/runbooks/audit-trail.md` の 4。
+- 管理操作の記録は **B**: `infra/terraform/modules/audit-trail` を stg・prod に。管理の出来事を全部・全リージョン・KMS で暗号化した S3(Object Lock・400日)と CloudWatch Logs(90日)へ。root の利用と、記録を止める操作でアラーム。組織のトレイルへの移り方は `docs/runbooks/audit-trail.md` の 4。
 
 ## 結果として起きること
 
 - 良くなること: 外の会社を足す PR で、預ける区分と国を必ず書く。AI に渡す物の基準が1つになる。AWS の操作が400日、消されずに残り、記録を止めると鳴る。
 - 我慢すること: 名前の一覧に無い SDK・直接呼ぶ外の API は台帳の外になりうる(レビューで見る)。dev と管理アカウントの操作は、組織のトレイルに移るまで残らない。prod の記録は400日、消せない(費用は小さい)。
 - 見直す合図: AWS のアカウントが3つを超えた・Organizations を Terraform で持った(→ 組織のトレイルへ)/ 外の会社が10社を超えた・認証の審査で委託先の評価の記録を求められた(→ 台帳に評価の欄)/ 越境について専門家の答えが出た(→ ai-data.md の 3 と台帳の `country`)
+
+## 追記(2026-10-25): prod のロックの既定を governance にそろえた
+
+持ち主の方針「消せないということができないことは増やしたくない」で、管理操作の記録の S3 の Object Lock の既定を、prod も stg と同じ **governance**(400日)にした(設計書 0017 の U-2)。
+
+- 守り: ロックを外す権限 `s3:BypassGovernanceRetention` は、管理者の IAM の権限にも含まれるので、**バケットの方針で、決めた人(既定は空)の外の全員に拒否**する。消すには、まず方針を変えることになり、それが記録に残って鳴る。記録のバケットで消す・ロックを変える操作だけはデータの出来事として取り、鳴らす。
+- 我慢すること: root と方針を変えられる管理者は、方針を変えてから消せる(気づけるが、痕跡は消されうる)。
+- 誰にも消せない compliance は、使う人が導入時に `lock_mode` で選べる(取り消せない)。
