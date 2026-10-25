@@ -59,6 +59,9 @@ refresh_sources:
   - name: 個人情報保護委員会
     url: https://www.ppc.go.jp/news/
     covers: 個人情報保護法の改正・漏えいの届け出の決まりの変化
+  - name: IPA SCS 評価制度(要求事項・評価基準・評価ガイド)
+    url: https://www.ipa.go.jp/security/scs/details.html
+    covers: 国のサプライチェーンの評価制度(★3・★4)の公表物と改訂(docs/compliance/scs.md の対応表)
   - name: Claude Code の変更履歴
     url: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
     covers: フック・権限・スキルの仕様の変更(キットの守りの3層に当たる)
@@ -727,6 +730,29 @@ items:
     status: open
     history: []
     source: docs/designs/0031-on-call.md の 6.(穴 G-08)
+    review_by: 2027-04-25
+
+  - id: scs-review
+    title: 国のサプライチェーンの評価制度(★3・★4)の公表物と、取引先の求めを確かめる
+    why: 制度は 2026年度下期に始まる見込みで、評価のガイドや解説書がこれから出る。対応表(docs/compliance/scs.md)を古いままにしない
+    if_ignored: 取引先に★3 を求められたときに、対応表が古く、自己評価の準備が間に合わない
+    who: human
+    phase: 3m
+    every: half-year
+    verify: ask
+    question:
+      text: 国の評価制度の新しい公表物(評価ガイド・解説書・要求事項の改訂)が出たか、取引先から★3・★4 を求められたかを確かめましたか
+      options:
+        - { label: どちらもまだ, means: 半年後にまた聞きます }
+        - { label: 公表物が出た, means: /checkup-refresh で対応表(docs/compliance/scs.md)を見直す案を出します }
+        - { label: 取引先に求められた, means: 対応表の★3 の行の「使う人がやること」を1つずつ埋める手順を出します(評価の申し込みは人が決める) }
+      recommended: どちらもまだ
+      irreversible: false
+    severity: normal
+    controls: [ A.5.31, A.5.19 ]
+    status: open
+    history: []
+    source: docs/designs/0052-scs-mapping.md の 6.(穴 G-25)
     review_by: 2027-04-25
 
   # ── 半年(以後半年ごと)────────────────────────────────────────────
