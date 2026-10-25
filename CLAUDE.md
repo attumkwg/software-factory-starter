@@ -9,7 +9,7 @@
 - `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
 - `pnpm vrt`(見た目の回帰テスト。先に `docker compose -f docker-compose.vrt.yml up -d --wait` で Docker の中のブラウザも)/ `pnpm vrt:update`(画面を変えたときだけ。撮り直した画像を見てからコミット)。`docs/guides/vrt.md`
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
-- `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
+- `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)/ `pnpm outbound`(AI が外へ向けてした操作の記録を、PR の「🚪 外へ出した物」の表にする。`--clear` で空に。`docs/designs/0057-ai-egress.md`)
 - `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`
 - `pnpm vendors`(委託先の台帳 `docs/compliance/vendors.yaml` とコードの照らし合わせ。CI)/ `pnpm vendors --write`(人が読む一覧 `vendors.md` を作り直す)
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
