@@ -69,6 +69,9 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド feature-flag が、組織に機能を入れた・切った(docs/specs/0012-feature-flags-and-usage.md)。details.flag に名前
   featureFlagEnable: "feature_flag.enable",
   featureFlagDisable: "feature_flag.disable",
+  // 運営のコマンド create-tenant が組織を作った(docs/specs/0026-tenant-provisioning.md)。
+  // 作った組織と運営の組織の両方に残す。details.adminUserId に最初の管理者の ID
+  tenantCreate: "tenant.create",
 } as const;
 
 /**

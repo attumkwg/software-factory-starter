@@ -51,7 +51,8 @@
 2. **間接の依存だけ上げる**: 親が古い版を固定しているときは、`pnpm.overrides`(ルートの `package.json`。または `pnpm-workspace.yaml` の `overrides`)。親が壊れないかテストを全部回し、親が直したら外す(外す日をコメントに)。
 3. **置き換える・外す**: 親の更新が止まっている・使っていない機能のための依存なら外す。
 4. **設定で塞ぐ**: 直った版がまだ無いとき。WAF のルール・機能を止める・設定を変える(手で塞いだことを手順書 `docs/runbooks/` に)。
-5. **届かないので外す**: Trivy の指摘なら `.trivyignore.yaml` に**理由と見直す日**を書く(危険度「高」のファイル)。Dependabot の通知は「コードを使っていない(vulnerable code is not actually used)」で閉じる。**閉じるのは人**(AI は閉じ方を渡すだけ)。
+5. **基盤の穴は、作り直して出し直すまで**: Node.js・PostgreSQL・土台のイメージ(distroless など)の穴は、上げただけでは本番に届かない。手順書 [../runbooks/platform-vuln.md](../runbooks/platform-vuln.md)(作り直し → stg → 本番・手元の処理系も上げる)。
+6. **届かないので外す**: Trivy の指摘なら `.trivyignore.yaml` に**理由と見直す日**を書く(危険度「高」のファイル)。Dependabot の通知は「コードを使っていない(vulnerable code is not actually used)」で閉じる。**閉じるのは人**(AI は閉じ方を渡すだけ)。
 
 ## 6. 人が決めるのは2つだけ
 
