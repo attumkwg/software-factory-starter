@@ -96,7 +96,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 ## ③ GitHub の設定
 
-「はじめに」の `pnpm setup:github --apply` で、下の物はほぼそろっている(設定の正は `.github/setup.yml`・`.github/labels.yml`)。ここでは中身を確かめる。詳しくはルートの README の「本人が手でやる設定」の 1。要点:
+「はじめに」の `pnpm setup:github --apply` で、下の物はほぼそろっている(設定の正は `.github/setup.yml`・`.github/labels.yml`)。ここでは中身を確かめる。詳しくは [guides/manual-setup.md](guides/manual-setup.md)(手でやる設定)の 1。要点:
 
 > ⚠️ **非公開のリポジトリを GitHub Free で使うと、ブランチ保護・Environments が使えない**(下の1つ目と3つ目ができない)。AWS と Claude の鍵を入れる前に、公開にするか Pro / Team にする。何が守られて何が守られないかは [guides/local-guards.md](guides/local-guards.md)。
 
@@ -108,7 +108,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 ## ④ AWS を立てる
 
-手順はルートの README の「本人が手でやる設定」の 2・3。ここでは**費用の目安**と**節約のしかた**。
+手順は [guides/manual-setup.md](guides/manual-setup.md)(手でやる設定)の 2・3。ここでは**費用の目安**と**節約のしかた**。
 
 ### 月の費用の目安(東京リージョン・定価・1ドル=150円)
 

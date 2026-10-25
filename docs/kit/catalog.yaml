@@ -34,7 +34,7 @@ start_steps:
   - title: 手でやる設定
     command: null
     does: Renovate の App と秘密の値(GitHub の残りは pnpm setup:github が一覧で出す)、AWS のアカウントと状態の置き場、Slack、バックアップの確かめ
-    link: "#-本人が手でやる設定"
+    link: docs/guides/manual-setup.md
     status: あり
   - title: 点検を立ち上げる
     command: pnpm checkup:adopt
@@ -241,8 +241,7 @@ parts:
   - id: log-allowlist
     name: ログの許可リスト(出してよい項目だけ)
     group: foundation
-    status: 作成中
-    pr: 10
+    status: あり
     removable: false
     default: 残す
     what: ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる
@@ -1351,15 +1350,21 @@ parts:
   - id: ledger
     name: 資産と費用の台帳(/ledger)
     group: process
-    status: 未
+    status: あり
     removable: true
     default: 残す
-    what: 作った物(資産)とかかったお金を1つの台帳にする
-    needed_by: お金と時間の使い方を説明する相手がいる
+    what: 月1回、賭けごとの人の時間とインフラ・SaaS を「資産の候補・費用・除却の候補」に分けた案(費用のページの ledger.csv)を1つずつ確かめ、賭けのファイルの「会計区分の判定」に足す。会計・税の当てはめは専門家が確かめる
+    needed_by: お金と時間の使い方を説明する相手がいる(税理士・投資家・役員)
     not_needed_by: 1人で試している間
-    if_removed: まだ無い
-    depends_on: [bets]
+    if_removed: 作った物を資産にするか費用にするかの元の記録が、月ごとに残らない(費用のページの ledger.csv は残る)
+    depends_on: [bets, cost-dashboard]
     law: []
+    where: [.claude/skills/ledger/SKILL.md, scripts/cost/ledger.mjs, docs/guides/bets-and-assets.md]
+    remove:
+      delete: [.claude/skills/ledger]
+      edit:
+        - { path: docs/guides/cost-dashboard.md, what: /ledger の段を外す }
+        - { path: CLAUDE.md, what: 「月1回の資産と費用の区分の案は /ledger」を外す }
 
   - id: checkup
     name: 点検(/checkup)

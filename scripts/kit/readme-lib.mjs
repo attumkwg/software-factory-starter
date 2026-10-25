@@ -48,9 +48,15 @@ export function renderSection(catalog) {
     "- 既定は、迷ったときのおすすめ。**迷ったら残す**(消すのは後からでもできる。足し直すほうが高い)。",
     "- 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。",
     "",
+    // README は使い始める人の入口なので、長い一覧は畳んでおく(GitHub では押すと開く)
+    "<details>",
+    `<summary>部品の一覧を開く(${catalog.parts.length}件)</summary>`,
+    "",
     "| 区分 | 部品 | 何をするか | 既定 | 状態 |",
     "|---|---|---|---|---|",
     ...partRows(catalog),
+    "",
+    "</details>",
   ].join("\n");
 }
 

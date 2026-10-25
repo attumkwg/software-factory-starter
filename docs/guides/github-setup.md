@@ -61,7 +61,7 @@ pnpm setup:github --apply
 
 使う側のリポジトリでは、済んでいない物だけが出る:
 
-1. Renovate の GitHub App を入れる(README の「本人が手でやる設定」)
+1. Renovate の GitHub App を入れる([manual-setup.md](manual-setup.md) の 1 の 4)
 2. `/kickoff`(何を作るか)→ `/tailor`(部品を選ぶ・`pnpm decisions --adopt`)
 3. `.github/CODEOWNERS` のキットの持ち主を、自分かチームにする
 4. 点検の台帳を自分の物にする: `pnpm checkup:adopt --by @自分`(使い始めた日を今日に・担当者を自分に・全部の項目を「まだ」に。キットの持ち主の記録は消さず、`adopted` の1行を足す)
