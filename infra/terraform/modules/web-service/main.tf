@@ -194,6 +194,16 @@ resource "aws_lb_listener_rule" "production" {
       values = ["/*"]
     }
   }
+  # CloudFront だけが知るヘッダー(ecs-service と同じ。docs/specs/0058-cloudfront-in-front-of-app.md)
+  dynamic "condition" {
+    for_each = var.cloudfront_only ? [1] : []
+    content {
+      http_header {
+        http_header_name = var.origin_header.name
+        values           = var.origin_header.values
+      }
+    }
+  }
   lifecycle {
     ignore_changes = [action]
   }

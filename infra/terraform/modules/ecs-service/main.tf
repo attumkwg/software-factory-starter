@@ -178,8 +178,26 @@ resource "aws_security_group" "alb" {
   vpc_id      = var.vpc_id
 }
 
-#trivy:ignore:AVD-AWS-0107 公開する Web アプリなので、ALB だけはインターネットから受ける(前に WAF を置く)
+# CloudFront を前に置くとき(cloudfront_only)は、CloudFront の送り元の一覧からだけ 443 を受ける(80 は開けない)。
+# 一覧は全部の CloudFront なので、ルールで秘密のヘッダーも確かめる(origin_header。docs/specs/0058-cloudfront-in-front-of-app.md)
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  count = var.cloudfront_only ? 1 : 0
+  name  = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_https_from_cloudfront" {
+  count             = var.cloudfront_only ? 1 : 0
+  security_group_id = aws_security_group.alb.id
+  prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront[0].id
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+  description       = "HTTPS from CloudFront only"
+}
+
+#trivy:ignore:AVD-AWS-0107 CloudFront を前に置かない形(cloudfront_only = false)では、ALB だけはインターネットから受ける(前に WAF を置く)
 resource "aws_vpc_security_group_ingress_rule" "alb_https" {
+  count             = var.cloudfront_only ? 0 : 1
   security_group_id = aws_security_group.alb.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "tcp"
@@ -188,14 +206,26 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
   description       = "HTTPS from internet"
 }
 
-#trivy:ignore:AVD-AWS-0107 HTTP は HTTPS へ転送するだけ
+#trivy:ignore:AVD-AWS-0107 HTTP は HTTPS へ転送するだけ(CloudFront を前に置かない形のときだけ)
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
+  count             = var.cloudfront_only ? 0 : 1
   security_group_id = aws_security_group.alb.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "tcp"
   from_port         = 80
   to_port           = 80
   description       = "HTTP redirect to HTTPS"
+}
+
+# cloudfront_only を足す前の入口の規則(数を付ける前の住所)を、作り直さずに引き継ぐ
+moved {
+  from = aws_vpc_security_group_ingress_rule.alb_https
+  to   = aws_vpc_security_group_ingress_rule.alb_https[0]
+}
+
+moved {
+  from = aws_vpc_security_group_ingress_rule.alb_http
+  to   = aws_vpc_security_group_ingress_rule.alb_http[0]
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_to_service" {
@@ -322,6 +352,16 @@ resource "aws_lb_listener_rule" "production" {
   condition {
     path_pattern {
       values = ["/api/*"]
+    }
+  }
+  # CloudFront だけが知るヘッダー(名前も値も秘密)。無い・違えば、どのルールにも当たらず既定の 404
+  dynamic "condition" {
+    for_each = var.cloudfront_only ? [1] : []
+    content {
+      http_header {
+        http_header_name = var.origin_header.name
+        values           = var.origin_header.values
+      }
     }
   }
   lifecycle {

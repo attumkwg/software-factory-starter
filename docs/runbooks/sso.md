@@ -47,6 +47,8 @@ API は、環境変数 `CLIENT_IP_HEADER`(既定 `x-forwarded-for`)のヘッダ�
 
 数や名前が合わないと、全員の IP が中継の IP に見えて、制限のある組織が全員締め出される。変えた後は、設定の画面の「いまの IP」で正しい値が出ているかを確かめる。ヘッダーを信じてよいのは、ALB が CloudFront からしか受けない形(設計書 0058)が入っているときだけ。
 
+キットの既定(Terraform の `app_cloudfront = true`)では、CloudFront を前に置き、ALB を CloudFront からだけにし、API と画面のサーバーに `cloudfront-viewer-address`・1 を入れる(手で入れなくてよい)。切り替え・確かめ・秘密のヘッダーの入れ替えは [cloudfront-origin.md](cloudfront-origin.md)。
+
 ## 3. 強制ログアウト
 
 お客さんの管理者が、設定の「組織の人」から自分で切れる(その人のこの組織の全部の端末が、次の操作から 401)。運営は手を出さない。管理者が乗っ取られた疑いのときは [incident.md](incident.md) と [mfa-reset.md](mfa-reset.md)。

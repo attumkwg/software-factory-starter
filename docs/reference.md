@@ -259,7 +259,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **1つの画面で組織をまたいで見る**: 1人は複数の組織に所属できる(ADR 0066)が、セッションは1組織分だけ。横断の一覧や検索は作らない。
 - **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
-- **WAF を「止める」にすること**: stg・prod の ALB の前に WAF はある(`infra/terraform/modules/waf`)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
+- **WAF を「止める」にすること**: stg・prod の CloudFront の前に WAF はある(`infra/terraform/modules/waf`。CloudFront を置かない形では ALB の前)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
 - **CSP の違反の知らせを集めること**(`report-to`): 画面の CSP はある([設計書 0045](designs/0045-web-csp.md))が、違反を受け取る口は無い。止めた物は E2E の `csp.spec.ts` で見つける。本番で起きた違反を数えたくなったら、受け口を API に足す。
 
 ## ⚠️ この雛形の注意

@@ -109,6 +109,8 @@ vendors:
           - aws_eip
           - aws_security_group
           - aws_default_security_group
+          # CloudFront の送り元の一覧(ALB の入口を CloudFront だけに。docs/specs/0058-cloudfront-in-front-of-app.md)
+          - aws_ec2_managed_prefix_list
           - aws_flow_log
           - aws_availability_zones
         data: [internal]
