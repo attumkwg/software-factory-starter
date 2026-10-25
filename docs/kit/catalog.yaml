@@ -1244,6 +1244,8 @@ parts:
     remove:
       delete:
         - apps/site
+        - infra/terraform/modules/public-site
+        - .github/scripts/deploy-site.sh
         - apps/api/src/domains/growth
         - apps/api/drizzle/0014_growth_pre_registrations.sql
         - apps/api/test/unit/growth-links.test.ts
@@ -1257,6 +1259,12 @@ parts:
         - docs/domain/growth
       edit:
         - { path: CLAUDE.md, what: apps/site の行を外す }
+        - { path: infra/terraform/envs/stg/main.tf, what: module public_site と public_site_environment を外す(prod も同じ) }
+        - { path: infra/terraform/envs/stg/github.tf, what: public_site_deploy と source_policy_documents を外す(prod も同じ) }
+        - { path: infra/terraform/envs/stg/variables.tf, what: public_site_domain を外す(outputs.tf の public_site も。prod も同じ) }
+        - { path: infra/terraform/modules/waf/main.tf, what: rate-limit-public-entrances と public_rate_limit を外す }
+        - { path: .github/workflows/deploy.yml, what: 公開の LP を置く手順を外す(stg と prod) }
+        - { path: docs/guides/manual-setup.md, what: STG_SITE_* / PROD_SITE_* の行を外す }
         - { path: docs/reference.md, what: apps/site の木を外す }
         - { path: apps/api/src/app.ts, what: /api/public/* の守り(CORS)と publicGrowthRoutes を外す }
         - { path: apps/api/src/index.ts, what: アウトボックスの受け手の publicSite を外す }

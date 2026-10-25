@@ -86,3 +86,12 @@ output "audit_trail_log_group_name" {
 output "audit_trail_log_group_arn" {
   value = module.audit_trail.log_group_arn
 }
+
+output "public_site" {
+  description = "公開の LP の置き場所(GitHub の変数 STG_SITE_BUCKET・STG_SITE_DISTRIBUTION_ID・STG_SITE_URL に)。public_site_domain が無ければ null"
+  value = var.public_site_domain == null ? null : {
+    bucket          = module.public_site[0].bucket
+    distribution_id = module.public_site[0].distribution_id
+    url             = module.public_site[0].url
+  }
+}

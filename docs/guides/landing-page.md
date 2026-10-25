@@ -54,7 +54,10 @@ LP は、**約束(誰の何を、どう変えるか)と売り文句が決まっ�
 | 設定(ビルドのときの環境変数) | `SITE_ENV`(`prod` のときだけ検索に載る)・`SITE_URL`(このページの URL = API の `PUBLIC_SITE_URL`)・`APP_URL`(画面と API の URL)。秘密は無い |
 
 - 手元: `pnpm --filter @app/site dev`(http://localhost:5190)。事前登録まで通すには、API に `PUBLIC_SITE_URL=http://localhost:5190` と `SUPPORT_TENANT_ID`(運営の組織)を渡す(無ければ公開の入口は 404)。確認のメールは Mailpit(http://localhost:8025)に届く。
-- ビルド: `SITE_ENV=prod SITE_URL=https://www.example.com APP_URL=https://app.example.com pnpm --filter @app/site build` → `apps/site/dist/` を置き場所(S3+CloudFront)へ。置き場所と配る仕組みは次の PR(設計書 0025 の 5)。
+- ビルド: `SITE_ENV=prod SITE_URL=https://www.example.com APP_URL=https://app.example.com pnpm --filter @app/site build` → `apps/site/dist/`。
+- 置き場所: stg と prod の Terraform の `public_site_domain`(例 `www.example.com`。`route53_zone_id` のゾーンに入る)を `*.auto.tfvars` に入れて apply すると、S3(非公開)+CloudFront・証明書・DNS ができ、API に `PUBLIC_SITE_URL` が入る(`infra/terraform/modules/public-site`。prod だけ検索に載る・stg は応答ヘッダーでも noindex・CSP で読み込みと送り先を自分と API だけに)。運営の組織(`support_tenant_id`)も要る。
+- 配る: 出力 `public_site` の3つを GitHub の変数(`STG_SITE_BUCKET`・`STG_SITE_DISTRIBUTION_ID`・`STG_SITE_URL`、prod は `PROD_…`)に入れると、deploy.yml が API と画面の後にビルドして置く(`.github/scripts/deploy-site.sh`。変数が無ければ飛ばす)。手順は [manual-setup.md](manual-setup.md) の 3。
+- 費用: 月 0〜数十円(CloudFront と S3 の無料枠の中がほとんど。証明書は無料)。API の WAF に、公開の入口(`/api/public/*`)だけの数の上限(1つの IP から5分に100回)を足した。
 - 外のサイトの読み込み(解析・広告のタグ・外のフォント・外の画像)を入れない(単体テストが確かめる。入れるなら下の「計測」の決まり)。
 - 確認・取り消しのページは、どの環境でも検索に載せない。
 

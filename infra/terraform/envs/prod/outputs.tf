@@ -70,3 +70,12 @@ output "cost_bucket" {
   description = "費用のページの置き場(リポジトリの変数 COST_BUCKET に入れる)"
   value       = module.cost_reports.bucket
 }
+
+output "public_site" {
+  description = "公開の LP の置き場所(GitHub の変数 PROD_SITE_BUCKET・PROD_SITE_DISTRIBUTION_ID・PROD_SITE_URL に)。public_site_domain が無ければ null"
+  value = var.public_site_domain == null ? null : {
+    bucket          = module.public_site[0].bucket
+    distribution_id = module.public_site[0].distribution_id
+    url             = module.public_site[0].url
+  }
+}

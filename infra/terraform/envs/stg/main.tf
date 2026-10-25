@@ -9,6 +9,8 @@ locals {
   # Sentry の1件から、そのリクエストのログを開くリンクも付ける(API と画面のサーバーのロググループ)
   # 運営の組織(社員の代理ログイン。docs/runbooks/support-access.md で作ってから ID を入れる)
   support_environment = var.support_tenant_id == null ? {} : { SUPPORT_TENANT_ID = var.support_tenant_id }
+  # 公開の LP(apps/site。docs/guides/landing-page.md)。public_site_domain を入れたときだけ、置き場所を作り、API の公開の入口を開く
+  public_site_environment = var.public_site_domain == null ? {} : { PUBLIC_SITE_URL = "https://${var.public_site_domain}" }
   # 要配慮個人情報の段1(専用の鍵・要配慮だけの接続。ADR 0029)。sensitive_data_enabled のときだけ
   sensitive_environment = var.sensitive_data_enabled ? { SENSITIVE_KMS_KEY_ID = module.sensitive_data[0].kms_key_arn } : {}
   sensitive_secrets     = var.sensitive_data_enabled ? { SENSITIVE_DATABASE_URL = module.sensitive_data[0].database_url_secret_arn } : {}
@@ -165,7 +167,7 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }, local.sentry_environment, local.support_environment, local.sensitive_environment)
+  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment)
   secrets = merge({
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
@@ -365,4 +367,21 @@ module "cost_watch" {
   topic_arn             = module.alerts.topic_arn
   activate              = var.activate_cost_allocation_tags
   anomaly_threshold_usd = var.anomaly_threshold_usd
+}
+
+# ── 公開の LP(apps/site)の置き場所。docs/guides/landing-page.md・docs/specs/0025-public-landing-page.md ─────
+
+module "public_site" {
+  count  = var.public_site_domain == null ? 0 : 1
+  source = "../../modules/public-site"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+  name            = local.name
+  domain          = var.public_site_domain
+  route53_zone_id = var.route53_zone_id
+  app_url         = "https://${var.app_domain}"
+  # 検索に載せるのは prod だけ
+  indexable = false
 }

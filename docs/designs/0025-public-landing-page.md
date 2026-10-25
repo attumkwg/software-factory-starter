@@ -157,8 +157,8 @@ flowchart LR
 | 事前登録の目的・保存期間・消し方・委託先・組織へのつなぎ | 2. データモデル・5. 連携・6. 業務ルール | `growth-public.int.test.ts`「purge は…」「取り消しのリンクで…」「確認済みの登録だけを組織を作る入力にでき…」 |
 | プライバシーポリシーに足すことが辿れる | `docs/guides/legal-documents.md` の「プライバシーポリシーに書くこと」に1行 | `pnpm self-contained`(リンク切れ) |
 | 試作から LP の手引きへ辿れる | `docs/guides/prototypes.md`・`/prototype` に1行 | `pnpm self-contained` |
-| 本番は検索に載る・本番以外は noindex | 5. 連携・6. 業務ルール | `apps/site/src/site.test.tsx`「検索に載せるか」(meta・robots.txt・sitemap)。CloudFront の応答ヘッダーは ③ の PR |
-| 同じトークンと部品 | 1. 設計方針 | `apps/site` は `@app/ui` の部品とトークンだけ(Biome・型)。VRT・axe は ③ の PR で E2E とまとめて(CI の変更が要る) |
+| 本番は検索に載る・本番以外は noindex | 5. 連携・6. 業務ルール | `apps/site/src/site.test.tsx`「検索に載せるか」(meta・robots.txt・sitemap)・`modules/public-site` の応答ヘッダー(stg は X-Robots-Tag。`terraform validate`・Trivy) |
+| 同じトークンと部品 | 1. 設計方針 | `apps/site` は `@app/ui` の部品とトークンだけ(Biome・型)。公開のページの E2E・axe・VRT は次の一歩(CI のジョブとブラウザの組を足す変更になる) |
 | 登録 → 確認のメール → 確認済み・チェックが無いと 400 | 3. API・4. 状態遷移 | `growth-public.int.test.ts`「確認のメールのリンクを開くと confirmed…」「署名の合わない token・期限の切れたリンクは 400」 |
 | 確認しなければ7日で消える | 6. 業務ルール | `growth-public.int.test.ts`「登録すると…」(消す日)・「purge は…」・「期限の切れたリンクは 400」 |
 | 本人のリンク・運営のコマンドで消せる | 3. API・6. 業務ルール | `growth-public.int.test.ts`「取り消しのリンクで…」「delete は…」 |
@@ -218,6 +218,10 @@ flowchart LR
 - **メールアドレスの一覧を書き出すコマンドを作らない** — 組織を作るのは ID 1つずつで足りる。一覧があると、人の手で外へ持ち出される道になる。
 - **仕様と設計の PR では手引きと設計まで**(コードを足さない) — 表・API・`apps/site` は U-1 の答えで形が変わる。どの案でも要る物(同意の文の型・計測の考え方・LP に要る物)だけ先に入れた。
 - **実装は3つの PR に分ける**: ① 事前登録の受け口(表・公開の API・運営のコマンド・組織へのつなぎ)② 公開のページ `apps/site` ③ 置き場所(Terraform の S3+CloudFront・stg と prod へのつなぎ・WAF の数の上限・配る仕組み・E2E と VRT)。①だけでも外の CMS のフォームから送れる。③ は手元で Terraform を確かめられないので分けた。
+- **置き場所は stg と prod の環境に `public_site_domain` で足す**(別の Terraform の根を作らない) — 証明書・DNS のゾーン・API の `PUBLIC_SITE_URL`・配る役割が同じ環境の中で閉じる。入れなければ何も作らず、API の公開の入口も 404 のまま(キットの既定は無し)。
+- **公開のページの CloudFront に WAF を付けず、API の WAF に公開の入口だけの数の上限を足す** — ページは静的で書き込みが無い。書き込みは API に来るので、そちらで止める(費用も増えない)。
+- **CloudFront のアクセスログは取らない** — IP を新しく残さない(見た数は API が日ごとに数える)。
+- **出荷のジョブで公開のページをビルドする**(キャッシュは使わない) — main のコードだけが流れ、API と画面と同じ承認(prod の Environment)の後に置かれる。PR が汚したキャッシュを持ち込まないよう、パッケージのキャッシュは切った(zizmor の指摘)。
 - **公開のページは Vite+React で、ビルドのときにページごとの HTML を作る**(TanStack Start にしない) — サーバーが要らず S3 に置ける。検索に載る HTML に中身が入る。部品とトークンは `@app/ui` のまま。設定はビルドのときの環境変数を焼き込む(秘密は無い)。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
