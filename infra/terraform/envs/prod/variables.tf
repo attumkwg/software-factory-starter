@@ -135,3 +135,9 @@ variable "public_site_domain" {
   type        = string
   default     = null
 }
+
+variable "app_cloudfront" {
+  description = "アプリ(画面と API)の前に CloudFront を置き、ALB は CloudFront からだけ受ける(キットの既定。docs/specs/0058-cloudfront-in-front-of-app.md)。false で前の形(ALB をインターネットに・WAF は ALB)"
+  type        = bool
+  default     = true
+}

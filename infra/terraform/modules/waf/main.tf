@@ -1,4 +1,6 @@
-# ALB の前に置く WAF(AWS WAF v2)。型どおりの攻撃(SQL インジェクション・既知の悪い入力・悪い IP)と、
+# ALB の前(scope = REGIONAL)か CloudFront の前(scope = CLOUDFRONT。us-east-1 の provider で呼ぶ)に置く WAF(AWS WAF v2)。
+# CloudFront を前に置く形では、ALB に付けると IP ごとの上限が CloudFront の IP で数えられるので、CloudFront に付ける
+# (docs/specs/0058-cloudfront-in-front-of-app.md)。型どおりの攻撃(SQL インジェクション・既知の悪い入力・悪い IP)と、
 # 1つの IP からの大量のリクエストを止める。業務の穴(他社のデータが見える等)は止められない(docs/security.md)。
 #
 # 月の費用の目安(東京・2026-10 時点の定価から。公式の料金表で確かめること):
@@ -8,8 +10,8 @@
 
 resource "aws_wafv2_web_acl" "this" {
   name        = var.name
-  description = "ALB in front of ${var.name}"
-  scope       = "REGIONAL"
+  description = "${var.scope == "CLOUDFRONT" ? "CloudFront" : "ALB"} in front of ${var.name}"
+  scope       = var.scope
 
   default_action {
     allow {}
@@ -175,7 +177,9 @@ resource "aws_wafv2_web_acl" "this" {
   }
 }
 
+# CloudFront には、ディストリビューションの web_acl_id で付ける(app-front)
 resource "aws_wafv2_web_acl_association" "alb" {
+  count        = var.scope == "REGIONAL" ? 1 : 0
   resource_arn = var.alb_arn
   web_acl_arn  = aws_wafv2_web_acl.this.arn
 }
@@ -208,12 +212,16 @@ resource "aws_wafv2_web_acl_logging_configuration" "this" {
 data "aws_region" "current" {}
 
 resource "aws_cloudwatch_metric_alarm" "waf_hits" {
-  count               = var.alarm_topic_arn == null ? 0 : 1
-  alarm_name          = "${var.name}-waf-hits"
-  alarm_description   = "WAF が5分に${var.alarm_threshold}回以上${var.mode == "block" ? "止めた" : "止めるはずだった(数えるだけ)"}。攻撃かもしれない。docs/runbooks/alarms.md#waf-hits → docs/runbooks/attack.md"
-  namespace           = "AWS/WAFV2"
-  metric_name         = var.mode == "block" ? "BlockedRequests" : "CountedRequests"
-  dimensions          = { WebACL = aws_wafv2_web_acl.this.name, Rule = "ALL", Region = data.aws_region.current.region }
+  count             = var.alarm_topic_arn == null ? 0 : 1
+  alarm_name        = "${var.name}-waf-hits"
+  alarm_description = "WAF が5分に${var.alarm_threshold}回以上${var.mode == "block" ? "止めた" : "止めるはずだった(数えるだけ)"}。攻撃かもしれない。docs/runbooks/alarms.md#waf-hits → docs/runbooks/attack.md"
+  namespace         = "AWS/WAFV2"
+  metric_name       = var.mode == "block" ? "BlockedRequests" : "CountedRequests"
+  # CloudFront に付けた WAF の数字には Region が付かない
+  dimensions = merge(
+    { WebACL = aws_wafv2_web_acl.this.name, Rule = "ALL" },
+    var.scope == "REGIONAL" ? { Region = data.aws_region.current.region } : {},
+  )
   statistic           = "Sum"
   period              = 300
   evaluation_periods  = 1
@@ -223,4 +231,9 @@ resource "aws_cloudwatch_metric_alarm" "waf_hits" {
   treat_missing_data = "notBreaching"
   alarm_actions      = [var.alarm_topic_arn]
   ok_actions         = [var.alarm_topic_arn]
+}
+
+moved {
+  from = aws_wafv2_web_acl_association.alb
+  to   = aws_wafv2_web_acl_association.alb[0]
 }

@@ -132,3 +132,19 @@ variable "autoscaling" {
     error_message = "autoscaling は 1 <= min_count <= max_count にする"
   }
 }
+
+variable "cloudfront_only" {
+  description = "ALB を CloudFront からだけ受ける(送り元の一覧・443 だけ・秘密のヘッダー)。docs/specs/0058-cloudfront-in-front-of-app.md"
+  type        = bool
+  default     = false
+}
+
+variable "origin_header" {
+  description = "cloudfront_only のとき、ALB のルールが確かめるヘッダー(名前と、通す値。app-front の origin_header)"
+  type = object({
+    name   = string
+    values = list(string)
+  })
+  default   = null
+  sensitive = true
+}

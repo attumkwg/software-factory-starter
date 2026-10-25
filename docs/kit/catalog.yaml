@@ -854,7 +854,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める)
+    what: CloudFront の前(app-front を消した形では ALB の前)で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める)
     needed_by: インターネットに出すすべて
     not_needed_by: 社内だけで使う(VPN の中)
     if_removed: 総当たり・大量アクセスを手前で止められない
@@ -867,7 +867,30 @@ parts:
       terraform:
         - { file: infra/terraform/envs/stg/main.tf, module: waf }
         - { file: infra/terraform/envs/prod/main.tf, module: waf }
+        - { file: infra/terraform/envs/stg/main.tf, module: waf_front }
+        - { file: infra/terraform/envs/prod/main.tf, module: waf_front }
       docs: [docs/security.md]
+
+  - id: app-front
+    name: アプリの前の CloudFront(ALB は CloudFront からだけ)
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: 画面と API の前に CloudFront を置き、ALB は CloudFront の送り元の一覧と、名前も値も秘密のヘッダーでしか受けない。いまの人の IP は CloudFront-Viewer-Address から(組織ごとの IP の制限が偽れない)。WAF も CloudFront の前に
+    needed_by: 組織ごとの IP の制限(ip-allowlist)を使う・インターネットに出すすべて
+    not_needed_by: 社内だけで使う(VPN の中)
+    if_removed: ALB がインターネットに開き、いまの人の IP のヘッダーを ALB に直接つないで偽れる(IP の制限の守りが弱くなる)。WAF は ALB に戻る
+    depends_on: [waf]
+    law:
+      - ISMS 8.20(ネットワークのセキュリティ)
+      - SOC 2 CC6.6
+    remove:
+      delete: [infra/terraform/modules/app-front, docs/runbooks/cloudfront-origin.md]
+      edit:
+        - { path: infra/terraform/envs/stg/variables.tf, what: app_cloudfront の既定を false にする(または変数ごと外し、main.tf の app_front・waf_front・origin・app_ipv6 と client_ip_environment を外す) }
+        - { path: infra/terraform/envs/prod/variables.tf, what: stg と同じ }
+      docs: [docs/specs/0058-cloudfront-in-front-of-app.md, docs/adr/0070-cloudfront-in-front-of-alb.md]
 
   - id: cost-dashboard
     name: 費用のページ(何にいくら)

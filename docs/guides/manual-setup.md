@@ -90,7 +90,19 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 
 1. stg と prod の AWS アカウントそれぞれで、コンソールの「Amazon Q Developer in chat applications」(旧 AWS Chatbot)から Slack のワークスペースを許可する(ワークスペースの ID `T…` が分かる)
 2. Slack に `#alerts-stg` と `#alerts-prod` を作り、チャンネルの ID(`C…`)を `*.auto.tfvars` の `slack_team_id` / `slack_channel_id` に入れて apply
-3. 試しに鳴らして Slack に出るのを確かめる。月の上限(`monthly_budget_usd`)も見直す
+3. 試しに鳴らして Slack に出るのを確かめる。**東京とバージニア(us-east-1)の両方**を鳴らす。外形監視(利用者から開けるか)と、CloudFront の前の WAF のアラームはバージニアにあり、その知らせも同じ Slack のチャンネルに届く(`modules/alerts` の `extra_topic_arns`)。外形監視はいちばん大事な知らせなので、**Slack に出なければ先へ進まない**(メールだけでは気づけない)。
+
+   ```bash
+   N=<project>-<env>   # 例: sfs-prod
+   # 東京(中のアラーム)
+   aws cloudwatch set-alarm-state --alarm-name "$N-elb-5xx" --state-value ALARM --state-reason "Slack の確かめ"
+   # バージニア(外形監視の画面と API・CloudFront の前の WAF)
+   for a in "$N-uptime-web" "$N-uptime-api" "$N-front-waf-hits"; do
+     aws cloudwatch set-alarm-state --region us-east-1 --alarm-name "$a" --state-value ALARM --state-reason "Slack の確かめ"
+   done
+   ```
+
+   Slack に「ALARM」が4つ出て、次の見張り(数十秒〜数分)で「OK」に戻るのを確かめる。出なければ、`slack_team_id` / `slack_channel_id`・Amazon Q Developer in chat applications の設定の「SNS のトピック」に両方の topic があるか(`<N>-alerts` と `<N>-uptime-alerts`)を見る。月の上限(`monthly_budget_usd`)も見直す
 
 ## 5. バックアップと管理操作の記録(prod は確かめてから)
 

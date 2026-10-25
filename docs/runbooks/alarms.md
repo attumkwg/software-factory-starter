@@ -129,6 +129,8 @@ Aurora の接続の数が多い(prod は 1,000本・stg は 250本を超えた�
 
 ## uptime
 
+> 知らせはバージニア(us-east-1)の topic から、ほかのアラームと同じ Slack のチャンネルに届く(メールも)。届くことは [guides/manual-setup.md](../guides/manual-setup.md) の 4 の 3 で、つないだときに鳴らして確かめる。
+
 **{web,api}-uptime(外形監視)**
 
 外(東京・シンガポール・オレゴン)から開けない。**中のアラームが鳴っていないなら、AWS の中は元気で、手前が壊れている**。
@@ -136,7 +138,7 @@ Aurora の接続の数が多い(prod は 1,000本・stg は 250本を超えた�
 | 一緒に鳴っている | よくある原因 | どうするか |
 |---|---|---|
 | [running-tasks](#running-tasks)・[elb-5xx](#elb-5xx) | 中が落ちている | そちらを先に |
-| 何も鳴っていない | DNS(Route 53 のレコード・ドメインの更新切れ)・証明書・WAF の誤ブロック・ALB のセキュリティグループ | `dig <ドメイン>`・`curl -v https://<ドメイン>/readyz` を手元から。WAF のコンソールで、止めた記録(Sampled requests)を見る |
+| 何も鳴っていない | DNS(Route 53 のレコード・ドメインの更新切れ)・証明書・WAF の誤ブロック・ALB のセキュリティグループ・CloudFront(秘密のヘッダーの入れ替えの途中で値が食い違うと、ALB が 404 を返す。[cloudfront-origin.md](cloudfront-origin.md) の 3) | `dig <ドメイン>`・`curl -v https://<ドメイン>/readyz` を手元から。WAF のコンソールで、止めた記録(Sampled requests)を見る |
 | `api` だけ | ALB の `/api/*` の振り分け・API のサービスだけ止まっている | ALB のリスナーのルール・API のサービスのイベント |
 
 - アラームと Route 53 の数字はバージニア(us-east-1)にある(Route 53 の決まり)。CloudWatch のコンソールでリージョンを切り替えて見る。
@@ -144,7 +146,7 @@ Aurora の接続の数が多い(prod は 1,000本・stg は 250本を超えた�
 
 ## waf-hits
 
-**<名前>-waf-hits**
+**<名前>-waf-hits**(CloudFront を前に置く既定の形では **<名前>-front-waf-hits**。us-east-1 にあり、外形監視の topic から、ほかのアラームと同じ Slack(とメール)に届く。ログも us-east-1 の `aws-waf-logs-<名前>-front`)
 
 WAF が5分に100回以上(`alarm_threshold`)止めた。WAF が「数えるだけ(count)」の間は、**止めるはずだった**数(実際には通っている)。
 

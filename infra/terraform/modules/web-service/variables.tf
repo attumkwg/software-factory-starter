@@ -121,3 +121,19 @@ variable "autoscaling" {
     error_message = "autoscaling は 1 <= min_count <= max_count にする"
   }
 }
+
+variable "cloudfront_only" {
+  description = "ALB のルールで、CloudFront だけが知るヘッダーを確かめる(ecs-service の cloudfront_only と同じ値)"
+  type        = bool
+  default     = false
+}
+
+variable "origin_header" {
+  description = "cloudfront_only のとき、ルールが確かめるヘッダー(名前と、通す値。app-front の origin_header)"
+  type = object({
+    name   = string
+    values = list(string)
+  })
+  default   = null
+  sensitive = true
+}

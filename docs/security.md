@@ -157,7 +157,8 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 
 | もの | していること | 費用の目安 | どこ |
 |---|---|---|---|
-| WAF | ALB の前で型どおりの攻撃・悪い IP・1つの IP からの大量のリクエストを止める | 月 約1,500〜2,000円 | `infra/terraform/modules/waf` |
+| WAF | CloudFront の前(置かない形では ALB の前)で型どおりの攻撃・悪い IP・1つの IP からの大量のリクエストを止める | 月 約1,500〜2,000円 | `infra/terraform/modules/waf` |
+| アプリの前の CloudFront | ALB を CloudFront の送り元の一覧と秘密のヘッダーでしか受けない。いまの人の IP のヘッダーを偽れない(組織ごとの IP の制限) | 無料枠の中なら 0 円・Secrets Manager 月 $0.40 | `infra/terraform/modules/app-front`・[ADR 0070](adr/0070-cloudfront-in-front-of-alb.md) |
 | GuardDuty | 怪しい動き(漏れた鍵の利用・不審な通信)を見つける | 月 数百〜千数百円 | `modules/security-baseline` |
 | Security Hub | AWS の設定を決まりの一覧で採点する | 月 数百〜千数百円 | `modules/security-baseline` |
 | CloudTrail | AWS の管理操作(誰が・いつ・どの API)を、ロックした S3(governance・400日。外す権限は方針で全員に拒否)と CloudWatch Logs に残す。root の利用・記録を止める操作・記録のバケットで消す/方針を変える操作で鳴らす | 月 数百円 | `modules/audit-trail`・[runbooks/audit-trail.md](runbooks/audit-trail.md) |

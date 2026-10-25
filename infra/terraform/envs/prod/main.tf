@@ -14,6 +14,10 @@ locals {
   # 要配慮個人情報の段1(専用の鍵・要配慮だけの接続。ADR 0029)。sensitive_data_enabled のときだけ
   sensitive_environment = var.sensitive_data_enabled ? { SENSITIVE_KMS_KEY_ID = module.sensitive_data[0].kms_key_arn } : {}
   sensitive_secrets     = var.sensitive_data_enabled ? { SENSITIVE_DATABASE_URL = module.sensitive_data[0].database_url_secret_arn } : {}
+  # アプリの前の CloudFront(docs/specs/0058-cloudfront-in-front-of-app.md)。ALB へは origin.<app_domain> で向かう。
+  # いまの人の IP は CloudFront が付ける CloudFront-Viewer-Address から読む(API と画面のサーバー。組織ごとの IP の制限)
+  origin_domain         = "origin.${var.app_domain}"
+  client_ip_environment = var.app_cloudfront ? { CLIENT_IP_HEADER = "cloudfront-viewer-address", TRUSTED_PROXY_HOPS = "1" } : {}
   sentry_environment = var.sentry_dsn == null ? {} : {
     SENTRY_DSN           = var.sentry_dsn
     LOGS_INSIGHTS_REGION = var.region
@@ -89,7 +93,10 @@ module "app" {
   private_subnet_ids = module.network.private_subnet_ids
   image              = "${var.image_repository_url}:${var.initial_image_tag}"
   certificate_arn    = aws_acm_certificate_validation.app.certificate_arn
-  desired_count      = 2
+  # CloudFront からだけ受ける(送り元の一覧・秘密のヘッダー。docs/specs/0058-cloudfront-in-front-of-app.md)
+  cloudfront_only = var.app_cloudfront
+  origin_header   = var.app_cloudfront ? module.app_front[0].origin_header : null
+  desired_count   = 2
   # 2〜6台。DB の接続: 6台×プール10本=60本(blue/green の入れ替えの間は2倍の120本)+移行の1本。
   # Aurora の上限(max_acu 8 で 1,669本)の1割に収まる。上限を上げるなら DB の CPU と費用を先に見る
   autoscaling        = { min_count = 2, max_count = 6 }
@@ -109,7 +116,7 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment)
+  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment, local.client_ip_environment)
   secrets = merge({
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
@@ -159,6 +166,8 @@ module "web" {
   vpc_id                        = module.network.vpc_id
   private_subnet_ids            = module.network.private_subnet_ids
   listener_arn                  = module.app.https_listener_arn
+  cloudfront_only               = var.app_cloudfront
+  origin_header                 = var.app_cloudfront ? module.app_front[0].origin_header : null
   alb_security_group_id         = module.app.alb_security_group_id
   alb_arn_suffix                = module.app.alb_arn_suffix
   api_security_group_id         = module.app.service_security_group_id
@@ -166,12 +175,14 @@ module "web" {
   # 画面のサーバーとブラウザの失敗も同じ Sentry へ(DSN は秘密ではない。ブラウザに渡る)
   environment = merge({
     APP_ENV = local.env
-  }, local.sentry_environment)
+  }, local.sentry_environment, local.client_ip_environment)
 }
 
 resource "aws_acm_certificate" "app" {
   domain_name       = var.app_domain
   validation_method = "DNS"
+  # CloudFront は origin.<app_domain> で ALB に向かうので、ALB の証明書にも入れる
+  subject_alternative_names = var.app_cloudfront ? [local.origin_domain] : []
   lifecycle {
     create_before_destroy = true
   }
@@ -193,15 +204,57 @@ resource "aws_acm_certificate_validation" "app" {
   validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
 }
 
+# app_domain は CloudFront か ALB へ。向き先だけを変える(レコードを作り直さない。切り替えの間に名前が消えない)
 resource "aws_route53_record" "app" {
   zone_id = var.route53_zone_id
   name    = var.app_domain
+  type    = "A"
+  alias {
+    name                   = var.app_cloudfront ? module.app_front[0].distribution_domain_name : module.app.alb_dns_name
+    zone_id                = var.app_cloudfront ? module.app_front[0].distribution_hosted_zone_id : module.app.alb_zone_id
+    evaluate_target_health = !var.app_cloudfront
+  }
+}
+
+resource "aws_route53_record" "app_ipv6" {
+  count   = var.app_cloudfront ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = var.app_domain
+  type    = "AAAA"
+  alias {
+    name                   = module.app_front[0].distribution_domain_name
+    zone_id                = module.app_front[0].distribution_hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# CloudFront が ALB に向かう名前(公開の DNS に出るが、ALB は CloudFront の送り元と秘密のヘッダーでしか通さない)
+resource "aws_route53_record" "origin" {
+  count   = var.app_cloudfront ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = local.origin_domain
   type    = "A"
   alias {
     name                   = module.app.alb_dns_name
     zone_id                = module.app.alb_zone_id
     evaluate_target_health = true
   }
+}
+
+# アプリの前の CloudFront(docs/specs/0058-cloudfront-in-front-of-app.md・ADR 0070)。WAF は CloudFront の前(waf_front)
+module "app_front" {
+  count  = var.app_cloudfront ? 1 : 0
+  source = "../../modules/app-front"
+  providers = {
+    aws           = aws.api
+    aws.us_east_1 = aws.us_east_1
+  }
+  name            = local.name
+  domain          = var.app_domain
+  origin_domain   = local.origin_domain
+  route53_zone_id = var.route53_zone_id
+  web_acl_arn     = module.waf_front[0].web_acl_arn
+  kms_key_arn     = aws_kms_key.app.arn
 }
 
 # ── メール(API → Postfix → SES)。docs/guides/mail.md ─────────────────────────────
@@ -233,7 +286,9 @@ module "mail" {
 
 # ── 見張り(WAF・GuardDuty・Security Hub) ─────────────────────────────────────────
 
+# CloudFront を前に置かない形(app_cloudfront = false)だけ、WAF は ALB に付ける
 module "waf" {
+  count   = var.app_cloudfront ? 0 : 1
   source  = "../../modules/waf"
   name    = local.name
   alb_arn = module.app.alb_arn
@@ -241,6 +296,25 @@ module "waf" {
   mode = "count"
   # 止めた数(数えるだけの間は止めるはずだった数)が多いと鳴らす(docs/runbooks/attack.md)
   alarm_topic_arn = module.alerts.topic_arn
+}
+
+moved {
+  from = module.waf
+  to   = module.waf[0]
+}
+
+# CloudFront を前に置く形では、WAF は CloudFront に付ける(us-east-1。IP ごとの上限を本当の相手の IP で数える)。
+# アラームも us-east-1 に置くので、通知は外形監視(uptime)の us-east-1 の topic へ。この topic は alerts の extra_topic_arns で
+# 東京の topic と同じ Slack(Chatbot)にも流れる(メールも)
+module "waf_front" {
+  count     = var.app_cloudfront ? 1 : 0
+  source    = "../../modules/waf"
+  providers = { aws = aws.us_east_1 }
+  name      = "${local.name}-front"
+  scope     = "CLOUDFRONT"
+  # 入れたばかりは数えるだけ。誤検知が無いのを確かめてから block に
+  mode            = "count"
+  alarm_topic_arn = module.uptime.topic_arn
 }
 
 module "security_baseline" {

@@ -2,9 +2,20 @@ variable "name" {
   type = string
 }
 
-variable "alb_arn" {
-  description = "WAF を付ける ALB"
+variable "scope" {
+  description = "REGIONAL: ALB に付ける / CLOUDFRONT: CloudFront に付ける(us-east-1 の provider で呼び、arn を app-front の web_acl_arn に)"
   type        = string
+  default     = "REGIONAL"
+  validation {
+    condition     = contains(["REGIONAL", "CLOUDFRONT"], var.scope)
+    error_message = "REGIONAL か CLOUDFRONT"
+  }
+}
+
+variable "alb_arn" {
+  description = "WAF を付ける ALB(scope = REGIONAL のとき)"
+  type        = string
+  default     = null
 }
 
 variable "mode" {
