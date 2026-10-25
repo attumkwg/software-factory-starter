@@ -5,7 +5,7 @@
 
 ## 1. 運営の組織を作る(環境ごとに1回)
 
-社員が所属する組織を、本番の DB に1つ作る(表の持ち主で。RDS のクエリエディタか CloudShell の VPC 環境)。2人で確かめてから流す。
+社員が所属する組織を、本番の DB に1つ作る。**組織と最初の社員は、運営のコマンド `create-tenant` で作れる**(`"mfaRequired": true` にして。[tenant-provisioning.md](tenant-provisioning.md) の「運営の組織も、これで作れる」)。下の SQL は、コマンドが使えない環境(古い版)のときだけ(表の持ち主で。RDS のクエリエディタか CloudShell の VPC 環境)。2人で確かめてから流す。
 
 ```sql
 BEGIN;

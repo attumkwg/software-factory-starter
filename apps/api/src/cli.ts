@@ -10,6 +10,7 @@ import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
+import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
@@ -17,6 +18,8 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js seed             … 種データ(local / test / preview だけ)
 //   node dist/cli.js init-roles       … 接続ユーザーを作る(使い捨ての DB だけ。SUPERUSER_DATABASE_URL)
 //   node dist/cli.js init-roles migrate seed   … プレビュー環境の起動時
+//   node dist/cli.js create-tenant '<申し込みの JSON>' [--execute --confirm-name <名前>]
+//                                      … 申し込みを受けた組織と最初の管理者を作る(試し → 本番。docs/runbooks/tenant-provisioning.md)
 //   node dist/cli.js delete-tenant <組織の ID> [--execute --confirm-name <名前>]
 //                                      … 解約した組織を消す(試し → 本番。docs/runbooks/offboarding.md)
 //   node dist/cli.js legal-notify <文書> <版> [--execute]
@@ -46,6 +49,37 @@ async function initRoles() {
     }
   } finally {
     await client.end();
+  }
+}
+
+/** 申し込みを受けた組織を作る。--execute が無ければ、流してから取り消す(試し)。結果は JSON 1行(名前・メールは出さない) */
+async function createTenantCommand(args: string[]) {
+  const [json, ...flags] = args;
+  if (!json) throw new Error("申し込みがありません: create-tenant '<申し込みの JSON>'");
+  const { application, ignoredKeys } = parseTenantApplication(json);
+  const execute = flags.includes("--execute");
+  const nameAt = flags.indexOf("--confirm-name");
+  const confirmName = nameAt >= 0 ? flags[nameAt + 1] : undefined;
+  if (execute && !confirmName)
+    throw new Error("--execute には --confirm-name <組織の名前> が要ります");
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    const created = await createTenant(db, application, {
+      execute,
+      confirmName,
+      supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
+    });
+    const line = execute
+      ? { mode: "created", ...created, ignoredKeys }
+      : { mode: "plan", timeZone: created.timeZone, mfaRequired: created.mfaRequired, ignoredKeys };
+    process.stdout.write(`${JSON.stringify(line)}\n`);
+    if (!execute) {
+      process.stdout.write(
+        "まだ作っていません(流してから取り消しました)。中身を確かめて --execute --confirm-name <組織の名前> を付けて流してください\n",
+      );
+    }
+  } finally {
+    await pool.end();
   }
 }
 
@@ -152,7 +186,7 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -163,6 +197,10 @@ if (commands[0] === "usage-report") {
 }
 if (commands[0] === "usage-purge") {
   await usageCommand((db) => runUsagePurge(db, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "create-tenant") {
+  await createTenantCommand(commands.slice(1));
   process.exit(0);
 }
 if (commands[0] === "delete-tenant") {
