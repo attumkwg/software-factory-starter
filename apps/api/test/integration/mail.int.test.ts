@@ -19,6 +19,7 @@ import {
 // ここでは受け手を直接呼ぶ(ほかのテストの送り出しと、同じ出来事を取り合わないように)。
 
 const APP_URL = "https://app.example.test";
+const LINK_SECRET = "test-only-".padEnd(40, "x");
 const owner = createDb(inject("ownerUrl"));
 const appDb = createDb(inject("appUrl"));
 const { app, pool } = createTestApp(inject("appUrl"));
@@ -42,7 +43,13 @@ beforeAll(async () => {
     },
     logger,
   );
-  const handlers = outboxHandlers({ db: appDb.db, logger, mailer, appUrl: APP_URL });
+  const handlers = outboxHandlers({
+    db: appDb.db,
+    logger,
+    mailer,
+    appUrl: APP_URL,
+    linkSecret: LINK_SECRET,
+  });
   if (!handlers["tasks.task_completed"]) throw new Error("受け手が無い");
   handler = handlers["tasks.task_completed"];
   acme = await createTenantFixture(owner.db, "acme");
@@ -145,6 +152,7 @@ describe("タスク完了のメール", () => {
     const down = outboxHandlers({
       db: appDb.db,
       logger,
+      linkSecret: LINK_SECRET,
       // 誰も待っていないポート
       mailer: createMailer({ smtpUrl: "smtp://127.0.0.1:1", from: "x <x@example.test>" }, logger),
       appUrl: APP_URL,

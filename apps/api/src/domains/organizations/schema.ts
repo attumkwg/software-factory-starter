@@ -145,3 +145,40 @@ export const emailChanges = organizations.table(
     index("email_changes_user_idx").on(t.tenantId, t.userId, t.requestedAt.desc()),
   ],
 );
+
+// ── 招待(docs/specs/0027-invitations.md・ADR 0040) ──────────────────────────────────────
+
+/**
+ * 管理者が出した招待。リンクの札は持たない(招待の ID と、サーバーの秘密から作った署名で、その場で作り・確かめる)。
+ * 生きているのは、受けていない・取り消していない・期限内の物。受けた・取り消したら、もう使えない(1回きり)。
+ * 運営のコマンドが作った組織の最初の管理者は招待ではない(invited_by が無い招待は作らない)。
+ */
+export const invitations = organizations.table(
+  "invitations",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    email: text("email").notNull(),
+    role: roleEnum("role").notNull(),
+    invitedBy: uuid("invited_by").notNull(),
+    createdAt: createdAt(),
+    expiresAt: instant("expires_at").notNull(),
+    acceptedAt: instant("accepted_at"),
+    acceptedUserId: uuid("accepted_user_id"),
+    revokedAt: instant("revoked_at"),
+    revokedBy: uuid("revoked_by"),
+  },
+  (t) => [
+    unique("invitations_tenant_id_id_key").on(t.tenantId, t.id),
+    foreignKey({
+      name: "invitations_invited_by_fkey",
+      columns: [t.tenantId, t.invitedBy],
+      foreignColumns: [users.tenantId, users.id],
+    }),
+    // 一覧(新しい順)と、同じメールの生きている招待を探す
+    index("invitations_list_idx").on(t.tenantId, t.createdAt.desc(), t.id.desc()),
+    index("invitations_email_idx").on(t.tenantId, t.email),
+  ],
+);

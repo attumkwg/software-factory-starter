@@ -492,15 +492,42 @@ parts:
   - id: invitations
     name: 招待の画面
     group: business
-    status: 未
+    status: あり
     removable: true
     default: 残す
-    what: 管理者が画面から人を招く(いまは SQL で users に行を足す)
+    what: 管理者が画面から人を招く(メールとロール)。リンクは期限つき・1回きり・取り消せる。受けた人は登録 → その組織に入る。開通の最初の管理者への案内のメールも
     needed_by: 会社向けで、お客さんが自分で人を足す
     not_needed_by: 個人向け(本人が登録する)
-    if_removed: まだ無い
-    depends_on: [organizations, login]
-    law: []
+    if_removed: お客さんが人を足せず、運営が SQL で users に行を足す(監査ログに残らない)
+    depends_on: [organizations, login, mail]
+    law:
+      - ISMS 5.18(アクセス権)
+    remove:
+      delete:
+        - apps/api/src/domains/organizations/invitations.ts
+        - apps/api/src/domains/organizations/invitation-routes.ts
+        - apps/api/src/auth/invitation-routes.ts
+        - apps/api/test/integration/invitations.int.test.ts
+        - apps/api/test/integration/invitation-mail.int.test.ts
+        - apps/web/src/pages/InvitationsPage.tsx
+        - apps/web/src/pages/InvitationAcceptPage.tsx
+        - apps/web/src/routes/_app/invitations.tsx
+        - apps/web/src/routes/invitation.tsx
+        - apps/web/e2e/invitations.spec.ts
+      edit:
+        - { path: apps/api/src/app.ts, what: invitationAcceptRoutes と invitationRoutes を外す }
+        - { path: apps/api/src/authz/policy.ts, what: invitation:manage と招待の4行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: 招待の3つの名前を外す }
+        - { path: apps/api/src/outbox/handlers.ts, what: 招待と開通の案内の受け手を外す }
+        - { path: apps/api/src/onboarding/create-tenant.ts, what: 開通の案内のメールを積むのを外す(手順書の文の型で CS が送る) }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 招待の欄を外す }
+        - { path: apps/api/src/domains/organizations/schema.ts, what: invitations の表を外す移行を足す(表は消す移行で) }
+      matrix:
+        - GET /api/invitations
+        - POST /api/invitations
+        - DELETE /api/invitations/{invitationId}
+        - POST /api/invitations/accept
+      docs: [docs/specs/0027-invitations.md, docs/adr/0040-invitations-signed-link.md]
 
   # ── ログイン ────────────────────────────────────────────────────────────
   - id: mfa
@@ -1267,6 +1294,29 @@ parts:
         - { path: docs/security.md, what: /cve の行を外す }
         - { path: docs/playbook.md, what: 脆弱性の行を外す }
         - { path: scripts/checkup/checks/vulns.mjs, what: 消し、台帳(docs/checkup/todo.yaml)の w-vuln を引退(retired)にする(点検を残すとき) }
+
+  - id: security-questionnaire
+    name: セキュリティの質問票の下書き(/security-questionnaire)
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: お客さんから届いたセキュリティの質問票に、docs/security.md の決まり・適用宣言書・委託先の一覧・手順書・SLA と取り扱いの取り決めの型・点検の答えから、答えの下書きを根拠のリンクつきで作る。「はい」は根拠があり本番で有効だと確かめた物だけ。下書きはリポジトリの外・出す前に責任者が確かめる
+    needed_by: 会社向けで、病院・大企業などからセキュリティの質問票が届く
+    not_needed_by: 個人向けだけ・質問票が来ない
+    if_removed: 質問票のたびに、営業とセキュリティの担当が手で資料を探す。根拠の無い「はい」を書いてしまう
+    depends_on: [vendor-ledger, contract-templates]
+    law:
+      - ISMS 5.20(供給者との合意の中のセキュリティ。お客さんの側から見て)
+      - P マーク(委託先としての説明)
+    where:
+      - .claude/skills/security-questionnaire
+    remove:
+      delete: [.claude/skills/security-questionnaire]
+      edit:
+        - { path: CLAUDE.md, what: /security-questionnaire の所を外す }
+        - { path: docs/reference.md, what: /security-questionnaire を外す }
+      docs: [docs/specs/0039-security-questionnaire.md, docs/designs/0039-security-questionnaire.md]
 
   - id: prototypes
     name: プロトタイプの置き場

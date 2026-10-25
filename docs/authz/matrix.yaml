@@ -144,6 +144,28 @@ routes:
     note: 許可を取り消す。入っている社員も次のリクエストから入れない
     expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
 
+  - route: GET /api/invitations
+    permission: invitation:manage
+    note: 招待の一覧(docs/specs/0027-invitations.md)。誰を組織に入れるかなので管理者だけ
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/invitations
+    permission: invitation:manage
+    note: 人を招く(招待のメールが届く)。ほかの組織にいる人かは確かめない(受けるときに止まる)
+    body: { email: "{inviteeEmail}", role: member }
+    expect: { admin: 201, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: DELETE /api/invitations/{invitationId}
+    permission: invitation:manage
+    note: 招待を取り消す(リンクはすぐ使えなくなる)
+    expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/invitations/accept
+    permission: public
+    note: 招かれた人がログインの前に受ける。組織はリンクの札が指す招待で決まる。署名・期限・使用済み・取り消しのどれが違っても同じ 400。受ける流れは invitations.int.test.ts
+    body: { token: "not-a-token", name: "誰か" }
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
   - route: POST /api/support/sessions
     permission: support:start
     note: 社員がサポート番号で入る。運営の組織(SUPPORT_TENANT_ID)の人でなければ 403。入れることは support-access.int.test.ts で確かめる
