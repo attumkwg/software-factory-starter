@@ -1,6 +1,12 @@
 // 公開の LP の事前登録の入口とコマンド(docs/specs/0025-public-landing-page.md)。運営の組織の文脈(withTenant)を開く所だけ。
 // 表と読み書きは領域 domains/growth(ここからは index.ts だけを使う)。
 export {
+  isPreRegistrationCommand,
+  operatorTenantIdFrom,
+  PRE_REGISTRATION_COMMANDS,
+  runPreRegistrationCommand,
+} from "./cli.ts";
+export {
   runDelete as runPreRegistrationDelete,
   runPurge as runPreRegistrationPurge,
   runReport as runPreRegistrationReport,

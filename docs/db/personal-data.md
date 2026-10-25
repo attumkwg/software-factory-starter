@@ -190,6 +190,8 @@
 | `details` の `counts` | internal | 解約で消した表ごとの行数 |
 | `details` の `flag` | internal | 運営が入れた・切った機能の名前(FEATURE_FLAGS の name) |
 | `details` の `adminUserId` | internal | 運営が組織を作ったときの、最初の管理者の ID |
+| `details` の `plan` | internal | 運営が変えたプランの名前(PLANS の id) |
+| `details` の `priceList` | internal | 運営が変えたプランの価格表の版(PRICE_LISTS の id) |
 | `details` の `preRegistrations` | internal | 期限で消した事前登録の数 |
 | `details` の `dailyCounts` | internal | 期限で消した日ごとの数の行の数 |
 | `details` の `convertedTenantId` | internal | 事前登録から作った組織の ID |
@@ -236,6 +238,19 @@
 | `sent_at` | internal | 送れた時刻 |
 | `dead_at` | internal | あきらめた時刻 |
 | `last_error` | internal | 最後の失敗の種類と文(人が見て直す)。値は伏せてから書く(relay.ts の scrubMessage) |
+
+### `platform.tenant_plans`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 行の ID |
+| `tenant_id` | internal | 契約した組織 |
+| `plan` | public | プランの名前(@app/shared の PLANS) |
+| `price_list` | public | どの版の価格表で契約しているか(@app/shared の PRICE_LISTS。金額は持たない) |
+| `seats` | internal | 人数の上限(null は上限なし) |
+| `price_locked_until` | internal | 据え置き(旧価格のまま)の期限 |
+| `effective_on` | internal | この契約がいつからか(組織の時間帯の日付) |
+| `created_at` | internal | 足した時刻 |
 
 ### `projects.projects`
 

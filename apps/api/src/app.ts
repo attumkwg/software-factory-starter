@@ -3,6 +3,8 @@ import {
   type FeatureFlagDefinition,
   LEGAL_VERSIONS,
   type LegalVersion,
+  PLANS,
+  type PlanDefinition,
 } from "@app/shared";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
@@ -37,6 +39,7 @@ import { payloadTooLarge, toApiError } from "./errors.ts";
 import { exportRoutes } from "./export/routes.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
+import { planRoutes } from "./plans/index.ts";
 import { publicGrowthRoutes } from "./pre-registrations/index.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
 import type { SensitiveStore } from "./sensitive/index.ts";
@@ -52,6 +55,8 @@ export type AppDeps = {
   legalVersions?: readonly LegalVersion[];
   /** テスト用: 機能フラグの定義を差し替える(キットには1つも無いので)。既定は FEATURE_FLAGS */
   featureFlags?: readonly FeatureFlagDefinition[];
+  /** テスト用: プランの定義を差し替える(機能つきのプランを作る)。既定は PLANS */
+  plans?: readonly PlanDefinition[];
   /** 要配慮個人情報の入口(ADR 0029。index.ts が設定から作る)。無ければ null(段0) */
   sensitive?: SensitiveStore | null;
 };
@@ -154,11 +159,13 @@ export function createApp(deps: AppDeps) {
   // 機能フラグの定義(/api/me と機能の API の requireFeature が使う)。要配慮個人情報の入口(sensitiveOf(c) が使う)
   const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
   const featureFlags = deps.featureFlags ?? FEATURE_FLAGS;
+  const plans = deps.plans ?? PLANS;
   app.use("/api/*", async (c, next) => {
     c.set("supportTenantId", config.supportTenantId);
     c.set("mfaEnforced", config.auth.mode === "cognito");
     c.set("legalVersions", legalVersions);
     c.set("featureFlags", featureFlags);
+    c.set("plans", plans);
     c.set("sensitive", deps.sensitive ?? null);
     await next();
   });
@@ -190,6 +197,7 @@ export function createApp(deps: AppDeps) {
   // 共通の仕組み(領域ではない)
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));
+  app.route("/api", planRoutes);
 
   if (config.exposeOpenApi) {
     app.doc31("/api/openapi.json", {

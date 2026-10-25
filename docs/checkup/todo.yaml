@@ -555,6 +555,29 @@ items:
     source: docs/playbook.md の「毎週やること」(数字・人の介在率)
     review_by: 2027-10-20
 
+  - id: plan-seats
+    title: 契約の人数を超えた組織・据え置きの期限が来る組織
+    why: 人数の上限は招待を止めない作りなので、超えた組織は運営が見に行かないと分からない(docs/runbooks/plans.md の 4)
+    if_ignored: 契約より多い人数で使われ続け、申込書と請求が食い違ったまま何か月も過ぎる。値上げの据え置きの期限を過ぎても旧価格のまま
+    who: human
+    phase: 1m
+    every: weekly
+    verify: ask
+    question:
+      text: 運営のコマンド plan-report の overSeats(人数の超過)と priceLockEnding(据え置きの期限)に、組織は出ましたか
+      options:
+        - { label: どちらも出ていない, means: 来週また聞きます }
+        - { label: 出た(お客さんに連絡した・申込書の変更を受けた), means: 組織の ID と連絡した日だけを台帳に残します }
+        - { label: 出た(まだ何もしていない), means: 手順書の 4 の表の「どうするか」を今週やる手順を出します, after: open }
+      recommended: どちらも出ていない
+      irreversible: false
+    severity: normal
+    controls: [ A.5.31 ]
+    status: open
+    history: []
+    source: docs/designs/0047-plans.md の 12. U-3(人数の上限は止めず、運営に知らせる)
+    review_by: 2027-10-25
+
   - id: people-changes
     title: 先月、入った人・辞めた人・役割が変わった人のアカウント
     why: 辞めた人のアカウントが、四半期の棚卸しまで残らないようにする(docs/runbooks/joiner-leaver.md)

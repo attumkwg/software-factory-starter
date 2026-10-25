@@ -110,8 +110,15 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1792916467452,
-      "tag": "0015_growth_pre_registrations",
+      "when": 1792916557635,
+      "tag": "0015_tenant_plans",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792918761209,
+      "tag": "0016_growth_pre_registrations",
       "breakpoints": true
     }
   ]

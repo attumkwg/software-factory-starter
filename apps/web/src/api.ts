@@ -16,6 +16,7 @@ import type {
   Me,
   MfaRequirement,
   MfaSetup,
+  OrganizationPlan,
   Project,
   ProjectPage,
   StartSupport,
@@ -264,6 +265,8 @@ export const api = {
   }),
   createInvitation: (input: CreateInvitation) => request<Invitation>("POST", "/invitations", input),
   revokeInvitation: (id: string) => request<void>("DELETE", `/invitations/${id}`),
+  // 組織のプランと人数(docs/specs/0047-plans.md)。管理者だけ
+  getOrganizationPlan: () => request<OrganizationPlan>("GET", "/organization/plan"),
   acceptInvitation: (token: string, name: string) =>
     request<AcceptedInvitation>("POST", "/invitations/accept", { token, name }),
   startSupport: (input: StartSupport) =>

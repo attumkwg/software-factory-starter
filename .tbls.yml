@@ -88,6 +88,14 @@ comments:
       accepted_at: 受けた時刻(入ったら、もう使えない)
       accepted_user_id: 受けてできた users の行
       revoked_at: 取り消した時刻(リンクはすぐ使えなくなる)
+  - table: platform.tenant_plans
+    tableComment: 組織の契約のプラン(docs/specs/0047-plans.md・ADR 0058)。足すだけ。いまの行は effective_on が今日までで一番新しい行。書くのは運営のコマンド plan・create-tenant だけ。金額は持たない
+    columnComments:
+      plan: "@app/shared の PLANS の id"
+      price_list: どの版の価格表で契約しているか(PRICE_LISTS の id)
+      seats: 人数の上限(NULL は上限なし)
+      price_locked_until: 据え置き(この価格表のまま)の期限
+      effective_on: 効き始めの日(組織の時間帯)
   - table: organizations.support_sessions
     tableComment: 社員の代理ログインの入室(閲覧者・最長1時間)。認可の関所が毎回、終わっていない・期限内・許可が生きているかを確かめる
     columnComments:

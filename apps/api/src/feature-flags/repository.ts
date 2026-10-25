@@ -1,9 +1,17 @@
-import { enabledFeatures, type FeatureFlagDefinition, type FeatureFlagName } from "@app/shared";
-import { and, eq } from "drizzle-orm";
+import {
+  enabledFeatures,
+  type FeatureFlagDefinition,
+  type FeatureFlagName,
+  isEnabled,
+  PLANS,
+  type PlanDefinition,
+} from "@app/shared";
+import { eq } from "drizzle-orm";
 import type { Context } from "hono";
 import type { TenantTx } from "../db/client.ts";
 import type { AppEnv } from "../env.ts";
 import { notFound } from "../errors.ts";
+import { findPlanFeatures } from "../plans/index.ts";
 import { featureFlags } from "./schema.ts";
 
 // 機能フラグの判定(docs/specs/0012-feature-flags-and-usage.md)。リクエストの中では c.var.tx(組織の文脈つき)で読む。
@@ -17,13 +25,20 @@ export async function findOrgFlags(tx: TenantTx, tenantId: string): Promise<stri
   return rows.map((r) => r.flag);
 }
 
-/** その組織で入っている機能の名前(定義の順)。GET /api/me の features */
+/**
+ * その組織で入っている機能の名前(定義の順)。GET /api/me の features。
+ * 状態が plan の機能は、いまのプランに入っていれば入っている(docs/specs/0047-plans.md)
+ */
 export async function findEnabledFeatures(
   tx: TenantTx,
   tenantId: string,
   defs: readonly FeatureFlagDefinition[],
+  plans: readonly PlanDefinition[],
 ): Promise<string[]> {
-  return enabledFeatures(defs, await findOrgFlags(tx, tenantId));
+  const planFeatures = defs.some((d) => d.state === "plan")
+    ? await findPlanFeatures(tx, tenantId, plans)
+    : [];
+  return enabledFeatures(defs, await findOrgFlags(tx, tenantId), planFeatures);
 }
 
 /** その組織で、この機能が入っているか */
@@ -32,15 +47,16 @@ export async function isFeatureEnabled(
   tenantId: string,
   defs: readonly FeatureFlagDefinition[],
   name: string,
+  plans: readonly PlanDefinition[] = PLANS,
 ): Promise<boolean> {
   const def = defs.find((d) => d.name === name);
   if (!def || def.state === "off") return false;
   if (def.state === "on") return true;
-  const [row] = await tx
-    .select({ id: featureFlags.id })
-    .from(featureFlags)
-    .where(and(eq(featureFlags.tenantId, tenantId), eq(featureFlags.flag, name)));
-  return row !== undefined;
+  const rows = new Set(await findOrgFlags(tx, tenantId));
+  const planFeatures = new Set(
+    def.state === "plan" ? await findPlanFeatures(tx, tenantId, plans) : [],
+  );
+  return isEnabled(def, rows, planFeatures);
 }
 
 /**
@@ -53,6 +69,7 @@ export async function requireFeature(c: Context<AppEnv>, name: FeatureFlagName):
     c.get("actor").tenantId,
     c.get("featureFlags"),
     name,
+    c.get("plans"),
   );
   if (!enabled) throw notFound();
 }

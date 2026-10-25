@@ -190,6 +190,8 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       counts: internal("解約で消した表ごとの行数"),
       flag: internal("運営が入れた・切った機能の名前(FEATURE_FLAGS の name)"),
       adminUserId: internal("運営が組織を作ったときの、最初の管理者の ID"),
+      plan: internal("運営が変えたプランの名前(PLANS の id)"),
+      priceList: internal("運営が変えたプランの価格表の版(PRICE_LISTS の id)"),
       preRegistrations: internal("期限で消した事前登録の数"),
       dailyCounts: internal("期限で消した日ごとの数の行の数"),
       convertedTenantId: internal("事前登録から作った組織の ID"),
@@ -228,6 +230,18 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "platform.feature_flags.tenant_id": internal("機能を入れた組織"),
   "platform.feature_flags.flag": pub("入れた機能の名前(@app/shared の FEATURE_FLAGS)"),
   "platform.feature_flags.enabled_at": internal("入れた時刻(いつから出ていたか)"),
+
+  // ── 契約のプラン(docs/specs/0047-plans.md)。足すだけ。書くのは運営のコマンドだけ ──
+  "platform.tenant_plans.id": internal("行の ID"),
+  "platform.tenant_plans.tenant_id": internal("契約した組織"),
+  "platform.tenant_plans.plan": pub("プランの名前(@app/shared の PLANS)"),
+  "platform.tenant_plans.price_list": pub(
+    "どの版の価格表で契約しているか(@app/shared の PRICE_LISTS。金額は持たない)",
+  ),
+  "platform.tenant_plans.seats": internal("人数の上限(null は上限なし)"),
+  "platform.tenant_plans.price_locked_until": internal("据え置き(旧価格のまま)の期限"),
+  "platform.tenant_plans.effective_on": internal("この契約がいつからか(組織の時間帯の日付)"),
+  "platform.tenant_plans.created_at": internal("足した時刻"),
 
   // ── 利用の記録(docs/specs/0012-feature-flags-and-usage.md)。1日1人1機能1行。保存期間(USAGE_RETENTION_DAYS)で消す ──
   "platform.feature_usage.id": internal("行の ID"),

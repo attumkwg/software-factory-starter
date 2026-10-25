@@ -6,6 +6,7 @@ export * from "./auth.ts";
 export * from "./feature-flags.ts";
 export * from "./legal.ts";
 export * from "./money.ts";
+export * from "./plans.ts";
 export * from "./pre-registration.ts";
 export * from "./roles.ts";
 export * from "./schemas.ts";
