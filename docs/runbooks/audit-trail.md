@@ -43,7 +43,7 @@ aws logs describe-log-streams --log-group-name /aws/cloudtrail/<名前> --max-it
 | CloudWatch Logs に残す日数(`log_retention_days`) | 90日 | 長い調べ物は S3(Athena)で足りる。ここは費用で決める |
 
 - ⚠️ compliance のロックは、**AWS のサポートに頼んでも外れない**。バケットも、中の記録が全部期限を過ぎるまで消せない(アカウントを閉じる時もこれだけは残る)。
-- 決めた値は設計書 0017 の未確定事項 U-2 に書く。
+- キットの既定(prod は compliance・400日)は持ち主が承認済み。使う人は、決めた値を設計書 0017 の U-2 に書く(`pnpm decisions --adopt`)。
 
 ## 3. アラームが鳴ったら
 

@@ -1,6 +1,6 @@
 # 仕様: 委託先の台帳と照らし合わせ・AI に渡すデータの決まり・管理操作の記録(CloudTrail)
 
-> 状態: 下書き
+> 状態: 承認済み(承認した人: @attumkwg 2026-10-25。U-1・U-2 はキットの既定として承認し、導入時に決める)
 > 設計: [docs/designs/0017-vendors-ai-data-audit-trail.md](../designs/0017-vendors-ai-data-audit-trail.md)・ADR: [0030](../adr/0030-vendor-ledger-ai-data-and-audit-trail.md)
 
 ## なぜ作るか
