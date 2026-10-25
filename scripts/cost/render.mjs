@@ -115,10 +115,10 @@ function plBlock(pl) {
   const tr = (r, name) => {
     const v = VERDICT[r.verdict] ?? r.verdict;
     const cls = r.verdict === "赤字" ? ' class="over"' : "";
-    return `<tr><td>${esc(name ?? r.bet)}${r.stage ? ` <span class="muted">${esc(r.stage)}</span>` : ""}</td><td class="n">${yen(r.revenue)}</td><td class="n">${yen(r.infra + r.saas)}</td><td class="n">${yen(r.shared)}</td><td class="n">${r.hours_auto}h / ${r.hours_manual ?? "—"}h</td><td class="n">${range(r.people_low, r.people_high)}</td><td class="n">${range(r.cost_low, r.cost_high)}</td><td class="n">${range(r.profit_low, r.profit_high)}</td><td${cls}>${esc(v)}</td></tr>`;
+    return `<tr><td>${esc(name ?? r.bet)}${r.stage ? ` <span class="muted">${esc(r.stage)}</span>` : ""}</td><td class="n">${yen(r.revenue)}</td><td class="n">${yen(r.infra + r.saas)}</td><td class="n">${yen(r.shared)}</td><td class="n">${r.hours_actual === null ? `${r.hours_auto}h / ${r.hours_manual ?? "—"}h` : `実績 ${r.hours_actual}h`}</td><td class="n">${range(r.people_low, r.people_high)}</td><td class="n">${range(r.cost_low, r.cost_high)}</td><td class="n">${range(r.profit_low, r.profit_high)}</td><td${cls}>${esc(v)}</td></tr>`;
   };
   const head =
-    "<tr><th>賭け</th><th class=n>売上</th><th class=n>インフラ・SaaS</th><th class=n>共通の配り分</th><th class=n>人の時間(目安/手入力)</th><th class=n>人の費用</th><th class=n>原価</th><th class=n>粗利</th><th>判定</th></tr>";
+    "<tr><th>賭け</th><th class=n>売上</th><th class=n>インフラ・SaaS</th><th class=n>共通の配り分</th><th class=n>人の時間(目安/手入力・実績)</th><th class=n>人の費用</th><th class=n>原価</th><th class=n>粗利</th><th>判定</th></tr>";
   const rows = pl.rows.map((r) => tr(r, r.bet === "core" ? "土台(core)" : r.bet));
   const how =
     {
@@ -128,7 +128,7 @@ function plBlock(pl) {
     }[pl.allocation] ?? pl.allocation;
   return card(
     "賭けごとの損益(PL。推定)",
-    `<p class="muted">人の時間は推定: 自動の目安(今月作った PR × 1件あたりの分数。docs/cost/people.yaml)と手入力(週ごとの割合)の幅。共通の費用 ${yen(pl.shared_jpy)} は${esc(how)}。人の評価には使わない。</p><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows.join("")}${tr(pl.total, "全体")}</tbody></table></div>`,
+    `<p class="muted">人の時間は推定: 自動の目安(今月作った PR × 1件あたりの分数。docs/cost/people.yaml)と手入力(週ごとの割合)の幅。実績(週の記録 actuals.csv)があれば実績で出す(開発の段階の区分は ledger.csv。会計・税の当てはめは専門家が確かめる)。共通の費用 ${yen(pl.shared_jpy)} は${esc(how)}。人の評価には使わない。</p><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows.join("")}${tr(pl.total, "全体")}</tbody></table></div>`,
   );
 }
 

@@ -11,6 +11,7 @@
 | 何にいくら(動いている物ごと) | AWS はタグ `Component`(api・web・mail・db・network・shared)・Actions・SaaS(AI の席などを含む)は1つずつ | Cost Explorer・Actions・`docs/cost/saas.yaml` |
 | 見積もりと実績(区分ごと) | 本番+stg・PR ごとの環境と CI・AI・有料の検査を、見積もりの幅(薄い帯)と並べる。上を超えたら ⚠ | `docs/cost/estimates.yaml`(元は [段階と費用](../concepts/stages.md) の 4.) |
 | 環境ごと・賭けごと | タグ `Environment`・`Bet`(賭けの ID。土台は `core`)。賭けごとは `/ledger`(資産か費用か)の土台 | Cost Explorer・`saas.yaml` の `bet` |
+| 人の時間の実績 | 週の記録(人・賭け・開発の段階・時間・確かめた人)があれば、PL の人の費用を推定の幅ではなく実績で出し、`ledger.csv` に賭け × 開発の段階の行を足す(9.) | 非公開の置き場の `actuals.csv`(手入力)・`rates.json` |
 | AWS の月ごと・日ごと・サービスごと | 前の3か月と今月・今月の日ごと・AWS のサービスの上の10 | Cost Explorer |
 | PR ごとの環境 | タグ `PullRequest`(dev のアカウント) | Cost Explorer |
 | GitHub Actions | ワークフローごとの実行の数と分数(非公開なら、枠を超えた分を金額に) | Actions の API |
@@ -64,3 +65,21 @@
 - 予算(AWS Budgets): 月の上限の 80% を使った・月末の見込みが上限を超える(`monthly_budget_usd`)。前からある
 - 急な変化(Cost Anomaly Detection): このプロダクト(タグ `Project`)の費用が、いつもより急に増え、見込みの影響が `anomaly_threshold_usd`(既定 $10)以上。Slack に来る
 - 見積もりとのずれ: 四半期ごとの点検 `cost-review` で、このページを見て答える
+
+## 9. 人の時間の実績(上場の準備・原価計算)
+
+> 上場を目指すと「ソフトウェアの原価計算」が要り、監査では**見積もりの幅ではなく工数の実績**と、**開発の段階**(研究開発か、自社利用のソフトウェアの制作か)を求められる。週に1回の記録を `actuals.csv` に書くと、PL の人の費用が実績になり、`ledger.csv` に賭け × 開発の段階の行が足される。決まりは [設計書 0044](../designs/0044-actual-hours.md)・[ADR 0055](../adr/0055-actual-hours-weekly-record.md)。**会計・税の当てはめは専門家(税理士・監査法人)が確かめる。**
+
+1. 週に1回(金曜か月曜)、人ごとに、その週の時間を賭けと開発の段階に分けて1行ずつ書く(形は `docs/cost/inputs-example/actuals.csv`): `date,person,bet,phase,hours,approved_by`
+   - `date` … その記録の始まりの日(ふつうは週の月曜)。**月をまたぐ週は月ごとに2行に分け**、2行目は月の1日
+   - `bet` … `B-NNNN` か `core`(土台)/ `phase` … `研究開発`・`制作`・`運用`(案は [bets-and-assets.md](bets-and-assets.md) の「資産か費用か」: `idea`〜`psf` は研究開発・`rollout` と `adopted` の作り込みは制作・保守と土台は運用)
+   - `hours` … **実際に使った時間**(割合でなく時間)/ `approved_by` … 確かめた人(上長・別の人。空なら未確認)
+2. 非公開の置き場に置き直す(リポジトリに置かない):
+
+   ```bash
+   aws s3 cp actuals.csv "s3://<COST_BUCKET>/cost/inputs/actuals.csv"
+   ```
+
+3. ページの PL の「人の時間」が `実績 N時間` になり、人の費用は実績(幅ではない)。読めなかった物に「形の合わない行」「確かめた人の無い行(未確認)」の数が出る。
+4. 月1回の `/ledger` で、`ledger.csv` の `人の時間(実績・<段階>)` の行を確かめる。根拠の欄に、未確認の行の数と、記録した段階が賭けの段階からの案と違う所が出る。
+5. 監査に備えて残す物: 置き場の `actuals.csv` の前の版(置き場は版を残す。古い版は400日で消えるので、締めた月の分は会計の側にも渡す)・`ledger.csv` の月ごとの写し(`cost/<年-月>/`)・賭けのファイルの小石(合格の記録 = 制作に入った根拠)。

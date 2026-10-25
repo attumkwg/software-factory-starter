@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { checkPrBody, idOfFile, parseBet } from "../bets-lib.mjs";
 import { AI_LABEL } from "../metrics/ai-assisted.mjs";
+import { readActuals } from "./actuals.mjs";
 import { periodOf } from "./period.mjs";
 
 export const PEOPLE_FILE = "docs/cost/people.yaml";
@@ -115,6 +116,7 @@ export function parseCsv(text) {
  *   rates.json   … { "default": 円/時, "people": { "@名前": 円/時 } }
  *   time.csv     … week_start,person,bet,percent,hours(週ごと・人ごとに、賭けの割合と、その週に働いた時間)
  *   revenue.csv  … month,bet,jpy(bet は B-NNNN か「全体」)
+ *   actuals.csv  … date,person,bet,phase,hours,approved_by(人の時間の実績。週の記録と開発の段階。設計書 0044)
  */
 export function readInputs(dir, month) {
   const read = (f) => (dir && existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8") : null);
@@ -135,5 +137,6 @@ export function readInputs(dir, month) {
     rates: ratesText ? JSON.parse(ratesText) : null,
     time: read("time.csv") === null ? null : time,
     revenue: read("revenue.csv") === null ? null : revenue,
+    actuals: readActuals(read("actuals.csv"), month, parseCsv),
   };
 }
