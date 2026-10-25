@@ -87,6 +87,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   preRegistrationPurged: "pre_registration.purged",
   preRegistrationDeleted: "pre_registration.deleted",
   preRegistrationConverted: "pre_registration.converted",
+  // 運営のコマンド demo-reset が、デモ用の組織のデータを戻した(docs/specs/0053-sales-kit.md。stg だけ)
+  demoReset: "demo.reset",
 } as const;
 
 /**

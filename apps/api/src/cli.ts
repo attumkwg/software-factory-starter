@@ -42,6 +42,8 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js tenant-shares [--month YYYY-MM]
 //                                      … 1社あたりの原価の按分の元(組織の大きさの帯ごとの数。読むだけ。docs/guides/cost-dashboard.md の 7)
+//   node dist/cli.js demo-reset [--execute]
+//                                      … 営業のデモ用の組織(DEMO_TENANT_ID)を戻す(stg だけ。試し → 本番。docs/guides/sales.md の 1)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
 //   node dist/cli.js pmf-survey-report [--round 2026-Q4]
@@ -296,7 +298,7 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge / pmf-survey-report / pmf-survey-purge / pre-registrations-report / pre-registrations-purge / pre-registrations-delete)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge / pmf-survey-report / pmf-survey-purge / pre-registrations-report / pre-registrations-purge / pre-registrations-delete / demo-reset)",
   );
 // 数だけを出す運営のコマンド(中身は src/usage・src/pmf-survey・src/pre-registrations。組織の ID・名前・人の ID は出さない)
 const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -307,6 +309,8 @@ const COUNT_COMMANDS: Record<string, (db: RootDb, args: string[]) => Promise<str
   "pmf-survey-report": (db, args) => runPmfSurveyReport(db, args, { supportTenantId }),
   "pmf-survey-purge": (db, args) => runPmfSurveyPurge(db, args),
   ...preRegistrationCommands(process.env),
+  // デモ用の組織を戻す(src/demo。stg だけ)。このファイルの行の上限のため、使うときだけ読み込む(esbuild が1つにまとめる)
+  "demo-reset": async (db, a) => (await import("./demo/index.ts")).demoReset(db, a),
 };
 const countCommand = COUNT_COMMANDS[commands[0] ?? ""];
 if (countCommand) {
