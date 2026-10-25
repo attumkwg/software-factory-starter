@@ -157,7 +157,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 | 層 | この雛形のどこ |
 |---|---|
-| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート / 脆弱性の精査 `/cve`)・`.devcontainer/` |
+| ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート / 脆弱性の精査 `/cve` / セキュリティの質問票の下書き `/security-questionnaire`)・`.devcontainer/` |
 | ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。起動できるのはリポジトリの持ち主 OWNER だけ。[docs/security.md の AI-3](security.md)) |
 | ③ 自前のファクトリー | まだ作らない(PR が週に数十件を超えてから) |
 
