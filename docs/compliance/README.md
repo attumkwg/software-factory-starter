@@ -14,6 +14,7 @@
 | [controls.yaml](controls.yaml) | 附属書 A(ISO/IEC 27001:2022)の93の管理策の「適用する・しない・理由・このキットでの実施・根拠」 | `controls.yaml`(人が直す。導入時に自社の範囲へ) | `pnpm compliance`(CI) |
 | [soa.md](soa.md) | 適用宣言書(SoA)。管理策ごとに、当たる点検の項目・毎月の証跡・規程が並ぶ | `controls.yaml`・点検の台帳・規程から `pnpm compliance --write` で作る(手で直さない) | `pnpm compliance`(古いと落ちる) |
 | [policies/](policies/README.md) | 規程と様式のひな形(基本方針・個人情報保護・委託先・教育・内部監査・マネジメントレビュー) | 各ファイル(「要記入」を埋めて承認する) | `pnpm compliance`・点検の `policies-adopt`・`policy-review` |
+| [scs.md](scs.md) | 国のサプライチェーンの評価制度(SCS 評価制度・★3・★4)の要求事項43件と、管理策・キットの仕組み・使う人がやることの対応表(準備の表。評価の結果ではない) | `scs.md`(公的な一次資料で確かめた日つき) | 点検の `scs-review`(半年ごと) |
 | [records/](records/README.md) | 教育・内部監査・マネジメントレビューの記録の置き場(の置き場) | 非公開の置き場 | 点検の `training`・`internal-audit`・`management-review` |
 | 点検の台帳の `controls`・`evidence`・`area: compliance` | 点検の項目と管理策・証跡の対応。認証の準備の項目 | [checkup/todo.yaml](../checkup/todo.yaml) | `/compliance-check` で1問ずつ |
 | 毎月の証跡(`evidence.yml`) | 毎月1日に、GitHub と AWS の設定・訓練と点検の結果を、消せない S3 に置く | 使う側の AWS の S3 | 点検の `evidence-monthly`・`pnpm evidence --list` |
