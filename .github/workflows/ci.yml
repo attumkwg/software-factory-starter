@@ -101,6 +101,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       # 結合テストがあるのは API だけ。API の test:coverage は単体と結合を一緒に流し、合わせた値で下限を見る
       #(単体だけだと DB を使う所が入らない。単体は数秒なので、二度流しても時間はほぼ増えない)
+      # テストのコンテナ(DB など)は外へ出られなくする(イメージの取得は通る。docs/designs/0057-ai-egress.md の U-2・段4)
+      - name: Docker のコンテナから外への通信を止める
+        if: steps.scope.outputs.heavy == 'true'
+        run: bash .github/scripts/block-container-egress.sh
       - name: Testcontainers で結合テスト(API は単体と合わせたカバレッジの下限も)
         if: steps.scope.outputs.heavy == 'true'
         run: pnpm --filter @app/api test:coverage
@@ -201,6 +205,8 @@ jobs:
           # ブラウザと OS の部品を入れる(約20秒)のを、アプリの起動を待つ間に済ませる
           pnpm --filter @app/web exec playwright install --with-deps chromium > "$RUNNER_TEMP/playwright-install.log" 2>&1 &
           install=$!
+          # 後の Cognito の手順で使う偽物の Cognito も、ここで作っておく(下でコンテナの外への通信を止めると、作れない)
+          docker compose -f docker-compose.yml -f docker-compose.cognito.yml build fake-cognito
           docker compose up --build -d
           # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
           ready=false
@@ -219,6 +225,11 @@ jobs:
             cat "$RUNNER_TEMP/playwright-install.log"
             exit 1
           fi
+      # イメージを作り終えてから、アプリのコンテナを外へ出られなくする(画面・API が外へ送っていれば、ここで E2E が落ちる。
+      # イメージの取得は通る。docs/designs/0057-ai-egress.md の U-2・段4)
+      - name: Docker のコンテナから外への通信を止める
+        if: steps.scope.outputs.heavy == 'true'
+        run: bash .github/scripts/block-container-egress.sh
       - if: steps.scope.outputs.heavy == 'true'
         run: pnpm test:e2e
       - name: Cognito でのログイン(偽物の Cognito に切り替えて、ログインの流れだけ流す)
@@ -228,7 +239,7 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-cognito
         run: |
           # API を AUTH_MODE=cognito で起動し直し、偽物の Cognito を足す(DB と種データはそのまま)。
-          # API のイメージはさっき作ったので作り直さない(無い偽物の Cognito だけを作る)
+          # API と偽物の Cognito のイメージは、起動の手順で作ってある(コンテナの外への通信を止めた後は作れない)
           docker compose -f docker-compose.yml -f docker-compose.cognito.yml up -d --wait api fake-cognito
           pnpm test:e2e --output=test-results/cognito
       - name: スクショ・動画・レポート(PR に貼る証拠)
