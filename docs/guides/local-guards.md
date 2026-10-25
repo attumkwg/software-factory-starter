@@ -13,6 +13,10 @@
 - **外へ向けた操作は記録する**(`.claude/hooks/record-outbound.mjs`。PostToolUse): `git push`・`gh pr create` などの書き込み・`gh api` の書き込み・`publish`・`curl` など・WebFetch・WebSearch・MCP を、時刻・手段・宛先だけ `.claude/outbound.log`(git に載せない)に1行ずつ。PR の「🚪 外へ出した物」は `pnpm outbound` で表にし、頼まれていない物に **いいえ** を付ける(設計書 0057 の 6)。止めるのではなく、後から見えるようにする層。
 - フックは「読むだけ」のコマンド(`cat`・`grep`・`git diff` など)は聞かない。疑わしいときは聞く側に倒してある。止めすぎ・聞きすぎを見つけたら、`guard-edit.test.mjs`・`guard-bash.test.mjs` に例を足してから直す。
 
+## 人が見ていない所で回すとき(外への通信)
+
+上の3層は「AI に勝手に変えさせない」守り。**人が見ていない所で AI を回す**ときは、確認が止めないので、外へ送る手段そのものを持たせない所でだけ回す(AI-2)。① 許可リストのプロキシで絞った devcontainer・② Web と GitHub 以外の MCP を持たない背景の AI。外へ向けた操作は記録して PR に並べる。手順は [unattended-ai.md](unattended-ai.md)。
+
 ## 編集の確認を手元だけで外す(`KIT_EDIT_GUARD=pr`)
 
 並べたセッションで infra や `.github` に触るたびに止まり、確認が「最後に人が見るべき所」でなくなるときは、**使う人の手元だけで**一覧の場所の確認を外せる。キットの既定(`.claude/settings.json`)は変えない(ADR 0034)。

@@ -1326,6 +1326,49 @@ parts:
         - { path: docs/guides/automation.md, what: プレビューの行を外す }
         - { path: README.md, what: 「PR ごとのプレビュー環境」の表と変数を外す }
 
+  - id: ai-egress
+    name: AI の外への通信の絞り(人が見ていない所で回すとき)
+    group: dev
+    status: あり
+    removable: true
+    default: 残す
+    what: 人が見ていない AI の作業を、許可リストのプロキシと firewall で絞った devcontainer(中の Docker で結合テスト・E2E が回る)か、Web と GitHub 以外の MCP を持たない背景の AI でだけ回す。CI と背景の AI のテストのコンテナは外へ出られない。外へ向けた操作を記録し、PR の「外へ出した物」に並べる
+    needed_by: AI を人が見ていない所(夜・長い作業・背景の AI)で回す
+    not_needed_by: AI はいつも人が見ている対話でだけ使う(それでも、外へ出した物の記録は残して害は無い)
+    if_removed: 人が見ていない AI が、書いたコードや禁じていない道具(フォームの送信など)で外へ送っても止まらず、気づけない
+    depends_on: [harness, claude-actions]
+    law:
+      - ISMS 8.20(ネットワークのセキュリティ)
+      - SOC 2 CC6.6
+    where: [.devcontainer/egress/egress-up.sh, .devcontainer/egress/allowlist.txt, .github/scripts/block-container-egress.sh, .claude/hooks/record-outbound.mjs, scripts/outbound.mjs, docs/guides/unattended-ai.md]
+    remove:
+      delete:
+        - .devcontainer/egress
+        - .github/scripts/block-container-egress.sh
+        - .claude/hooks/record-outbound.mjs
+        - .claude/hooks/record-outbound.test.mjs
+        - scripts/outbound.mjs
+        - docs/guides/unattended-ai.md
+      edit:
+        - { path: .devcontainer/Dockerfile, what: tinyproxy・iptables・egress の写し・sudo の1行を外す }
+        - { path: .devcontainer/devcontainer.json, what: プロキシの環境変数・postStartCommand・runArgs の NET_ADMIN を外す }
+        - { path: apps/api/Dockerfile, what: ARG NODE_USE_ENV_PROXY を外す }
+        - { path: apps/web/Dockerfile, what: ARG NODE_USE_ENV_PROXY を外す }
+        - { path: docker-compose.yml, what: build の args NODE_USE_ENV_PROXY を外す }
+        - { path: .claude/settings.json, what: PostToolUse の record-outbound.mjs を外す }
+        - { path: scripts/check-guards.mjs, what: record-outbound.test.mjs を外す }
+        - { path: package.json, what: outbound を外す }
+        - { path: .github/pull_request_template.md, what: 「🚪 外へ出した物」の欄を外す }
+        - { path: .gitignore, what: .claude/outbound.log を外す }
+        - { path: CLAUDE.md, what: 人が見ていない所で回す作業の行と pnpm outbound を外す }
+        - { path: docs/guides/local-guards.md, what: 人が見ていない所で回すときの節を外す }
+        - { path: docs/security.md, what: AI-2 を「未」に戻す }
+      ci:
+        - { file: .github/workflows/ci.yml, job: integration, what: 「Docker のコンテナから外への通信を止める」を外す }
+        - { file: .github/workflows/ci.yml, job: e2e, what: 「Docker のコンテナから外への通信を止める」を外す(偽物の Cognito を先に作る行は残してよい) }
+        - { file: .github/workflows/claude.yml, job: claude, what: 「Docker のコンテナから外への通信を止める」と disallowedTools の WebFetch・WebSearch を外す }
+      docs: [docs/specs/0057-ai-egress.md, docs/adr/0068-ai-egress-by-where-it-runs.md, docs/adr/0069-background-ai-runs-integration-tests.md]
+
   - id: claude-actions
     name: GitHub の上の Claude(背景エージェント)
     group: dev
