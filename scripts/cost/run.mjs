@@ -1,10 +1,11 @@
 // 費用を集めて、ページ(静的な HTML の1枚)を作る。cost.yml が毎日(有効にしたら)流し、非公開の S3 に置く。
 //   pnpm cost --out <dir> --account stg|prod|dev   そのアカウントの AWS の費用(役割の資格情報で)を <dir>/aws-<環境>.json に
-//   pnpm cost --out <dir> --only github,saas          AWS の外(Actions の分数・SaaS と AI の席などの月額と見積もり)
-//   pnpm cost --render <dir>                       <dir> の JSON から summary.json・index.html・manifest.json を作る
+//   pnpm cost --out <dir> --only github,saas,people   AWS の外(Actions の分数・SaaS と AI の席などの月額と見積もり・PR からの人の時間)
+//   pnpm cost --render <dir> [--inputs <dir>]      <dir> の JSON から summary.json・index.html・ledger.csv・manifest.json を作る
+//                                                  --inputs は非公開の入力(時給・時間の手入力・売上。S3 の cost/inputs/。リポジトリに置かない)
 //   pnpm cost --out <dir>                          AWS の外を集めて、そのまま作る(手元で試す)
 // 置き場には送らない(送るのはワークフロー)。ログには名前と件数だけ(金額は出さない。公開のリポジトリのログに残るため)。
-// 設計: docs/designs/0019-evidence-soa-and-cost.md・手引き: docs/guides/cost-dashboard.md・ADR 0032
+// 設計: docs/designs/0019-evidence-soa-and-cost.md・0020(人の時間と賭けごとの PL)・手引き: docs/guides/cost-dashboard.md・ADR 0032・0033
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { makeContext } from "../checkup/context.mjs";
@@ -19,13 +20,24 @@ import {
   monthOf,
   writeBundle,
 } from "../evidence/lib.mjs";
+import { makeLedgerCsv } from "./ledger.mjs";
 import { renderHtml } from "./render.mjs";
 import { awsCost } from "./source-aws.mjs";
 import { estimates, githubActions, saas } from "./source-other.mjs";
+import {
+  betStages,
+  loadPeopleConfig,
+  PEOPLE_FILE,
+  peoplePrs,
+  readInputs,
+} from "./source-people.mjs";
 import { makeSummary } from "./summary.mjs";
 
 const ACCOUNTS = ["stg", "prod", "dev"];
 const OTHER = {
+  people: [
+    { name: "people-prs", about: "今月作った PR(賭けごとの人の時間の目安)", collect: peoplePrs },
+  ],
   github: [
     { name: "github-actions", about: "今月のワークフローごとの実行と分数", collect: githubActions },
   ],
@@ -34,7 +46,7 @@ const OTHER = {
     { name: "estimates", about: "見積もり(docs/cost/estimates.yaml)", collect: estimates },
   ],
 };
-const GENERATED = new Set(["summary.json", "manifest.json"]);
+const GENERATED = new Set(["summary.json", "manifest.json", "ledger.csv"]);
 
 const args = process.argv.slice(2);
 const option = (name) => {
@@ -58,12 +70,26 @@ function render(dir) {
   const entries = {};
   for (const f of readdirSync(dir).filter((f) => f.endsWith(".json") && !GENERATED.has(f)))
     entries[f.slice(0, -5)] = JSON.parse(readFileSync(join(dir, f), "utf8"));
-  const summary = makeSummary(entries, { today, generatedAt: new Date().toISOString() });
+  const repoCtx = makeContext({ repo: null, today });
+  const inputs = readInputs(option("--inputs"), monthOf(today));
+  const people = {
+    inputs,
+    allocation: loadPeopleConfig(repoCtx.read(PEOPLE_FILE)).allocation,
+    stages: betStages(repoCtx),
+  };
+  const summary = makeSummary(entries, { today, generatedAt: new Date().toISOString(), people });
   const files = new Map();
   for (const f of readdirSync(dir).filter((f) => !GENERATED.has(f) && f !== "index.html"))
     files.set(f, readFileSync(join(dir, f), "utf8"));
   files.set("summary.json", `${JSON.stringify(summary, null, 2)}\n`);
   files.set("index.html", renderHtml(summary));
+  if (summary.pl) {
+    const prs = entries["people-prs"]?.ok ? entries["people-prs"].data.prs : [];
+    files.set(
+      "ledger.csv",
+      makeLedgerCsv({ month: summary.month, prs, rates: inputs.rates, pl: summary.pl }),
+    );
+  }
   files.set(
     "manifest.json",
     `${JSON.stringify(manifestOf(meta(summary.repo ?? null), files), null, 2)}\n`,
@@ -84,7 +110,7 @@ async function collect(dir) {
   const account = option("--account");
   if (account !== undefined && !ACCOUNTS.includes(account))
     fail(`--account は ${ACCOUNTS.join(" / ")} のどれか(いま: ${account})`);
-  const kinds = (option("--only") ?? "github,saas").split(",").map((s) => s.trim());
+  const kinds = (option("--only") ?? "github,saas,people").split(",").map((s) => s.trim());
   const sources = account
     ? [
         {

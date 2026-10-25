@@ -1,0 +1,5 @@
+# 見本(偽の数字)。本物は非公開の置き場(S3 の cost/inputs/time.csv)に置く。週に1回、人ごとに賭けの割合を足す(割合の合計は 100)
+# week_start … その週の月曜(YYYY-MM-DD)/ bet … B-NNNN か core(土台)/ percent … その賭けの割合 / hours … その週に働いた時間
+week_start,person,bet,percent,hours
+2026-10-19,@example-dev,B-0002,60,40
+2026-10-19,@example-dev,core,40,40

@@ -29,7 +29,7 @@ export const isDate = (s) => {
     ? isDigits(y) && isDigits(m) && isDigits(d)
     : false;
 };
-const isBetId = (s) => s.length === 6 && s.startsWith("B-") && isDigits(s.slice(2));
+export const isBetId = (s) => s.length === 6 && s.startsWith("B-") && isDigits(s.slice(2));
 
 // 「B-0001-task-mail.md」から「B-0001」。形が違えば undefined
 export const idOfFile = (file) => {
