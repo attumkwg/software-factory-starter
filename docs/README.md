@@ -24,6 +24,7 @@
 | [product/legal.md](product/) | 法令と業界の決まりの洗い出し(作り・データ・相手から当てはまりそうな候補と、専門家に聞くこと)。ひな形 `product/_legal-template.md` | `/kickoff` が書き、`/bet` が機能を足すたびに見直す | 低 |
 | [product/roadmap.md](product/) | ロードマップの1枚(社内の版と、約束しない社外の版 `roadmap-public.md`)。賭けから作る | `pnpm bets --roadmap --write`(手で直さない) | 低 |
 | [product/bets/](product/bets/) | 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。テンプレートと見本あり。考え方は [guides/bets-and-assets.md](guides/bets-and-assets.md) | 賭けを開く・結果が出た・段階が変わるとき(`/bet` が書く。`pnpm bets` が確かめる) | 低 |
+| [product/positioning.md](product/) | 約束(誰の何を、どう変えるか)・売り文句・代わりとの違い・言わないこと・根拠(どの記録・小石か)。テンプレートあり。LP・チラシ・営業の資料・ブランドはここから作る | PSF の結果が出たとき・次の池に進むとき(`/positioning` が書く)。変えたら LP とブランドも | 低 |
 | [reference.md](reference.md) | キットの中身の早見表(ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物・わざとやっていないこと・注意)。AI が「どこに何があるか」を探す入口 | ファイル・コマンド・ワークフローを足す・動かしたとき | 低 |
 | [scenarios/](scenarios/README.md) | 想定の場面(架空の A 社 10人・B 社 100人が企画 → 法令 → 開発 → お金 → 運用 → セキュリティ → 規模拡大を回す台本)と、足りない物の一覧([scenarios/gaps.md](scenarios/gaps.md)) | 部品を足した・穴を埋めたとき(場面の判定と gaps.md の行を同じ PR で) | 低 |
 | [getting-started.md](getting-started.md) | 使い始めの手引き(手元 → 置き換え → GitHub → AWS → Slack → 運用) | 手順や費用が変わったとき | 低 |

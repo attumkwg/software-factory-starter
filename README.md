@@ -79,7 +79,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 経営・事業の責任者 | [想定の場面](docs/scenarios/README.md)(自分の規模の会社で、どこが回りどこで詰まるか) | `/kickoff`・`/bet`・費用のページ |
 | PdM | [PMF の前の進め方](docs/guides/before-pmf.md)・[機能ごとの賭け](docs/guides/bets-and-assets.md) | `/bet`・`/new-feature`・`pnpm bets` |
 | エンジニア・EM | [開発の進め方](docs/playbook.md)・[ラインの作り](docs/concepts/line.md) | `/new-feature`・`/review-pr`・`/rework` |
-| マーケ・広報・営業 | [売る場面](docs/scenarios/08-gtm.md)・[決めることの地図](docs/scenarios/fit-journey.md)(売り文句 → LP → ブランドの色の順) | `/kickoff`・`/prototype`・`/release-notes` |
+| マーケ・広報・営業 | [売る場面](docs/scenarios/08-gtm.md)・[決めることの地図](docs/scenarios/fit-journey.md)(売り文句 → LP → ブランドの色の順) | `/positioning`・`/kickoff`・`/prototype`・`/release-notes` |
 | CS | [運用の場面](docs/scenarios/05-run.md)・[サポートの代理ログイン](docs/runbooks/support-access.md) | `/report-bug`・`/release-notes` |
 | 法務・管理部門 | [規約と同意](docs/guides/legal-documents.md)・[認証の準備](docs/compliance/README.md)・[費用のページ](docs/guides/cost-dashboard.md) | `/ledger`・`/compliance-check` |
 | セキュリティ・情シス | [セキュリティの決まり](docs/security.md)・[障害の手順書](docs/runbooks/incident.md) | `/cve`・`/checkup` |
@@ -128,7 +128,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
 
 <details>
-<summary>部品の一覧を開く(51件)</summary>
+<summary>部品の一覧を開く(52件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -179,6 +179,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 開発の道具 | プロトタイプの置き場 `prototypes` | 本番のラインに乗せずに、押せる画面だけ・偽のデータの試作を作り(/prototype)、合言葉つきの URL で見せる(S3+CloudFront) | 残す | あり |
 | 進め方 | 始め方の計画(/kickoff) `kickoff` | 誰の困りごとか・いちばん危ない思い込み・確かめ方・合格と撤退の線を、1問ずつ決めて計画にする | 残す | あり |
 | 進め方 | 機能ごとの賭け(/bet) `bets` | 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く | 残す | あり |
+| 進め方 | 約束と売り文句(/positioning) `positioning` | 話の記録・賭けの小石・計画の代わりの物から、約束(誰の何を、どう変えるか)の案を3つ・売り文句・代わりとの違い・言わないことを根拠つきで出し、1問ずつ選んで docs/product/positioning.md に残す。LP・チラシ・営業の資料・ブランドはここから作る | 残す | あり |
 | 進め方 | 組織ごとの機能フラグ `feature-flags` | 賭けの psf / rollout で、運営が選んだ組織にだけ機能を出す・止める(定義はコード・組織ごとの状態は DB・切り替えは運営のコマンド)。A/B テストの土台 | 残す | あり |
 | 進め方 | 利用の記録 `usage-records` | どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す | 残す | あり |
 | 進め方 | 資産と費用の台帳(/ledger) `ledger` | 月1回、賭けごとの人の時間とインフラ・SaaS を「資産の候補・費用・除却の候補」に分けた案(費用のページの ledger.csv)を1つずつ確かめ、賭けのファイルの「会計区分の判定」に足す。会計・税の当てはめは専門家が確かめる | 残す | あり |

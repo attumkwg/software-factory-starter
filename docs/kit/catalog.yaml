@@ -1304,6 +1304,27 @@ parts:
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
 
+  - id: positioning
+    name: 約束と売り文句(/positioning)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 話の記録・賭けの小石・計画の代わりの物から、約束(誰の何を、どう変えるか)の案を3つ・売り文句・代わりとの違い・言わないことを根拠つきで出し、1問ずつ選んで docs/product/positioning.md に残す。LP・チラシ・営業の資料・ブランドはここから作る
+    needed_by: PSF の後に、LP・チラシ・営業の言葉を作る
+    not_needed_by: 受託など、売る言葉を自分たちで決めない
+    if_removed: LP・チラシ・ブランドの色が、それぞれ別の言葉から作られて合わなくなる。売り文句の根拠(どの話・どの結果か)が残らない
+    depends_on: [kickoff, bets]
+    law: [景品表示法 5条(根拠の無い優良・有利の表示。言わないことの案に入れる)]
+    where: [.claude/skills/positioning/SKILL.md, docs/product/_template-positioning.md, docs/guides/before-pmf.md]
+    remove:
+      delete: [.claude/skills/positioning, docs/product/_template-positioning.md]
+      edit:
+        - { path: CLAUDE.md, what: /positioning と positioning.md の行を外す }
+        - { path: docs/README.md, what: product/positioning.md の行を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の約束の所を外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
   - id: feature-flags
     name: 組織ごとの機能フラグ
     group: process
