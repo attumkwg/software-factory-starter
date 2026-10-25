@@ -1325,6 +1325,30 @@ parts:
         - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の約束の所を外す }
       docs: [docs/adr/0037-promise-before-lp-and-brand.md]
 
+  - id: brand
+    name: ブランドを決める段取り(/brand・pnpm contrast)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 約束と相手(業種・使う場所)から名前(仮)・話し方のトーン・色の案を2〜3つ出し、色は tokens.css の主な色を置き換えた PR にする。案ごとのコントラストの比を pnpm contrast で計算して添え、画面は VRT のスクショで人が決める。docs/product/brand.md に理由を残す
+    needed_by: 自分たちのブランドで売る(LP・チラシ・画面の色をそろえる)
+    not_needed_by: 受託で、色と名前をお客さんが決める
+    if_removed: 色を約束と相手から決める段取りが無くなり、比を目で決めることになる(トークン・axe・VRT は残る)
+    depends_on: [positioning, vrt]
+    law: [商標法(名前は商標を確かめるまで仮。当てはめは弁理士)]
+    where: [.claude/skills/brand/SKILL.md, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+    remove:
+      delete: [.claude/skills/brand, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+      edit:
+        - { path: package.json, what: contrast を外す・test:scripts から contrast.test.mjs を外す }
+        - { path: CLAUDE.md, what: /brand と brand.md と pnpm contrast の行を外す }
+        - { path: docs/README.md, what: product/brand.md の行を外す }
+        - { path: docs/design-system.md, what: /brand と pnpm contrast の所を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の /brand の所を外す }
+        - { path: .claude/skills/positioning/SKILL.md, what: /brand へのつなぎを外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
   - id: feature-flags
     name: 組織ごとの機能フラグ
     group: process
