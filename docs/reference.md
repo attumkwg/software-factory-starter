@@ -254,7 +254,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
 - **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
-- **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
+- **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。設計はある([設計書 0057](designs/0057-ai-egress.md)。人が見ていない作業は、絞った devcontainer か背景の AI でだけ回す)。作るのは段ごとの PR。
 - **WAF を「止める」にすること**: stg・prod の ALB の前に WAF はある(`infra/terraform/modules/waf`)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
 - **CSP の違反の知らせを集めること**(`report-to`): 画面の CSP はある([設計書 0045](designs/0045-web-csp.md))が、違反を受け取る口は無い。止めた物は E2E の `csp.spec.ts` で見つける。本番で起きた違反を数えたくなったら、受け口を API に足す。
 
