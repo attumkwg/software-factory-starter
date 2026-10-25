@@ -127,6 +127,47 @@ resource "aws_wafv2_web_acl" "this" {
     }
   }
 
+  # 公開の LP の入口(/api/public/*。ログインの無い書き込み)は、1つの IP から5分に public_rate_limit まで
+  # (事前登録で表を太らせる・確認のメールを送らせる・見た数を狂わせるのを抑える。docs/specs/0025-public-landing-page.md)
+  rule {
+    name     = "rate-limit-public-entrances"
+    priority = 45
+    action {
+      dynamic "block" {
+        for_each = var.mode == "block" ? [1] : []
+        content {}
+      }
+      dynamic "count" {
+        for_each = var.mode == "count" ? [1] : []
+        content {}
+      }
+    }
+    statement {
+      rate_based_statement {
+        limit              = var.public_rate_limit
+        aggregate_key_type = "IP"
+        scope_down_statement {
+          byte_match_statement {
+            search_string         = "/api/public/"
+            positional_constraint = "STARTS_WITH"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.name}-rate-limit-public"
+      sampled_requests_enabled   = true
+    }
+  }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = var.name

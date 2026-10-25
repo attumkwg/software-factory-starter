@@ -4,7 +4,8 @@
 #   3. API → 画面の順に、ECS のサービスを新しいタスク定義で更新 → ECS の blue/green が切り替え、
 #      アラーム(5xx)が鳴れば自動で戻す。API が先なのは、新しい画面が新しい API を前提にできるように
 #      (API は古い画面からも呼ばれるので、項目は足すだけ・消さない。packages/shared の決まり)
-#   4. 外から疎通を確かめる(画面の /readyz と、ALB の向こうの API)
+#   4. 公開の LP(apps/site)をビルドして S3 に置く(置き場所と変数があるときだけ。docs/guides/landing-page.md)
+#   5. 外から疎通を確かめる(画面の /readyz と、ALB の向こうの API)
 # prod だけ、最初に未確定事項を確かめる(pnpm decisions --launch)。仮決め・導入時に決める が残っていれば、
 # AWS に触る前に止まる(docs/designs/0013-decisions-at-adoption.md)。
 # AWS の変数が無ければ、ジョブごと飛ばす(失敗しない)。
@@ -129,6 +130,25 @@ jobs:
           service: ${{ env.CLUSTER }}-web
           wait-for-service-stability: true
           wait-for-minutes: 30
+      # 公開の LP(apps/site)。置き場所(Terraform の public_site_domain)と変数が無ければ飛ばす
+      - if: vars.STG_SITE_BUCKET != '' && vars.STG_SITE_DISTRIBUTION_ID != '' && vars.STG_SITE_URL != '' && vars.STG_URL != ''
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: vars.STG_SITE_BUCKET != '' && vars.STG_SITE_DISTRIBUTION_ID != '' && vars.STG_SITE_URL != '' && vars.STG_URL != ''
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          # 出荷のジョブはキャッシュを使わない(PR が汚したキャッシュを本番に持ち込まない)
+          package-manager-cache: false
+      - name: 公開の LP をビルドして置く(静的なファイルだけ。docs/guides/landing-page.md)
+        if: vars.STG_SITE_BUCKET != '' && vars.STG_SITE_DISTRIBUTION_ID != '' && vars.STG_SITE_URL != '' && vars.STG_URL != ''
+        env:
+          SITE_URL: ${{ vars.STG_SITE_URL }}
+          APP_URL: ${{ vars.STG_URL }}
+          BUCKET: ${{ vars.STG_SITE_BUCKET }}
+          DISTRIBUTION: ${{ vars.STG_SITE_DISTRIBUTION_ID }}
+        run: |
+          pnpm install --frozen-lockfile --filter @app/site...
+          .github/scripts/deploy-site.sh stg "$SITE_URL" "$APP_URL" "$BUCKET" "$DISTRIBUTION"
       - name: 疎通(スモークテスト。画面と、ALB の向こうの API)
         if: vars.STG_URL != ''
         env:
@@ -205,6 +225,25 @@ jobs:
           service: ${{ env.CLUSTER }}-web
           wait-for-service-stability: true
           wait-for-minutes: 45
+      # 公開の LP(apps/site)。置き場所(Terraform の public_site_domain)と変数が無ければ飛ばす
+      - if: vars.PROD_SITE_BUCKET != '' && vars.PROD_SITE_DISTRIBUTION_ID != '' && vars.PROD_SITE_URL != '' && vars.PROD_URL != ''
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: vars.PROD_SITE_BUCKET != '' && vars.PROD_SITE_DISTRIBUTION_ID != '' && vars.PROD_SITE_URL != '' && vars.PROD_URL != ''
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          # 出荷のジョブはキャッシュを使わない(PR が汚したキャッシュを本番に持ち込まない)
+          package-manager-cache: false
+      - name: 公開の LP をビルドして置く(静的なファイルだけ。docs/guides/landing-page.md)
+        if: vars.PROD_SITE_BUCKET != '' && vars.PROD_SITE_DISTRIBUTION_ID != '' && vars.PROD_SITE_URL != '' && vars.PROD_URL != ''
+        env:
+          SITE_URL: ${{ vars.PROD_SITE_URL }}
+          APP_URL: ${{ vars.PROD_URL }}
+          BUCKET: ${{ vars.PROD_SITE_BUCKET }}
+          DISTRIBUTION: ${{ vars.PROD_SITE_DISTRIBUTION_ID }}
+        run: |
+          pnpm install --frozen-lockfile --filter @app/site...
+          .github/scripts/deploy-site.sh prod "$SITE_URL" "$APP_URL" "$BUCKET" "$DISTRIBUTION"
       - name: 疎通(スモークテスト。画面と、ALB の向こうの API)
         if: vars.PROD_URL != ''
         env:
