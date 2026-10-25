@@ -16,6 +16,7 @@
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
 - `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
 - `pnpm contrast`(色のトークンのコントラストの比。明るいテーマと暗いテーマ・WCAG 2.2 AA。案のファイルを並べて渡すと比べられる)
+- `pnpm metrics`(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫。決裁用と改善用。`gh` で読むだけ。`metrics.yml` が毎週。`docs/guides/metrics.md`)
 - `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
 
 ## 地図
