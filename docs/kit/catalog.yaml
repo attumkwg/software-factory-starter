@@ -1012,6 +1012,35 @@ parts:
       matrix: [POST /api/legal/consents]
       docs: [docs/specs/0009-legal-consent.md, docs/adr/0022-legal-documents-and-consent.md, docs/guides/legal-documents.md]
 
+  - id: contract-templates
+    name: お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い)
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: 申込書・SLA・個人データの取り扱いの取り決めに要る項目を、キットの既定・根拠のファイル・使う人が決めることで並べた型。文面は書かない(専門家が書く)。条件を「変えない / 仕組みを変えれば変えられる / 契約だけで変えられる」に分け、SLA の測り方・数える停止・補償の段・事実と例外を決める人を先に決める
+    needed_by: 会社向けで、申込書・稼働の約束・取り扱いの取り決めを求められる
+    not_needed_by: 個人向けで規約だけ・社内だけで使う
+    if_removed: 営業が書類を毎回一から作る。SLA を割ったときに、測り方・補償・決める人で揉める。仕組みで守れない約束(バックアップから早く消すなど)を書いてしまう
+    depends_on: [backup, offboarding, uptime, vendor-ledger]
+    law:
+      - 個人情報保護法 25条(委託先の監督)・26条(漏えい等の報告。委託先から委託元への通知)
+      - ISMS 5.20(供給者との合意の中のセキュリティ)
+      - P マーク(委託の契約)
+    where:
+      - docs/legal/README.md
+      - docs/legal/order-form.md
+      - docs/legal/sla.md
+      - docs/legal/data-processing.md
+    remove:
+      delete: [docs/legal]
+      edit:
+        - { path: docs/README.md, what: legal/ の行を外す }
+        - { path: docs/reference.md, what: legal/ の行を外す }
+        - { path: docs/guides/data-retention.md, what: 頭の docs/legal/ へのリンクを外す }
+        - { path: docs/runbooks/incident.md, what: 振り返りの型の SLA の行を外す }
+      docs: [docs/specs/0028-contract-templates.md, docs/designs/0028-contract-templates.md, docs/adr/0041-contract-templates-fixed-and-negotiable.md]
+
   - id: certification-prep
     name: 認証の準備(P マーク・ISMS・SOC 2)
     group: rules
