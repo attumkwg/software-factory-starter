@@ -423,6 +423,8 @@ parts:
         - docs/runbooks/tenant-provisioning.md
       edit:
         - { path: apps/api/src/cli.ts, what: create-tenant のコマンドを外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: module.applications と app の applications_store を外す(stg も) }
+        - { path: apps/api/package.json, what: "@aws-sdk/client-s3 を外す(ほかで使っていなければ)" }
       docs: [docs/specs/0026-tenant-provisioning.md, docs/adr/0039-tenant-provisioning-command.md]
 
   - id: offboarding

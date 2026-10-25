@@ -7,12 +7,14 @@
 
 ## 0. 全体像
 
-申し込みを受けた会社を、運営が CLI `create-tenant` で組織にする(試し → 名前の確認 → 実行)。組織と最初の管理者の users の行を1つのトランザクションで作り、作った組織と運営の組織の監査ログに残す。解約の `delete-tenant` と対になる形。
+申し込みを受けた会社を、運営が CLI `create-tenant` で組織にする(試し → 名前の確認 → 実行)。申し込みの JSON は非公開の S3(申し込みの置き場)に置き、コマンドはキーだけを受けて読む。組織と最初の管理者の users の行を1つのトランザクションで作り、作った組織と運営の組織の監査ログに残す。解約の `delete-tenant` と対になる形。
 
 ```mermaid
 flowchart LR
-  A[申込書・事前登録] -->|項目を JSON に| B[create-tenant 試し]
-  B -->|2人で出力を確かめる| C[create-tenant --execute --confirm-name]
+  A[申込書・事前登録] -->|項目を JSON に| S[(申し込みの置き場 S3)]
+  S -->|キーだけ| B[create-tenant 試し]
+  B -->|2人で出力を確かめる| C[create-tenant キー --execute --confirm-name]
+  C -->|読み終えたら消す| S
   C --> D[(tenants・users・audit_events)]
   C -->|組織の ID| E[CS: 最初の管理者に案内]
   E --> F[管理者: Cognito で登録 → ログイン]
@@ -33,7 +35,8 @@ flowchart LR
 
 - 置き場は `apps/api/src/onboarding/create-tenant.ts`(`offboarding/` と対。領域ではない運営の仕組み)。CLI の入口は `src/cli.ts` に1つ足す。
 - 書くのは `db/schema.ts` の `tenants`・`users`(組織の領域の表)。運営のコマンドは `delete-tenant` と同じく、領域の `index.ts` を通さずに表を直接書く(領域の関数は `TenantScope` = リクエストの文脈が前提で、組織を作る関数を領域に置くと、API から呼べる形になってしまう)。
-- 新しい依存は無い(zod・uuid は既にある)。
+- 申し込みの置き場: 環境ごとの非公開の S3(`modules/record-store` を使い回す。キーの頭は `applications/`)。読むのは `src/onboarding/application-source.ts`(置き場があれば S3、無い手元は手元のファイル)。
+- 新しい依存: `@aws-sdk/client-s3`(`@aws-sdk/client-kms` と同じ版。委託先は AWS で台帳に既にある)。
 
 ## 2. データモデル
 
@@ -45,7 +48,9 @@ flowchart LR
 ## 3. API
 
 - 該当なし(API は作らない。ADR 0039)。
-- CLI: `node dist/cli.js create-tenant '<申し込みの JSON>' [--execute --confirm-name <組織の名前>]`
+- CLI: `node dist/cli.js create-tenant <置き場のキー> [--execute --confirm-name <組織の名前>]`
+  - キーの形: `applications/<英数字・-・_ の 1〜100 文字>.json`(会社や人の名前を入れられないように、日本語・空白を通さない)。置き場(`APPLICATIONS_BUCKET`。Terraform が移行のタスクに入れる)があれば S3 から読む。無ければ、使い捨ての環境(local / test / preview)だけ、引数を手元のファイルの道すじとして読む(形は問わない)。本番・stg で置き場が無ければ止める
+  - 読めない(無い・権限が無い)ときは、キーだけを言って止める(中身は出さない)
   - 入力の形(`TenantApplicationSchema`): `{ name: string(1〜100・前後の空白を落とす), timeZone?: IANA の名前(既定 Asia/Tokyo), mfaRequired?: boolean(既定 false), admin: { email: メール(254 まで・小文字にそろえる), name: string(1〜100) } }`。知らない項目は読み飛ばし、名前を `ignoredKeys` で返す(`z.looseObject`)。
   - 出力(JSON 1行): 試し `{"mode":"plan","timeZone","mfaRequired","ignoredKeys"}`・本番 `{"mode":"created","tenantId","adminUserId","timeZone","mfaRequired","ignoredKeys"}`。
   - 失敗: JSON でない・項目の誤り(項目の名前だけ)・`--execute` に `--confirm-name` が無い・名前が違う・メールがもう使われている。どれも何も作らない。
@@ -59,7 +64,11 @@ flowchart LR
 
 - Cognito: 触らない(本人が登録する。運営が Cognito に人を作ると、パスワードを人づてに渡すことになる)。
 - メール: 送らない。最初の管理者への案内は、手順書の文の型を CS が送る(仕様 0027 で仕組みにする)。
-- ECS: 移行と同じ1回きりのタスク(`<名前>-migrate` のタスク定義の command を差し替える)。
+- ECS: 移行と同じ1回きりのタスク(`<名前>-migrate` のタスク定義の command を差し替える)。引数は置き場のキーだけ(CloudTrail の RunTask の記録に残っても、名前・メールは入らない)。
+- S3(申し込みの置き場。`infra/terraform` の `module.applications`・stg と prod):
+  - `modules/record-store` を使い回す(公開を止める・TLS だけ・自前の KMS 鍵・版の管理)。**今の版は7日・古い版(上書き・消した物)は1日で消す**(`expire_days = 7`・`noncurrent_expire_days = 1`。安い保存へは移さない)。record-store に `expire_days` を足し、`archive_after_days = null` で移さないようにした(証跡と費用の置き場は今のまま)
+  - 置くのは人(本番の AWS に入れる開発。`aws s3 cp`)。消すのも人(手順書の 5)
+  - 移行のタスクの役割(今は何も許さない)に、**その置き場の `applications/*` の `s3:GetObject` と、その鍵の `kms:Decrypt` だけ**を足す(`modules/ecs-service` の `applications_store`)。消す・書く・一覧は渡さない。移行のタスクの環境変数に `APPLICATIONS_BUCKET`
 
 ## 6. 業務ルール
 
@@ -73,6 +82,8 @@ flowchart LR
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
 | 試しは流してから取り消し、何も残らない | 3. CLI・`createTenant` の `DryRun` | `tenant-provisioning.int.test.ts`「流してから取り消す」 |
+| 申し込みは置き場に置き、引数はキーだけ | 1・3・5 | `test/unit/create-tenant.test.ts`「置き場のキーの形」「置き場から読む」「手元のファイル」「本番で置き場が無ければ止める」 |
+| 読み終えたら消す・7日で消える | 5 | `infra/terraform`(`expire_days`)と手順書の 5。`terraform validate`・tflint |
 | 本番で落ちる理由は試しでも落ちる | 同上 | 「試しでも落ちる」 |
 | `--confirm-name` が違えば作らない | 3. CLI | 「名前が違えば何も作らない」 |
 | 申し込みの項目・既定・知らない項目は名前だけ | 3. 入力の形 | `test/unit/create-tenant.test.ts` |
@@ -88,8 +99,8 @@ flowchart LR
 
 - 性能: 1回に4〜5行を書くだけ。
 - セキュリティ: 仕様の STRIDE のとおり。表の持ち主の接続でも FORCE RLS が効くので、新しい組織の文脈(`withTenant`)で書き、運営の組織への記録は同じトランザクションの中で文脈を付け替えて書く(片方だけ残らない)。
-- 運用: 手順書 `docs/runbooks/tenant-provisioning.md`。ECS のタスクのログに出力が1行。
-- 費用: なし(移行のタスクと同じ)。
+- 運用: 手順書 `docs/runbooks/tenant-provisioning.md`(置く → 試し → 作る → 消す)。ECS のタスクのログに出力が1行。
+- 費用: 置き場の KMS の鍵が環境ごとに 月 約150円(S3 は数 KB なので 1円未満)。
 
 ## 9. このプロダクト特有
 
@@ -122,7 +133,11 @@ flowchart LR
 ## 11. 決めたこと(AI が決めた。人に聞かなかった)
 
 - 試しは「同じ処理を流して最後に取り消す」 — 数えるだけの試しでは、メールの重なりがほかの組織の行(RLS で見えない)にあるかを前もって確かめられない。表の持ち主はログインの関数も呼べない(app_rw ではない)。取り消しなら本番と同じ理由で落ちる。
-- 入力は JSON 1つ(引数) — ECS の1回きりのタスクにはファイルを渡せない(command の差し替えだけ)。申込書・事前登録の書き出しをそのまま貼れるよう、知らない項目は読み飛ばす(止めない)。読み飛ばした項目の名前は出すので、書き間違い(`timezone` など)に気づける。
+- 入力は JSON 1つ — 申込書・事前登録の書き出しをそのまま置けるよう、知らない項目は読み飛ばす(止めない)。読み飛ばした項目の名前は出すので、書き間違い(`timezone` など)に気づける。
+- キーの形を決める(`applications/` の下の英数字・-・_ の `.json`) — キーは引数として CloudTrail に残るので、会社や人の名前を入れられないようにする。申込番号か日付+番号で付ける。
+- 置き場の消え方は 今の版7日・古い版1日 — 人が消し忘れても1週間で消える。開通は申し込みから数日で終わる。版の管理は record-store のまま(誤って上書きしても1日は戻せる)。
+- 消すのは人で、コマンドは消さない — 移行のタスクの役割に消す権限を渡さない(読むだけ)。消したことは CloudTrail(S3 のデータの記録は取っていないので、手順書の作業の記録)に残す。
+- 組織の名前は `--confirm-name` で引数に残る — `delete-tenant` と同じ形で、取り違えを防ぐ確かめに要る。組織の名前は会社の名前がふつう(個人事業主のときだけ人の名前になる)。管理者の名前・メールは残らない。
 - 組織の名前の重なりは止めない — 同じ名前の会社はありうる。取り違えは `--confirm-name` と2人で防ぐ(`delete-tenant` と同じ)。
 - 運営の組織への記録は同じトランザクションで — `delete-tenant` は消した組織の記録が消えるので別に残すが、作るときは両方そろって残るか、両方残らないかにしたい。
 - 最初の管理者の行は、Cognito と結びつけずに作る — 既にある「初めてのログインで、確認済みのメールが一致したら結びつく」を使う。運営が Cognito に人を作ると、初めのパスワードを人づてに渡すことになる。
@@ -134,10 +149,11 @@ flowchart LR
 
 | 番号 | 工程 | 種類 | 仮決め(設計した事実) | なぜそうしたか | 人が判断する問い | 状態 |
 |---|---|---|---|---|---|---|
-| U-1 | 設計 | 戻せないリスク | 申し込み(組織の名前・管理者の名前とメール)を、ECS の `run-task` の command の引数で渡す。引数は CloudTrail の RunTask の記録(監査証跡の S3。消せない)に残る | ECS の1回きりのタスクに渡せるのは command と環境変数だけ。`delete-tenant` も組織の名前を引数で渡している。S3 に置いて読ませる形は、置き場と消し方がもう1つ増える | 申し込みの個人情報(管理者の名前・メール)が監査証跡に残ってよいか(だめなら、S3 の決まった場所に置いて読む形にする) | 仮決め |
-| U-2 | 設計 | 他チームとの契約や制約 | 流すのは本番の AWS に入れる人(開発の人)。CS は申込書を JSON にして渡し、出力を一緒に確かめる(2人) | CS に本番の AWS の権限を渡さない(いまの手順書の決まり)。`delete-tenant` と同じ分担 | 開通を誰が流すか(CS に ECS のタスクを流す権限だけ渡すか) | 仮決め |
+| U-1 | 設計 | 戻せないリスク | 申し込み(組織の名前・管理者の名前とメール)を、ECS の `run-task` の command の引数で渡す。引数は CloudTrail の RunTask の記録(監査証跡の S3。消せない)に残る | ECS の1回きりのタスクに渡せるのは command と環境変数だけ。`delete-tenant` も組織の名前を引数で渡している。S3 に置いて読ませる形は、置き場と消し方がもう1つ増える | 申し込みの個人情報(管理者の名前・メール)が監査証跡に残ってよいか(だめなら、S3 の決まった場所に置いて読む形にする) | 承認(@attumkwg 2026-10-25。会話で回答: S3 の決まった場所に置き、コマンドはキーだけを受けて読む。読み終えたら消す手順も手順書に)→ 3・5 を作り直した(13) |
+| U-2 | 設計 | 他チームとの契約や制約 | 流すのは本番の AWS に入れる人(開発の人)。CS は申込書を JSON にして渡し、出力を一緒に確かめる(2人) | CS に本番の AWS の権限を渡さない(いまの手順書の決まり)。`delete-tenant` と同じ分担 | 開通を誰が流すか(CS に ECS のタスクを流す権限だけ渡すか) | 承認(@attumkwg 2026-10-25。会話で回答: 開発が流す) |
 
 ## 13. 作り直しの記録
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | 未確定事項 U-1 の答え(S3 に置いてキーだけを渡す) | 要求(仕様の受け入れ条件が、申し込みの JSON を引数で渡す形に決めていた) | 仕様 0026 の受け入れ条件・STRIDE・決めたこと | 設計書の 0・1・3・5・7・8・11・12、`src/onboarding/application-source.ts`・`cli.ts`、Terraform(`record-store` の `expire_days`・`ecs-service` の `applications_store`・stg と prod の `module.applications`)、単体テスト、手順書 `tenant-provisioning.md`・ADR 0039 |
