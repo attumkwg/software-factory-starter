@@ -4,7 +4,7 @@ import { api } from "../api.ts";
 import { useAction } from "../use-action.ts";
 import { MfaRequirementCard } from "./settings/MfaRequirementCard.tsx";
 
-// 組織の管理者の「設定」。監査ログ・サポートへの許可・データの書き出し(docs/specs/0005-offboarding.md)・
+// 組織の管理者の「設定」。招待(docs/specs/0027-invitations.md)・監査ログ・サポートへの許可・データの書き出し(docs/specs/0005-offboarding.md)・
 // 二段階認証の必須(docs/specs/0006-account-security.md)。
 export function SettingsPage({ me, mfa }: { me: Me; mfa: MfaRequirement }) {
   const exporting = useAction();
@@ -19,6 +19,15 @@ export function SettingsPage({ me, mfa }: { me: Me; mfa: MfaRequirement }) {
           <Muted>この組織で、誰が・いつ・何をしたかの記録です。</Muted>
           <div>
             <Link href="/audit">監査ログを見る</Link>
+          </div>
+        </Stack>
+      </Card>
+      <Card>
+        <Stack gap={2}>
+          <Heading level={2}>招待</Heading>
+          <Muted>メールアドレスとロールを選んで、この組織に人を招きます。</Muted>
+          <div>
+            <Link href="/invitations">招待を開く</Link>
           </div>
         </Stack>
       </Card>

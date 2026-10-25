@@ -31,7 +31,13 @@ const relay = config.outboxRelay
   ? startOutboxRelay({
       db,
       logger,
-      handlers: outboxHandlers({ db, logger, mailer, appUrl: config.appUrl }),
+      handlers: outboxHandlers({
+        db,
+        logger,
+        mailer,
+        appUrl: config.appUrl,
+        linkSecret: config.session.secret,
+      }),
     })
   : null;
 

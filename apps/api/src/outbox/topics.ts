@@ -17,6 +17,10 @@ export const OUTBOX_TOPICS = {
   "organizations.mfa_disabled": z.object({ userId: IdSchema }),
   // 宛先は古いアドレス(email_changes.previous_email)
   "organizations.email_changed": z.object({ emailChangeId: IdSchema }),
+  // 招待のメール(docs/specs/0027-invitations.md)。宛先・組織・期限は invitations の行から読み、リンクは送る直前に作る
+  "organizations.invitation_created": z.object({ invitationId: IdSchema }),
+  // 運営のコマンドが組織を作った: 最初の管理者への案内(docs/specs/0027-invitations.md)。宛先は users の行
+  "organizations.tenant_opened": z.object({ userId: IdSchema }),
   // 規約の変更のお知らせ(docs/specs/0009-legal-consent.md)。宛先・版は legal.notices の行から読む
   "legal.change_notified": z.object({ noticeId: IdSchema }),
 } as const;
