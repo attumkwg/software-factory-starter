@@ -4,8 +4,8 @@ SET LOCAL statement_timeout = '60s';--> statement-breakpoint
 -- 1人が複数の組織に所属する形の段 ③(縮小)(docs/designs/0055-multi-org-membership.md の 2・ADR 0066)。危険度「高」・**戻せない**
 -- (2つ目の所属ができた後は、全体の一意を張り直せない。設計書の U-3。段 ①② を出して1週間見てから)。
 --
--- 1. 全体で一意の索引(users_email_key・users_external_id_key)は drizzle/concurrent/0018_drop_global_user_keys.sql で
---    CONCURRENTLY に消す。組織ごとの一意(0017)は残る。
+-- 1. 全体で一意の索引(users_email_key・users_external_id_key)は drizzle/concurrent/0019_drop_global_user_keys.sql で
+--    CONCURRENTLY に消す。組織ごとの一意(0018)は残る。
 -- 2. 「そのメールアドレスはほかの人が使っているか」(メールの変更)を、ほかの人(別の sub・sub の無い別の行)に変える。
 --    同じ人のほかの所属は、同じメールを持っていてよい(変えると一緒に変わる)。
 -- 3. 開通のコマンド(表の持ち主)が、最初の管理者のメールがほかの組織に所属しているかを数える関数(設計書の U-5)。

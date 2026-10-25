@@ -6,7 +6,7 @@ import type { LoginIdentity } from "./providers.ts";
 
 /**
  * ログインのときだけ、テナントが決まる前に「この人は誰か・どの組織に所属しているか」を引く。
- * DB の SECURITY DEFINER 関数(drizzle/0001_rls.sql・0005_login_link.sql・0017_multi_org_expand.sql)を通すので、
+ * DB の SECURITY DEFINER 関数(drizzle/0001_rls.sql・0005_login_link.sql・0018_multi_org_expand.sql)を通すので、
  * アプリは users を全社分は読めない。
  *
  * 1人が複数の組織に所属できる(docs/specs/0055-multi-org-membership.md)。入るのは**前回使った組織**

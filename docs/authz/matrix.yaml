@@ -84,6 +84,33 @@ routes:
     permission: public
     expect: { admin: 204, member: 204, viewer: 204, anonymous: 204 }
 
+  # 公開の LP(apps/site)の入口(docs/specs/0025-public-landing-page.md)。ログインに関わらず同じ答え。
+  # テナントはリクエストから決めず、設定の運営の組織(SUPPORT_TENANT_ID)に固定。公開の LP の URL(PUBLIC_SITE_URL)が
+  # 無ければ全部 404。ここでは入力の誤り(同意が無い・token が無い)で 400 を確かめる。流れは growth-public.int.test.ts
+  - route: POST /api/public/pre-registrations
+    permission: public
+    note: 事前登録。同意のチェック(consent true)が無ければ 400。登録の有無に関わらず同じ答え(204)
+    body: { email: "lead@example.test", organizationName: "サンプル商事(架空)", consentTextVersion: 1 }
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
+  - route: POST /api/public/pre-registrations/confirm
+    permission: public
+    note: 確認のリンク(公開のページが # の後ろの token を送る)。期限切れ・合わない token は 400
+    body: {}
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
+  - route: POST /api/public/pre-registrations/withdraw
+    permission: public
+    note: 取り消しのリンク(登録を消す)。無い登録でも同じ答え(204)
+    body: {}
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
+  - route: POST /api/public/lp-views
+    permission: public
+    note: 見た数に1足す(Cookie を使わない・path と UTM だけ)
+    body: { path: 1 }
+    expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
+
   - route: GET /api/me
     permission: me:read
     expect: { admin: 200, member: 200, viewer: 200, anonymous: 401 }

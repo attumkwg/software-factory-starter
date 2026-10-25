@@ -53,7 +53,7 @@ export const users = organizations.table(
   },
   (t) => [
     unique("users_tenant_id_id_key").on(t.tenantId, t.id),
-    // 組織ごとの一意。同じ人(メール・Cognito の sub)が複数の組織に所属できる(ADR 0066。全体の一意は移行 0018 で消した)
+    // 組織ごとの一意。同じ人(メール・Cognito の sub)が複数の組織に所属できる(ADR 0066。全体の一意は移行 0019 で消した)
     uniqueIndex("users_tenant_email_key").on(t.tenantId, t.email),
     uniqueIndex("users_tenant_external_id_key").on(t.tenantId, t.externalId),
   ],

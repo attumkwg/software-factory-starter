@@ -51,9 +51,9 @@ sequenceDiagram
 
 | 段 | 移行 | 中身 | 戻し方 |
 |---|---|---|---|
-| ① 拡張 | `0017_multi_org_expand`(索引は `concurrent/0017_multi_org_keys`) | `(tenant_id, email)`・`(tenant_id, external_id)` の一意の索引を足す(`CREATE UNIQUE INDEX CONCURRENTLY`。`drizzle/concurrent/`)。関数 `auth_find_memberships(p_external_id text, p_email text)` を足す(sub か、sub の無い行は確認済みのメールで。返すのは `user_id, tenant_id, tenant_name, role, last_used_at`) | 索引と関数を消す |
+| ① 拡張 | `0018_multi_org_expand`(索引は `concurrent/0018_multi_org_keys`) | `(tenant_id, email)`・`(tenant_id, external_id)` の一意の索引を足す(`CREATE UNIQUE INDEX CONCURRENTLY`。`drizzle/concurrent/`)。関数 `auth_find_memberships(p_external_id text, p_email text)` を足す(sub か、sub の無い行は確認済みのメールで。返すのは `user_id, tenant_id, tenant_name, role, last_used_at`) | 索引と関数を消す |
 | ② 両方 | アプリ | ログイン・切り替えが新しい関数を使う。古い一意は残っているので、まだ2つ目の所属はできない | 前の版に戻す |
-| ③ 縮小 | `0018_multi_org_contract`(索引は `concurrent/0018_drop_global_user_keys`) | `users_email_key`・`users_external_id_key`(全体の一意)を消す。`auth_link_external_id` を「確認済みのメールで、sub の無い行を全部」結びつける形に。`auth_accept_invitation` は一意の失敗を `(tenant_id, email)` の重なり(もうその組織にいる)だけにする。`auth_email_in_use` は「ほかの人(別の sub)が使っているか」に | **戻せない**(2つ目の所属ができた後は、全体の一意を張り直せない)→ U-3 |
+| ③ 縮小 | `0019_multi_org_contract`(索引は `concurrent/0019_drop_global_user_keys`) | `users_email_key`・`users_external_id_key`(全体の一意)を消す。`auth_link_external_id` を「確認済みのメールで、sub の無い行を全部」結びつける形に。`auth_accept_invitation` は一意の失敗を `(tenant_id, email)` の重なり(もうその組織にいる)だけにする。`auth_email_in_use` は「ほかの人(別の sub)が使っているか」に | **戻せない**(2つ目の所属ができた後は、全体の一意を張り直せない)→ U-3 |
 
 足す列(① で):
 

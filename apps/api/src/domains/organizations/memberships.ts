@@ -5,7 +5,7 @@ import { users } from "./schema.ts";
 
 // 1人が複数の組織に所属する形(docs/specs/0055-multi-org-membership.md・ADR 0066)。
 // users の行が「その組織への所属」。同じ人は Cognito の sub(external_id)で、開発用ログインではメールで見分ける。
-// 組織が決まる前に所属を引くのは、DB の関数(移行 0017)だけ。アプリは users を全社分は読めない。
+// 組織が決まる前に所属を引くのは、DB の関数(移行 0018)だけ。アプリは users を全社分は読めない。
 
 /** 人を見分ける鍵。sub があれば sub、無ければ(開発用ログイン・まだ結びついていない)メール */
 export type PersonKey = { externalId: string | null; email: string };
