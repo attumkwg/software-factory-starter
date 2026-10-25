@@ -650,6 +650,32 @@ parts:
         - { file: infra/terraform/envs/prod/main.tf, module: uptime }
       docs: [docs/guides/monitoring.md]
 
+  - id: on-call
+    name: 当番の決まり
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: 夜中と休日に鳴ったアラームを誰が・何分で見るか(一次・予備・上げる先・15分ずつの段)、どのアラームなら起こすか(お客さんに影響がある・約束の水準を割りそう・漏えいのおそれ)、当番の間は改善だけ、SLA の連絡の時間との対応。表(名前・電話)はリポジトリの外。点検の台帳の oncall-rota が半年ごとに体制を聞く
+    needed_by: 夜中や休日も連絡・復旧を約束する契約を結ぶ
+    not_needed_by: 営業時間だけで約束する・社内だけで使う
+    if_removed: 夜中に鳴っても、誰が見るか・朝まで待ってよいかが決まらない。全部で起こして当番が続かないか、誰も見ない
+    depends_on: [alarms, uptime]
+    law:
+      - ISMS 5.24・5.26(インシデント管理の計画と対応)
+    where:
+      - docs/guides/on-call.md
+    remove:
+      delete: [docs/guides/on-call.md]
+      edit:
+        - { path: docs/checkup/todo.yaml, what: oncall-rota を status retired にする(消さない)。pnpm checkup --write-readme・pnpm compliance --write }
+        - { path: docs/runbooks/alarms.md, what: 頭の on-call.md へのリンクを外す }
+        - { path: docs/guides/monitoring.md, what: on-call.md へのリンクを外す }
+        - { path: docs/runbooks/incident.md, what: 2 の当番の1行を外す }
+        - { path: docs/legal/sla.md, what: 6 の on-call.md へのリンクを外す }
+        - { path: docs/README.md, what: guides の行から当番の決まりを外す }
+      docs: [docs/specs/0031-on-call.md, docs/designs/0031-on-call.md, docs/adr/0042-on-call-wake-only-for-customer-impact.md]
+
   - id: waf
     name: WAF
     group: watch
