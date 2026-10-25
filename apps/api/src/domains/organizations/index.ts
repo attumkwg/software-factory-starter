@@ -48,6 +48,14 @@ export {
 } from "./repository.ts";
 export { organizationRoutes } from "./routes.ts";
 export {
+  findDomain,
+  hasVerifyRecord,
+  ipAllowedFor,
+  ipNotAllowed,
+  markDomainVerified,
+} from "./security.ts";
+export { securityRoutes } from "./security-routes.ts";
+export {
   endSupportSession,
   exportSupportGrantsPage,
   findActiveSupportSession,

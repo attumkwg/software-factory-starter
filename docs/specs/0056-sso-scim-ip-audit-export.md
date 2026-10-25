@@ -2,7 +2,7 @@
 
 > 状態: 承認済み(承認した人: @attumkwg 2026-10-25。会話で: 設計書 0056 の U-1〜U-8 を「全部おすすめどおり」)
 > 設計: [docs/designs/0056-sso-scim-ip-audit-export.md](../designs/0056-sso-scim-ip-audit-export.md)・ADR: [0067](../adr/0067-sso-via-cognito-saml.md)
-> 穴 G-14(`docs/scenarios/gaps.md`)。**この PR は仕様と設計まで**(実装は答えが出てから。段ごとに別の PR)。
+> 穴 G-14(`docs/scenarios/gaps.md`)。実装は段ごとに別の PR: 段1a(会社のドメインの確認・IP の制限・強制ログアウト)→ 段1b(SSO のログイン・必須・緊急用)→ 段2(SCIM)→ 段3(監査ログの書き出し)。
 > 決まり: `docs/security.md` の T-8(SSO は会社のドメインを DNS で確かめてから)・L-8。
 
 ## なぜ作るか

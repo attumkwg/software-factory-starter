@@ -1,18 +1,44 @@
-import type { Me, MfaRequirement } from "@app/shared";
+import type { IpAllowlist, Me, MfaRequirement, OrganizationDomain } from "@app/shared";
 import { Button, Card, Heading, Link, Muted, Stack } from "@app/ui";
 import { api } from "../api.ts";
 import { useAction } from "../use-action.ts";
+import { DomainsCard } from "./settings/DomainsCard.tsx";
+import { IpAllowlistCard } from "./settings/IpAllowlistCard.tsx";
 import { MfaRequirementCard } from "./settings/MfaRequirementCard.tsx";
 
 // 組織の管理者の「設定」。招待(docs/specs/0027-invitations.md)・監査ログ・サポートへの許可・データの書き出し(docs/specs/0005-offboarding.md)・
-// 二段階認証の必須(docs/specs/0006-account-security.md)。
-export function SettingsPage({ me, mfa }: { me: Me; mfa: MfaRequirement }) {
+// 二段階認証の必須(docs/specs/0006-account-security.md)。組織の人と強制ログアウト・会社のドメイン・IP の制限
+// (docs/specs/0056-sso-scim-ip-audit-export.md。ドメインと IP はプランの機能が入った組織だけ。無ければ null)。
+export function SettingsPage({
+  me,
+  mfa,
+  domains,
+  ipAllowlist,
+}: {
+  me: Me;
+  mfa: MfaRequirement;
+  domains: OrganizationDomain[] | null;
+  ipAllowlist: IpAllowlist | null;
+}) {
   const exporting = useAction();
 
   return (
     <Stack gap={4}>
       <Heading level={1}>設定</Heading>
       <MfaRequirementCard me={me} state={mfa} />
+      {ipAllowlist && <IpAllowlistCard state={ipAllowlist} />}
+      {domains && <DomainsCard domains={domains} />}
+      <Card>
+        <Stack gap={2}>
+          <Heading level={2}>組織の人</Heading>
+          <Muted>
+            この組織の人の一覧です。端末をなくした人などを、すぐにログアウトさせられます。
+          </Muted>
+          <div>
+            <Link href="/members">組織の人を開く</Link>
+          </div>
+        </Stack>
+      </Card>
       <Card>
         <Stack gap={2}>
           <Heading level={2}>監査ログ</Heading>

@@ -12,10 +12,15 @@ import type {
   CreateTask,
   Invitation,
   InvitationPage,
+  IpAllowlist,
   LegalVersionRef,
   Me,
   MfaRequirement,
   MfaSetup,
+  OrganizationDomain,
+  OrganizationDomainList,
+  OrganizationMember,
+  OrganizationMemberPage,
   OrganizationMembershipList,
   OrganizationPlan,
   PmfSurveyAnswer,
@@ -88,14 +93,17 @@ type Target = {
 };
 
 // SSR のときに API へ引き継ぐヘッダー。これ以外(Host・Authorization など)は渡さない。
+// いまの人の IP のヘッダー(組織ごとの IP の制限。docs/specs/0056-sso-scim-ip-audit-export.md)も引き継ぐ。
+// 名前は API と同じ環境変数 CLIENT_IP_HEADER(既定は ALB が付ける x-forwarded-for。CloudFront なら cloudfront-viewer-address)
 const FORWARDED_HEADERS = ["cookie", "x-request-id", "traceparent", "x-amzn-trace-id"];
+const clientIpHeader = () => (process.env.CLIENT_IP_HEADER ?? "x-forwarded-for").toLowerCase();
 
 const target = createIsomorphicFn()
   .server((method: string): Target => {
     if (method !== "GET") throw new Error("SSR から API に書き込まない(ブラウザから呼ぶ)");
     const incoming = getRequest().headers;
     const headers: Record<string, string> = {};
-    for (const name of FORWARDED_HEADERS) {
+    for (const name of [...FORWARDED_HEADERS, clientIpHeader()]) {
       const value = incoming.get(name);
       if (value) headers[name] = value;
     }
@@ -277,6 +285,23 @@ export const api = {
   revokeInvitation: (id: string) => request<void>("DELETE", `/invitations/${id}`),
   // 組織のプランと人数(docs/specs/0047-plans.md)。管理者だけ
   getOrganizationPlan: () => request<OrganizationPlan>("GET", "/organization/plan"),
+  // 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)
+  listDomains: () => request<OrganizationDomainList>("GET", "/organization/domains"),
+  createDomain: (domain: string) =>
+    request<OrganizationDomain>("POST", "/organization/domains", { domain }),
+  verifyDomain: (id: string) =>
+    request<OrganizationDomain>("POST", `/organization/domains/${id}/verify`),
+  deleteDomain: (id: string) => request<void>("DELETE", `/organization/domains/${id}`),
+  getIpAllowlist: () => request<IpAllowlist>("GET", "/organization/ip-allowlist"),
+  putIpAllowlist: (cidrs: string[]) =>
+    request<IpAllowlist>("PUT", "/organization/ip-allowlist", { cidrs }),
+  listMembers: async (): Promise<{ members: OrganizationMember[] }> => ({
+    members: await readPages<OrganizationMemberPage, OrganizationMember>(
+      "/organization/members",
+      (p) => p.members,
+    ),
+  }),
+  signOutMember: (id: string) => request<void>("POST", `/organization/members/${id}/sign-out`),
   acceptInvitation: (token: string, name: string) =>
     request<AcceptedInvitation>("POST", "/invitations/accept", { token, name }),
   startSupport: (input: StartSupport) =>

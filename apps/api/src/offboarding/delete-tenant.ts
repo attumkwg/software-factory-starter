@@ -24,6 +24,8 @@ export const TENANT_TABLES = [
   "legal.notices",
   "legal.consents",
   "organizations.invitations",
+  "organizations.domains",
+  "organizations.ip_allowlist",
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",

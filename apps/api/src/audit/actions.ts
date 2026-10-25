@@ -60,6 +60,19 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   "POST /api/legal/consents": { action: "legal.consent", target: "user", param: "none" },
   // 招待(docs/specs/0027-invitations.md)。メールアドレス・ロールは details に入れない(招待の行にある)
   "POST /api/invitations": { action: "invitation.create", target: "invitation" },
+  // 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)。ドメイン・IP の値は details に入れない(行にある)
+  "POST /api/organization/domains": { action: "domain.create", target: "domain" },
+  "POST /api/organization/domains/{domainId}/verify": { action: "domain.verify", target: "domain" },
+  "DELETE /api/organization/domains/{domainId}": { action: "domain.delete", target: "domain" },
+  "PUT /api/organization/ip-allowlist": {
+    action: "ip_allowlist.update",
+    target: "organization",
+    param: "none",
+  },
+  "POST /api/organization/members/{memberId}/sign-out": {
+    action: "member.sign_out",
+    target: "member",
+  },
   // 組織の選び直し(docs/specs/0055-multi-org-membership.md)。関所が元の組織に「出た」を残す。先の組織の「入った」はハンドラーが手で
   "POST /api/session/organization": {
     action: "auth.switch_out",

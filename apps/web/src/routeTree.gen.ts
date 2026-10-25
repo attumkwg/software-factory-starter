@@ -19,6 +19,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
+import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppOrganizationsRouteImport } from './routes/_app/organizations'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSupportRouteImport } from './routes/_app/support'
@@ -77,6 +78,11 @@ const AppInvitationsRoute = AppInvitationsRouteImport.update({
   path: '/invitations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOrganizationsRoute = AppOrganizationsRouteImport.update({
   id: '/organizations',
   path: '/organizations',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
   '/invitations': typeof AppInvitationsRoute
+  '/members': typeof AppMembersRoute
   '/organizations': typeof AppOrganizationsRoute
   '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/account': typeof AppAccountRoute
   '/audit': typeof AppAuditRoute
   '/invitations': typeof AppInvitationsRoute
+  '/members': typeof AppMembersRoute
   '/organizations': typeof AppOrganizationsRoute
   '/settings': typeof AppSettingsRoute
   '/support': typeof AppSupportRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/_app/account': typeof AppAccountRoute
   '/_app/audit': typeof AppAuditRoute
   '/_app/invitations': typeof AppInvitationsRoute
+  '/_app/members': typeof AppMembersRoute
   '/_app/organizations': typeof AppOrganizationsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/support': typeof AppSupportRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/audit'
     | '/invitations'
+    | '/members'
     | '/organizations'
     | '/settings'
     | '/support'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/audit'
     | '/invitations'
+    | '/members'
     | '/organizations'
     | '/settings'
     | '/support'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/_app/account'
     | '/_app/audit'
     | '/_app/invitations'
+    | '/_app/members'
     | '/_app/organizations'
     | '/_app/settings'
     | '/_app/support'
@@ -321,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvitationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/members': {
+      id: '/_app/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/organizations': {
       id: '/_app/organizations'
       path: '/organizations'
@@ -384,6 +403,7 @@ interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppAuditRoute: typeof AppAuditRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
+  AppMembersRoute: typeof AppMembersRoute
   AppOrganizationsRoute: typeof AppOrganizationsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSupportRoute: typeof AppSupportRoute
@@ -397,6 +417,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppAuditRoute: AppAuditRoute,
   AppInvitationsRoute: AppInvitationsRoute,
+  AppMembersRoute: AppMembersRoute,
   AppOrganizationsRoute: AppOrganizationsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSupportRoute: AppSupportRoute,

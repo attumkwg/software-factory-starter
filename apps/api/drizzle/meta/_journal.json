@@ -141,6 +141,13 @@
       "when": 1792933082776,
       "tag": "0019_multi_org_contract",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792936966768,
+      "tag": "0020_domains_ip_allowlist",
+      "breakpoints": true
     }
   ]
 }

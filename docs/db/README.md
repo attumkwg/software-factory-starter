@@ -24,6 +24,8 @@
 | [platform.pmf_survey_counts](platform.pmf_survey_counts.md)         | 5       | 「無くなったら困るか」の答えの数(組織・回・答えごと)。**人の ID も時刻も持たない**(だれが何と答えたかを結びつけない)。アプリは読む・足す・数を増やすだけ。docs/specs/0046-pmf-survey.md                                     | BASE TABLE |
 | [growth.lp_daily_counts](growth.lp_daily_counts.md)                 | 9       | 公開の LP の日ごと・ページ・来た所(UTM)ごとの見た数・登録・確認(個人の行は持たない。3年で消す)。docs/domain/growth                                                                                                          | BASE TABLE |
 | [growth.pre_registrations](growth.pre_registrations.md)             | 19      | 公開の LP の事前登録(運営の組織の持ち物)。確認待ち → 確認済み → 組織にした。消す日を過ぎたら pre-registrations-purge が消す。docs/domain/growth                                                                             | BASE TABLE |
+| [organizations.domains](organizations.domains.md)                   | 7       | 組織が登録した会社のドメイン(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067)。DNS の TXT で確かめた物だけを SSO に使う。確かめたドメインは全体で1つの組織だけ(domains_verified_domain_key)                           | BASE TABLE |
+| [organizations.ip_allowlist](organizations.ip_allowlist.md)         | 5       | 組織に入れる IP の範囲(docs/specs/0056-sso-scim-ip-audit-export.md)。空なら制限しない。管理者が一覧ごと入れ替える(20 まで)。プランの機能 ip-allowlist が入っているときだけ効く                                              | BASE TABLE |
 
 ## Stored procedures and functions
 

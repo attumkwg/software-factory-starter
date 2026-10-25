@@ -1,4 +1,4 @@
-import type { Me, OrganizationMembershipList } from "@app/shared";
+import type { Me, OrganizationMembershipList, PlanDefinition } from "@app/shared";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { findLogin } from "../../src/auth/lookup.ts";
@@ -7,6 +7,7 @@ import { withTenant } from "../../src/db/tenant.ts";
 import { endOtherSessions, setMfaEnabled } from "../../src/domains/organizations/index.ts";
 import { planTenantDeletion } from "../../src/offboarding/delete-tenant.ts";
 import { planPersonData } from "../../src/person-data/plan-person-data.ts";
+import { setPlan } from "../../src/plans/index.ts";
 import {
   call,
   createTenantFixture,
@@ -144,6 +145,46 @@ describe("組織の選び直し", () => {
     const cookie = await login(app, a.users.member.email);
     expect((await switchTo(cookie, c.tenantId)).status).toBe(404);
     expect((await switchTo(cookie, "00000000-0000-7000-8000-000000000000")).status).toBe(404);
+  });
+
+  it("先の組織が IP の範囲を決めていれば、外の IP からは選び直せない(403 ip_not_allowed。設計書 0056 の 6)", async () => {
+    const plans: PlanDefinition[] = [{ id: "enterprise", label: "上", features: ["ip-allowlist"] }];
+    await setPlan(
+      owner.db,
+      b.tenantId,
+      { plan: "enterprise", seats: null },
+      {
+        plans,
+        priceLists: [{ id: "2026-10", effectiveFrom: "2026-10-01", description: "最初" }],
+        execute: true,
+      },
+    );
+    await withTenant(owner.db, b.tenantId, (tx) =>
+      tx.execute(sql`insert into organizations.ip_allowlist (id, tenant_id, cidr, created_by)
+        values (gen_random_uuid(), ${b.tenantId}, '203.0.113.0/24', ${b.users.admin.id})`),
+    );
+    const restricted = createTestApp(urls.appUrl, { SUPPORT_TENANT_ID: ops.tenantId }, { plans });
+    try {
+      const switchFrom = async (ip: string) => {
+        const cookie = await login(restricted.app, a.users.member.email);
+        return call(restricted.app, "POST", "/api/session/organization", {
+          cookie,
+          body: { tenantId: b.tenantId },
+          headers: { "x-forwarded-for": ip },
+        });
+      };
+      const outside = await switchFrom("198.51.100.7");
+      expect(outside.status).toBe(403);
+      expect(outside.headers.get("set-cookie")).toBeNull();
+      expect((await switchFrom("203.0.113.10")).status).toBe(200);
+    } finally {
+      // 前回使った組織を a に戻す(後のテストが a を前回の組織とみなす)
+      await switchTo(await login(app, a.users.member.email), a.tenantId);
+      await restricted.pool.end();
+      await withTenant(owner.db, b.tenantId, (tx) =>
+        tx.execute(sql`delete from organizations.ip_allowlist where tenant_id = ${b.tenantId}`),
+      );
+    }
   });
 
   it("代理ログインの最中は選び直せない(403)", async () => {

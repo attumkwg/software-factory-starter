@@ -1,4 +1,5 @@
 import { DEFAULT_TIME_ZONE, ROLES } from "@app/shared";
+import { sql } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
@@ -183,5 +184,64 @@ export const invitations = organizations.table(
     // 一覧(新しい順)と、同じメールの生きている招待を探す
     index("invitations_list_idx").on(t.tenantId, t.createdAt.desc(), t.id.desc()),
     index("invitations_email_idx").on(t.tenantId, t.email),
+  ],
+);
+
+// ── 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067) ─────────────
+
+/**
+ * 組織が登録した会社のドメイン。DNS の TXT(_sfs-verify.<ドメイン>)に verify_token を置いてもらい、見えたら確かめた(T-8)。
+ * 確かめたドメインは全体で1つの組織だけ(下の一意の索引。RLS は一意に効かないので、他社とも重ならない)。
+ * verify_token は DNS に置く公開の文字(秘密ではない)。
+ */
+export const domains = organizations.table(
+  "domains",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    domain: text("domain").notNull(),
+    verifyToken: text("verify_token").notNull(),
+    verifiedAt: instant("verified_at"),
+    createdAt: createdAt(),
+    createdBy: uuid("created_by").notNull(),
+  },
+  (t) => [
+    unique("domains_tenant_id_id_key").on(t.tenantId, t.id),
+    // 同じ組織に同じドメインは1つ
+    uniqueIndex("domains_tenant_domain_key").on(t.tenantId, t.domain),
+    // 確かめたドメインは全体で1つの組織だけ
+    uniqueIndex("domains_verified_domain_key").on(t.domain).where(sql`verified_at is not null`),
+    foreignKey({
+      name: "domains_created_by_fkey",
+      columns: [t.tenantId, t.createdBy],
+      foreignColumns: [users.tenantId, users.id],
+    }),
+  ],
+);
+
+/**
+ * 組織に入れる IP の範囲(CIDR)。1組織 20 まで(アプリで数える)。1行も無ければ制限しない。
+ * 認可の関所が毎回、セッションの組織の一覧に、いまの IP が入っているかを見る(代理の社員は見ない。設計書 0056 の U-4)。
+ */
+export const ipAllowlist = organizations.table(
+  "ip_allowlist",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    cidr: text("cidr").notNull(),
+    createdAt: createdAt(),
+    createdBy: uuid("created_by").notNull(),
+  },
+  (t) => [
+    index("ip_allowlist_tenant_idx").on(t.tenantId),
+    foreignKey({
+      name: "ip_allowlist_created_by_fkey",
+      columns: [t.tenantId, t.createdBy],
+      foreignColumns: [users.tenantId, users.id],
+    }),
   ],
 );

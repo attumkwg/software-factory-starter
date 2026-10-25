@@ -3,7 +3,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
 import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
-import { tenants, users } from "./schema.ts";
+import { domains, tenants, users } from "./schema.ts";
+import { findIpAllowlist } from "./security.ts";
 
 export async function getMe(s: TenantScope): Promise<Me | null> {
   const [row] = await s.tx
@@ -101,11 +102,22 @@ export async function findUserNames(
 export async function exportOrganization(s: TenantScope): Promise<ExportData["organization"]> {
   const [tenant] = await s.tx.select().from(tenants).where(eq(tenants.tenantId, s.tenantId));
   if (!tenant) throw new Error("tenant not found");
+  const domainRows = await s.tx
+    .select({ domain: domains.domain, verifiedAt: domains.verifiedAt })
+    .from(domains)
+    .where(eq(domains.tenantId, s.tenantId))
+    .orderBy(asc(domains.domain));
   return {
     id: tenant.tenantId,
     name: tenant.name,
     timeZone: tenant.timeZone,
     createdAt: tenant.createdAt.toISOString(),
+    // 確かめの文字(verify_token)は入れない
+    domains: domainRows.map((d) => ({
+      domain: d.domain,
+      verifiedAt: d.verifiedAt?.toISOString() ?? null,
+    })),
+    ipAllowlist: await findIpAllowlist(s.tx, s.tenantId),
   };
 }
 

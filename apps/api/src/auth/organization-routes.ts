@@ -6,9 +6,12 @@ import { withTenant } from "../db/tenant.ts";
 import {
   findMemberships,
   findPersonKey,
+  ipAllowedFor,
+  ipNotAllowed,
   markMembershipUsed,
 } from "../domains/organizations/index.ts";
 import { forbidden, notFound, unauthorized } from "../errors.ts";
+import { clientIp } from "../http/client-ip.ts";
 import {
   authErrors,
   bodyErrors,
@@ -80,7 +83,10 @@ export function organizationSwitchRoutes(deps: { db: RootDb; session: SessionCon
         // 所属していない組織は「無い」と答える(他社の存在を言わない)
         if (!target) throw notFound();
         // 先の組織の監査ログに「入った」と、前回の組織の印。元の組織の「出た」は関所が自動で残す(audit/actions.ts)
+        const defs = { featureFlags: c.get("featureFlags"), plans: c.get("plans") };
         await withTenant(deps.db, target.tenantId, async (tx) => {
+          // 先の組織が IP の範囲を決めていれば、ログインと同じく外からは入れない(設計書 0056 の 6)
+          if (!(await ipAllowedFor(tx, target.tenantId, clientIp(c), defs))) throw ipNotAllowed();
           await markMembershipUsed(tx, target.tenantId, target.userId);
           await recordAudit(tx, {
             tenantId: target.tenantId,

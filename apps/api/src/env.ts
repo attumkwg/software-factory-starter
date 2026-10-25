@@ -47,6 +47,8 @@ export type AppEnv = {
      * docs/specs/0006-account-security.md
      */
     mfaEnforced: boolean;
+    /** いまの人の IP をどのヘッダーの右から何個目で読むか(src/http/client-ip.ts。設定の CLIENT_IP_HEADER・TRUSTED_PROXY_HOPS) */
+    clientIpSource: { header: string; hops: number };
     /** 利用規約・プライバシーポリシーの版の一覧(既定は @app/shared の LEGAL_VERSIONS。結合テストが差し替える) */
     legalVersions: readonly LegalVersion[];
     /**

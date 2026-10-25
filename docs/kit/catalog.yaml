@@ -556,6 +556,100 @@ parts:
         - POST /api/invitations/accept
       docs: [docs/specs/0027-invitations.md, docs/adr/0040-invitations-signed-link.md]
 
+  - id: member-sign-out
+    name: 組織の人の一覧と強制ログアウト
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 管理者が組織の人を一覧し、端末をなくした人・辞める人のこの組織のセッションを全部切る(次のリクエストから 401)
+    needed_by: 会社向けで、お客さんの管理者が人の出入りを自分で止めたい
+    not_needed_by: 個人向け
+    if_removed: 切りたいときに運営が DB を直す(sessions_valid_after)ことになる。お客さんの管理者は自分で止められない
+    depends_on: [organizations, login]
+    law:
+      - ISMS 5.18(アクセス権)
+    remove:
+      delete:
+        - apps/web/src/pages/MembersPage.tsx
+        - apps/web/src/routes/_app/members.tsx
+      edit:
+        - { path: apps/api/src/domains/organizations/security-routes.ts, what: memberRoutes を外す }
+        - { path: apps/api/src/authz/policy.ts, what: member:manage と2行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: member.sign_out を外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 組織の人の欄を外す }
+      matrix:
+        - GET /api/organization/members
+        - POST /api/organization/members/{memberId}/sign-out
+      docs: [docs/specs/0056-sso-scim-ip-audit-export.md]
+
+  - id: ip-allowlist
+    name: 組織ごとの IP の制限
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 組織の管理者が、入れる IP の範囲(20 まで)を決める。外からはログインも操作も 403。プランの機能 ip-allowlist(既定のプランには無い)。代理ログインの社員は対象外
+    needed_by: 大きな会社向け(会社のネットワークからだけ使わせたい・情報の持ち出しの決まりがある)
+    not_needed_by: 個人向け・小さな会社だけが相手
+    if_removed: お客さんの「会社の外から使わせない」に答えられない(大きな会社の調達の質問票で落ちることがある)
+    depends_on: [organizations, authz, feature-flags]
+    law:
+      - ISMS 8.20(ネットワークのセキュリティ)
+      - ISMS 5.15(アクセス制御)
+    remove:
+      delete:
+        - apps/api/src/http/client-ip.ts
+        - apps/api/test/integration/ip-allowlist.int.test.ts
+        - apps/api/test/unit/client-ip.test.ts
+        - apps/web/src/pages/settings/IpAllowlistCard.tsx
+      edit:
+        - { path: apps/api/src/authz/middleware.ts, what: ipAllowedFor の確かめを外す }
+        - { path: apps/api/src/auth/login.ts, what: refuseOutsideIpAllowlist を外す }
+        - { path: apps/api/src/domains/organizations/security-routes.ts, what: ipAllowlistRoutes を外す }
+        - { path: apps/api/src/authz/policy.ts, what: ip_allowlist:manage と2行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: ip_allowlist.update を外す }
+        - { path: packages/shared/src/feature-flags.ts, what: ip-allowlist を外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: IP の制限の欄を外す }
+      migration: 表 organizations.ip_allowlist を、使わなくしてから消す(拡張 → 縮小の縮小)
+      matrix:
+        - GET /api/organization/ip-allowlist
+        - PUT /api/organization/ip-allowlist
+      docs: [docs/specs/0056-sso-scim-ip-audit-export.md, docs/adr/0067-sso-via-cognito-saml.md]
+
+  - id: sso
+    name: SSO(SAML)と会社のドメインの確認
+    group: business
+    status: 作成中
+    removable: true
+    default: 残す
+    what: 組織が会社のドメインを DNS の TXT で確かめ(1ドメイン1組織)、運営がその組織の IdP を Cognito の SAML でつなぐ。プランの機能 sso(既定のプランには無い)。いまはドメインの確認まで(SSO のログインは段1b)
+    needed_by: 大きな会社向け(会社のアカウントでログインさせたい・退職で止めたい)
+    not_needed_by: 個人向け・小さな会社だけが相手
+    if_removed: 会社の IdP でログインさせられない(大きな会社の調達の質問票で落ちることがある)
+    depends_on: [organizations, login, feature-flags]
+    law:
+      - ISMS 5.17(認証情報)
+      - ISMS 8.5(セキュアな認証)
+    remove:
+      delete:
+        - apps/api/test/integration/organization-domains.int.test.ts
+        - apps/web/src/pages/settings/DomainsCard.tsx
+      edit:
+        - { path: apps/api/src/domains/organizations/security-routes.ts, what: domainRoutes を外す }
+        - { path: apps/api/src/auth/domain-verify-routes.ts, what: DNS で確かめる API を外す(securityRoutes をつなぐだけにする) }
+        - { path: apps/api/src/authz/policy.ts, what: sso:manage・domain:verify と4行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: domain.* の3つを外す }
+        - { path: packages/shared/src/feature-flags.ts, what: sso を外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 会社のドメインの欄を外す }
+      migration: 表 organizations.domains を、使わなくしてから消す(拡張 → 縮小の縮小)
+      matrix:
+        - GET /api/organization/domains
+        - POST /api/organization/domains
+        - POST /api/organization/domains/{domainId}/verify
+        - DELETE /api/organization/domains/{domainId}
+      docs: [docs/specs/0056-sso-scim-ip-audit-export.md, docs/adr/0067-sso-via-cognito-saml.md]
+
   # ── ログイン ────────────────────────────────────────────────────────────
   - id: mfa
     name: 二段階認証(本人の設定)

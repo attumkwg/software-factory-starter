@@ -2264,6 +2264,230 @@
           ]
         }
       ]
+    },
+    {
+      "name": "organizations.domains",
+      "type": "BASE TABLE",
+      "comment": "組織が登録した会社のドメイン(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067)。DNS の TXT で確かめた物だけを SSO に使う。確かめたドメインは全体で1つの組織だけ(domains_verified_domain_key)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "domain",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "verify_token",
+          "type": "text",
+          "nullable": false,
+          "comment": "DNS の TXT(_sfs-verify.\u003cドメイン\u003e)に置く確かめの文字。公開の DNS に出るので秘密ではない"
+        },
+        {
+          "name": "verified_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "DNS で確かめた時刻(アプリが書けるのはこの列だけ)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "domains_pkey",
+          "def": "CREATE UNIQUE INDEX domains_pkey ON organizations.domains USING btree (id)",
+          "table": "organizations.domains",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "domains_tenant_id_id_key",
+          "def": "CREATE UNIQUE INDEX domains_tenant_id_id_key ON organizations.domains USING btree (tenant_id, id)",
+          "table": "organizations.domains",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "domains_tenant_domain_key",
+          "def": "CREATE UNIQUE INDEX domains_tenant_domain_key ON organizations.domains USING btree (tenant_id, domain)",
+          "table": "organizations.domains",
+          "columns": [
+            "tenant_id",
+            "domain"
+          ]
+        },
+        {
+          "name": "domains_verified_domain_key",
+          "def": "CREATE UNIQUE INDEX domains_verified_domain_key ON organizations.domains USING btree (domain) WHERE (verified_at IS NOT NULL)",
+          "table": "organizations.domains",
+          "columns": [
+            "domain"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "domains_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.domains",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "domains_created_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)",
+          "table": "organizations.domains",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "created_by"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "domains_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "organizations.domains",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "domains_tenant_id_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, id)",
+          "table": "organizations.domains",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "organizations.ip_allowlist",
+      "type": "BASE TABLE",
+      "comment": "組織に入れる IP の範囲(docs/specs/0056-sso-scim-ip-audit-export.md)。空なら制限しない。管理者が一覧ごと入れ替える(20 まで)。プランの機能 ip-allowlist が入っているときだけ効く",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "cidr",
+          "type": "text",
+          "nullable": false,
+          "comment": "IP の範囲(203.0.113.0/24・2001:db8::/32 の形)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ip_allowlist_pkey",
+          "def": "CREATE UNIQUE INDEX ip_allowlist_pkey ON organizations.ip_allowlist USING btree (id)",
+          "table": "organizations.ip_allowlist",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "ip_allowlist_tenant_idx",
+          "def": "CREATE INDEX ip_allowlist_tenant_idx ON organizations.ip_allowlist USING btree (tenant_id)",
+          "table": "organizations.ip_allowlist",
+          "columns": [
+            "tenant_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "ip_allowlist_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.ip_allowlist",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "ip_allowlist_created_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)",
+          "table": "organizations.ip_allowlist",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "created_by"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "ip_allowlist_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "organizations.ip_allowlist",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -2650,6 +2874,62 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.domains",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.domains",
+      "columns": [
+        "tenant_id",
+        "created_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "organizations.ip_allowlist",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.ip_allowlist",
+      "columns": [
+        "tenant_id",
+        "created_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)"
     }
   ],
   "functions": [

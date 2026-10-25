@@ -41,6 +41,20 @@ export const FEATURE_FLAGS = [
     description: "「このサービスが使えなくなったら、どう感じますか」を画面の中で聞く(PMF の兆し)",
     state: "rollout",
   },
+  // キットの仕組み: 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)。上のプランの機能(設計書 0056 の U-6)。
+  // キットの既定のプラン(standard)には入れない。使うプランの features に足すか、運営が組織ごとに入れる
+  {
+    name: "sso",
+    bet: "kit",
+    description: "会社のドメインの確認と SSO(SAML)",
+    state: "plan",
+  },
+  {
+    name: "ip-allowlist",
+    bet: "kit",
+    description: "組織に入れる IP の範囲を決める",
+    state: "plan",
+  },
 ] as const satisfies readonly FeatureFlagDefinition[];
 
 /** 定義にある名前だけ(書き間違いは型の検査で落ちる)。一覧が空のうちは、どの名前も使えない */

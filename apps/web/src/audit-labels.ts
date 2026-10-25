@@ -33,6 +33,11 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "invitation.revoke": "招待を取り消した",
   "invitation.accept": "招待を受けて参加した",
   "plan.change": "プランを変えた",
+  "domain.create": "会社のドメインを登録した",
+  "domain.verify": "会社のドメインを DNS で確かめた",
+  "domain.delete": "会社のドメインを消した",
+  "ip_allowlist.update": "組織に入れる IP の範囲を変えた",
+  "member.sign_out": "人を強制ログアウトした",
   "auth.switch_in": "ほかの組織からこの組織に切り替えた",
   "auth.switch_out": "この組織からほかの組織に切り替えた",
   "demo.reset": "デモのデータを戻した",
@@ -48,6 +53,8 @@ const TARGET_LABELS: Record<string, string> = {
   user: "アカウント",
   organization: "組織",
   invitation: "招待",
+  domain: "ドメイン",
+  member: "人",
 };
 const FIELD_LABELS: Record<string, string> = { title: "題名", done: "完了" };
 

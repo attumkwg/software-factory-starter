@@ -1,3 +1,4 @@
+import { resolveTxt } from "node:dns/promises";
 import {
   FEATURE_FLAGS,
   type FeatureFlagDefinition,
@@ -16,6 +17,8 @@ import { routePath } from "hono/route";
 import { secureHeaders } from "hono/secure-headers";
 import { auditRoutes } from "./audit/index.ts";
 import { accountRoutes } from "./auth/account-routes.ts";
+// 大きなお客さん向けの守りの段1a(ドメイン・IP の範囲・強制ログアウト。docs/specs/0056-sso-scim-ip-audit-export.md)
+import { organizationSecurityRoutes, type ResolveTxt } from "./auth/domain-verify-routes.ts";
 import { invitationAcceptRoutes } from "./auth/invitation-routes.ts";
 import { authenticate } from "./auth/middleware.ts";
 import { organizationSwitchRoutes } from "./auth/organization-routes.ts";
@@ -57,6 +60,8 @@ export type AppDeps = {
   legalVersions?: readonly LegalVersion[];
   /** テスト用: 機能フラグの定義を差し替える(キットには1つも無いので)。既定は FEATURE_FLAGS */
   featureFlags?: readonly FeatureFlagDefinition[];
+  /** テスト用: DNS の TXT を引く関数(ドメインの確認。docs/specs/0056-sso-scim-ip-audit-export.md)。既定は node:dns */
+  resolveTxt?: ResolveTxt;
   /** テスト用: プランの定義を差し替える(機能つきのプランを作る)。既定は PLANS */
   plans?: readonly PlanDefinition[];
   /** 要配慮個人情報の入口(ADR 0029。index.ts が設定から作る)。無ければ null(段0) */
@@ -125,6 +130,29 @@ function publicGrowthSite(config: Config) {
     : null;
 }
 
+/**
+ * 関所とハンドラーが読む設定を、リクエストの文脈(c.var)に置く。
+ * 運営の組織(社員の代理ログイン。ハンドラーと /api/me が「社員か」を判断する)・二段階認証の必須を効かせるか
+ * (関所と /api/me)・いまの人の IP を読むヘッダー(組織ごとの IP の制限)・規約の版の一覧(関所と同意の API)・
+ * 機能フラグとプランの定義(/api/me と requireFeature)・要配慮個人情報の入口(sensitiveOf(c))
+ */
+function appContext(deps: AppDeps): MiddlewareHandler<AppEnv> {
+  const { config } = deps;
+  const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
+  const featureFlags = deps.featureFlags ?? FEATURE_FLAGS;
+  const plans = deps.plans ?? PLANS;
+  return async (c, next) => {
+    c.set("supportTenantId", config.supportTenantId);
+    c.set("mfaEnforced", config.auth.mode === "cognito");
+    c.set("clientIpSource", config.clientIp);
+    c.set("legalVersions", legalVersions);
+    c.set("featureFlags", featureFlags);
+    c.set("plans", plans);
+    c.set("sensitive", deps.sensitive ?? null);
+    await next();
+  };
+}
+
 export function createApp(deps: AppDeps) {
   const { config, db, logger } = deps;
   const lifecycle = deps.lifecycle ?? { shuttingDown: false };
@@ -156,21 +184,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/public/*", ...publicEntranceGuards(config));
   app.use("/api/*", csrf());
   app.use("/api/*", authenticate(config.session));
-  // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う。
-  // 二段階認証の必須を効かせるか(関所と /api/me が使う)。規約の版の一覧(関所と同意の API が使う)。
-  // 機能フラグの定義(/api/me と機能の API の requireFeature が使う)。要配慮個人情報の入口(sensitiveOf(c) が使う)
-  const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
-  const featureFlags = deps.featureFlags ?? FEATURE_FLAGS;
-  const plans = deps.plans ?? PLANS;
-  app.use("/api/*", async (c, next) => {
-    c.set("supportTenantId", config.supportTenantId);
-    c.set("mfaEnforced", config.auth.mode === "cognito");
-    c.set("legalVersions", legalVersions);
-    c.set("featureFlags", featureFlags);
-    c.set("plans", plans);
-    c.set("sensitive", deps.sensitive ?? null);
-    await next();
-  });
+  app.use("/api/*", appContext(deps));
   app.use("/api/*", authorize({ db, logger, session: config.session }));
 
   // Cognito のときだけ(開発用ログインには Cognito が無い)。ログインと本人のアカウントで同じつなぎ方を使う
@@ -202,6 +216,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));
   app.route("/api", planRoutes);
+  app.route("/api", organizationSecurityRoutes({ db, resolveTxt: deps.resolveTxt ?? resolveTxt }));
   app.route("/api", pmfSurveyRoutes);
 
   if (config.exposeOpenApi) {
