@@ -3,6 +3,7 @@ export {
   DEMO_DATA,
   DEMO_RESET_TABLES,
   type DemoResetResult,
+  demoReset,
   demoTarget,
   resetDemo,
   runDemoReset,

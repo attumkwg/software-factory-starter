@@ -156,3 +156,6 @@ export async function runDemoReset(
     ? [line]
     : [line, "まだ戻していません。数を確かめて --execute を付けて流してください"];
 }
+
+/** cli.ts の入口(環境変数は process.env から) */
+export const demoReset = (db: RootDb, args: string[]) => runDemoReset(db, args, process.env);

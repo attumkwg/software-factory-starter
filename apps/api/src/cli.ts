@@ -6,7 +6,6 @@ import pg from "pg";
 import { createDb, type RootDb } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { seed } from "./db/seed.ts";
-import { runDemoReset } from "./demo/index.ts";
 import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
@@ -310,8 +309,8 @@ const COUNT_COMMANDS: Record<string, (db: RootDb, args: string[]) => Promise<str
   "pmf-survey-report": (db, args) => runPmfSurveyReport(db, args, { supportTenantId }),
   "pmf-survey-purge": (db, args) => runPmfSurveyPurge(db, args),
   ...preRegistrationCommands(process.env),
-  // デモ用の組織を戻す(ID は出さない。stg だけ。src/demo)
-  "demo-reset": (db, args) => runDemoReset(db, args, process.env),
+  // デモ用の組織を戻す(src/demo。stg だけ)。このファイルの行の上限のため、使うときだけ読み込む(esbuild が1つにまとめる)
+  "demo-reset": async (db, a) => (await import("./demo/index.ts")).demoReset(db, a),
 };
 const countCommand = COUNT_COMMANDS[commands[0] ?? ""];
 if (countCommand) {

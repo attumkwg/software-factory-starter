@@ -19,15 +19,23 @@ export const PACK = [
   { file: "docs/compliance/vendors.md", title: "委託先の一覧" },
 ];
 
+/** 見出しの深さ(行頭の # の数。後ろに空白が無ければ見出しではないので 0)。正規表現を使わない */
+const headingDepth = (line) => {
+  let n = 0;
+  while (line[n] === "#") n += 1;
+  return n > 0 && (line[n] === " " || line[n] === "\t") ? n : 0;
+};
+
 /** 節だけを取り出す(見出しから、同じ深さの次の見出しの前まで) */
 export function sectionOf(text, heading) {
   const lines = text.split(/\r?\n/);
   const at = lines.findIndex((l) => l.startsWith(heading));
   if (at < 0) return text;
-  const depth = heading.match(/^#+/)?.[0].length ?? 2;
-  const end = lines.findIndex(
-    (l, i) => i > at && /^#+\s/.test(l) && (l.match(/^#+/)?.[0].length ?? 9) <= depth,
-  );
+  const depth = headingDepth(heading) || 2;
+  const end = lines.findIndex((l, i) => {
+    const d = headingDepth(l);
+    return i > at && d > 0 && d <= depth;
+  });
   return lines.slice(at, end < 0 ? undefined : end).join("\n");
 }
 
