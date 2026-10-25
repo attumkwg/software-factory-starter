@@ -20,6 +20,7 @@
 | [kit/catalog.yaml](kit/catalog.yaml) | キットの部品のカタログ(何をするか・要る/要らないプロダクト・消すと困ること・つながり・法令や認証・消し方)。README の「使い始めたらやること」はここから作る | 部品を足す・消す・ファイルを動かしたとき(`pnpm kit:catalog` が落ちて気づく)。README は `pnpm kit:readme` | 低 |
 | [product/tailoring.md](product/) | 部品の残す・消すの記録(答え・部品ごとの決定と理由)。足すだけ | `/tailor` が書く | 低 |
 | [product/plan.md](product/) | 始め方の計画(誰の困りごと・いちばん危ない思い込み・確かめ方・合格と撤退の線)。テンプレートあり | 確かめた結果が出たとき(`/kickoff` が書く) | 低 |
+| [product/legal.md](product/) | 法令と業界の決まりの洗い出し(作り・データ・相手から当てはまりそうな候補と、専門家に聞くこと)。ひな形 `product/_legal-template.md` | `/kickoff` が書き、`/bet` が機能を足すたびに見直す | 低 |
 | [product/bets/](product/bets/) | 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。テンプレートと見本あり。考え方は [guides/bets-and-assets.md](guides/bets-and-assets.md) | 賭けを開く・結果が出た・段階が変わるとき(`/bet` が書く。`pnpm bets` が確かめる) | 低 |
 | [product/positioning.md](product/) | 約束(誰の何を、どう変えるか)・売り文句・代わりとの違い・言わないこと・根拠(どの記録・小石か)。テンプレートあり。LP・チラシ・営業の資料・ブランドはここから作る | PSF の結果が出たとき・次の池に進むとき(`/positioning` が書く)。変えたら LP とブランドも | 低 |
 | [product/brand.md](product/) | ブランド(名前(仮)と確かめること・話し方のトーン・色の理由とコントラストの比)。テンプレートあり。色の正は `packages/ui/src/tokens.css` | 約束を変えた・正式な名前を決めたとき(`/brand` が書き、トークンの PR と一緒に) | 低 |
