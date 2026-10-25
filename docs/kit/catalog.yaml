@@ -1012,6 +1012,35 @@ parts:
       matrix: [POST /api/legal/consents]
       docs: [docs/specs/0009-legal-consent.md, docs/adr/0022-legal-documents-and-consent.md, docs/guides/legal-documents.md]
 
+  - id: contract-templates
+    name: お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い)
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: 申込書・SLA・個人データの取り扱いの取り決めに要る項目を、キットの既定・根拠のファイル・使う人が決めることで並べた型。文面は書かない(専門家が書く)。条件を「変えない / 仕組みを変えれば変えられる / 契約だけで変えられる」に分け、SLA の測り方・数える停止・補償の段・事実と例外を決める人を先に決める
+    needed_by: 会社向けで、申込書・稼働の約束・取り扱いの取り決めを求められる
+    not_needed_by: 個人向けで規約だけ・社内だけで使う
+    if_removed: 営業が書類を毎回一から作る。SLA を割ったときに、測り方・補償・決める人で揉める。仕組みで守れない約束(バックアップから早く消すなど)を書いてしまう
+    depends_on: [backup, offboarding, uptime, vendor-ledger]
+    law:
+      - 個人情報保護法 25条(委託先の監督)・26条(漏えい等の報告。委託先から委託元への通知)
+      - ISMS 5.20(供給者との合意の中のセキュリティ)
+      - P マーク(委託の契約)
+    where:
+      - docs/legal/README.md
+      - docs/legal/order-form.md
+      - docs/legal/sla.md
+      - docs/legal/data-processing.md
+    remove:
+      delete: [docs/legal]
+      edit:
+        - { path: docs/README.md, what: legal/ の行を外す }
+        - { path: docs/reference.md, what: legal/ の行を外す }
+        - { path: docs/guides/data-retention.md, what: 頭の docs/legal/ へのリンクを外す }
+        - { path: docs/runbooks/incident.md, what: 振り返りの型の SLA の行を外す }
+      docs: [docs/specs/0028-contract-templates.md, docs/designs/0028-contract-templates.md, docs/adr/0041-contract-templates-fixed-and-negotiable.md]
+
   - id: certification-prep
     name: 認証の準備(P マーク・ISMS・SOC 2)
     group: rules
@@ -1274,6 +1303,51 @@ parts:
         - { path: docs/playbook.md, what: 賭けの振り返りを外す }
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
+
+  - id: positioning
+    name: 約束と売り文句(/positioning)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 話の記録・賭けの小石・計画の代わりの物から、約束(誰の何を、どう変えるか)の案を3つ・売り文句・代わりとの違い・言わないことを根拠つきで出し、1問ずつ選んで docs/product/positioning.md に残す。LP・チラシ・営業の資料・ブランドはここから作る
+    needed_by: PSF の後に、LP・チラシ・営業の言葉を作る
+    not_needed_by: 受託など、売る言葉を自分たちで決めない
+    if_removed: LP・チラシ・ブランドの色が、それぞれ別の言葉から作られて合わなくなる。売り文句の根拠(どの話・どの結果か)が残らない
+    depends_on: [kickoff, bets]
+    law: [景品表示法 5条(根拠の無い優良・有利の表示。言わないことの案に入れる)]
+    where: [.claude/skills/positioning/SKILL.md, docs/product/_template-positioning.md, docs/guides/before-pmf.md]
+    remove:
+      delete: [.claude/skills/positioning, docs/product/_template-positioning.md]
+      edit:
+        - { path: CLAUDE.md, what: /positioning と positioning.md の行を外す }
+        - { path: docs/README.md, what: product/positioning.md の行を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の約束の所を外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
+  - id: brand
+    name: ブランドを決める段取り(/brand・pnpm contrast)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 約束と相手(業種・使う場所)から名前(仮)・話し方のトーン・色の案を2〜3つ出し、色は tokens.css の主な色を置き換えた PR にする。案ごとのコントラストの比を pnpm contrast で計算して添え、画面は VRT のスクショで人が決める。docs/product/brand.md に理由を残す
+    needed_by: 自分たちのブランドで売る(LP・チラシ・画面の色をそろえる)
+    not_needed_by: 受託で、色と名前をお客さんが決める
+    if_removed: 色を約束と相手から決める段取りが無くなり、比を目で決めることになる(トークン・axe・VRT は残る)
+    depends_on: [positioning, vrt]
+    law: [商標法(名前は商標を確かめるまで仮。当てはめは弁理士)]
+    where: [.claude/skills/brand/SKILL.md, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+    remove:
+      delete: [.claude/skills/brand, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+      edit:
+        - { path: package.json, what: contrast を外す・test:scripts から contrast.test.mjs を外す }
+        - { path: CLAUDE.md, what: /brand と brand.md と pnpm contrast の行を外す }
+        - { path: docs/README.md, what: product/brand.md の行を外す }
+        - { path: docs/design-system.md, what: /brand と pnpm contrast の所を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の /brand の所を外す }
+        - { path: .claude/skills/positioning/SKILL.md, what: /brand へのつなぎを外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
 
   - id: feature-flags
     name: 組織ごとの機能フラグ
