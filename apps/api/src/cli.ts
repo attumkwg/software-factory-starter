@@ -12,6 +12,7 @@ import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
+import { runPmfSurveyPurge, runPmfSurveyReport } from "./pmf-survey/index.ts";
 import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
@@ -31,6 +32,10 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //                                      … 利用の記録を週ごとの数と継続率にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
+//   node dist/cli.js pmf-survey-report [--round 2026-Q4]
+//                                      … 「無くなったら困るか」の答えを数と割合にする(読むだけ。docs/runbooks/pmf-survey.md)
+//   node dist/cli.js pmf-survey-purge [--execute]
+//                                      … 保存期間を過ぎた「聞き終えた印」を消す(試し → 本番。docs/runbooks/pmf-survey.md)
 
 const appEnv = process.env.APP_ENV ?? "local";
 const throwaway = appEnv === "local" || appEnv === "test" || appEnv === "preview";
@@ -191,7 +196,7 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge / pmf-survey-report / pmf-survey-purge)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -202,6 +207,15 @@ if (commands[0] === "usage-report") {
 }
 if (commands[0] === "usage-purge") {
   await usageCommand((db) => runUsagePurge(db, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "pmf-survey-report") {
+  const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
+  await usageCommand((db) => runPmfSurveyReport(db, commands.slice(1), { supportTenantId }));
+  process.exit(0);
+}
+if (commands[0] === "pmf-survey-purge") {
+  await usageCommand((db) => runPmfSurveyPurge(db, commands.slice(1)));
   process.exit(0);
 }
 if (commands[0] === "create-tenant") {

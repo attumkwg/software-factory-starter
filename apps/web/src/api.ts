@@ -16,6 +16,8 @@ import type {
   Me,
   MfaRequirement,
   MfaSetup,
+  PmfSurveyAnswer,
+  PmfSurveyStatus,
   Project,
   ProjectPage,
   StartSupport,
@@ -247,6 +249,9 @@ export const api = {
   // 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)
   acceptLegal: (consents: LegalVersionRef[]) =>
     request<void>("POST", "/legal/consents", { consents }),
+  // 「無くなったら困るか」(docs/specs/0046-pmf-survey.md)。機能フラグ pmf-survey を入れた組織だけ
+  pmfSurveyStatus: () => request<PmfSurveyStatus>("GET", "/pmf-survey"),
+  answerPmfSurvey: (answer: PmfSurveyAnswer) => request<void>("POST", "/pmf-survey", { answer }),
   listProjects: async (): Promise<{ projects: Project[] }> => ({
     projects: await readPages<ProjectPage, Project>("/projects", (p) => p.projects),
   }),

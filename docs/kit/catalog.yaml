@@ -1522,6 +1522,47 @@ parts:
       migration: 表 platform.feature_usage と関数 operator_tenant_ids を消す移行を足す(.claude/skills/db-migration。0012 は書き換えない)
       docs: [docs/specs/0012-feature-flags-and-usage.md, docs/specs/0022-usage-retention.md, docs/adr/0025-feature-flags-and-usage-records.md]
 
+  - id: pmf-survey
+    name: 「無くなったら困るか」を聞く
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 運営が機能フラグ pmf-survey を入れた組織の、使い始めて14日たった人に「このサービスが使えなくなったら、どう感じますか」を四半期に1回まで画面の中で聞く。答えは組織・回・答えごとの数だけ(だれが何と答えたかは残さない)。運営のコマンドが全部の組織を足した割合を出す(PMF の兆し。とても困るが40%)
+    needed_by: PMF に近づいたかを、数で確かめたい(使い続けている組織がいる)
+    not_needed_by: まだ使っている組織が無い・アンケートを外の道具で取る
+    if_removed: PMF の兆し(とても困るの割合)を、話を聞くか外の道具でしか測れない
+    depends_on: [feature-flags, usage-records, offboarding, column-classification, audit-log]
+    law:
+      - 個人情報保護法 17条・21条(利用目的の特定と通知・公表。プライバシーポリシーに書く)
+    where: [apps/api/src/pmf-survey, apps/web/src/pages/PmfSurvey.tsx, packages/shared/src/pmf-survey.ts, docs/runbooks/pmf-survey.md]
+    remove:
+      delete:
+        - apps/api/src/pmf-survey
+        - apps/api/test/integration/pmf-survey.int.test.ts
+        - apps/web/src/pages/PmfSurvey.tsx
+        - packages/shared/src/pmf-survey.test.ts
+        - docs/runbooks/pmf-survey.md
+      edit:
+        - { path: packages/shared/src/feature-flags.ts, what: FEATURE_FLAGS の pmf-survey を外す(名前は使い回さない) }
+        - { path: packages/shared/src/pmf-survey.ts, what: 契約は足すだけなので残してよい(使わなくなるだけ) }
+        - { path: apps/api/src/app.ts, what: pmfSurveyRoutes を外す }
+        - { path: apps/api/src/cli.ts, what: pmf-survey-report・pmf-survey-purge のコマンドを外す }
+        - { path: apps/api/src/db/schema.ts, what: pmf-survey の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: platform.pmf_survey_asked・pmf_survey_counts の行を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から2つの表を外す }
+        - { path: apps/api/src/authz/policy.ts, what: pmf_survey:answer と2つの API を外す }
+        - { path: apps/api/src/audit/actions.ts, what: POST /api/pmf-survey を外す(画面の文 pmf_survey.respond は古い記録を読むため残す) }
+        - { path: docs/authz/matrix.yaml, what: /api/pmf-survey の2行を外す }
+        - { path: apps/web/src/routes/_app/index.tsx, what: 聞くかの読み込みを外す }
+        - { path: apps/web/src/pages/ProjectsPage.tsx, what: PmfSurvey を外す }
+        - { path: apps/web/src/api.ts, what: pmfSurveyStatus・answerPmfSurvey を外す }
+        - { path: .tbls.yml, what: 2つの表の説明を外す }
+        - { path: CLAUDE.md, what: PMF の兆しの文を外す }
+        - { path: docs/guides/before-pmf.md, what: 画面の中で聞ける所を外す }
+      migration: 表 platform.pmf_survey_asked・pmf_survey_counts を消す移行を足す(.claude/skills/db-migration。0016 は書き換えない)
+      docs: [docs/specs/0046-pmf-survey.md, docs/adr/0057-pmf-survey-counts-only.md]
+
   - id: ledger
     name: 資産と費用の台帳(/ledger)
     group: process

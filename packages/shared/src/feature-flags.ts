@@ -6,6 +6,8 @@
 // - 名前は英小文字・数字・「-」(先頭は英字・48文字まで)。重ならない。**一度使った名前は使い回さない**(古い行が生き返る)
 // - bet は賭けのファイル(docs/product/bets/B-NNNN-*.md)。段階が psf / rollout / adopted のどれか
 //   (dropped / retired になったら、フラグと呼び出しを消す PR を出す。残っていると CI が落ちる)
+// - キットの仕組み(賭けではなく、プロダクト全体を測る物。例: PMF の兆しを聞く)は bet を "kit" にする。
+//   賭けの段階には縛られない(消すのはキットの部品を消すとき。docs/kit/catalog.yaml)
 
 export const FEATURE_FLAG_STATES = ["rollout", "on", "off"] as const;
 /**
@@ -18,7 +20,7 @@ export type FeatureFlagState = (typeof FEATURE_FLAG_STATES)[number];
 export type FeatureFlagDefinition = {
   /** 画面・API・コマンドで使う名前 */
   name: string;
-  /** どの賭けの機能か(B-NNNN) */
+  /** どの賭けの機能か(B-NNNN)。キットの仕組みなら "kit" */
   bet: string;
   /** 何を出し分けるか(一言) */
   description: string;
@@ -26,16 +28,24 @@ export type FeatureFlagDefinition = {
 };
 
 /**
- * 機能フラグの一覧。いまは無い(キットは何も出し分けない)。足すときは、たとえば:
+ * 機能フラグの一覧。賭けの機能を足すときは、たとえば:
  *   { name: "morning-digest", bet: "B-0002", description: "期限が近いタスクを朝にまとめて知らせる", state: "rollout" },
  */
-export const FEATURE_FLAGS = [] as const satisfies readonly FeatureFlagDefinition[];
+export const FEATURE_FLAGS = [
+  // キットの仕組み: 「無くなったら困るか」を画面の中で聞く(docs/specs/0046-pmf-survey.md)。運営が入れた組織の人にだけ聞く
+  {
+    name: "pmf-survey",
+    bet: "kit",
+    description: "「このサービスが使えなくなったら、どう感じますか」を画面の中で聞く(PMF の兆し)",
+    state: "rollout",
+  },
+] as const satisfies readonly FeatureFlagDefinition[];
 
 /** 定義にある名前だけ(書き間違いは型の検査で落ちる)。一覧が空のうちは、どの名前も使えない */
 export type FeatureFlagName = (typeof FEATURE_FLAGS)[number]["name"];
 
 const NAME = /^[a-z][a-z0-9-]{0,47}$/;
-const BET = /^B-\d{4}$/;
+const BET = /^(B-\d{4}|kit)$/;
 
 /** 定義の書き方の誤り(無ければ空) */
 export function featureFlagProblems(defs: readonly FeatureFlagDefinition[]): string[] {
@@ -45,7 +55,7 @@ export function featureFlagProblems(defs: readonly FeatureFlagDefinition[]): str
     if (!NAME.test(d.name)) problems.push(`${d.name}: 名前は英小文字・数字・「-」(先頭は英字)`);
     if (seen.has(d.name)) problems.push(`${d.name}: 名前が重なっている`);
     seen.add(d.name);
-    if (!BET.test(d.bet)) problems.push(`${d.name}: bet は B-NNNN の形`);
+    if (!BET.test(d.bet)) problems.push(`${d.name}: bet は B-NNNN の形(キットの仕組みは kit)`);
     if (d.description.trim() === "") problems.push(`${d.name}: 説明が空`);
   }
   return problems;

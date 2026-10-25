@@ -24,6 +24,8 @@ export const TENANT_TABLES = [
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",
+  "platform.pmf_survey_counts",
+  "platform.pmf_survey_asked",
   "platform.feature_usage",
   "platform.feature_flags",
   "tasks.tasks",

@@ -44,6 +44,8 @@
 5. テスト: 定義を差し替えたアプリ(`createTestApp(url, {}, { featureFlags: [...] })`)で、入れた組織と入れていない組織の2社を書く(見本は `test/integration/feature-flags.int.test.ts`)。
 6. PR の「取り組み」は `bet:B-NNNN`。
 
+**キットの仕組み**(賭けではなく、プロダクト全体を測る物)は `bet: "kit"` にする。賭けの段階には縛られない。いまは `pmf-survey`(「無くなったら困るか」を画面の中で聞く。[specs/0046](../specs/0046-pmf-survey.md)・[runbooks/pmf-survey.md](../runbooks/pmf-survey.md))だけ。
+
 ## 使われたかを測る(利用の記録)
 
 賭けの線(「入れた組織の何割が4週続けて使うか」など)は、利用の記録で測る。
