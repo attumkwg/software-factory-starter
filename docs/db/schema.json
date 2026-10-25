@@ -1508,6 +1508,162 @@
           ]
         }
       ]
+    },
+    {
+      "name": "organizations.invitations",
+      "type": "BASE TABLE",
+      "comment": "管理者が出した招待(docs/specs/0027-invitations.md・ADR 0040)。リンクの札は持たない(招待の ID とサーバーの秘密の署名)。受けるのは auth_accept_invitation 関数だけ(1回きり)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "role",
+          "type": "organizations.role",
+          "nullable": false
+        },
+        {
+          "name": "invited_by",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "comment": "リンクの期限(作ってから7日)"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "受けた時刻(入ったら、もう使えない)"
+        },
+        {
+          "name": "accepted_user_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "受けてできた users の行"
+        },
+        {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "取り消した時刻(リンクはすぐ使えなくなる)"
+        },
+        {
+          "name": "revoked_by",
+          "type": "uuid",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "invitations_pkey",
+          "def": "CREATE UNIQUE INDEX invitations_pkey ON organizations.invitations USING btree (id)",
+          "table": "organizations.invitations",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "invitations_tenant_id_id_key",
+          "def": "CREATE UNIQUE INDEX invitations_tenant_id_id_key ON organizations.invitations USING btree (tenant_id, id)",
+          "table": "organizations.invitations",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "invitations_list_idx",
+          "def": "CREATE INDEX invitations_list_idx ON organizations.invitations USING btree (tenant_id, created_at DESC NULLS LAST, id DESC NULLS LAST)",
+          "table": "organizations.invitations",
+          "columns": [
+            "tenant_id",
+            "created_at",
+            "id"
+          ]
+        },
+        {
+          "name": "invitations_email_idx",
+          "def": "CREATE INDEX invitations_email_idx ON organizations.invitations USING btree (tenant_id, email)",
+          "table": "organizations.invitations",
+          "columns": [
+            "tenant_id",
+            "email"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "invitations_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.invitations",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "invitations_invited_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id, invited_by) REFERENCES organizations.users(tenant_id, id)",
+          "table": "organizations.invitations",
+          "referenced_table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "invited_by"
+          ],
+          "referenced_columns": [
+            "tenant_id",
+            "id"
+          ]
+        },
+        {
+          "name": "invitations_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "organizations.invitations",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "invitations_tenant_id_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, id)",
+          "table": "organizations.invitations",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -1786,6 +1942,34 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "organizations.invitations",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "organizations.invitations",
+      "columns": [
+        "tenant_id",
+        "invited_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.users",
+      "parent_columns": [
+        "tenant_id",
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id, invited_by) REFERENCES organizations.users(tenant_id, id)"
     }
   ],
   "functions": [
@@ -1859,6 +2043,12 @@
       "name": "public.operator_tenant_ids",
       "return_type": "uuid",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_accept_invitation",
+      "return_type": "record",
+      "arguments": "p_id uuid, p_user_id uuid, p_name text",
       "type": "FUNCTION"
     }
   ],
