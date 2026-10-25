@@ -18,6 +18,8 @@
 | [platform.feature_flags](platform.feature_flags.md)                 | 4       | 組織ごとの機能フラグ(行がある = その組織に機能を入れた)。定義は @app/shared の FEATURE_FLAGS。アプリは読むだけで、入れる・切るのは運営のコマンド feature-flag。docs/specs/0012-feature-flags-and-usage.md                   | BASE TABLE |
 | [platform.feature_usage](platform.feature_usage.md)                 | 5       | 利用の記録(この人がこの日にこの機能を使った。1日1人1機能1行)。中身・時刻・URL・IP は持たない。アプリは読む・足すだけ。400日で運営のコマンド usage-purge が消す。docs/specs/0012-feature-flags-and-usage.md                  | BASE TABLE |
 | [sensitive.tenant_keys](sensitive.tenant_keys.md)                   | 4       | 組織ごとのデータ鍵(要配慮個人情報を暗号化する鍵。KMS で包んだ物だけ)。読めるのはロール app_sensitive だけ(app_rw はスキーマに入れない)。行を消すとその組織の要配慮の暗号文は読めない。docs/adr/0029-sensitive-data-tier1.md | BASE TABLE |
+| [growth.lp_daily_counts](growth.lp_daily_counts.md)                 | 9       | 公開の LP の日ごと・ページ・来た所(UTM)ごとの見た数・登録・確認(個人の行は持たない。3年で消す)。docs/domain/growth                                                                                                          | BASE TABLE |
+| [growth.pre_registrations](growth.pre_registrations.md)             | 19      | 公開の LP の事前登録(運営の組織の持ち物)。確認待ち → 確認済み → 組織にした。消す日を過ぎたら pre-registrations-purge が消す。docs/domain/growth                                                                             | BASE TABLE |
 
 ## Stored procedures and functions
 

@@ -69,6 +69,11 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド feature-flag が、組織に機能を入れた・切った(docs/specs/0012-feature-flags-and-usage.md)。details.flag に名前
   featureFlagEnable: "feature_flag.enable",
   featureFlagDisable: "feature_flag.disable",
+  // 公開の LP の事前登録(docs/specs/0025-public-landing-page.md)。運営の組織の監査ログに残す。
+  // 期限で消した(details に件数)・問い合わせで消した(対象は登録の ID)・組織にした(details.convertedTenantId)
+  preRegistrationPurged: "pre_registration.purged",
+  preRegistrationDeleted: "pre_registration.deleted",
+  preRegistrationConverted: "pre_registration.converted",
 } as const;
 
 /**

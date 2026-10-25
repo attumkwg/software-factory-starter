@@ -54,6 +54,12 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "POST /api/auth/forgot-password": PUBLIC,
   "POST /api/auth/reset-password": PUBLIC,
   "POST /api/auth/logout": PUBLIC,
+  // 公開の LP(apps/site)の事前登録と見た数(docs/specs/0025-public-landing-page.md)。ログインを見ない。
+  // テナントはリクエストから決めず、設定の運営の組織に固定(domains/growth/routes.ts)。設定が無ければ 404
+  "POST /api/public/pre-registrations": PUBLIC,
+  "POST /api/public/pre-registrations/confirm": PUBLIC,
+  "POST /api/public/pre-registrations/withdraw": PUBLIC,
+  "POST /api/public/lp-views": PUBLIC,
   "GET /api/me": "me:read",
   "GET /api/projects": "project:read",
   "POST /api/projects": "project:create",

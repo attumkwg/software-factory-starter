@@ -1,5 +1,6 @@
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import { type PublicSiteLinks, preRegistrationConfirmMail } from "../domains/growth/index.ts";
 import { legalChangeMail } from "../domains/legal/index.ts";
 import {
   type AccountNotice,
@@ -18,6 +19,8 @@ export type HandlerDeps = {
   mailer: Mailer;
   /** メールの中のリンクの頭(https://app.example.com) */
   appUrl: string;
+  /** 公開の LP の URL とリンクの鍵(事前登録の確認のメール)。無ければ確認のメールは送らない */
+  publicSite?: PublicSiteLinks | null;
 };
 
 /**
@@ -29,7 +32,7 @@ export type HandlerDeps = {
  * 2回送っても困らないように書く(メールは Message-ID を出来事ごとに固定している)。
  */
 export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, OutboxHandler>> {
-  const { db, logger, mailer, appUrl } = deps;
+  const { db, logger, mailer, appUrl, publicSite = null } = deps;
 
   /** 宛先と本文をその会社の文脈(RLS)の中で作り、DB のトランザクションの外で送る */
   async function sendIn(
@@ -68,6 +71,10 @@ export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, O
     "legal.change_notified": (event) => {
       const payload = OUTBOX_TOPICS["legal.change_notified"].parse(event.payload);
       return sendIn(event, (tx) => legalChangeMail(tx, event, payload, appUrl));
+    },
+    "growth.pre_registration_received": (event) => {
+      const payload = OUTBOX_TOPICS["growth.pre_registration_received"].parse(event.payload);
+      return sendIn(event, (tx) => preRegistrationConfirmMail(tx, event, payload, publicSite));
     },
     "tasks.task_completed": async (event) => {
       const payload = OUTBOX_TOPICS["tasks.task_completed"].parse(event.payload);

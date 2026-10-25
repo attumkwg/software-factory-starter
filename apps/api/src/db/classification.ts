@@ -114,6 +114,44 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "legal.notices.version": internal("知らせた版(施行日の数字)"),
   "legal.notices.created_at": internal("送ると決めた時刻(周知の証拠)"),
 
+  // ── 集客(growth。公開の LP の事前登録と日ごとの数。docs/specs/0025-public-landing-page.md)。運営の組織の持ち物 ──
+  "growth.pre_registrations.id": internal("事前登録の ID(組織を作るコマンドに渡す)"),
+  "growth.pre_registrations.tenant_id": internal("運営の組織"),
+  "growth.pre_registrations.email": personal(
+    "確認のメール・提供開始の案内・試しの利用の招待・組織を作るときの最初の管理者",
+  ),
+  "growth.pre_registrations.organization_name": personal(
+    "組織を作るときの名前の案(個人事業なら人の名前になる)",
+  ),
+  "growth.pre_registrations.company_size": pub("会社の規模の幅(集計)"),
+  "growth.pre_registrations.utm_source": internal("どこから来たか(UTM。英数と -_. だけ)"),
+  "growth.pre_registrations.utm_medium": internal("どこから来たか(UTM)"),
+  "growth.pre_registrations.utm_campaign": internal("どこから来たか(UTM)"),
+  "growth.pre_registrations.landing_path": pub("どのページで登録したか(クエリを落とした path)"),
+  "growth.pre_registrations.consent_text_version": internal("同意した文の版(同意の証拠)"),
+  "growth.pre_registrations.privacy_version": internal(
+    "そのときのプライバシーポリシーの版(同意の証拠)",
+  ),
+  "growth.pre_registrations.consented_at": internal("同意して送った時刻(同意の証拠)"),
+  "growth.pre_registrations.confirm_sent_at": internal(
+    "確認のメールを積んだ時刻(24時間に1通・リンクの署名)",
+  ),
+  "growth.pre_registrations.confirmed_at": internal("確認のリンクを開いた時刻(本人の確認の証拠)"),
+  "growth.pre_registrations.status": pub("状態(pending / confirmed / converted)"),
+  "growth.pre_registrations.converted_tenant_id": internal("組織にしたら、その組織の ID"),
+  "growth.pre_registrations.converted_at": internal("組織にした時刻"),
+  "growth.pre_registrations.delete_after": internal("この日を過ぎたら消す(保存期間)"),
+  "growth.pre_registrations.created_at": internal("登録した時刻"),
+  "growth.lp_daily_counts.tenant_id": internal("運営の組織"),
+  "growth.lp_daily_counts.day": internal("日(日本時間)"),
+  "growth.lp_daily_counts.path": pub("ページの path"),
+  "growth.lp_daily_counts.utm_source": internal("どこから来たか(UTM)"),
+  "growth.lp_daily_counts.utm_medium": internal("どこから来たか(UTM)"),
+  "growth.lp_daily_counts.utm_campaign": internal("どこから来たか(UTM)"),
+  "growth.lp_daily_counts.views": internal("見た数"),
+  "growth.lp_daily_counts.registrations": internal("登録の数"),
+  "growth.lp_daily_counts.confirmations": internal("確認の数"),
+
   // ── 共通の仕組み(platform) ──
   "platform.audit_events.id": internal("記録の ID(時刻の順)"),
   "platform.audit_events.tenant_id": internal("組織"),
@@ -136,6 +174,9 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       route: internal("代理の社員が呼んだ API の形(メソッドとパスの型)"),
       counts: internal("解約で消した表ごとの行数"),
       flag: internal("運営が入れた・切った機能の名前(FEATURE_FLAGS の name)"),
+      preRegistrations: internal("期限で消した事前登録の数"),
+      dailyCounts: internal("期限で消した日ごとの数の行の数"),
+      convertedTenantId: internal("事前登録から作った組織の ID"),
     },
   },
 
@@ -152,6 +193,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       userId: internal("お知らせを送る相手の ID(宛先は送る直前に DB から読む)"),
       emailChangeId: internal("メールアドレスの変更の ID(古いアドレスは表から読む)"),
       noticeId: internal("規約の変更のお知らせの ID(宛先と版は表から読む)"),
+      preRegistrationId: internal("事前登録の ID(宛先とリンクは表から読む)"),
     },
   },
   "platform.outbox.created_at": internal("積んだ時刻"),

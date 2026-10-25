@@ -99,6 +99,13 @@
       "when": 1792901359834,
       "tag": "0013_sensitive_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792913185909,
+      "tag": "0014_growth_pre_registrations",
+      "breakpoints": true
     }
   ]
 }

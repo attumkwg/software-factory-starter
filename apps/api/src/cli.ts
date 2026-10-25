@@ -6,6 +6,11 @@ import pg from "pg";
 import { createDb, type RootDb } from "./db/client.ts";
 import { runMigrations } from "./db/migrate.ts";
 import { seed } from "./db/seed.ts";
+import {
+  runPreRegistrationDelete,
+  runPreRegistrationPurge,
+  runPreRegistrationReport,
+} from "./domains/growth/index.ts";
 import { noticeProblem } from "./domains/legal/index.ts";
 import { setFeatureFlag, showFeatureFlags } from "./feature-flags/index.ts";
 import { notifyLegalChange } from "./legal-notify/notify.ts";
@@ -27,6 +32,12 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //                                      … 利用の記録を週ごとの数にする(読むだけ。docs/runbooks/usage-records.md)
 //   node dist/cli.js usage-purge [--execute]
 //                                      … 保存期間を過ぎた利用の記録を消す(試し → 本番。docs/runbooks/usage-records.md)
+//   node dist/cli.js pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+//                                      … 公開の LP の来た所ごとの見た数・登録・確認と率(読むだけ。docs/runbooks/pre-registrations.md)
+//   node dist/cli.js pre-registrations-purge [--execute]
+//                                      … 消す日を過ぎた事前登録・古い日ごとの数を消す(試し → 本番)
+//   node dist/cli.js pre-registrations-delete [--execute]
+//                                      … 問い合わせのあったアドレスの事前登録を消す(アドレスは標準入力から1行。試し → 本番)
 
 const appEnv = process.env.APP_ENV ?? "local";
 const throwaway = appEnv === "local" || appEnv === "test" || appEnv === "preview";
@@ -149,10 +160,29 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
   }
 }
 
+/** 事前登録のコマンド。運営の組織(SUPPORT_TENANT_ID)の持ち物なので、無ければ止める。出すのは数だけ */
+async function preRegistrationCommand(
+  run: (db: RootDb, operatorTenantId: string) => Promise<string[]>,
+) {
+  const operatorTenantId = process.env.SUPPORT_TENANT_ID;
+  if (!operatorTenantId) throw new Error("SUPPORT_TENANT_ID(運営の組織)がありません");
+  await usageCommand((db) => run(db, operatorTenantId));
+}
+
+/** 標準入力の最初の1行(メールアドレスをコマンドの引数に書かない = 端末の履歴に残さない) */
+async function readLine(): Promise<string> {
+  let input = "";
+  for await (const chunk of process.stdin) {
+    input += chunk;
+    if (input.includes("\n")) break;
+  }
+  return input.split("\n")[0]?.trim() ?? "";
+}
+
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge / pre-registrations-report / pre-registrations-purge / pre-registrations-delete)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -163,6 +193,22 @@ if (commands[0] === "usage-report") {
 }
 if (commands[0] === "usage-purge") {
   await usageCommand((db) => runUsagePurge(db, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "pre-registrations-report") {
+  await preRegistrationCommand((db, t) => runPreRegistrationReport(db, t, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "pre-registrations-purge") {
+  await preRegistrationCommand((db, t) => runPreRegistrationPurge(db, t, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "pre-registrations-delete") {
+  process.stderr.write("消す登録のメールアドレスを1行で入れてください: ");
+  const email = await readLine();
+  await preRegistrationCommand((db, t) =>
+    runPreRegistrationDelete(db, t, email, commands.slice(1)),
+  );
   process.exit(0);
 }
 if (commands[0] === "delete-tenant") {

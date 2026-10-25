@@ -2,7 +2,7 @@
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
 > 仕様: [docs/specs/0025-public-landing-page.md](../specs/0025-public-landing-page.md)・設計判断: [ADR 0038](../adr/0038-public-landing-page.md)
-> 状態: 承認済み(未確定事項 U-1〜U-4 は全部答え済み。@attumkwg 2026-10-25 会話で「全部おすすめどおり」)
+> 状態: 承認済み(未確定事項 U-1〜U-4 は全部答え済み。@attumkwg 2026-10-25 会話で「全部おすすめどおり」)。実装: 事前登録の受け口(① の PR)・公開のページ(② の PR)
 > 観点の順は [review-viewpoints.md](../review-viewpoints.md)。当てはまらない節も消さずに「該当なし(理由)」と書く。
 
 ## 0. 全体像
@@ -64,10 +64,8 @@ flowchart LR
 | `consent_text_version` | integer | internal | 同意の文の版(手引きの型。文を変えたら版を上げる) |
 | `privacy_version` | integer | internal | そのとき出したプライバシーポリシーの版(`LEGAL_VERSIONS`) |
 | `consented_at` | timestamptz | internal | 同意のチェックを付けて送った時刻 |
-| `confirm_token_hash` | bytea | internal | 確認のリンクの token の SHA-256(token そのものは持たない) |
-| `confirm_sent_at` | timestamptz | internal | 確認のメールを最後に送った時刻(24時間に1通) |
+| `confirm_sent_at` | timestamptz | internal | 確認のメールを最後に積んだ時刻(24時間に1通。確認のリンクの署名はこの時刻から作る) |
 | `confirmed_at` | timestamptz(空あり) | internal | リンクを開いた時刻 |
-| `withdraw_token_hash` | bytea | internal | 取り消しのリンクの token の SHA-256 |
 | `status` | text(`pending` / `confirmed` / `converted`) | internal | 4. の状態 |
 | `converted_tenant_id` | uuid(空あり) | internal | 組織を作ったら、その組織の ID |
 | `converted_at` | timestamptz(空あり) | internal | 組織を作った時刻 |
@@ -78,7 +76,8 @@ flowchart LR
 - 索引: `(tenant_id, delete_after)`(消す仕事)・`(tenant_id, status, created_at)`。
 - 取り消し(`withdrawn`)は状態にしない: **行を消す**。「取り消した人に二度と送らない」ための記録も残さない(残すと消したことにならない。また登録すれば、また同意を取り直すだけ)。
 - RLS: `tenant_id = 現在のテナント`。公開の入口とコマンドは運営の組織の文脈だけで開く。
-- 解約で消す一覧(`TENANT_TABLES`)には**入れない**(運営の組織は解約しない)。書き出しにも入れない。
+- 確認・取り消しのリンクの token は DB に持たない。「登録の ID.署名」で、署名は `SESSION_SECRET` から作った鍵で「用途・ID・時刻(確認は `confirm_sent_at`・取り消しは `created_at`)」を HMAC-SHA256 した物(`links.ts`)。アウトボックスが同じ出来事を2回届けても同じリンクになり、送り直すと前の確認のリンクは使えなくなる。
+- 解約で消す一覧(`TENANT_TABLES`)には**入れる**(運営の組織は解約しないが、「tenant_id の表は全部載っている」の検査をそのまま守るため)。書き出しには入れない。
 - 監査ログ: 運営のコマンドで消した・組織にした、を運営の組織の監査ログに残す(ID と件数だけ)。公開の入口からの登録は監査ログに入れない(社員の操作ではない。行そのものが記録)。
 
 ### `growth.lp_daily_counts`(日ごとの集計。個人の行は持たない)
@@ -100,14 +99,15 @@ flowchart LR
 
 | メソッドとパス | 入力 | 応答 |
 |---|---|---|
-| `POST /api/public/pre-registrations` | 形(`application/x-www-form-urlencoded`): `email`・`organization_name`・`company_size`・`consent`(`on` でなければ 400)・`consent_text_version`・`utm_*`・`landing_path`・罠の欄 `website`(人には見えない。値があれば何もせず成功と同じ応答) | 303 で公開のページの「確認のメールを送りました」へ。入力の誤りは 303 で形へ戻す(誤りの種類だけをクエリに。入れた値は URL に載せない) |
-| `GET /api/public/pre-registrations/confirm?token=…` | token(32バイトの乱数を base64url) | 303 で「確認しました」へ。期限切れ・使い済みは「リンクの期限が切れました」へ(どちらかは言わない) |
-| `POST /api/public/pre-registrations/withdraw` | `token`(取り消しのリンクのページが形で送る。GET で消さない: メールの道具がリンクを先読みして消してしまうため) | 303 で「消しました」へ。無い token も同じ応答 |
-| `POST /api/public/lp-views` | JSON: `path`・`utm_*`(`navigator.sendBeacon`) | 204。何も返さない |
+| `POST /api/public/pre-registrations` | JSON: `email`・`organizationName`・`companySize`・`consent`(true でなければ 400)・`consentTextVersion`(いまの版でなければ 400)・`utmSource`/`utmMedium`/`utmCampaign`・`landingPath`・罠の欄 `website`(人には見えない。値があれば何もせずに同じ答え) | 204(登録の有無に関わらず同じ) |
+| `POST /api/public/pre-registrations/confirm` | JSON: `token`(公開のページの `/confirm` が URL の `#t=` の後ろを読んで送る) | 204。期限切れ・署名の合わない token は 400(どちらかは言わない) |
+| `POST /api/public/pre-registrations/withdraw` | JSON: `token`(`/withdraw` のページのボタンが送る。GET で消さない: メールの道具がリンクを先読みして消してしまうため) | 204。無い token も同じ |
+| `POST /api/public/lp-views` | JSON: `path`・`utmSource`/`utmMedium`/`utmCampaign` | 204 |
 
-- 形の送り先は API のホスト(`app.<ドメイン>`)。公開のページ(`www.<ドメイン>`)から**ふつうの形の POST** で送る(JS が無くても動く・CORS が要らない)。応答は公開のページへの 303。見た数だけ `sendBeacon`(CORS は `www` だけ許す・資格情報なし)。
-- 入力のスキーマは `packages/shared` の Zod(足すだけ)。
-- 監査ログの名前(`actions.ts`): 公開の入口は社員の書き込みではないので、関所の自動の記録の外に置く(関所を通らない入口として、`app.ts` で明示する)。運営のコマンドの `growth.pre_registration.delete`・`growth.pre_registration.convert` を足す。
+- 公開のページ(`www.<ドメイン>`)から API のホスト(`app.<ドメイン>`)へ **JSON の fetch** で送る。CORS は公開のページの origin(`PUBLIC_SITE_URL`)だけに開き、資格情報(Cookie)は送らせない(`app.ts` の `/api/public/*`)。下見(OPTIONS)は CORS の部品が関所の前で答える。本文は 8KB まで。
+- 権限は `policy.ts` の `public`(関所はログインを見ずに通す)。ハンドラーが運営の組織の文脈(`withTenant`)を自分で開く。`PUBLIC_SITE_URL` か `SUPPORT_TENANT_ID` が無ければ全部 404。
+- 入力のスキーマは `packages/shared/src/pre-registration.ts` の Zod(足すだけ)。
+- 監査ログ: 公開の入口は `public` なので、関所の自動の記録(`actions.ts`)の外。運営のコマンドが運営の組織の監査ログに `pre_registration.purged`(件数)・`pre_registration.deleted`(登録の ID)・`pre_registration.converted`(作った組織の ID)を残す。
 - 権限の表: 仕様の「権限の表に足す行」。
 
 ## 4. 状態遷移
@@ -128,7 +128,7 @@ flowchart LR
 - **組織を作るコマンド(G-01 の `create-tenant`)へのつなぎ**: G-01 のファイルは触らない。つなぐ形だけ決める。
   - `growth` 領域が読むための関数を1つ出す: `loadPreRegistrationForTenant(tx, id)` → `{ preRegistrationId, organizationName, adminEmail }`。`status` が `confirmed` でなければ失敗(`pending` は本人の確認が無い・`converted` は二重)。
   - G-01 のコマンドに `--from-pre-registration <id>` を足してもらう(G-01 の側の PR)。組織の名前と最初の管理者のメールアドレスを、この関数の値で埋める(コマンドの試しの表示に出し、人が確かめてから実行)。
-  - 組織を作ったら、同じ取引の中で `markPreRegistrationConverted(tx, id, tenantId)` を呼び、`converted` にする。
+  - 組織を作ったら `markPreRegistrationConverted(tx, operatorTenantId, id, tenantId)` を呼び、`converted` にする。組織を作るのは新しい組織の文脈・事前登録は運営の組織の文脈なので、**別のトランザクション**になる。作った後に失敗しても流し直せるよう、同じ組織で2回呼んでも true(別の組織なら false)。
   - 事前登録の同意は「案内と招待」まで。**利用規約への同意は、招待された最初の管理者が登録の画面で取る**(`legal.consents`。いまの流れのまま)。
 - **公開のページの置き場所**: 試作と同じ形の S3(非公開)+CloudFront(OAC)。違いは、合言葉の関数を付けない・本番では `X-Robots-Tag` を付けない・独自のドメイン(`www.<ドメイン>`)。Terraform は新しいモジュール(例 `modules/public-site`)。種類は試作で台帳に載っている CloudFront・S3 と同じなので、台帳は行の確認だけ。
 - **Sentry・ログ**: 公開の入口の失敗は `logger.error({ err }, "…")`。メールアドレス・会社名・token・UTM はログに出さない(許可リストに足さない)。
@@ -138,34 +138,34 @@ flowchart LR
 - **集める項目は最小**: 会社名・メールアドレス・会社の規模の幅だけ。名前・電話・役職・自由記述は集めない(要配慮が入りうる・組織を作るのに要らない)。足すなら仕様から。
 - **同意**: 送るボタンの近くに同意の文(手引きの型)とチェック。チェックが無いと送れない(画面でも API でも)。文の版とプライバシーポリシーの版を残す。
 - **確認(ダブルオプトイン)**: 確認のリンクを開くまで案内を送らない・組織にできない(U-4)。
-- **保存期間**(U-3): `pending` は登録から7日・`confirmed` は登録から1年(過ぎる前に案内を送り、続けたい人は確認し直す、は実装の PR で決める)・`converted` は組織を作ってから30日。毎日の仕事が `delete_after` を過ぎた行を消す。
-- **消し方**: ①本人がメールの取り消しのリンクから ②本人が問い合わせ → 運営がコマンド `pre-registrations delete --email`(運営が打つ。AI は打たない・アドレスを受け取らない)③保存期間で自動。
+- **保存期間**(U-3): `pending` は登録から7日・`confirmed` は登録から1年(過ぎる前に案内を送り、続けたい人は確認し直す、は次の一歩)・`converted` は組織を作ってから30日。`delete_after` を過ぎた行は、運営のコマンド `pre-registrations-purge` で消す(週1回、人が打つ。キットに定期の仕事の仕組みがまだ無い。確認待ちのリンクは7日で使えなくなるので、消すまでの間も案内は送らない)。
+- **消し方**: ①本人がメールの取り消しのリンクから ②本人が問い合わせ → 運営がコマンド `pre-registrations-delete`(アドレスは標準入力から。運営が打つ。AI は打たない・アドレスを受け取らない)③保存期間を過ぎたら `pre-registrations-purge`。
 - **UTM の扱い**: 英数と `-_.` だけ・100 文字まで。外れた値は空にする(自由な文や個人のメールアドレスが UTM に入れられても残さない)。
 - **見た数**: ページが開いて1秒たってから1回だけ送る(機械の先読みを減らす)。Cookie・端末の ID・IP・User-Agent・Referrer の全部は残さない。数は目安(広告の管理画面の数と合わない)。
-- **率**: 登録の率 = 登録 ÷ 見た数、確認の率 = 確認 ÷ 登録。日ごと・来た所ごと。運営のコマンド `lp-report --from --to` が出す(個人の行は出さない)。
+- **率**: 登録の率 = 登録 ÷ 見た数、確認の率 = 確認 ÷ 登録。来た所ごと。運営のコマンド `pre-registrations-report --from --to` が出す(個人の行は出さない)。
 - **本番以外**: 公開のページは全部 noindex・`robots.txt` で全部お断り。確認のメールは Mailpit へ。
 
 ## 7. 要求との対応
 
-> この PR は手引き・設計まで。U-1 の答えのあとの実装の PR で、下の「テスト」の欄を埋める。
+> 「② の PR」とある行は、公開のページ `apps/site` の PR で埋める。
 
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
 | LP に要る物の一覧 | 手引き「LP に要る物」 | 手引き(人が読む)。実装の PR で `apps/site` の E2E |
-| 事前登録の同意の文の型と版 | 手引き「同意の文の型」・6. 業務ルール | 実装の PR: 結合テスト(チェックが無いと 400・版が残る) |
+| 事前登録の同意の文の型と版 | 手引き「同意の文の型」・6. 業務ルール | `packages/shared/src/pre-registration.test.ts`・`growth-public.int.test.ts`「同意のチェックが無ければ 400…」「登録すると…」 |
 | 計測の同意の考え方 | 手引き「計測」・1. 設計方針 | 手引き(人が読む) |
-| 事前登録の目的・保存期間・消し方・委託先・組織へのつなぎ | 2. データモデル・5. 連携・6. 業務ルール | 実装の PR: 結合テスト(期限で消す・取り消し・`loadPreRegistrationForTenant`) |
+| 事前登録の目的・保存期間・消し方・委託先・組織へのつなぎ | 2. データモデル・5. 連携・6. 業務ルール | `growth-public.int.test.ts`「purge は…」「取り消しのリンクで…」「確認済みの登録だけを組織を作る入力にでき…」 |
 | プライバシーポリシーに足すことが辿れる | `docs/guides/legal-documents.md` の「プライバシーポリシーに書くこと」に1行 | `pnpm self-contained`(リンク切れ) |
 | 試作から LP の手引きへ辿れる | `docs/guides/prototypes.md`・`/prototype` に1行 | `pnpm self-contained` |
-| 本番は検索に載る・本番以外は noindex | 5. 連携・6. 業務ルール | 実装の PR: `apps/site` のビルドの単体テストと CloudFront の応答ヘッダー |
-| 同じトークンと部品 | 1. 設計方針 | 実装の PR: VRT・axe |
-| 登録 → 確認のメール → 確認済み・チェックが無いと 400 | 3. API・4. 状態遷移 | 実装の PR: 結合テスト |
-| 確認しなければ7日で消える | 6. 業務ルール | 実装の PR: 結合テスト(消す仕事) |
-| 本人のリンク・運営のコマンドで消せる | 3. API・6. 業務ルール | 実装の PR: 結合テスト |
-| UTM が記録と集計に残る・Cookie なし・外へ送らない | 2. データモデル・6. 業務ルール | 実装の PR: 単体テスト(UTM の整え)・E2E(Cookie が無い・外のホストへの要求が無い) |
-| 運営のコマンドで率を見る | 6. 業務ルール | 実装の PR: 結合テスト |
-| 確認済みの ID を組織を作る入力に・開通済みにする | 5. 連携 | 実装の PR: 結合テスト(G-01 のコマンドとつなぐのは G-01 の側) |
-| 同じアドレスへは24時間に1通 | 2. データモデル・6. 業務ルール | 実装の PR: 結合テスト |
+| 本番は検索に載る・本番以外は noindex | 5. 連携・6. 業務ルール | ② の PR: `apps/site` のビルドの単体テストと CloudFront の応答ヘッダー |
+| 同じトークンと部品 | 1. 設計方針 | ② の PR: VRT・axe |
+| 登録 → 確認のメール → 確認済み・チェックが無いと 400 | 3. API・4. 状態遷移 | `growth-public.int.test.ts`「確認のメールのリンクを開くと confirmed…」「署名の合わない token・期限の切れたリンクは 400」 |
+| 確認しなければ7日で消える | 6. 業務ルール | `growth-public.int.test.ts`「登録すると…」(消す日)・「purge は…」・「期限の切れたリンクは 400」 |
+| 本人のリンク・運営のコマンドで消せる | 3. API・6. 業務ルール | `growth-public.int.test.ts`「取り消しのリンクで…」「delete は…」 |
+| UTM が記録と集計に残る・Cookie なし・外へ送らない | 2. データモデル・6. 業務ルール | `pre-registration.test.ts`(UTM の整え)・`growth-public.int.test.ts`「見た数」・② の PR: E2E(Cookie が無い・外のホストへの要求が無い) |
+| 運営のコマンドで率を見る | 6. 業務ルール | `growth-public.int.test.ts`「report は…」 |
+| 確認済みの ID を組織を作る入力に・開通済みにする | 5. 連携 | `growth-public.int.test.ts`「確認済みの登録だけを…」(G-01 のコマンドとつなぐのは G-01 の側) |
+| 同じアドレスへは24時間に1通 | 2. データモデル・6. 業務ルール | `growth-public.int.test.ts`「同じアドレスは行を作らず…」 |
 
 ## 8. 非機能
 
@@ -181,7 +181,7 @@ flowchart LR
 | テナント分離 | 事前登録は運営の組織の `tenant_id`・RLS。公開の入口はテナントをリクエストから決めず、`SUPPORT_TENANT_ID` に固定(実装の PR で結合テスト: 他の組織の表に触れない) |
 | 権限の表 | 公開の4行(仕様)。組織の中の API は足さない |
 | 監査ログ | 運営のコマンドの削除・組織にした、を運営の組織の監査ログに(ID と件数だけ)。公開の入口は関所の外として明示 |
-| 解約で消す一覧 | 入れない(運営の組織の持ち物)。理由をこの設計書に残す |
+| 解約で消す一覧 | 入れる(運営の組織は解約しないが、tenant_id の表の網羅の検査を守る) |
 | サポートの代理ログイン | 関係しない(画面を作らない) |
 | ログの個人情報 | メールアドレス・会社名・token・UTM を出さない(許可リストに足さない) |
 | 列の分類(`personal` / `sensitive`) | `email`・`organization_name` は personal。sensitive は無し(自由記述を置かない) |
@@ -207,14 +207,17 @@ flowchart LR
 - **LP を `apps/web` に入れない**(案 a でも別の `apps/site`) — `apps/web` は本番でも全部 noindex・ログインの後ろのサーバー(設計書 0015)。宣伝のページを同じサーバーに載せると、守りのヘッダーと検索の決まりが混ざる。静的にすれば配りは CloudFront だけで、API が落ちてもページは出る。
 - **事前登録は運営の組織の `tenant_id` で持つ** — 新しい表の決まり(`tenant_id`・RLS)を例外なしで守れる。解約の削除・代理ログインの外に自然に置ける。
 - **公開の入口のテナントはサーバーの設定に固定** — 「テナントはリクエストから決めない」をそのまま守る。
-- **形はふつうの POST と 303**(JS の fetch にしない) — CORS と資格情報が要らず、JS が無くても動く。入れた値を URL に載せない。
+- **JSON の fetch と、公開のページの origin だけの CORS**(ふつうの形の POST と 303 にしない) — いまの関所の CSRF の守り(形の POST は同じ origin だけ)と権限の表のテスト(JSON の本文)をそのまま使える。入れた値を URL に載せない。JS が無いと送れないが、公開のページは静的な React で JS が前提。
+- **確認・取り消しのリンクは HMAC の署名**(token を DB にハッシュで持たない) — 出来事の中身は ID だけ・宛先は送る直前に読む、の決まりのまま、送る直前にリンクを作れる。2回届いても同じリンク。漏れて使える物が DB に無い。
+- **期限で消すのは人が打つコマンド**(定期の仕事にしない) — キットに定期で動く ECS の仕事の仕組みがまだ無い(`usage-purge` と同じ形)。確認待ちは7日でリンクが切れるので、消すまでの間も使えない。
 - **取り消しは GET で消さない** — メールの道具・ウイルス検査がリンクを先読みして、本人が押す前に消えてしまう。
 - **取り消した人の記録(止める一覧)を残さない** — 残すと「消した」と言えない。また登録すれば同意を取り直すだけ。
 - **自由記述の欄を置かない** — 要配慮個人情報が入りうる。組織を作るのに要らない。
 - **見た数は日ごとの集計の行だけ**(一回ずつの行を持たない) — 個人に結びつく物を持たない。行も増えない。
 - **UTM は英数と `-_.` だけ** — UTM に個人のメールアドレスなどを入れたリンクを配られても残さない。
 - **メールアドレスの一覧を書き出すコマンドを作らない** — 組織を作るのは ID 1つずつで足りる。一覧があると、人の手で外へ持ち出される道になる。
-- **この PR では手引きと設計まで**(コードを足さない) — 表・API・`apps/site` は U-1 の答えで形が変わる。どの案でも要る物(同意の文の型・計測の考え方・LP に要る物)だけ先に入れる。
+- **仕様と設計の PR では手引きと設計まで**(コードを足さない) — 表・API・`apps/site` は U-1 の答えで形が変わる。どの案でも要る物(同意の文の型・計測の考え方・LP に要る物)だけ先に入れた。
+- **実装は2つの PR に分ける**: ① 事前登録の受け口(表・公開の API・運営のコマンド・組織へのつなぎ)② 公開のページ `apps/site` と置き場所(Terraform・配る仕組み)。①だけでも外の CMS のフォームから送れる。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
 
@@ -229,3 +232,4 @@ flowchart LR
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | 実装で、いまの関所が形の POST を同じ origin しか通さない(CSRF)・権限の表のテストが JSON の本文で叩く・出来事に token を入れられない、と分かった | 設計 | 3. API を「形の POST と 303」から「JSON の fetch と公開のページの origin だけの CORS」に。2. の token のハッシュの列をやめ、HMAC の署名のリンクに。5. の組織へのつなぎを別のトランザクションに。6. の期限で消す仕事を週1回のコマンドに。9. の解約の一覧に入れる | 仕様の権限の表(303 → 204 / 400)・`apps/api/src/domains/growth`・結合テスト `growth-public.int.test.ts` |
