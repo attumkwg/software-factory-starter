@@ -6,10 +6,11 @@
 #   そのまま AI に渡すと中の指示に従ってしまう(プロンプトインジェクション)。
 # - API キーはリポジトリ全体の秘密に置かず、Environment「claude」の秘密に置く。Environment の
 #   「Deployment branches」を main だけにするので、main 以外のワークフローからはキーが読めない(README)。
-# - Claude に許す操作は、lint・型・単体テスト・コミット・PR を出すところまで(下の allowedTools)。
-# - 外へ送る手段を持たせない(docs/designs/0057-ai-egress.md・ADR 0068): Web を読む・調べる道具(WebFetch・WebSearch)と
-#   MCP の道具は使えない。結合テスト・E2E(Docker が要る・AI が書いたコードが外へ通信できる)は自分で回さず、
-#   push して CI の結果を読む。調べ物は人か、人が見ている対話の AI がする。
+# - Claude に許す操作は、lint・型・単体と結合テスト・コミット・PR を出すところまで(下の allowedTools)。
+# - 外へ送る手段を持たせない(docs/designs/0057-ai-egress.md): Web を読む・調べる道具(WebFetch・WebSearch)は使えない。
+#   MCP は action が足す GitHub の物だけ(このリポジトリだけに届く。ほかの MCP は渡さない)。調べ物は人か、人が見ている対話の AI がする。
+# - 結合テストは PR を出す前に自分で回す(手戻りを減らす)。その前に、Docker のコンテナから外への新しい通信を止める
+#   (.github/scripts/block-container-egress.sh)。E2E は CI が回す(結果は gh pr checks・gh run view)。
 # - AI の PR は CI・CODEOWNERS・ブランチ保護を通る。自分で頼んだ AI の PR を自分で承認しない。
 # - API キー(ANTHROPIC_API_KEY)が無ければ、失敗せずに飛ばす。
 name: Claude
@@ -77,6 +78,10 @@ jobs:
           cache: pnpm
       - if: env.HAS_KEY == 'true'
         run: pnpm install --frozen-lockfile
+      # 結合テストのコンテナ(DB など)を外へ出られなくする(イメージの取得は通る。docs/designs/0057-ai-egress.md の U-2)
+      - name: Docker のコンテナから外への通信を止める
+        if: env.HAS_KEY == 'true'
+        run: bash .github/scripts/block-container-egress.sh
       - uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967 # v1.0.252
         if: env.HAS_KEY == 'true'
         with:
@@ -85,13 +90,12 @@ jobs:
           prompt: ${{ inputs.prompt }}
           # CLAUDE.md・.claude/skills・.claude/settings.json(フック)をそのまま使う。
           # CI が落ちたら直すのは2回まで(CLAUDE.md)。それ以上は PR に状況を書いて人に渡す。
-          # 結合テスト・E2E・表の説明書(docs:db)は Docker が要るので、ここでは回さない(CI が回す。結果は gh pr checks・gh run view)。
-          # turbo は型と単体テストの形だけ(`pnpm turbo run typecheck test …`)。ほかのタスクを名前で呼べないように。
-          # MCP は、この action が足す GitHub の物も含めて使わない(下の disallowedTools。CI の結果は gh で読む)。
+          # 結合テストは PR の前に自分で回す(上の手順でコンテナは外へ出られない)。E2E と表の説明書(docs:db)は回さない
+          # (画面のイメージを作るときの pnpm install が外へ出るので、止めた網では動かない。E2E は CI・docs:db は人)。
           # 許す操作は決まったコマンドだけ。`pnpm dlx`・`pnpm add`(知らないパッケージを動かす・足す)や
           # `git config`・`git push --force`、`gh pr merge` などは許さない(依存を足すのは人が PR で)。
           claude_args: >-
             --max-turns 60
-            --allowedTools "Bash(pnpm install --frozen-lockfile),Bash(pnpm lint),Bash(pnpm format),Bash(pnpm typecheck),Bash(pnpm test),Bash(pnpm turbo run typecheck test:*),Bash(pnpm decisions:*),Bash(pnpm bets:*),Bash(pnpm openapi),Bash(pnpm db:generate),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git switch:*),Bash(git branch:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh run view:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(gh issue comment:*),Edit,Write,Read,Glob,Grep"
-            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(git push --force-with-lease:*),Bash(git push --no-verify:*),Bash(git push --delete:*),Bash(git push origin main:*),Bash(git push origin HEAD:main:*),Bash(git push origin HEAD:refs/heads/main:*),Bash(gh pr merge:*),WebFetch,WebSearch,mcp__github,mcp__github_comment,mcp__github_ci,mcp__github_file_ops,mcp__github_inline_comment"
-            --append-system-prompt "結合テストと E2E は自分で回さない(Docker が無く、外への通信を絞るため)。push して gh pr checks と gh run view --log-failed で CI の結果を読み、直すのは2回まで。Web を読む道具と MCP は使えない。調べ物が要るなら、PR に問いを書いて人に渡す。最後の報告と PR の本文に「外へ出した物」(手段・宛先・頼まれていたか)を書く。無ければ「なし」。"
+            --allowedTools "Bash(pnpm install --frozen-lockfile),Bash(pnpm lint),Bash(pnpm format),Bash(pnpm typecheck),Bash(pnpm test),Bash(pnpm test:integration),Bash(pnpm turbo run:*),Bash(pnpm decisions:*),Bash(pnpm bets:*),Bash(pnpm openapi),Bash(pnpm db:generate),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git switch:*),Bash(git branch:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh run view:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(gh issue comment:*),Edit,Write,Read,Glob,Grep"
+            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(git push --force-with-lease:*),Bash(git push --no-verify:*),Bash(git push --delete:*),Bash(git push origin main:*),Bash(git push origin HEAD:main:*),Bash(git push origin HEAD:refs/heads/main:*),Bash(gh pr merge:*),WebFetch,WebSearch"
+            --append-system-prompt "PR を出す前に pnpm test:integration を自分で回し、通してから出す(Docker のコンテナは外へ出られない)。E2E は CI が回すので、push して gh pr checks と gh run view --log-failed(か GitHub の MCP)で結果を読み、直すのは2回まで。Web を読む道具は使えない。調べ物が要るなら、PR に問いを書いて人に渡す。最後の報告と PR の本文に「外へ出した物」(手段・宛先・頼まれていたか)を書く。無ければ「なし」。"
