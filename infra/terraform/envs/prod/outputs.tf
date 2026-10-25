@@ -42,3 +42,8 @@ output "db_cluster_identifier" {
 output "backup_vault_name" {
   value = module.backup.vault_name
 }
+
+output "evidence_bucket" {
+  description = "証跡の置き場(リポジトリの変数 EVIDENCE_BUCKET に入れる)"
+  value       = module.evidence.bucket
+}

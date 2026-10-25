@@ -93,3 +93,15 @@ variable "support_tenant_id" {
   type        = string
   default     = null
 }
+
+variable "evidence_lock_mode" {
+  description = "証跡の置き場の Object Lock。GOVERNANCE(特別な権限の人だけ消せる)か COMPLIANCE(期間の間は root でも消せない・戻せない)。設計書 0019 の U-1"
+  type        = string
+  default     = "GOVERNANCE"
+}
+
+variable "evidence_retention_years" {
+  description = "証跡を消せない期間(年)。審査は直近の3年を見ることが多い。設計書 0019 の U-1"
+  type        = number
+  default     = 3
+}

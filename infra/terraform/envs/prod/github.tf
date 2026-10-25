@@ -3,6 +3,7 @@
 #   AWS_PROD_PLAN_ROLE_ARN   … terraform-plan.yml の plan(読むだけ)。**main のコードからだけ**
 #     PR からは引けない(PR の版のワークフローは書き換えられるので、ブランチを作れる人なら誰でも
 #     本番の設定と状態ファイル(秘密の値が入っている)を読めてしまう)。PR での plan は stg だけ。
+#   AWS_EVIDENCE_ROLE_ARN    … evidence.yml(毎月の証跡)。main のコードからだけ。下の「証跡を集める」
 # イメージは stg の ECR から引くので、ここには push の権限は無い。
 
 module "github_oidc" {
@@ -22,6 +23,11 @@ module "github_oidc" {
       managed_policy_arns = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
       policy_json         = data.aws_iam_policy_document.plan_state.json
       deny_data_reads     = { except_s3_objects = ["arn:aws:s3:::${var.state_bucket}/${local.env}/*"] }
+    }
+    "${local.name}-evidence" = {
+      description = "evidence.yml (monthly, main only): read settings, put evidence into the locked bucket"
+      subjects    = ["ref:refs/heads/main"]
+      policy_json = data.aws_iam_policy_document.evidence.json
     }
   }
 }
@@ -75,5 +81,32 @@ data "aws_iam_policy_document" "plan_state" {
       variable = "kms:ViaService"
       values   = ["secretsmanager.${var.region}.amazonaws.com"]
     }
+  }
+}
+
+# ── 証跡を集める(evidence.yml。毎月)。ADR 0032・docs/compliance/README.md ─────────────────
+#   AWS_EVIDENCE_ROLE_ARN … github_role_arns の …-evidence(上の roles)。**main のコードからだけ**(PR の版は書き換えられるので、偽の証跡を置かせない)
+#   設定を読むだけ(データは読まない)+証跡の置き場(Object Lock)へ足すだけ。消す・上書きの前の版を消す権限は無い
+
+data "aws_iam_policy_document" "evidence" {
+  statement {
+    sid = "ReadSettings"
+    actions = [
+      "iam:GetAccountSummary", "iam:GenerateCredentialReport", "iam:GetCredentialReport", "iam:ListRoles",
+      "securityhub:GetFindings", "guardduty:ListDetectors", "guardduty:GetDetector",
+      "backup:ListBackupVaults", "cloudtrail:DescribeTrails", "cloudtrail:GetTrailStatus",
+    ]
+    #trivy:ignore:AVD-AWS-0057 設定の読み取り(一覧・要約)はリソースを絞れない(AWS の仕様)。データは読まない
+    resources = ["*"]
+  }
+  statement {
+    sid       = "PutEvidence"
+    actions   = ["s3:PutObject"]
+    resources = ["${module.evidence.bucket_arn}/evidence/*"]
+  }
+  statement {
+    sid       = "EncryptEvidence"
+    actions   = ["kms:GenerateDataKey", "kms:Encrypt"]
+    resources = [module.evidence.kms_key_arn]
   }
 }

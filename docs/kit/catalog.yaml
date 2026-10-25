@@ -916,18 +916,42 @@ parts:
   - id: certification-prep
     name: 認証の準備(P マーク・ISMS・SOC 2)
     group: rules
-    status: 未
+    status: あり
     removable: true
     default: 消す
-    what: 認証で求められる記録と規程の型(アクセスの見直し・委託先の管理・教育の記録)
-    needed_by: 認証を取る予定がある
+    what: 毎月の証跡を消せない S3 に集める(evidence.yml)・附属書 A の93の管理策と適用宣言書(SoA)の生成・規程と様式のひな形・期限の来た規程の見直し・教育・内部監査を1問ずつ聞く /compliance-check
+    needed_by: 認証を取る予定がある・お客さまの審査(セキュリティの質問票)に記録で答えたい
     not_needed_by: 予定なし
-    if_removed: まだ無い
+    if_removed: 審査の前に、その時点の設定をスクショで集め直す。規程を毎回ゼロから書き、見直し・教育・内部監査の記録が残らない
     depends_on: [audit-log, backup]
     law:
       - P マーク(JIS Q 15001)
-      - ISMS(ISO/IEC 27001)
+      - ISMS(ISO/IEC 27001。附属書 A の全部)
       - SOC 2
+    remove:
+      delete:
+        - docs/compliance
+        - scripts/compliance
+        - scripts/evidence
+        - .github/workflows/evidence.yml
+        - .claude/skills/compliance-check
+        - infra/terraform/modules/record-store
+        - scripts/checkup/checks/evidence-collected.mjs
+        - scripts/checkup/checks/policies-adopted.mjs
+        - scripts/checkup/checks/policies-review.mjs
+        - scripts/checkup/compliance.test.mjs
+      edit:
+        - { path: docs/checkup/todo.yaml, what: area が compliance の項目を status retired にする(消さない)。ほかの項目の controls と evidence の欄は残してよい }
+        - { path: package.json, what: compliance・evidence と、test:scripts の scripts/compliance・scripts/evidence を外す }
+        - { path: .github/workflows/ci.yml, what: 認証の準備(pnpm compliance)の段を外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: module.evidence を外す(置き場の中身は Object Lock の期間が過ぎるまで消えない) }
+        - { path: infra/terraform/envs/prod/github.tf, what: 役割 …-evidence と data.aws_iam_policy_document.evidence を外す }
+        - { path: infra/terraform/envs/prod/variables.tf, what: evidence_lock_mode・evidence_retention_years を外す }
+        - { path: infra/terraform/envs/prod/outputs.tf, what: evidence_bucket を外す }
+        - { path: .claude/hooks/protected-paths.json, what: scripts/evidence/** を外す(.claude/settings.json・.github/labeler.yml・.github/CODEOWNERS も) }
+        - { path: CLAUDE.md, what: 認証の準備の行を外す }
+        - { path: docs/guides/automation.md, what: evidence.yml の行を外す }
+      docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md]
 
   - id: billing
     name: 請求と決済

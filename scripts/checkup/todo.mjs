@@ -40,6 +40,10 @@ const REQUIRED = [
   "review_by",
 ];
 export const SNOOZE_MAX_DAYS = 90;
+/** 項目の区分。compliance = 認証(P マーク・ISMS)の準備。台帳の compliance: true のときだけ毎週の点検に出る(/compliance-check はいつでも見る) */
+export const AREAS = ["compliance"];
+/** 管理策の番号(ISO/IEC 27001:2022 の附属書 A。A.5.1〜A.8.34)。実在は pnpm compliance が docs/compliance/controls.yaml と突き合わせる */
+const CONTROL_ID = /^A\.[5-8]\.\d{1,2}$/;
 
 const isKebab = (s) =>
   typeof s === "string" &&
@@ -113,6 +117,24 @@ function checkDates(item, name, problems) {
   }
 }
 
+/** 認証の準備の欄(area・controls・evidence。書いてあれば形を見る) */
+function checkCompliance(item, name, problems) {
+  if (item.area !== undefined && !AREAS.includes(item.area))
+    problems.push(
+      `${name} の area「${item.area}」は ${AREAS.join(" / ")} のどれか(書かなければ普通の点検)`,
+    );
+  const listOf = (key) => {
+    if (item[key] === undefined) return [];
+    if (Array.isArray(item[key])) return item[key];
+    problems.push(`${name} の ${key} は一覧`);
+    return [];
+  };
+  for (const c of listOf("controls").filter((c) => !CONTROL_ID.test(String(c))))
+    problems.push(`${name} の controls「${c}」は附属書 A の番号(A.5.1〜A.8.34)`);
+  for (const e of listOf("evidence").filter((e) => !isKebab(e)))
+    problems.push(`${name} の evidence「${e}」は証跡の名前(pnpm evidence --list)`);
+}
+
 function checkItem(item, checkNames, problems) {
   const name = `項目 ${item?.id ?? "(id なし)"}`;
   for (const f of REQUIRED) if (!item?.[f]) problems.push(`${name} に ${f} が無い`);
@@ -121,6 +143,7 @@ function checkItem(item, checkNames, problems) {
   checkEnums(item ?? {}, name, problems);
   checkVerify(item ?? {}, name, checkNames, problems);
   checkDates(item ?? {}, name, problems);
+  checkCompliance(item ?? {}, name, problems);
 }
 
 /**
@@ -148,6 +171,8 @@ export function validateLedger(ledger, checkNames) {
   if (!isDate(toDate(ledger?.started_on))) problems.push("started_on(使い始めた日)が無い");
   if (!ledger?.owners?.responder) problems.push("owners.responder(担当者)が無い");
   if (!ledger?.owners?.advisor) problems.push("owners.advisor(相談先)が無い");
+  if (ledger?.compliance !== undefined && typeof ledger.compliance !== "boolean")
+    problems.push("compliance(認証の準備を毎週の点検に入れるか)は true か false");
   checkRefresh(ledger, problems);
   const ids = new Set();
   for (const item of ledger?.items ?? []) {
@@ -177,15 +202,22 @@ const dueAgain = (item, today) => {
  *   advisor  … 「分からない」で相談先に回っている
  *   snoozed  … 「今はやらない」で、次に聞く日がまだ来ていない
  *   done     … 済み(人に聞く・人がやる項目で、まだ間隔が来ていない)
+ * area: "compliance" を渡すと、認証の準備の項目だけ(/compliance-check)。渡さなければ、
+ * 認証の準備の項目は台帳の compliance: true のときだけ入る(認証を目指さない間は毎週の点検に出さない)
  */
-export function selectItems(ledger, currentPhase, today) {
+export function selectItems(ledger, currentPhase, today, { area } = {}) {
   const out = { checks: [], ask: [], manual: [], advisor: [], snoozed: [], done: [] };
   for (const item of ledger.items ?? []) {
     if (item.status === "retired" || !reached(item.phase, currentPhase)) continue;
+    if (!inArea(item, ledger, area)) continue;
     out[bucketOf(item, today)].push(item);
   }
   return out;
 }
+
+/** その点検に入れる項目か(selectItems の中身) */
+const inArea = (item, ledger, area) =>
+  area ? item.area === area : item.area !== "compliance" || ledger.compliance === true;
 
 /** 1件をどの扱いに入れるか(selectItems の中身) */
 function bucketOf(item, today) {

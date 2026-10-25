@@ -45,10 +45,10 @@ async function runOne(name, checks, ctx, memo) {
  * 戻り値: { today, phase, days, next, results: [{ item, result, note, regressed }], ask, manual, advisor, snoozed, done }
  *   regressed … 台帳では done なのに、確かめたら fail(守りが外れた)
  */
-export async function runCheckup({ ledger, checks, ctx, today }) {
+export async function runCheckup({ ledger, checks, ctx, today, area }) {
   const startedOn = toDate(ledger.started_on);
   const { phase, days, next } = phaseOf(startedOn, today);
-  const selected = selectItems(ledger, phase.id, today);
+  const selected = selectItems(ledger, phase.id, today, { area });
   const memo = new Map();
   const results = [];
   for (const item of selected.checks) {
@@ -61,7 +61,20 @@ export async function runCheckup({ ledger, checks, ctx, today }) {
     });
   }
   const { ask, manual, advisor, snoozed, done } = selected;
-  return { today, startedOn, phase, days, next, results, ask, manual, advisor, snoozed, done };
+  return {
+    today,
+    startedOn,
+    phase,
+    days,
+    next,
+    area,
+    results,
+    ask,
+    manual,
+    advisor,
+    snoozed,
+    done,
+  };
 }
 
 /** 急ぎ(severity: high の fail)だけ */
@@ -73,6 +86,7 @@ export function toJson(run) {
   const ids = (items) => items.map((i) => i.id);
   return {
     today: run.today,
+    area: run.area ?? null,
     started_on: run.startedOn,
     phase: run.phase.id,
     days: run.days,

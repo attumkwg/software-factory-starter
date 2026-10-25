@@ -23,6 +23,7 @@
     ".semgrep/**",
     "scripts/checkup/**",
     "scripts/setup/**",
+    "scripts/evidence/**",
     ".gitleaksignore",
     ".trivyignore.yaml",
     "renovate.json",
