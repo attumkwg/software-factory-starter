@@ -19,6 +19,7 @@
 | [platform.feature_usage](platform.feature_usage.md)                 | 5       | 利用の記録(この人がこの日にこの機能を使った。1日1人1機能1行)。中身・時刻・URL・IP は持たない。アプリは読む・足すだけ。400日で運営のコマンド usage-purge が消す。docs/specs/0012-feature-flags-and-usage.md                  | BASE TABLE |
 | [sensitive.tenant_keys](sensitive.tenant_keys.md)                   | 4       | 組織ごとのデータ鍵(要配慮個人情報を暗号化する鍵。KMS で包んだ物だけ)。読めるのはロール app_sensitive だけ(app_rw はスキーマに入れない)。行を消すとその組織の要配慮の暗号文は読めない。docs/adr/0029-sensitive-data-tier1.md | BASE TABLE |
 | [organizations.invitations](organizations.invitations.md)           | 11      | 管理者が出した招待(docs/specs/0027-invitations.md・ADR 0040)。リンクの札は持たない(招待の ID とサーバーの秘密の署名)。受けるのは auth_accept_invitation 関数だけ(1回きり)                                                   | BASE TABLE |
+| [platform.tenant_plans](platform.tenant_plans.md)                   | 8       | 組織の契約のプラン(docs/specs/0047-plans.md・ADR 0058)。足すだけ。いまの行は effective_on が今日までで一番新しい行。書くのは運営のコマンド plan・create-tenant だけ。金額は持たない                                         | BASE TABLE |
 
 ## Stored procedures and functions
 

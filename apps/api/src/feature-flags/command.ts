@@ -31,7 +31,9 @@ export async function showFeatureFlags(
     return defs.map((d) => ({
       name: d.name,
       state: d.state,
-      enabled: d.state === "on" || (d.state === "rollout" && rows.has(d.name)),
+      // 組織ごとの行だけで見る(プランで入る機能は plan のコマンドで見る)
+      enabled:
+        d.state === "on" || ((d.state === "rollout" || d.state === "plan") && rows.has(d.name)),
     }));
   });
 }
@@ -52,7 +54,8 @@ export async function setFeatureFlag(
 ): Promise<FlagChange> {
   const def = opts.defs.find((d) => d.name === name);
   if (!def) throw new Error(`定義に無い機能です: ${name}(@app/shared の FEATURE_FLAGS)`);
-  if (def.state !== "rollout") {
+  // plan の機能も、プランの外の組織に試しに入れられる(docs/specs/0047-plans.md)
+  if (def.state !== "rollout" && def.state !== "plan") {
     throw new Error(
       `${name} は ${def.state}(全部の組織で同じ)なので、組織ごとに変えても効きません。状態を rollout に戻す PR が先です`,
     );

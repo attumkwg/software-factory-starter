@@ -13,6 +13,7 @@ export * from "../domains/tasks/schema.ts";
 export * from "../feature-flags/schema.ts";
 // 領域ではない共通の仕組み(スキーマ platform)
 export * from "../outbox/schema.ts";
+export * from "../plans/schema.ts";
 // 要配慮個人情報(スキーマ sensitive。ADR 0018・0029)。型と移行の生成のためだけにここで集める。
 // アプリの接続(app_rw)はこのスキーマに入れないので、ここ経由で読もうとしても DB が断る
 export * from "../sensitive/schema.ts";

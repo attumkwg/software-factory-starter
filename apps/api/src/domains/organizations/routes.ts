@@ -19,7 +19,12 @@ export const organizationRoutes = createRouter().openapi(
   async (c) => {
     const actor = c.get("actor");
     // この組織で入っている機能(docs/specs/0012-feature-flags-and-usage.md)。代理の社員にも同じ一覧
-    const features = await findEnabledFeatures(c.get("tx"), actor.tenantId, c.get("featureFlags"));
+    const features = await findEnabledFeatures(
+      c.get("tx"),
+      actor.tenantId,
+      c.get("featureFlags"),
+      c.get("plans"),
+    );
     // 代理の社員は、見ている組織の閲覧者として返す(画面は上に帯を出す)
     if (actor.support) {
       const me = await getSupportMe(c.get("tx"), actor.tenantId, actor.support.sessionId);
