@@ -19,22 +19,22 @@
 | A.5.8 | プロジェクトの中のセキュリティ | 適用 | 作る工程の中で守りを決めないと、後から足せない | 仕様に悪用のされ方(STRIDE)・設計書に観点ごとの扱い・未確定事項は人が承認するまでマージしない | `w-decisions` `launch-decisions` |  | [_template.md](../specs/_template.md) [review-viewpoints.md](../review-viewpoints.md) |
 | A.5.9 | 情報と資産の目録 | 適用 | 何を守るか分からないと守れない | 列の分類表(全部の列に分類と目的)・個人データの台帳・AWS は Terraform が目録(タグつき) |  |  | [classification.ts](../../apps/api/src/db/classification.ts) [personal-data.md](../db/personal-data.md) [terraform](../../infra/terraform) |
 | A.5.10 | 情報と資産の使い方の決まり | 適用 | 使ってよい範囲を決めないと、持ち出しや私用が起きる | 基本方針の「使い方の決まり」・教育で毎年伝える |  |  | [basic-policy.md](policies/basic-policy.md) |
-| A.5.11 | 資産の返却 | 適用 | 辞めた人の端末や鍵が残ると、そこから入られる | 辞めるときの手順(基本方針の「人の出入り」)と、四半期ごとの権限の棚卸し(点検 access-review) | `access-review` | `github-collaborators` `aws-iam-users` `aws-iam-roles` | [basic-policy.md](policies/basic-policy.md) |
+| A.5.11 | 資産の返却 | 適用 | 辞めた人の端末や鍵が残ると、そこから入られる | 辞めるときの手順(基本方針の「人の出入り」)と、四半期ごとの権限の棚卸し(点検 access-review) | `people-changes` `access-review` | `github-collaborators` `aws-iam-users` `aws-iam-roles` | [basic-policy.md](policies/basic-policy.md) |
 | A.5.12 | 情報の分類 | 適用 | 扱いの重さを分けないと、全部が軽く扱われる | 列ごとに public / internal / personal / sensitive。要配慮は別のスキーマ(ADR 0018) |  |  | [personal-information.md](policies/personal-information.md) [classification.ts](../../apps/api/src/db/classification.ts) [0018-sensitive-data-isolation.md](../adr/0018-sensitive-data-isolation.md) |
 | A.5.13 | 情報の表示(ラベル) | 適用 | 分類が見えないと、扱う人が間違える | 分類は列の分類表と DB の資料(docs/db)に出る。ログは出してよい項目だけ(許可リスト) |  |  | [personal-data.md](../db/personal-data.md) [0019-log-allowlist.md](../adr/0019-log-allowlist.md) |
 | A.5.14 | 情報を送る・受け取る | 適用 | 送る途中で読まれる・違う相手に届くのを防ぐ | 通信は TLS だけ。メールは中継(Postfix)から SES へ。書き出しは管理者だけ |  |  | [mail.md](../guides/mail.md) [security.md](../security.md) |
 | A.5.15 | アクセスの決まり | 適用 | 誰が何をできるかの決まりが無いと、権限が広がる | 権限の表が正(CI がテストと突き合わせる)。テナントはセッションからだけ決める | `authz-review` |  | [matrix.yaml](../authz/matrix.yaml) [0001-shared-tables-with-rls.md](../adr/0001-shared-tables-with-rls.md) |
 | A.5.16 | 識別(ID)の管理 | 適用 | 1人1つの ID でないと、誰がやったか分からない | 利用者は Cognito。運営の人は GitHub・AWS とも個人の ID(共有のアカウントを作らない) |  | `github-collaborators` `aws-iam-users` | [0007-cognito-login-server-side.md](../adr/0007-cognito-login-server-side.md) |
 | A.5.17 | 認証の情報(パスワード・鍵) | 適用 | 漏れた鍵とパスワードが、いちばんよく使われる入り口 | 二段階認証(点検 acct-mfa)・秘密の見つけと push の保護・秘密は Secrets Manager。漏れたときの手順書 | `w-secrets` `dep-alerts` `acct-mfa` `key-rotation` | `github-security` `aws-iam-summary` `aws-iam-users` | [secret-leak.md](../runbooks/secret-leak.md) [setup.yml](../../.github/setup.yml) |
-| A.5.18 | アクセス権の付け外しと見直し | 適用 | 使わない権限・辞めた人の権限が残る | 四半期ごとの棚卸し(点検 access-review)。毎月の証跡に共同作業者と IAM の利用者 | `access-review` | `github-collaborators` `aws-iam-users` `aws-iam-roles` | [README.md](../checkup/README.md) |
+| A.5.18 | アクセス権の付け外しと見直し | 適用 | 使わない権限・辞めた人の権限が残る | 四半期ごとの棚卸し(点検 access-review)。毎月の証跡に共同作業者と IAM の利用者 | `people-changes` `access-review` | `github-collaborators` `aws-iam-users` `aws-iam-roles` | [README.md](../checkup/README.md) |
 | A.5.19 | 委託先との関係の中のセキュリティ | 適用 | データを預ける先(AWS・GitHub・Sentry など)の守りが、自社の守りになる | 委託先の管理の規程。選ぶとき・年1回の見直し(点検 vendor-review) | `vendor-review` |  | [vendors.md](policies/vendors.md) |
 | A.5.20 | 委託先との契約の中のセキュリティ | 適用 | 守る中身を契約に入れないと、求められない | 委託先の管理の規程の「契約で確かめること」(データの場所・再委託・漏えいの連絡・消すこと) | `vendor-review` |  | [vendors.md](policies/vendors.md) |
 | A.5.21 | 部品の供給網(サプライチェーン) | 適用 | 依存のパッケージや Action に悪い物が混ざる | Action は SHA で固定・依存の入れ方の守り(危険度「高」)・Renovate・Trivy・脆弱性の精査 | `w-renovate` `dep-renovate` | `github-actions` | [vendors.md](policies/vendors.md) [renovate.json](../../renovate.json) [protected-paths.json](../../.claude/hooks/protected-paths.json) [vulnerabilities.md](../guides/vulnerabilities.md) |
 | A.5.22 | 委託先のサービスの見張りと変更 | 適用 | 委託先の変更(値上げ・仕様・事故)で、守りが変わる | 年1回の委託先の見直し・月1回の世の中の変化の取り込み(GitHub・AWS の変更履歴) | `vendor-review` |  | [vendors.md](policies/vendors.md) [todo.yaml](../checkup/todo.yaml) |
 | A.5.23 | クラウドのサービスを使うときのセキュリティ | 適用 | 全部をクラウドで動かしている | AWS は Terraform で設定し、Security Hub で採点・GuardDuty で見張る。責任の分担は委託先の管理の規程 | `vendor-review` | `aws-securityhub` `aws-guardduty` `aws-cloudtrail` | [vendors.md](policies/vendors.md) [security-baseline](../../infra/terraform/modules/security-baseline) |
-| A.5.24 | 事故の対応の計画と準備 | 適用 | 事故のときに慌てずに動くため | 障害の入口の手順書・知らせの先(点検 notify-route)・攻撃・漏えい・秘密の漏れの手順書 | `notify-route` `runbook-attack` |  | [incident.md](../runbooks/incident.md) [attack.md](../runbooks/attack.md) |
+| A.5.24 | 事故の対応の計画と準備 | 適用 | 事故のときに慌てずに動くため | 障害の入口の手順書・知らせの先(点検 notify-route)・攻撃・漏えい・秘密の漏れの手順書 | `notify-route` `runbook-attack` `oncall-rota` |  | [incident.md](../runbooks/incident.md) [attack.md](../runbooks/attack.md) |
 | A.5.25 | 出来事の見極めと判断 | 適用 | どれが事故かを決める基準が無いと、遅れる | 障害の手順書の重さの決め方・アラームの手順書 |  |  | [incident.md](../runbooks/incident.md) [alarms.md](../runbooks/alarms.md) |
-| A.5.26 | 事故への対応 | 適用 | 止める・直す・知らせるを、決めた順にやるため | 手順書(他社のデータが見えた・個人データの漏えい・攻撃・秘密の漏れ) | `runbook-attack` `runbook-report` |  | [tenant-data-leak.md](../runbooks/tenant-data-leak.md) [personal-data-breach.md](../runbooks/personal-data-breach.md) |
+| A.5.26 | 事故への対応 | 適用 | 止める・直す・知らせるを、決めた順にやるため | 手順書(他社のデータが見えた・個人データの漏えい・攻撃・秘密の漏れ) | `runbook-attack` `runbook-report` `oncall-rota` |  | [tenant-data-leak.md](../runbooks/tenant-data-leak.md) [personal-data-breach.md](../runbooks/personal-data-breach.md) |
 | A.5.27 | 事故から学ぶ | 適用 | 同じ事故を繰り返さないため | 振り返りの記録と、再発防止が閉じたかの点検(incident-followups) | `incident-followups` |  | [README.md](../incidents/README.md) |
 | A.5.28 | 証拠を集める | 適用 | 事故の後や審査で、何があったかを示すため | 監査ログ(足すだけ)・CloudTrail・毎月の証跡を消せない置き場に(evidence.yml) | `evidence-monthly` | `aws-cloudtrail` | [0013-audit-log.md](../adr/0013-audit-log.md) [evidence.yml](../../.github/workflows/evidence.yml) |
 | A.5.29 | 障害の間のセキュリティ | 適用 | 慌てて守りを外さないため | 戻す手順書(守りを外さずに戻す)・本番に書き込む操作は手順書のコマンドを人が打つ |  |  | [deploy-rollback.md](../runbooks/deploy-rollback.md) [db-restore.md](../runbooks/db-restore.md) |
@@ -55,7 +55,7 @@
 | A.6.2 | 雇用の条件 | 適用 | 守る責任を、雇う条件に入れる | 雇う契約・就業規則に、秘密を守る義務と規程を守る義務(会社の書類。キットの外) |  |  | [basic-policy.md](policies/basic-policy.md) |
 | A.6.3 | 意識・教育・訓練 | 適用 | 決まりを知らない人は守れない | 教育の規程。入るとき+年1回。受けた記録を残す(点検 training) | `training` |  | [training.md](policies/training.md) |
 | A.6.4 | 懲戒の手続き | 適用 | 破ったときの扱いを決めておく | 就業規則による(基本方針から指す。会社の書類) |  |  | [basic-policy.md](policies/basic-policy.md) |
-| A.6.5 | 辞めた・変わった後の責任 | 適用 | 辞めた後も秘密を守る義務が続く | 辞めるときの手順(権限を外す・誓約)と、権限の棚卸し |  | `github-collaborators` `aws-iam-users` | [basic-policy.md](policies/basic-policy.md) |
+| A.6.5 | 辞めた・変わった後の責任 | 適用 | 辞めた後も秘密を守る義務が続く | 辞めるときの手順(権限を外す・誓約)と、権限の棚卸し | `people-changes` | `github-collaborators` `aws-iam-users` | [basic-policy.md](policies/basic-policy.md) |
 | A.6.6 | 秘密を守る約束(NDA) | 適用 | 社員・業務委託・委託先と、秘密を守る約束を交わす | 委託先の管理の規程・雇う契約 |  |  | [vendors.md](policies/vendors.md) |
 | A.6.7 | 離れた場所での仕事 | 適用 | 家や外から仕事をする前提 | 基本方針の「離れた場所での仕事」(公共の場所で画面を見せない・端末の鍵・本番は AWS のコンソールと手順書から) |  |  | [basic-policy.md](policies/basic-policy.md) |
 | A.6.8 | 出来事の報告 | 適用 | 気づいた人が、すぐに知らせられるように | 障害の入口の手順書と知らせの先・外の人からの非公開の脆弱性の報告(GitHub) | `notify-route` |  | [incident.md](../runbooks/incident.md) [setup.yml](../../.github/setup.yml) |
