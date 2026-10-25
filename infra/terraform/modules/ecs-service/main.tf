@@ -129,6 +129,29 @@ resource "aws_iam_role" "migrate" {
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
 }
 
+# 運営のコマンド create-tenant が、申し込みの置き場の applications/ の下を読むだけ(書く・消す・一覧は渡さない)。
+# 申し込みは人が置き、読み終えたら人が消す(docs/runbooks/tenant-provisioning.md)
+resource "aws_iam_role_policy" "migrate_read_applications" {
+  count = var.applications_store == null ? 0 : 1
+  name  = "read-applications"
+  role  = aws_iam_role.migrate.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${var.applications_store.bucket_arn}/applications/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = var.applications_store.kms_key_arn
+      }
+    ]
+  })
+}
+
 # blue/green の切り替えで、ECS が ALB のルールを書き換えるための役割
 resource "aws_iam_role" "ecs_infrastructure" {
   name = "${var.name}-ecs-infrastructure"
@@ -401,7 +424,8 @@ resource "aws_ecs_task_definition" "migrate" {
     readonlyRootFilesystem = true
     command                = ["dist/cli.js", "migrate"]
     # 表の持ち主でつなぐ。node-postgres は PG* の環境変数を読む
-    environment = [for k, v in var.migration_environment : { name = k, value = v }]
+    # 申し込みの置き場があれば APPLICATIONS_BUCKET も(create-tenant が読む)
+    environment = [for k, v in merge(var.migration_environment, var.applications_store == null ? {} : { APPLICATIONS_BUCKET = var.applications_store.bucket }) : { name = k, value = v }]
     secrets     = [for k, arn in var.migration_secrets : { name = k, valueFrom = arn }]
     logConfiguration = {
       logDriver = "awslogs"

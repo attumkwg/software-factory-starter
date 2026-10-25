@@ -73,6 +73,16 @@ variable "migration_secrets" {
   default     = {}
 }
 
+variable "applications_store" {
+  description = "申し込みの置き場(運営のコマンド create-tenant が読む S3。docs/designs/0026-tenant-provisioning.md)。null なら移行のタスクに何も許さない"
+  type = object({
+    bucket      = string
+    bucket_arn  = string
+    kms_key_arn = string
+  })
+  default = null
+}
+
 variable "secrets_kms_key_arns" {
   description = "秘密を暗号化している KMS の鍵"
   type        = list(string)
