@@ -19,8 +19,8 @@ export function InvitationAcceptPage({ options }: { options: AuthOptions }) {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const token = window.location.hash.slice(1);
-    setMissing(token === "");
-    if (token === "") return;
+    setMissing(!token);
+    if (!token) return;
     const r = await submit(() => api.acceptInvitation(token, name));
     if (!r) return;
     window.history.replaceState(null, "", "/invitation");

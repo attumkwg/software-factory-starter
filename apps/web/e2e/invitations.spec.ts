@@ -95,7 +95,10 @@ test("取り消した招待のリンクは使えない", async ({ page, browser 
 
   const row = page.getByRole("row", { name: new RegExp(email) });
   await row.getByRole("button", { name: "取り消す" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "取り消す" }).click();
+  await page
+    .getByRole("alertdialog", { name: "招待を取り消しますか?" })
+    .getByRole("button", { name: "取り消す" })
+    .click();
   await expect(row).toContainText("取り消し済み");
 
   const guest = await acceptIn(browser, link, "誰か");
