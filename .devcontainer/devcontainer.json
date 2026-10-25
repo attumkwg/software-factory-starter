@@ -1,19 +1,38 @@
 // 人も AI も同じ開発環境(Node・pnpm・Docker・Terraform・Claude Code)。
 // 本番の鍵は入れない。AWS の資格情報もマウントしない(AI の環境から本番に届かないように)。
+// 外への通信は許可リストのプロキシだけ(docs/designs/0057-ai-egress.md の 5 ①・ADR 0068)。中の Docker で結合テスト・E2E は回る。
+//   許可リスト: egress/allowlist.txt(足すのは PR で)/ 止まった宛先: bash .devcontainer/egress/blocked.sh
+//   人が見ていない AI の作業(長い作業・夜)は、この中か、Actions の背景の AI でだけ回す
 {
   "name": "software-factory-starter",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-24-bookworm",
+  "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/terraform:1": { "tflint": "latest" },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
+  // firewall を入れるため(docker-in-docker も同じ権限を使う)
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "forwardPorts": [3000, 5173, 5432],
-  "postCreateCommand": "corepack enable && pnpm install && pnpm exec playwright install --with-deps chromium",
+  // 最初に絞ってから入れる(入れる物もプロキシを通る)。node のふつうの sudo は、ここで無くなる
+  "postCreateCommand": "sudo /usr/local/share/egress/egress-up.sh && corepack enable && pnpm install",
+  // 起動のたびに絞り直す(コンテナを止めると firewall は消える)
+  "postStartCommand": "sudo /usr/local/share/egress/egress-up.sh",
   "containerEnv": {
     // Testcontainers が docker-in-docker を使う
-    "TESTCONTAINERS_RYUK_DISABLED": "false"
+    "TESTCONTAINERS_RYUK_DISABLED": "false",
+    // 外へはプロキシを通す(npm・git・gh・curl・Claude Code・Node の fetch)
+    "HTTP_PROXY": "http://127.0.0.1:3128",
+    "HTTPS_PROXY": "http://127.0.0.1:3128",
+    "http_proxy": "http://127.0.0.1:3128",
+    "https_proxy": "http://127.0.0.1:3128",
+    "NO_PROXY": "localhost,127.0.0.1,::1",
+    "no_proxy": "localhost,127.0.0.1,::1",
+    // Node の fetch(corepack・pnpm)にもプロキシを使わせる。中の Docker でイメージを作るときにも渡す(docker-compose.yml の build.args)
+    "NODE_USE_ENV_PROXY": "1",
+    // turbo の利用の知らせ(外へ送る)を止める。止めなくてもプロキシが止めるが、記録が埋もれないように
+    "TURBO_TELEMETRY_DISABLED": "1"
   },
   "customizations": {
     "vscode": {
@@ -29,6 +48,4 @@
       }
     }
   }
-  // 次の一歩: AI に任せる時間が長くなったら、外に出られる先を絞る(パッケージの取得先・GitHub・
-  // モデルの API だけ)。Anthropic の参考の devcontainer の init-firewall.sh が雛形になる。
 }

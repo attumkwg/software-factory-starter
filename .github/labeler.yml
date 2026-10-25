@@ -26,6 +26,7 @@
           - .github/**
           - .claude/settings.json
           - .claude/hooks/**
+          - .devcontainer/**
           - .semgrep/**
           - scripts/checkup/**
           - scripts/setup/**
