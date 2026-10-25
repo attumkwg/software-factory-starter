@@ -95,6 +95,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   preRegistrationConverted: "pre_registration.converted",
   // 組織を選び直して、この組織に入った(元の組織には関所が auth.switch_out を残す)
   switchIn: "auth.switch_in",
+  // 運営のコマンド demo-reset が、デモ用の組織のデータを戻した(docs/specs/0053-sales-kit.md。stg だけ)
+  demoReset: "demo.reset",
 } as const;
 
 /**
