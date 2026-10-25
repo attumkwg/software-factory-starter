@@ -3,7 +3,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
-import { secureHeaders } from "hono/secure-headers";
+import { NONCE, secureHeaders } from "hono/secure-headers";
 import type { Logger } from "pino";
 import { compressResponse } from "./compress.ts";
 
@@ -27,29 +27,61 @@ export type Lifecycle = { shuttingDown: boolean };
 
 // API(apps/api/src/request-context.ts)と同じ形。上から来た ID は形が正しいときだけ引き継ぐ
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
+// SSR に CSP の nonce を渡すヘッダー(src/router.tsx が読む)。ブラウザから来た同じ名前の値は捨てる
+export const CSP_NONCE_HEADER = "x-csp-nonce";
+
+/** Sentry の DSN(https://<key>@o1.ingest.sentry.io/<id>)から、ブラウザが送る先の origin。読めなければ undefined。 */
+export function reportOriginOf(dsn: string | undefined): string | undefined {
+  if (!dsn) return undefined;
+  try {
+    return new URL(dsn).origin;
+  } catch {
+    return undefined;
+  }
+}
+
 // 守りのヘッダー(API と同じ secureHeaders に、画面の分を足す)
 //   HSTS          … 1年(既定の180日から延ばす)。一度 https で来たブラウザは、1年は http で来ない
 //   Permissions-Policy … 画面で使わない機能(カメラ・マイク・位置など)を、埋め込まれた物も含めて止める。
 //                    使うようにしたら、ここで外す
-const SECURE_HEADERS = secureHeaders({
-  strictTransportSecurity: "max-age=31536000; includeSubDomains",
-  permissionsPolicy: {
-    camera: [],
-    microphone: [],
-    geolocation: [],
-    payment: [],
-    usb: [],
-    serial: [],
-    bluetooth: [],
-    hid: [],
-    midi: [],
-    accelerometer: [],
-    gyroscope: [],
-    magnetometer: [],
-    displayCapture: [],
-    browsingTopics: [],
-  },
-});
+//   CSP           … 読み込むのは自分の origin の物と、1リクエストごとの nonce の付いた埋め込みだけ
+//                    (SSR が埋め込むスクリプトには TanStack が nonce を付ける)。外のサイトに枠で埋め込ませない。
+//                    部品(React Aria)が style 属性を描くので、属性の style だけは許す(<style> の要素は nonce が要る)。
+//                    外へ送るのは失敗の知らせ(Sentry)だけ。外の物を読むようにしたら、ここに足す(設計書 0045)
+function secureHeadersFor(reportOrigin: string | undefined) {
+  return secureHeaders({
+    strictTransportSecurity: "max-age=31536000; includeSubDomains",
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", NONCE],
+      styleSrc: ["'self'", NONCE],
+      styleSrcAttr: ["'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      fontSrc: ["'self'"],
+      connectSrc: reportOrigin ? ["'self'", reportOrigin] : ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'none'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+    permissionsPolicy: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      payment: [],
+      usb: [],
+      serial: [],
+      bluetooth: [],
+      hid: [],
+      midi: [],
+      accelerometer: [],
+      gyroscope: [],
+      magnetometer: [],
+      displayCapture: [],
+      browsingTopics: [],
+    },
+  });
+}
 
 // 検索に載せない(X-Robots-Tag)。業務の画面なので、既定は全部の応答に付ける。
 // 外してよいのは、本番(APP_ENV=prod)で、ここに書いたパスのページだけ(例: "/login"・"/sign-up")。
@@ -92,12 +124,14 @@ export function createWebApp(deps: {
   /** APP_ENV(local / test / preview / stg / prod)。無ければ本番ではない扱い */
   appEnv?: string;
   indexablePaths?: readonly string[];
+  /** SENTRY_DSN(ブラウザから失敗を送る先。CSP の connect-src に足す)。無ければ自分の origin だけ */
+  sentryDsn?: string;
 }) {
   const { ssr, clientDir, logger, lifecycle } = deps;
   const isProd = deps.appEnv === "prod";
   const indexable = new Set(isProd ? (deps.indexablePaths ?? INDEXABLE_PATHS) : []);
   const publicFiles = publicFilesIn(clientDir);
-  const app = new Hono<{ Variables: { requestId: string } }>();
+  const app = new Hono<{ Variables: { requestId: string; secureHeadersNonce?: string } }>();
 
   app.get("/healthz", (c) => c.json({ ok: true }));
   app.get("/readyz", (c) =>
@@ -122,7 +156,7 @@ export function createWebApp(deps: {
       "request",
     );
   });
-  app.use("*", SECURE_HEADERS);
+  app.use("*", secureHeadersFor(reportOriginOf(deps.sentryDsn)));
   app.use("*", async (c, next) => {
     await next();
     if (!indexable.has(c.req.path)) c.header("x-robots-tag", NOINDEX);
@@ -155,6 +189,9 @@ export function createWebApp(deps: {
   app.on(["GET", "HEAD"], "*", async (c) => {
     const headers = new Headers(c.req.raw.headers);
     headers.set("x-request-id", c.get("requestId"));
+    headers.delete(CSP_NONCE_HEADER);
+    const nonce = c.get("secureHeadersNonce");
+    if (nonce) headers.set(CSP_NONCE_HEADER, nonce);
     try {
       const res = await ssr(new Request(c.req.raw.url, { method: c.req.method, headers }));
       // HTML はブラウザにも途中の仕組みにも残させない(ログインした人のプロジェクトやタスクが入る。

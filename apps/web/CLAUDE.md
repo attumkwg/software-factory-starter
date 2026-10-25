@@ -18,6 +18,7 @@ TanStack Start の SSR(サーバーで HTML を作り、ブラウザで同じも
 - 描くとき(コンポーネントの本体)に `window` / `document` / `localStorage` を触らない。サーバーには無い。要るなら `useEffect` の中か `<ClientOnly>`。
 - 日時は `src/format.ts` を通す(サーバーは UTC なので、そのまま出すと読み込み直後に表示がずれる)。
 - 画面のサーバーは、HTML に `Cache-Control: no-store`・HSTS(1年)・Permissions-Policy を付ける(`server/app.ts`)。カメラ・位置などのブラウザの機能を使うようにしたら、Permissions-Policy から外す。
+- **CSP**: 画面のサーバーが1リクエストごとに nonce を作り、SSR が埋め込むスクリプトには TanStack が付ける(`src/router.tsx` の `ssr.nonce`)。外の物(スクリプト・画像・フォント・送り先)を足すときは、`server/app.ts` の CSP にも足す。埋め込みのスクリプトや `eval` の類・`<style>` の要素は書かない(nonce が無いと止まる)。E2E の `csp.spec.ts` が違反を見つける。設計書 0045
 - 画面のサーバーのログは `server/logger.ts`(API と同じ部品 `@app/logging`。出してよい項目だけ。ADR 0019)。失敗は `logger.error({ err }, "…")` の形で渡す。
 - 検索に載せない: 全部の応答に `X-Robots-Tag: noindex, nofollow`(本番も既定は全部)。本番で載せたいページだけ `INDEXABLE_PATHS` に足す。`robots.txt` も `server/app.ts` が返す。
 - favicon などの静的なファイルは `public/` に置く(画面のサーバーがそのまま返す)。画面の URL に `.` を使わない(拡張子のあるパスは SSR に回さずに 404)。

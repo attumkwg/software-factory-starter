@@ -1,5 +1,7 @@
 // 集めた費用(aws-<環境>・github-actions・saas・estimates)を、ページの元(summary.json)にまとめる。
 // 金額は円の整数。ドルの物はセントで足してから、estimates.yaml の usd_jpy で円にする。読めなかった物は notes に出す(0円として隠さない)。
+
+import { acquisitionCost } from "./acquisition.mjs";
 import { centsToJpy, mergeCounts, periodOf, sum } from "./period.mjs";
 import { makePl } from "./pl.mjs";
 import { targetOf, tenantCost } from "./tenants.mjs";
@@ -123,6 +125,9 @@ const peopleNotes = (inputs, prs) => [
   ...(inputs.tenants
     ? []
     : ["1社あたりの原価: 按分の元が無い(cost/inputs/tenants.json。API の tenant-shares)"]),
+  ...(inputs.acquisition
+    ? []
+    : ["獲得のコスト: 無い(cost/inputs/acquisition.csv。届け方ごとの広告費・営業の時間)"]),
 ];
 
 const noteOf = (name, e) => (e ? `${name}: 読めなかった(${e.reason})` : `${name}: 集めていない`);
@@ -165,10 +170,18 @@ export function makeSummary(entries, { today, generatedAt, people }) {
     notes.push(
       `1社あたりの原価: 按分の元の月(${people.inputs.tenants.month})の本番の AWS が読めなかった`,
     );
+  // 獲得のコスト(届け方ごと。仕様 0043)
+  const acquisition = people?.inputs.acquisition
+    ? acquisitionCost(people.inputs.acquisition, {
+        month: period.month,
+        rates: people.inputs.rates,
+      })
+    : null;
   return {
     month: period.month,
     pl,
     tenant_cost,
+    acquisition,
     today,
     day: period.day,
     days_in_month: period.daysInMonth,
