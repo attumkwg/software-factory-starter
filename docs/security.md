@@ -74,7 +74,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | T-5 | **鍵を分ける(必要な顧客だけ)**。専用の顧客はテナントごとの KMS の鍵。契約が終わったら鍵を消せば、バックアップの中のデータも読めなくなる(暗号による消去) | 要配慮個人情報だけ一部あり: 組織ごとのデータ鍵を KMS の鍵1本で包み、列ごとに暗号化(`apps/api/src/sensitive/`・[ADR 0029](adr/0029-sensitive-data-tier1.md))。テナントごとの KMS の鍵は未(大きな顧客が付いたら。[runbooks/sensitive-data-tiers.md](runbooks/sensitive-data-tiers.md) の 4・[guides/data-retention.md](guides/data-retention.md)) |
 | T-6 | **1社の暴走を止める**: テナントごとの流量の上限・バッチの同時実行の上限・クエリの時間切れ(`statement_timeout`)。重すぎる会社は専用へ | `src/db/client.ts`(クエリ5秒・止まったトランザクション10秒)・WAF の IP ごとの上限。テナントごとの流量の上限は PMF の後 |
 | T-7 | **社員のアクセスは「代理ログイン」だけ**: お客さんの許可・時間制限つき・全部の操作を記録・お客さんからも見える監査ログ。全社を一覧できる管理画面を作らない | [ADR 0014](adr/0014-support-access.md)・[runbooks/support-access.md](runbooks/support-access.md) |
-| T-8 | **SSO はドメインを確かめてから**: 会社のドメインを DNS で確かめてから、その IdP を有効にする。招待はリンクの期限と1回きり | 未(SSO・招待の画面を足すときに) |
+| T-8 | **SSO はドメインを確かめてから**: 会社のドメインを DNS で確かめてから、その IdP を有効にする。招待はリンクの期限と1回きり | 招待: 済(期限7日・1回きり・取り消し・署名つきの札。`invitations.int.test.ts`・ADR 0040)/ SSO: 未(SSO を足すときに) |
 | T-9 | **始まりと終わり**: テナントの作成は自動にして設定の漏れを無くす。解約のときのデータの書き出しと削除(バックアップの保存期間も含めて)を手順にし、契約と合わせる | [ADR 0015](adr/0015-offboarding.md)・[runbooks/offboarding.md](runbooks/offboarding.md)・`TENANT_TABLES` |
 
 ### 漏れていないことを確かめる(V-1〜V-5)
