@@ -128,7 +128,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
 
 <details>
-<summary>部品の一覧を開く(61件)</summary>
+<summary>部品の一覧を開く(62件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -178,6 +178,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 決まりごと | お金と時刻の計算 `money` | 金額は最小単位の整数・時刻は組織のタイムゾーン、の計算を1か所に(packages/shared の money.ts・time.ts) | 残す | あり |
 | 決まりごと | セキュリティの質問票の下書き(/security-questionnaire) `security-questionnaire` | お客さんから届いたセキュリティの質問票に、docs/security.md の決まり・適用宣言書・委託先の一覧・手順書・SLA と取り扱いの取り決めの型・点検の答えから、答えの下書きを根拠のリンクつきで作る。「はい」は根拠があり本番で有効だと確かめた物だけ。下書きはリポジトリの外・出す前に責任者が確かめる | 残す | あり |
 | 開発の道具 | PR ごとのプレビュー環境 `preview-env` | PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す | 残す | あり |
+| 開発の道具 | AI の外への通信の絞り(人が見ていない所で回すとき) `ai-egress` | 人が見ていない AI の作業を、許可リストのプロキシと firewall で絞った devcontainer(中の Docker で結合テスト・E2E が回る)か、Web と GitHub 以外の MCP を持たない背景の AI でだけ回す。CI と背景の AI のテストのコンテナは外へ出られない。外へ向けた操作を記録し、PR の「外へ出した物」に並べる | 残す | あり |
 | 開発の道具 | GitHub の上の Claude(背景エージェント) `claude-actions` | Issue と PR の @claude で、GitHub の上で Claude が作業する(いまは手動。API キーが要る) | 残す | あり |
 | 開発の道具 | 攻撃の形の検査(Schemathesis・ZAP) `dynamic-scans` | 全部の API に変な入力をロールごとに投げる・動いている画面と API を ZAP で叩く(手動) | 残す | あり |
 | 開発の道具 | 脆弱性の精査と対応方針(/cve) `cve-triage` | Dependabot の通知・Trivy・OSV・基盤と主な依存の発表を集め、関係あるかを6段で精査し、期限つきの直し方を決める。記録(docs/security/vulns.md)と通知の突き合わせは pnpm vulns | 残す | あり |
