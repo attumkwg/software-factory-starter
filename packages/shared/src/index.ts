@@ -8,6 +8,7 @@ export * from "./legal.ts";
 export * from "./money.ts";
 export * from "./plans.ts";
 export * from "./pmf-survey.ts";
+export * from "./pre-registration.ts";
 export * from "./roles.ts";
 export * from "./schemas.ts";
 export * from "./time.ts";

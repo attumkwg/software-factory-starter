@@ -23,6 +23,8 @@ export const OUTBOX_TOPICS = {
   "organizations.tenant_opened": z.object({ userId: IdSchema }),
   // 規約の変更のお知らせ(docs/specs/0009-legal-consent.md)。宛先・版は legal.notices の行から読む
   "legal.change_notified": z.object({ noticeId: IdSchema }),
+  // 公開の LP の事前登録の確認のメール(docs/specs/0025-public-landing-page.md)。宛先・リンクは登録の行から読む
+  "growth.pre_registration_received": z.object({ preRegistrationId: IdSchema }),
 } as const;
 
 export type OutboxTopic = keyof typeof OUTBOX_TOPICS;

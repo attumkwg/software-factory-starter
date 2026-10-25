@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { createDb, dbLogging } from "./db/client.ts";
+import { linkKey } from "./domains/growth/index.ts";
 import { createLogger } from "./logger.ts";
 import { createMailer } from "./mail/index.ts";
 import { outboxHandlers, startOutboxRelay } from "./outbox/index.ts";
@@ -37,6 +38,13 @@ const relay = config.outboxRelay
         mailer,
         appUrl: config.appUrl,
         linkSecret: config.session.secret,
+        publicSite: config.publicSite
+          ? {
+              url: config.publicSite.url,
+              key: linkKey(config.session.secret),
+              privacyUrl: `${config.appUrl}/legal/privacy`,
+            }
+          : null,
       }),
     })
   : null;
