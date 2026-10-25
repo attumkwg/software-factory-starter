@@ -256,15 +256,36 @@ describe("受けられない場合", () => {
     expect(await userByEmail(b.tenantId, email.toLowerCase())).toBeUndefined();
   });
 
-  it("ほかの組織で使われているメールの招待は 409。何も変わらない(招待は生きたまま)", async () => {
-    const inv = await invited(aAdmin, b.users.member.email);
-    const res = await accept(invitationToken(SECRET, inv.id));
-    expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
-      "invitation_email_in_use",
+  it("ほかの組織にもういる人も受けられ、所属が増える(b の所属はそのまま。ADR 0066)", async () => {
+    const inv = await invited(aAdmin, b.users.member.email, "viewer");
+    const res = await accept(invitationToken(SECRET, inv.id), "a での名前");
+    expect(res.status).toBe(200);
+    expect(await userByEmail(a.tenantId, b.users.member.email)).toMatchObject({
+      name: "a での名前",
+      role: "viewer",
+    });
+    expect(await userByEmail(b.tenantId, b.users.member.email)).toMatchObject({ role: "member" });
+    // ログインは前回の組織(まだ a に入っていないので b のまま)。a へは選び直す
+    const cookie = await login(app, b.users.member.email);
+    const me = (await (await call(app, "GET", "/api/me", { cookie })).json()) as Me;
+    expect(me).toMatchObject({ tenantId: b.tenantId, organizationsCount: 2 });
+  });
+
+  it("招いた後・受ける前に、その人がこの組織に足されていたら 409 already_member(何も変わらない)", async () => {
+    const email = newEmail("raced").toLowerCase();
+    const inv = await invited(aAdmin, email);
+    // 運営の SQL などで、受ける前に同じメールの行が足された(組織ごとの一意 users_tenant_email_key)
+    await withTenant(owner.db, a.tenantId, (tx) =>
+      tx.execute(
+        sql`insert into organizations.users (id, tenant_id, email, name, role)
+          values (gen_random_uuid(), ${a.tenantId}, ${email}, '先に足された人', 'viewer')`,
+      ),
     );
-    expect(await invitationRow(a.tenantId, inv.id)).toMatchObject({ accepted_at: null });
-    expect(await userByEmail(a.tenantId, b.users.member.email)).toBeUndefined();
+    const res = await accept(invitationToken(SECRET, inv.id), "受けた人");
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("already_member");
+    expect(await userByEmail(a.tenantId, email)).toMatchObject({ name: "先に足された人" });
+    expect((await invitationRow(a.tenantId, inv.id))?.accepted_at ?? null).toBeNull();
   });
 
   it("アプリの接続は users に行を足せない(人が増えるのは、生きている招待を受ける関数だけ)", async () => {

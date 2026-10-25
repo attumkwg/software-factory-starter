@@ -18,8 +18,7 @@ import {
 import { createIsolatedDatabase } from "../helpers/isolated-db.ts";
 
 // 1人が複数の組織に所属する形(docs/specs/0055-multi-org-membership.md・ADR 0066)。
-// 全体の一意(users_email_key・users_external_id_key)を消すのは段 ③ の移行(別の PR)なので、
-// このファイルだけの DB で先に消して、2つ目の所属を作る(ほかのファイルの DB には触らない)。
+// 全体の一意は段 ③ の移行(0018)で消えた。このファイルは、所属を足した組織の数え方を確かめるので自分だけの DB を使う。
 
 const urls = await createIsolatedDatabase(inject("adminUrl"), "multi_org");
 const owner = createDb(urls.ownerUrl);
@@ -35,8 +34,6 @@ let personInB: string;
 const SUB = "sub-multi-org-person";
 
 beforeAll(async () => {
-  await owner.db.execute(sql`drop index organizations.users_email_key`);
-  await owner.db.execute(sql`drop index organizations.users_external_id_key`);
   a = await createTenantFixture(owner.db, "acme");
   b = await createTenantFixture(owner.db, "globex");
   c = await createTenantFixture(owner.db, "initech");

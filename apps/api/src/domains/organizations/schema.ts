@@ -54,10 +54,7 @@ export const users = organizations.table(
   },
   (t) => [
     unique("users_tenant_id_id_key").on(t.tenantId, t.id),
-    // 全体で一意(1人 = 1組織)。複数の組織に入る形の段 ③ で消す(ADR 0066)。それまでは下の組織ごとの一意と両方
-    uniqueIndex("users_email_key").on(t.email),
-    uniqueIndex("users_external_id_key").on(t.externalId),
-    // 組織ごとの一意(段 ①。1人が複数の組織に所属する行を持てる形)
+    // 組織ごとの一意。同じ人(メール・Cognito の sub)が複数の組織に所属できる(ADR 0066。全体の一意は移行 0019 で消した)
     uniqueIndex("users_tenant_email_key").on(t.tenantId, t.email),
     uniqueIndex("users_tenant_external_id_key").on(t.tenantId, t.externalId),
   ],

@@ -12,8 +12,8 @@ import type { LoginIdentity } from "./providers.ts";
  * 1人が複数の組織に所属できる(docs/specs/0055-multi-org-membership.md)。入るのは**前回使った組織**
  * (初めてなら一番古い所属)。ほかの組織へは、画面の上の切り替え(POST /api/session/organization)で移る。
  *
- * Cognito の人は、まず sub(external_id)で探す。まだ結びついていない(初めてのログイン)なら、
- * **Cognito が確認済みと言うメール**が users の行と一致し、その行がまだ誰とも結びついていないときだけ結びつける。
+ * Cognito の人は、**Cognito が確認済みと言うメール**が users の行と一致し、その行がまだ誰とも結びついていないとき、
+ * その行を sub に結びつけてから(毎回。2つ目からの所属のため)、sub で探す。
  * linked … 今回はじめて結びつけたか(ログに残す)
  */
 export async function findLogin(
@@ -28,15 +28,15 @@ export async function findLogin(
     const [first] = await findMemberships(db, { externalId: identity.externalId, email: "" });
     return first ? { userId: first.userId, tenantId: first.tenantId } : null;
   };
-  const found = await bySub();
-  if (found) return { ...found, linked: false };
-  if (!identity.verifiedEmail) return null;
-
-  const linked = await db.execute<{ user_id: string }>(
-    sql`select user_id from auth_link_external_id(${identity.verifiedEmail}, ${identity.externalId})`,
-  );
-  // 結びつけた後は、sub で所属を引き直す(前回の組織の順で選ぶ)。
+  // 確認済みのメールで、まだ結びついていない所属(招待を受けた・運営が足した)を、毎回結びつける。
+  // 1人が複数の組織に所属するので、2つ目からの所属も初めてのログインで結びつく(ADR 0066)
+  const linked = identity.verifiedEmail
+    ? await db.execute<{ user_id: string }>(
+        sql`select user_id from auth_link_external_id(${identity.verifiedEmail}, ${identity.externalId})`,
+      )
+    : { rows: [] };
+  // 結びつけた後に、sub で所属を引く(前回の組織の順で選ぶ)。
   // 同じ人が2つのタブで同時に初めてログインすると、先に結びつけたほうが勝つ。その場合も sub で見つかる
-  const again = await bySub();
-  return again && { ...again, linked: linked.rows.length > 0 };
+  const found = await bySub();
+  return found && { ...found, linked: linked.rows.length > 0 };
 }

@@ -372,22 +372,6 @@
           ]
         },
         {
-          "name": "users_email_key",
-          "def": "CREATE UNIQUE INDEX users_email_key ON organizations.users USING btree (email)",
-          "table": "organizations.users",
-          "columns": [
-            "email"
-          ]
-        },
-        {
-          "name": "users_external_id_key",
-          "def": "CREATE UNIQUE INDEX users_external_id_key ON organizations.users USING btree (external_id)",
-          "table": "organizations.users",
-          "columns": [
-            "external_id"
-          ]
-        },
-        {
           "name": "users_tenant_email_key",
           "def": "CREATE UNIQUE INDEX users_tenant_email_key ON organizations.users USING btree (tenant_id, email)",
           "table": "organizations.users",
@@ -3043,6 +3027,12 @@
       "name": "public.auth_count_memberships",
       "return_type": "int4",
       "arguments": "p_external_id text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_count_memberships_by_email",
+      "return_type": "int4",
+      "arguments": "p_email text",
       "type": "FUNCTION"
     }
   ],
