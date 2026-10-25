@@ -12,6 +12,7 @@ import { notifyLegalChange } from "./legal-notify/notify.ts";
 import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts";
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
+import { planPersonData } from "./person-data/plan-person-data.ts";
 import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 
 // 1回きりの作業の入口。ECS では同じイメージを command だけ変えて動かす。続けて書けば順に流す。
@@ -21,6 +22,8 @@ import { runUsagePurge, runUsageReport } from "./usage/index.ts";
 //   node dist/cli.js init-roles migrate seed   … プレビュー環境の起動時
 //   node dist/cli.js create-tenant <申し込みの置き場のキー> [--execute --confirm-name <名前>]
 //                                      … 申し込みを受けた組織と最初の管理者を作る(試し → 本番。docs/runbooks/tenant-provisioning.md)
+//   node dist/cli.js person-data <組織の ID> <利用者の ID>
+//                                      … 利用者1人分の開示・削除の試し(数えるだけ。docs/runbooks/person-data.md)
 //   node dist/cli.js delete-tenant <組織の ID> [--execute --confirm-name <名前>]
 //                                      … 解約した組織を消す(試し → 本番。docs/runbooks/offboarding.md)
 //   node dist/cli.js legal-notify <文書> <版> [--execute]
@@ -83,6 +86,26 @@ async function createTenantCommand(args: string[]) {
         "まだ作っていません(流してから取り消しました)。中身を確かめて --execute --confirm-name <組織の名前> を付けて流してください\n",
       );
     }
+  } finally {
+    await pool.end();
+  }
+}
+
+/** 利用者1人分の開示・削除の試し(数えるだけ・何も変えない)。結果は JSON 1行(値は出さない) */
+async function personDataCommand(args: string[]) {
+  const [tenantId, userId] = args;
+  const uuid = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+  if (!tenantId || !userId || !uuid.test(tenantId) || !uuid.test(userId)) {
+    throw new Error(
+      "使い方: person-data <組織の ID> <利用者の ID>(どちらも UUID。名前・メールは渡さない)",
+    );
+  }
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    const plan = await planPersonData(db, tenantId, userId);
+    process.stdout.write(`${JSON.stringify({ mode: "plan", ...plan })}\n`);
+    if (!plan.found)
+      process.stdout.write("その組織にその利用者はいません(ID を確かめてください)\n");
   } finally {
     await pool.end();
   }
@@ -191,7 +214,7 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / usage-report / usage-purge)",
   );
 if (commands[0] === "usage-report") {
   const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;
@@ -206,6 +229,10 @@ if (commands[0] === "usage-purge") {
 }
 if (commands[0] === "create-tenant") {
   await createTenantCommand(commands.slice(1));
+  process.exit(0);
+}
+if (commands[0] === "person-data") {
+  await personDataCommand(commands.slice(1));
   process.exit(0);
 }
 if (commands[0] === "delete-tenant") {
