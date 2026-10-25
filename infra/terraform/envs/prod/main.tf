@@ -304,7 +304,8 @@ moved {
 }
 
 # CloudFront を前に置く形では、WAF は CloudFront に付ける(us-east-1。IP ごとの上限を本当の相手の IP で数える)。
-# アラームも us-east-1 に置くので、通知は外形監視(uptime)の topic へ(メールで届く)
+# アラームも us-east-1 に置くので、通知は外形監視(uptime)の us-east-1 の topic へ。この topic は alerts の extra_topic_arns で
+# 東京の topic と同じ Slack(Chatbot)にも流れる(メールも)
 module "waf_front" {
   count     = var.app_cloudfront ? 1 : 0
   source    = "../../modules/waf"

@@ -72,7 +72,7 @@ current=A, previous=""  ─人が─→ current=B, previous=A ─apply─→ (Cl
 - **CloudFront**: オリジンは `origin.<app_domain>`(HTTPS だけ・TLS 1.2)。読み込みの待ち 60 秒(ALB の待ちと同じ。書き出しの流し出しは途中で切れない)。ビューアーは HTTP → HTTPS に転送・TLS 1.2(`TLSv1.2_2021`)・HTTP/2 と HTTP/3・IPv6。料金の区分は `PriceClass_200`(日本を含む)。アクセスログは取らない。
 - **オリジンへのリクエストの決まり**(自前): Cookie 全部・クエリ全部・ヘッダーは全部+`CloudFront-Viewer-Address`。Host もそのまま(ALB の証明書は `app_domain` と `origin.<app_domain>` の両方を持つ)。
 - **ALB**: 入口のセキュリティグループ = プレフィックスリスト `com.amazonaws.global.cloudfront.origin-facing`(443)。リスナーのルールに `http_header` の条件(名前・値は2つまで)。ECS の blue/green が書き換えるのは `action` だけ(`condition` は Terraform のまま)。
-- **WAF**: スコープ `CLOUDFRONT` で us-east-1 に。ログ(`aws-waf-logs-*`)も us-east-1(KMS はアプリの鍵が東京なので AWS の既定の暗号化)。アラームは us-east-1 の SNS(外形監視の `uptime` の topic。メールで届く)。
+- **WAF**: スコープ `CLOUDFRONT` で us-east-1 に。ログ(`aws-waf-logs-*`)も us-east-1(KMS はアプリの鍵が東京なので AWS の既定の暗号化)。アラームは us-east-1 の SNS(外形監視の `uptime` の topic)。この topic は `alerts` の `extra_topic_arns` で、東京の topic と同じ Slack(Amazon Q Developer in chat applications。旧 AWS Chatbot)に流れる(メールも)。WAF と外形監視の知らせが、ほかのアラームと同じ所に届く。
 - **Route 53**: `app_domain` の A/AAAA → CloudFront・`origin.<app_domain>` の A → ALB・証明書の確かめ(us-east-1 の証明書と東京の証明書は同じ確かめのレコードなので、上書きを許す)。
 
 ## 6. 業務ルール
@@ -144,9 +144,12 @@ current=A, previous=""  ─人が─→ current=B, previous=A ─apply─→ (Cl
 
 | 番号 | 工程 | 種類 | 仮決め(設計した事実) | なぜそうしたか | 人が判断する問い | 状態 |
 |---|---|---|---|---|---|---|
+| U-2 | 設計 | 戻せないリスク | 秘密のヘッダーの値は、Secrets Manager のほかに **Terraform の state**(非公開の S3・暗号化)にも入る(CloudFront と ALB のルールに入れるため) | state を見られる人は秘密も見られる。値を入れない形(Lambda@Edge で後から付けるなど)は重い | state に秘密が入ることを受け入れるか | 承認(@attumkwg 2026-10-25。会話で回答) |
+| U-3 | 設計 | 利用者の挙動 | 既に動いている環境を切り替える日時は、**使い始めた人が決める**(人の少ない時間。stg → 1週間 → prod。手順書 cloudfront-origin.md の 1) | DNS の向き先が変わる数分は、古い向き先の人が 404 か接続の失敗になりうる。いつが空いているかはプロダクトごとに違う | いつ切り替えるか | 導入時に決める(キットの既定は @attumkwg 2026-10-25 に承認。会話で回答) |
 | U-1 | 設計 | 他チームとの契約や制約 | **アプリの前に CloudFront を置くのをキットの既定にする**(`app_cloudfront = true`)。ALB は送り元の一覧と、名前も値も秘密のヘッダーで CloudFront からだけ受ける。信じる IP のヘッダーと段数は設定 | 持ち主の言葉「IP がヘッダーで送られるのは攻撃者に丸見え。ヘッダーの名前なども変える必要がある」。名前を変えるだけでは足りないので、秘密のヘッダーと送り元の一覧の組にする | CloudFront を前に置く形でよいか・秘密のヘッダーで満たすか | 承認(@attumkwg 2026-10-25。会話で回答。設計書 0056 の U-9 と同じ) |
 
 ## 13. 作り直しの記録
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-25 | 持ち主の指摘「WAF のアラームも SNS から Slack に」(#100) | 設計(5 に「メールで届く」と書いた。us-east-1 の外形監視の topic が、`alerts` の `extra_topic_arns` で既に Slack に流れているのを見落とした) | 5 の WAF の知らせの先 | Terraform のコメント(envs の waf_front)・手順書 alarms.md・PR の表の 3。Terraform の形は変わらない(既に Slack に流れる) |

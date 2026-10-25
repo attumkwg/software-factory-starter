@@ -144,7 +144,7 @@ Aurora の接続の数が多い(prod は 1,000本・stg は 250本を超えた�
 
 ## waf-hits
 
-**<名前>-waf-hits**(CloudFront を前に置く既定の形では **<名前>-front-waf-hits**。us-east-1 にあり、外形監視と同じメールで届く。ログも us-east-1 の `aws-waf-logs-<名前>-front`)
+**<名前>-waf-hits**(CloudFront を前に置く既定の形では **<名前>-front-waf-hits**。us-east-1 にあり、外形監視の topic から、ほかのアラームと同じ Slack(とメール)に届く。ログも us-east-1 の `aws-waf-logs-<名前>-front`)
 
 WAF が5分に100回以上(`alarm_threshold`)止めた。WAF が「数えるだけ(count)」の間は、**止めるはずだった**数(実際には通っている)。
 
