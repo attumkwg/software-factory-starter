@@ -3,7 +3,7 @@ SET LOCAL lock_timeout = '5s';--> statement-breakpoint
 SET LOCAL statement_timeout = '60s';--> statement-breakpoint
 -- 「無くなったら困るか」を聞く(docs/specs/0046-pmf-survey.md・docs/designs/0046-pmf-survey.md の 2・ADR 0057)。
 -- 危険度「高」(RLS と権限)。段: ① 拡張(新しい表を足すだけ。前の版のアプリは読まないので、そのまま動く)。縮小は無い。
--- 番号は 0016(0015 は並んで進む別の PR が使う。先にそちらが入ったら、記録 meta/ の前の版のつなぎを作り直す)。
+-- 0015(契約のプラン)の上に作り直した(drizzle-kit generate を流し直し)。
 --
 -- 1. 表は drizzle-kit が作った形(src/pmf-survey/schema.ts)。だれが何と答えたかを結びつけないよう、2つに分ける:
 --    pmf_survey_asked(この人はこの回を答え終えた。答えは持たない)と pmf_survey_counts(組織・回・答えごとの数。人を持たない)。

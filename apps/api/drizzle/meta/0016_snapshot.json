@@ -1,6 +1,6 @@
 {
-  "id": "ded7c243-422d-470b-b4f1-f64435ee1983",
-  "prevId": "7c299f29-30cc-44cd-8188-cd6010cef8bc",
+  "id": "7d2eed22-ef93-4846-bb8b-0f233f6c7ac3",
+  "prevId": "eea0c59f-7664-414a-97bf-759e8634316b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1405,6 +1405,111 @@
         "outbox_tenant_id_tenants_tenant_id_fk": {
           "name": "outbox_tenant_id_tenants_tenant_id_fk",
           "tableFrom": "outbox",
+          "tableTo": "tenants",
+          "schemaTo": "organizations",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "platform.tenant_plans": {
+      "name": "tenant_plans",
+      "schema": "platform",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plan": {
+          "name": "plan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_list": {
+          "name": "price_list",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seats": {
+          "name": "seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_locked_until": {
+          "name": "price_locked_until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effective_on": {
+          "name": "effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tenant_plans_current_idx": {
+          "name": "tenant_plans_current_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "effective_on",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tenant_plans_tenant_id_tenants_tenant_id_fk": {
+          "name": "tenant_plans_tenant_id_tenants_tenant_id_fk",
+          "tableFrom": "tenant_plans",
           "tableTo": "tenants",
           "schemaTo": "organizations",
           "columnsFrom": [

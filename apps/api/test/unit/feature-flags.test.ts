@@ -25,7 +25,8 @@ function readBetStages(): Map<string, string> {
 const ALLOWED_STATES: Record<string, readonly FeatureFlagDefinition["state"][]> = {
   psf: ["rollout", "off"],
   rollout: ["rollout", "off"],
-  adopted: ["on", "off"],
+  // adopted で、上のプランにだけ出す機能は plan(docs/specs/0047-plans.md)
+  adopted: ["on", "plan", "off"],
 };
 
 function betProblems(
@@ -92,7 +93,7 @@ describe("機能フラグと賭け", () => {
     ).toEqual([
       "flag-b-0002-rollout: 賭け B-0002 は cpf。まだ作る段階ではない(psf から)",
       "flag-b-0003-rollout: 賭け B-0003 は dropped。フラグと呼び出しを消す",
-      "flag-b-0004-rollout: 賭けが adopted のときの状態は on / off",
+      "flag-b-0004-rollout: 賭けが adopted のときの状態は on / plan / off",
       "flag-b-0009-on: 賭け B-0009 のファイルが docs/product/bets に無い",
     ]);
   });

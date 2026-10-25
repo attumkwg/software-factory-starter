@@ -23,11 +23,31 @@ describe("申し込みの JSON を読む", () => {
     expect(ignoredKeys).toEqual([]);
   });
 
-  it("知らない項目(プラン・人数・始まりの日など)は読み飛ばし、名前だけ返す", () => {
+  it("知らない項目(始まりの日・申込番号など)は読み飛ばし、名前だけ返す", () => {
     const { ignoredKeys } = parseTenantApplication(
-      JSON.stringify({ ...minimal, plan: "standard", seats: 10, startDate: "2026-11-01" }),
+      JSON.stringify({ ...minimal, startDate: "2026-11-01", orderNumber: "A-1" }),
     );
-    expect(ignoredKeys).toEqual(["plan", "seats", "startDate"]);
+    expect(ignoredKeys).toEqual(["startDate", "orderNumber"]);
+  });
+
+  it("プラン・人数・価格表・据え置きの期限は読む(申込書の欄。docs/specs/0047-plans.md)", () => {
+    const { application, ignoredKeys } = parseTenantApplication(
+      JSON.stringify({
+        ...minimal,
+        plan: "standard",
+        seats: 10,
+        priceList: "2026-10",
+        priceLockedUntil: "2027-10-31",
+      }),
+    );
+    expect(application).toMatchObject({
+      plan: "standard",
+      seats: 10,
+      priceList: "2026-10",
+      priceLockedUntil: "2027-10-31",
+    });
+    expect(ignoredKeys).toEqual([]);
+    expect(() => parseTenantApplication(JSON.stringify({ ...minimal, seats: 0 }))).toThrow(/seats/);
   });
 
   it("違う項目の名前だけを言う(値は出さない)", () => {

@@ -32,6 +32,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "invitation.create": "人を招いた",
   "invitation.revoke": "招待を取り消した",
   "invitation.accept": "招待を受けて参加した",
+  "plan.change": "プランを変えた",
   // 何と答えたかは記録に無い(数の表にだけある)
   "pmf_survey.respond": "「無くなったら困るか」に答えた",
 };
@@ -53,6 +54,10 @@ export function auditActionLabel(e: AuditEvent): string {
     ? (e.details.fields as unknown[]).map((f) => FIELD_LABELS[String(f)] ?? String(f))
     : [];
   if (fields.length > 0) return `${base}(${fields.join("・")})`;
+  // 運営が変えたプランと価格表の版(docs/specs/0047-plans.md)
+  if (typeof e.details.plan === "string") {
+    return `${base}(${e.details.plan}・価格表 ${String(e.details.priceList ?? "")})`;
+  }
   // 運営が入れた・切った機能の名前(docs/specs/0012-feature-flags-and-usage.md)
   return typeof e.details.flag === "string" ? `${base}(${e.details.flag})` : base;
 }

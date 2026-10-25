@@ -9,10 +9,12 @@
 // - キットの仕組み(賭けではなく、プロダクト全体を測る物。例: PMF の兆しを聞く)は bet を "kit" にする。
 //   賭けの段階には縛られない(消すのはキットの部品を消すとき。docs/kit/catalog.yaml)
 
-export const FEATURE_FLAG_STATES = ["rollout", "on", "off"] as const;
+export const FEATURE_FLAG_STATES = ["rollout", "on", "off", "plan"] as const;
 /**
  * rollout … 運営が入れた組織だけ(賭けの psf / rollout)
  * on      … 全部の組織(賭けの adopted。組織ごとの行は見ない)
+ * plan    … いまのプランに入っている組織だけ(賭けの adopted で、上のプランにだけ出す。`PLANS` の features)。
+ *           運営が組織ごとに入れた行も効く(プランの外の組織に試しに出す。docs/specs/0047-plans.md)
  * off     … 全部の組織で止める(壊れたとき。組織ごとの行は見ない。デプロイが要る)
  */
 export type FeatureFlagState = (typeof FEATURE_FLAG_STATES)[number];
@@ -64,15 +66,34 @@ export function featureFlagProblems(defs: readonly FeatureFlagDefinition[]): str
 /**
  * その組織で入っている機能の名前(定義の順)。
  * enabledInOrg … その組織に入れた名前(platform.feature_flags の行)。定義に無い名前は捨てる
+ * planFeatures … その組織のいまのプランの機能(PLANS の features。プランが無ければ空)
  */
 export function enabledFeatures(
   defs: readonly FeatureFlagDefinition[],
   enabledInOrg: Iterable<string>,
+  planFeatures: Iterable<string> = [],
 ): string[] {
   const rows = new Set(enabledInOrg);
-  return defs
-    .filter((d) => d.state === "on" || (d.state === "rollout" && rows.has(d.name)))
-    .map((d) => d.name);
+  const plan = new Set(planFeatures);
+  return defs.filter((d) => isEnabled(d, rows, plan)).map((d) => d.name);
+}
+
+/** 1つの機能が、その組織で入っているか(enabledFeatures と、API の守り requireFeature で同じ判定) */
+export function isEnabled(
+  def: FeatureFlagDefinition,
+  orgRows: ReadonlySet<string>,
+  planFeatures: ReadonlySet<string>,
+): boolean {
+  switch (def.state) {
+    case "on":
+      return true;
+    case "off":
+      return false;
+    case "rollout":
+      return orgRows.has(def.name);
+    case "plan":
+      return planFeatures.has(def.name) || orgRows.has(def.name);
+  }
 }
 
 /** 画面の出し分け(GET /api/me の features)。**守りは API 側**(requireFeature)。画面で隠すだけで安心しない */

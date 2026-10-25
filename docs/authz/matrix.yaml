@@ -166,6 +166,11 @@ routes:
     body: { token: "not-a-token", name: "誰か" }
     expect: { admin: 400, member: 400, viewer: 400, anonymous: 400 }
 
+  - route: GET /api/organization/plan
+    permission: plan:read
+    note: この組織のプラン・人数の上限・いる人と受けていない招待の数(docs/specs/0047-plans.md)。契約の中身なので管理者だけ。変えるのは運営のコマンドだけ
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
+
   - route: POST /api/support/sessions
     permission: support:start
     note: 社員がサポート番号で入る。運営の組織(SUPPORT_TENANT_ID)の人でなければ 403。入れることは support-access.int.test.ts で確かめる

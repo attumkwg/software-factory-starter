@@ -1,4 +1,10 @@
-import type { FeatureFlagDefinition, LegalStatus, LegalVersion, Role } from "@app/shared";
+import type {
+  FeatureFlagDefinition,
+  LegalStatus,
+  LegalVersion,
+  PlanDefinition,
+  Role,
+} from "@app/shared";
 import type { TenantTx } from "./db/client.ts";
 import type { SensitiveStore } from "./sensitive/index.ts";
 
@@ -50,6 +56,8 @@ export type AppEnv = {
     legalStatus?: LegalStatus;
     /** 機能フラグの定義(既定は @app/shared の FEATURE_FLAGS。結合テストが差し替える。docs/specs/0012-feature-flags-and-usage.md) */
     featureFlags: readonly FeatureFlagDefinition[];
+    /** プランの定義(既定は @app/shared の PLANS。結合テストが差し替える。docs/specs/0047-plans.md) */
+    plans: readonly PlanDefinition[];
     /** 要配慮個人情報の入口(ADR 0029)。要配慮の接続が無い環境では null。ルートからは sensitiveOf(c) で */
     sensitive: SensitiveStore | null;
   };

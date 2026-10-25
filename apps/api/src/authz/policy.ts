@@ -35,6 +35,8 @@ export const PERMISSIONS = {
   // 人を招く・招待を取り消す・一覧(docs/specs/0027-invitations.md)。誰を組織に入れるかなので管理者だけ。
   // 代理の社員は閲覧者なので使えない
   "invitation:manage": ["admin"],
+  // 組織のプラン・人数の上限を見る(docs/specs/0047-plans.md)。契約の中身なので管理者だけ。変えるのは運営のコマンドだけ
+  "plan:read": ["admin"],
   // 「無くなったら困るか」に答える(docs/specs/0046-pmf-survey.md)。使っている人みんな。代理の最中は使えない(NOT_DURING_SUPPORT)。
   // 聞くのは機能フラグ pmf-survey を入れた組織だけ(入っていなければハンドラーが 404)
   "pmf_survey:answer": ["admin", "member", "viewer"],
@@ -93,6 +95,7 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "DELETE /api/invitations/{invitationId}": "invitation:manage",
   // 招かれた人が受ける(ログインの前。札の署名と、生きている招待かを API と DB の関数が確かめる)
   "POST /api/invitations/accept": PUBLIC,
+  "GET /api/organization/plan": "plan:read",
   // いまこの人に聞くか(だれでも読める。聞かないときも ask: false)
   "GET /api/pmf-survey": "me:read",
   "POST /api/pmf-survey": "pmf_survey:answer",
