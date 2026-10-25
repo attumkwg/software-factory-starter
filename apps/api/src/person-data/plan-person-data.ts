@@ -159,6 +159,11 @@ export type PersonDataPlan = {
   found: boolean;
   /** Cognito の利用者(sub)。結びついていなければ null(消すときは Cognito からも消す) */
   cognitoSub: string | null;
+  /**
+   * ほかの組織での所属の数(docs/specs/0055-multi-org-membership.md)。1以上なら Cognito からは消さない
+   * (この組織の所属だけを消す)。組織の名前・ID は出さない
+   */
+  otherMemberships: number;
   /** 1件以上ある所だけ */
   lines: PersonDataLine[];
   totals: Record<PersonAction, number>;
@@ -203,7 +208,17 @@ export async function planPersonData(
       sql`select email, external_id from organizations.users where tenant_id = ${tenantId} and id = ${userId}`,
     );
     const row = user.rows[0];
-    if (!row) return { tenantId, userId, found: false, cognitoSub: null, lines: [], totals };
+    if (!row) {
+      return {
+        tenantId,
+        userId,
+        found: false,
+        cognitoSub: null,
+        otherMemberships: 0,
+        lines: [],
+        totals,
+      };
+    }
     const who = { tenantId, userId, email: row.email };
     const lines: PersonDataLine[] = [];
     for (const ref of PERSON_REFERENCES) {
@@ -212,6 +227,23 @@ export async function planPersonData(
       lines.push({ ...ref, rows });
       totals[ref.action] += rows;
     }
-    return { tenantId, userId, found: true, cognitoSub: row.external_id, lines, totals };
+    const otherMemberships = row.external_id
+      ? Math.max(0, (await countAll(tx, row.external_id)) - 1)
+      : 0;
+    return {
+      tenantId,
+      userId,
+      found: true,
+      cognitoSub: row.external_id,
+      otherMemberships,
+      lines,
+      totals,
+    };
   });
+}
+
+/** その人(sub)の、全部の組織での所属の数(DB の関数。組織をまたぐ) */
+async function countAll(tx: TenantTx, externalId: string): Promise<number> {
+  const r = await tx.execute<{ n: number }>(sql`select auth_count_memberships(${externalId}) as n`);
+  return r.rows[0]?.n ?? 0;
 }

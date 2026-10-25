@@ -67,43 +67,46 @@
 <!-- organizations.users -->
 <g id="node4" class="node">
 <title>organizations.users</title>
-<polygon fill="#efefef" stroke="none" points="1998.31,-786.4 1998.31,-822 2308.77,-822 2308.77,-786.4 1998.31,-786.4"/>
-<polygon fill="none" stroke="black" points="1998.31,-786.4 1998.31,-822 2308.77,-822 2308.77,-786.4 1998.31,-786.4"/>
-<text text-anchor="start" x="2022.07" y="-799.8" font-family="Arial Bold" font-size="18.00">organizations.users</text>
-<text text-anchor="start" x="2160.53" y="-799.8" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="2191.65" y="-799.8" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<polygon fill="none" stroke="black" points="1998.31,-755.6 1998.31,-786.4 2308.77,-786.4 2308.77,-755.6 1998.31,-755.6"/>
-<text text-anchor="start" x="2005.31" y="-767.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="2020.1" y="-767.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1998.31,-724.8 1998.31,-755.6 2308.77,-755.6 2308.77,-724.8 1998.31,-724.8"/>
-<text text-anchor="start" x="2005.31" y="-737" font-family="Arial" font-size="14.00">tenant_id </text>
-<text text-anchor="start" x="2066.81" y="-737" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1998.31,-694 1998.31,-724.8 2308.77,-724.8 2308.77,-694 1998.31,-694"/>
-<text text-anchor="start" x="2005.31" y="-706.2" font-family="Arial" font-size="14.00">email </text>
-<text text-anchor="start" x="2042.66" y="-706.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1998.31,-663.2 1998.31,-694 2308.77,-694 2308.77,-663.2 1998.31,-663.2"/>
-<text text-anchor="start" x="2005.31" y="-675.4" font-family="Arial" font-size="14.00">external_id </text>
-<text text-anchor="start" x="2077.69" y="-675.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1998.31,-632.4 1998.31,-663.2 2308.77,-663.2 2308.77,-632.4 1998.31,-632.4"/>
-<text text-anchor="start" x="2005.31" y="-644.6" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="2044.22" y="-644.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1998.31,-601.6 1998.31,-632.4 2308.77,-632.4 2308.77,-601.6 1998.31,-601.6"/>
-<text text-anchor="start" x="2005.31" y="-613.8" font-family="Arial" font-size="14.00">role </text>
-<text text-anchor="start" x="2032.55" y="-613.8" font-family="Arial" font-size="14.00" fill="#666666">[organizations.role]</text>
-<polygon fill="none" stroke="black" points="1998.31,-570.8 1998.31,-601.6 2308.77,-601.6 2308.77,-570.8 1998.31,-570.8"/>
-<text text-anchor="start" x="2005.31" y="-583" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="2075.36" y="-583" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1998.31,-540 1998.31,-570.8 2308.77,-570.8 2308.77,-540 1998.31,-540"/>
-<text text-anchor="start" x="2005.31" y="-552.2" font-family="Arial" font-size="14.00">mfa_enabled </text>
-<text text-anchor="start" x="2090.15" y="-552.2" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<polygon fill="none" stroke="black" points="1998.31,-509.2 1998.31,-540 2308.77,-540 2308.77,-509.2 1998.31,-509.2"/>
-<text text-anchor="start" x="2005.31" y="-521.4" font-family="Arial" font-size="14.00">sessions_valid_after </text>
-<text text-anchor="start" x="2136.05" y="-521.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="1998.31,-801.8 1998.31,-837.4 2308.77,-837.4 2308.77,-801.8 1998.31,-801.8"/>
+<polygon fill="none" stroke="black" points="1998.31,-801.8 1998.31,-837.4 2308.77,-837.4 2308.77,-801.8 1998.31,-801.8"/>
+<text text-anchor="start" x="2022.07" y="-815.2" font-family="Arial Bold" font-size="18.00">organizations.users</text>
+<text text-anchor="start" x="2160.53" y="-815.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="2191.65" y="-815.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<polygon fill="none" stroke="black" points="1998.31,-771 1998.31,-801.8 2308.77,-801.8 2308.77,-771 1998.31,-771"/>
+<text text-anchor="start" x="2005.31" y="-783.2" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="2020.1" y="-783.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1998.31,-740.2 1998.31,-771 2308.77,-771 2308.77,-740.2 1998.31,-740.2"/>
+<text text-anchor="start" x="2005.31" y="-752.4" font-family="Arial" font-size="14.00">tenant_id </text>
+<text text-anchor="start" x="2066.81" y="-752.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1998.31,-709.4 1998.31,-740.2 2308.77,-740.2 2308.77,-709.4 1998.31,-709.4"/>
+<text text-anchor="start" x="2005.31" y="-721.6" font-family="Arial" font-size="14.00">email </text>
+<text text-anchor="start" x="2042.66" y="-721.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1998.31,-678.6 1998.31,-709.4 2308.77,-709.4 2308.77,-678.6 1998.31,-678.6"/>
+<text text-anchor="start" x="2005.31" y="-690.8" font-family="Arial" font-size="14.00">external_id </text>
+<text text-anchor="start" x="2077.69" y="-690.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1998.31,-647.8 1998.31,-678.6 2308.77,-678.6 2308.77,-647.8 1998.31,-647.8"/>
+<text text-anchor="start" x="2005.31" y="-660" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="2044.22" y="-660" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1998.31,-617 1998.31,-647.8 2308.77,-647.8 2308.77,-617 1998.31,-617"/>
+<text text-anchor="start" x="2005.31" y="-629.2" font-family="Arial" font-size="14.00">role </text>
+<text text-anchor="start" x="2032.55" y="-629.2" font-family="Arial" font-size="14.00" fill="#666666">[organizations.role]</text>
+<polygon fill="none" stroke="black" points="1998.31,-586.2 1998.31,-617 2308.77,-617 2308.77,-586.2 1998.31,-586.2"/>
+<text text-anchor="start" x="2005.31" y="-598.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="2075.36" y="-598.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1998.31,-555.4 1998.31,-586.2 2308.77,-586.2 2308.77,-555.4 1998.31,-555.4"/>
+<text text-anchor="start" x="2005.31" y="-567.6" font-family="Arial" font-size="14.00">mfa_enabled </text>
+<text text-anchor="start" x="2090.15" y="-567.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<polygon fill="none" stroke="black" points="1998.31,-524.6 1998.31,-555.4 2308.77,-555.4 2308.77,-524.6 1998.31,-524.6"/>
+<text text-anchor="start" x="2005.31" y="-536.8" font-family="Arial" font-size="14.00">sessions_valid_after </text>
+<text text-anchor="start" x="2136.05" y="-536.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1998.31,-493.8 1998.31,-524.6 2308.77,-524.6 2308.77,-493.8 1998.31,-493.8"/>
+<text text-anchor="start" x="2005.31" y="-506" font-family="Arial" font-size="14.00">last_used_at </text>
+<text text-anchor="start" x="2088.6" y="-506" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- projects.projects&#45;&gt;organizations.users -->
 <g id="edge2" class="edge">
 <title>projects.projects:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M669.2,-1298.04C760.15,-1287.27 627.75,-1123.89 709.54,-1055.2 808.38,-972.2 1763.13,-1090.75 1870.54,-1019.2 1983.9,-943.69 1861.11,-740.2 1997.31,-740.2"/>
+<path fill="none" stroke="black" d="M669.2,-1298.04C760.15,-1287.27 627.75,-1123.89 709.54,-1055.2 808.38,-972.2 1762.36,-1089.58 1870.54,-1019.2 1979.51,-948.31 1867.31,-755.6 1997.31,-755.6"/>
 <polygon fill="black" stroke="black" points="669.34,-1298.03 659.1,-1294.09 664.01,-1298.33 659.69,-1298.56 659.69,-1298.56 659.69,-1298.56 664.01,-1298.33 659.6,-1303.07 669.34,-1298.03"/>
 <text text-anchor="start" x="256.29" y="-1282.6" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
@@ -154,9 +157,9 @@
 <!-- organizations.users&#45;&gt;organizations.tenants -->
 <g id="edge5" class="edge">
 <title>organizations.users:tenant_id&#45;&gt;organizations.tenants:tenant_id</title>
-<path fill="none" stroke="black" d="M2319.9,-737.78C2364.24,-714.06 2317,-522.53 2308.77,-466 2296.11,-378.92 2266.04,-363.04 2253.07,-276 2246.9,-234.59 2210.2,-181.8 2252.07,-181.8"/>
-<polygon fill="black" stroke="black" points="2319.83,-737.8 2309.06,-735.75 2314.64,-739.04 2310.43,-740.04 2310.43,-740.04 2310.43,-740.04 2314.64,-739.04 2311.14,-744.5 2319.83,-737.8"/>
-<text text-anchor="start" x="2316.77" y="-750.2" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)</text>
+<path fill="none" stroke="black" d="M2319.79,-753.53C2371.32,-730.08 2318.73,-513.89 2308.77,-450.6 2296.12,-370.14 2266.03,-356.42 2253.07,-276 2246.41,-234.66 2210.2,-181.8 2252.07,-181.8"/>
+<polygon fill="black" stroke="black" points="2319.9,-753.51 2309.19,-751.13 2314.67,-754.59 2310.43,-755.46 2310.43,-755.46 2310.43,-755.46 2314.67,-754.59 2311.01,-759.94 2319.9,-753.51"/>
+<text text-anchor="start" x="2316.77" y="-765.6" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)</text>
 </g>
 <!-- platform.outbox -->
 <g id="node5" class="node">
@@ -299,7 +302,7 @@
 <!-- organizations.support_grants&#45;&gt;organizations.users -->
 <g id="edge9" class="edge">
 <title>organizations.support_grants:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M1120.39,-1344.32C1230.81,-1333.39 1065.46,-1139.33 1160.54,-1055.2 1219.7,-1002.86 1805.24,-1063.64 1870.54,-1019.2 1983.15,-942.58 1861.11,-740.2 1997.31,-740.2"/>
+<path fill="none" stroke="black" d="M1120.39,-1344.32C1230.81,-1333.39 1065.46,-1139.33 1160.54,-1055.2 1219.7,-1002.86 1804.76,-1062.92 1870.54,-1019.2 1978.81,-947.24 1867.31,-755.6 1997.31,-755.6"/>
 <polygon fill="black" stroke="black" points="1120.34,-1344.32 1110.14,-1340.29 1115.01,-1344.57 1110.69,-1344.77 1110.69,-1344.77 1110.69,-1344.77 1115.01,-1344.57 1110.56,-1349.28 1120.34,-1344.32"/>
 <text text-anchor="start" x="911.87" y="-1328.8" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, granted_by) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
@@ -393,7 +396,7 @@
 <!-- organizations.email_changes&#45;&gt;organizations.users -->
 <g id="edge13" class="edge">
 <title>organizations.email_changes:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M1571.17,-1328.92C1675.68,-1318.4 1524.8,-1137.6 1612.54,-1055.2 1707.54,-965.99 1802.61,-1101.63 1903.54,-1019.2 2004.86,-936.45 1866.5,-740.2 1997.31,-740.2"/>
+<path fill="none" stroke="black" d="M1571.17,-1328.92C1675.68,-1318.4 1524.8,-1137.6 1612.54,-1055.2 1707.54,-965.99 1801.89,-1100.74 1903.54,-1019.2 2000.54,-941.39 1872.97,-755.6 1997.31,-755.6"/>
 <polygon fill="black" stroke="black" points="1571.32,-1328.91 1561.12,-1324.89 1565.99,-1329.16 1561.67,-1329.37 1561.67,-1329.37 1561.67,-1329.37 1565.99,-1329.16 1561.55,-1333.88 1571.32,-1328.91"/>
 <text text-anchor="start" x="1568" y="-1313.4" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
@@ -440,8 +443,8 @@
 <!-- legal.consents&#45;&gt;organizations.users -->
 <g id="edge15" class="edge">
 <title>legal.consents:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M1935.51,-1343.56C2050.54,-1313.34 1865.58,-740.2 1997.31,-740.2"/>
-<polygon fill="black" stroke="black" points="1935.75,-1343.53 1925.27,-1340.29 1930.45,-1344.19 1926.16,-1344.72 1926.16,-1344.72 1926.16,-1344.72 1930.45,-1344.19 1926.38,-1349.22 1935.75,-1343.53"/>
+<path fill="none" stroke="black" d="M1935.6,-1343.5C2047.14,-1313.02 1869.02,-755.6 1997.31,-755.6"/>
+<polygon fill="black" stroke="black" points="1935.74,-1343.48 1925.25,-1340.29 1930.45,-1344.16 1926.16,-1344.71 1926.16,-1344.71 1926.16,-1344.71 1930.45,-1344.16 1926.4,-1349.22 1935.74,-1343.48"/>
 <text text-anchor="start" x="1932.49" y="-1328.8" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
 <!-- legal.notices -->
@@ -481,8 +484,8 @@
 <!-- legal.notices&#45;&gt;organizations.users -->
 <g id="edge17" class="edge">
 <title>legal.notices:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M2285.93,-1306.32C2315.21,-1238.23 2339.51,-740.2 2309.77,-740.2"/>
-<polygon fill="black" stroke="black" points="2286.11,-1306.12 2276.21,-1310.84 2282.66,-1310.19 2279.86,-1313.49 2279.86,-1313.49 2279.86,-1313.49 2282.66,-1310.19 2283.08,-1316.65 2286.11,-1306.12"/>
+<path fill="none" stroke="black" d="M2285.95,-1306.11C2314.46,-1238.24 2338.66,-755.6 2309.77,-755.6"/>
+<polygon fill="black" stroke="black" points="2286.01,-1306.03 2276.17,-1310.88 2282.61,-1310.15 2279.86,-1313.48 2279.86,-1313.48 2279.86,-1313.48 2282.61,-1310.15 2283.11,-1316.61 2286.01,-1306.03"/>
 <text text-anchor="start" x="2286.43" y="-1324" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
 <!-- platform.feature_flags -->
@@ -547,8 +550,8 @@
 <!-- platform.feature_usage&#45;&gt;organizations.users -->
 <g id="edge20" class="edge">
 <title>platform.feature_usage:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M2371.86,-1297.19C2267.13,-1266.36 2431.23,-740.2 2309.77,-740.2"/>
-<polygon fill="black" stroke="black" points="2371.85,-1297.19 2381.14,-1303.01 2377.14,-1297.92 2381.43,-1298.51 2381.43,-1298.51 2381.43,-1298.51 2377.14,-1297.92 2382.37,-1294.1 2371.85,-1297.19"/>
+<path fill="none" stroke="black" d="M2371.82,-1297.14C2270.45,-1266.22 2427.82,-755.6 2309.77,-755.6"/>
+<polygon fill="black" stroke="black" points="2371.86,-1297.14 2381.12,-1303.01 2377.14,-1297.89 2381.43,-1298.51 2381.43,-1298.51 2381.43,-1298.51 2377.14,-1297.89 2382.39,-1294.1 2371.86,-1297.14"/>
 <text text-anchor="start" x="2094.3" y="-1282.6" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
 <!-- sensitive.tenant_keys -->
@@ -624,7 +627,7 @@
 <!-- organizations.invitations&#45;&gt;organizations.users -->
 <g id="edge22" class="edge">
 <title>organizations.invitations:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M2781.58,-1389.03C2723.45,-1363.88 2792.14,-1105.12 2740.54,-1055.2 2642.77,-960.59 2546.39,-1099.48 2436.54,-1019.2 2326.58,-938.84 2445.97,-740.2 2309.77,-740.2"/>
+<path fill="none" stroke="black" d="M2781.58,-1389.03C2723.45,-1363.88 2792.14,-1105.12 2740.54,-1055.2 2642.77,-960.59 2547.26,-1098.28 2436.54,-1019.2 2330.76,-943.64 2439.77,-755.6 2309.77,-755.6"/>
 <polygon fill="black" stroke="black" points="2781.43,-1389 2790.37,-1395.35 2786.66,-1390.03 2790.91,-1390.87 2790.91,-1390.87 2790.91,-1390.87 2786.66,-1390.03 2792.11,-1386.52 2781.43,-1389"/>
 <text text-anchor="start" x="2494.61" y="-1375" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, invited_by) REFERENCES organizations.users(tenant_id, id)</text>
 </g>
@@ -666,7 +669,7 @@
 <title>platform.tenant_plans:tenant_id&#45;&gt;organizations.tenants:tenant_id</title>
 <path fill="none" stroke="black" d="M2957.56,-723.28C2882.18,-698.57 2967.63,-381.05 2911.54,-312 2857.05,-244.91 2631.45,-181.8 2545.02,-181.8"/>
 <polygon fill="black" stroke="black" points="2957.35,-723.24 2966.56,-729.2 2962.63,-724.05 2966.91,-724.7 2966.91,-724.7 2966.91,-724.7 2962.63,-724.05 2967.92,-720.3 2957.35,-723.24"/>
-<text text-anchor="start" x="2624.87" y="-708.8" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)</text>
+<text text-anchor="start" x="2624.87" y="-734.8" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)</text>
 </g>
 <!-- platform.pmf_survey_asked -->
 <g id="node17" class="node">
@@ -702,7 +705,7 @@
 <!-- platform.pmf_survey_asked&#45;&gt;organizations.users -->
 <g id="edge25" class="edge">
 <title>platform.pmf_survey_asked:tenant_id&#45;&gt;organizations.users:tenant_id</title>
-<path fill="none" stroke="black" d="M3201.88,-1298.04C3110.76,-1287.31 3241.9,-1124.55 3160.54,-1055.2 3099.25,-1002.95 2503.16,-1064.48 2436.54,-1019.2 2323.9,-942.63 2445.97,-740.2 2309.77,-740.2"/>
+<path fill="none" stroke="black" d="M3201.88,-1298.04C3110.76,-1287.31 3241.9,-1124.55 3160.54,-1055.2 3099.25,-1002.95 2503.65,-1063.75 2436.54,-1019.2 2328.24,-947.29 2439.77,-755.6 2309.77,-755.6"/>
 <polygon fill="black" stroke="black" points="3201.76,-1298.04 3211.5,-1303.07 3207.08,-1298.33 3211.41,-1298.56 3211.41,-1298.56 3211.41,-1298.56 3207.08,-1298.33 3211.99,-1294.09 3201.76,-1298.04"/>
 <text text-anchor="start" x="3219.08" y="-1282.6" font-family="Arial" font-size="10.00">FOREIGN KEY (tenant_id, user_id) REFERENCES organizations.users(tenant_id, id)</text>
 </g>

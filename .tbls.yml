@@ -17,12 +17,13 @@ comments:
       time_zone: 時刻を見せる時間帯・「1日」の区切り(IANA の名前。ADR 0005)
       mfa_required: 全員に二段階認証を必須にするか(管理者が入れ・切る。運営の組織は最初から true で切れない)
   - table: organizations.users
-    tableComment: 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations
+    tableComment: 組織への所属(名前とロール admin / member / viewer)。同じ人が複数の組織に所属できる(ADR 0066)。docs/domain/organizations
     columnComments:
-      external_id: 認証の製品(Cognito)側の ID(sub)
+      external_id: 認証の製品(Cognito)側の ID(sub)。同じ人の所属は同じ sub
       role: admin / member / viewer
-      mfa_enabled: 二段階認証が有効か(正は Cognito。ログインと確かめ直しのたびに写し直す)
-      sessions_valid_after: これより前にログインしたセッションは使えない(パスワードなどを変えて、ほかの端末を切った時刻)
+      mfa_enabled: 二段階認証が有効か(正は Cognito。ログインと確かめ直しのたびに、全部の所属に写し直す)
+      sessions_valid_after: これより前にログインしたセッションは使えない(パスワードなどを変えて、ほかの端末を切った時刻。全部の所属にそろえる)
+      last_used_at: その組織に最後に入った(ログイン・組織の切り替え)時刻。ログインで前回の組織を選ぶ
   - table: projects.projects
     tableComment: プロジェクト。タスクのまとまり。docs/domain/projects
     columnComments:

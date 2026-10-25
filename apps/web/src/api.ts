@@ -16,6 +16,7 @@ import type {
   Me,
   MfaRequirement,
   MfaSetup,
+  OrganizationMembershipList,
   OrganizationPlan,
   PmfSurveyAnswer,
   PmfSurveyStatus,
@@ -247,6 +248,10 @@ export const api = {
     request<AuthNext>("POST", "/auth/reset-password", { email, code, password }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/me"),
+  // 所属している組織と、選び直し(docs/specs/0055-multi-org-membership.md)
+  listMyOrganizations: () => request<OrganizationMembershipList>("GET", "/me/organizations"),
+  switchOrganization: (tenantId: string) =>
+    request<{ tenantId: string }>("POST", "/session/organization", { tenantId }),
   // 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)
   acceptLegal: (consents: LegalVersionRef[]) =>
     request<void>("POST", "/legal/consents", { consents }),

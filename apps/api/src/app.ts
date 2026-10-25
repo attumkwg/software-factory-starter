@@ -18,6 +18,7 @@ import { auditRoutes } from "./audit/index.ts";
 import { accountRoutes } from "./auth/account-routes.ts";
 import { invitationAcceptRoutes } from "./auth/invitation-routes.ts";
 import { authenticate } from "./auth/middleware.ts";
+import { organizationSwitchRoutes } from "./auth/organization-routes.ts";
 import { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
 import { supportSessionRoutes } from "./auth/support-routes.ts";
@@ -190,6 +191,8 @@ export function createApp(deps: AppDeps) {
   app.route("/api", invitationRoutes);
   // 社員の代理ログイン(組織を切り替えるので認証の側)
   app.route("/api", supportSessionRoutes({ db, session: config.session }));
+  // 所属している組織と、組織の選び直し(組織を切り替えるので認証の側。docs/specs/0055-multi-org-membership.md)
+  app.route("/api", organizationSwitchRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
   app.route("/api", legalRoutes);

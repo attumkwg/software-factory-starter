@@ -7,7 +7,7 @@
 | [projects.projects](projects.projects.md)                           | 5       | プロジェクト。タスクのまとまり。docs/domain/projects                                                                                                                                                                        | BASE TABLE |
 | [tasks.tasks](tasks.tasks.md)                                       | 7       | タスク。プロジェクトの中のやること。docs/domain/tasks                                                                                                                                                                       | BASE TABLE |
 | [organizations.tenants](organizations.tenants.md)                   | 5       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations                                                                                                                                           | BASE TABLE |
-| [organizations.users](organizations.users.md)                       | 9       | 組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations                                                                                                                                   | BASE TABLE |
+| [organizations.users](organizations.users.md)                       | 10      | 組織への所属(名前とロール admin / member / viewer)。同じ人が複数の組織に所属できる(ADR 0066)。docs/domain/organizations                                                                                                     | BASE TABLE |
 | [platform.outbox](platform.outbox.md)                               | 11      | 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md                                                                                             | BASE TABLE |
 | [platform.audit_events](platform.audit_events.md)                   | 11      | 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013                                                                                              | BASE TABLE |
 | [organizations.support_grants](organizations.support_grants.md)     | 8       | サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md                                                                         | BASE TABLE |
@@ -27,21 +27,24 @@
 
 ## Stored procedures and functions
 
-| Name                                 | ReturnType | Arguments                                                        | Type     |
-| ------------------------------------ | ---------- | ---------------------------------------------------------------- | -------- |
-| public.app_current_tenant            | uuid       |                                                                  | FUNCTION |
-| public.auth_find_user_by_email       | record     | p_email text                                                     | FUNCTION |
-| public.auth_find_user_by_external_id | record     | p_external_id text                                               | FUNCTION |
-| public.outbox_claim                  | outbox     | p_limit integer, p_lease_seconds integer                         | FUNCTION |
-| public.outbox_mark_sent              | void       | p_id uuid                                                        | FUNCTION |
-| public.outbox_mark_failed            | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean | FUNCTION |
-| public.auth_link_external_id         | record     | p_email text, p_external_id text                                 | FUNCTION |
-| platform.audit_events_append_only    | trigger    |                                                                  | FUNCTION |
-| public.support_find_grant            | record     | p_code_hash text                                                 | FUNCTION |
-| public.auth_email_in_use             | bool       | p_email text, p_user_id uuid                                     | FUNCTION |
-| public.legal_notice_tenants          | uuid       |                                                                  | FUNCTION |
-| public.operator_tenant_ids           | uuid       |                                                                  | FUNCTION |
-| public.auth_accept_invitation        | record     | p_id uuid, p_user_id uuid, p_name text                           | FUNCTION |
+| Name                                 | ReturnType | Arguments                                                                                                | Type     |
+| ------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------- | -------- |
+| public.app_current_tenant            | uuid       |                                                                                                          | FUNCTION |
+| public.auth_find_user_by_email       | record     | p_email text                                                                                             | FUNCTION |
+| public.auth_find_user_by_external_id | record     | p_external_id text                                                                                       | FUNCTION |
+| public.outbox_claim                  | outbox     | p_limit integer, p_lease_seconds integer                                                                 | FUNCTION |
+| public.outbox_mark_sent              | void       | p_id uuid                                                                                                | FUNCTION |
+| public.outbox_mark_failed            | void       | p_id uuid, p_error text, p_retry_seconds integer, p_dead boolean                                         | FUNCTION |
+| public.auth_link_external_id         | record     | p_email text, p_external_id text                                                                         | FUNCTION |
+| platform.audit_events_append_only    | trigger    |                                                                                                          | FUNCTION |
+| public.support_find_grant            | record     | p_code_hash text                                                                                         | FUNCTION |
+| public.auth_email_in_use             | bool       | p_email text, p_user_id uuid                                                                             | FUNCTION |
+| public.legal_notice_tenants          | uuid       |                                                                                                          | FUNCTION |
+| public.operator_tenant_ids           | uuid       |                                                                                                          | FUNCTION |
+| public.auth_accept_invitation        | record     | p_id uuid, p_user_id uuid, p_name text                                                                   | FUNCTION |
+| public.auth_find_memberships         | record     | p_external_id text, p_email text                                                                         | FUNCTION |
+| public.auth_sync_person              | int4       | p_external_id text, p_email text, p_mfa_enabled boolean, p_sessions_valid_after timestamp with time zone | FUNCTION |
+| public.auth_count_memberships        | int4       | p_external_id text                                                                                       | FUNCTION |
 
 ## Enums
 

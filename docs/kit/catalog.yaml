@@ -422,7 +422,7 @@ parts:
         - apps/api/test/unit/create-tenant.test.ts
         - docs/runbooks/tenant-provisioning.md
       edit:
-        - { path: apps/api/src/cli.ts, what: create-tenant のコマンドを外す }
+        - { path: apps/api/src/cli.ts, what: create-tenant のコマンドを外す(中身は apps/api/src/tenant-commands.ts の createTenantCommand) }
         - { path: infra/terraform/envs/prod/main.tf, what: module.applications と app の applications_store を外す(stg も) }
         - { path: apps/api/package.json, what: "@aws-sdk/client-s3 を外す(ほかで使っていなければ)" }
       docs: [docs/specs/0026-tenant-provisioning.md, docs/adr/0039-tenant-provisioning-command.md]
@@ -451,7 +451,7 @@ parts:
         - docs/runbooks/offboarding.md
       edit:
         - { path: apps/api/src/app.ts, what: exportRoutes を外す }
-        - { path: apps/api/src/cli.ts, what: delete-tenant のコマンドを外す }
+        - { path: apps/api/src/cli.ts, what: delete-tenant のコマンドを外す(中身は apps/api/src/tenant-commands.ts の deleteTenantCommand) }
         - { path: apps/web/src/pages/SettingsPage.tsx, what: 書き出しのボタンを外す }
         - { path: CLAUDE.md, what: 「tenant_id の表を足したら TENANT_TABLES にも」を消す }
       matrix: [POST /api/exports]
@@ -488,6 +488,33 @@ parts:
         - GET /api/organization/mfa-requirement
         - POST /api/organization/mfa-requirement
         - DELETE /api/organization/mfa-requirement
+
+  - id: multi-org
+    name: 1人が複数の組織に入る
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 同じ人(同じメール・同じ Cognito の利用者)が複数の組織に所属し、画面の上で組織を選び直す(セッションは1組織分のまま)。いまは段 ①②(全体の一意を外す段 ③ は別の PR)
+    needed_by: 1人が複数の会社・拠点・取引先の組織で働く(医師・税理士・取引先の担当)
+    not_needed_by: 1人は1つの会社だけで使う
+    if_removed: 同じ人がメールを組織の数だけ持つ。招待で他社の人を呼べない
+    depends_on: [organizations, login, invitations]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/auth/organization-routes.ts
+        - apps/api/test/integration/multi-org.int.test.ts
+        - apps/web/src/pages/OrganizationsPage.tsx
+        - apps/web/src/routes/_app/organizations.tsx
+      edit:
+        - { path: apps/api/src/app.ts, what: organizationSwitchRoutes を外す }
+        - { path: apps/api/src/authz/policy.ts, what: session:switch と2行を外す }
+        - { path: apps/api/src/auth/lookup.ts, what: 所属の一覧ではなく1行を引く形に戻す }
+        - { path: apps/api/src/domains/organizations/account.ts, what: syncPerson の呼び出しを外す }
+        - { path: apps/web/src/pages/AppHeader.tsx, what: 「組織を切り替える」のリンクを外す }
+      matrix: [GET /api/me/organizations, POST /api/session/organization]
+      docs: [docs/specs/0055-multi-org-membership.md, docs/adr/0066-multi-org-membership.md]
 
   - id: invitations
     name: 招待の画面
@@ -1033,7 +1060,7 @@ parts:
         - apps/api/test/integration/person-data.int.test.ts
         - docs/runbooks/person-data.md
       edit:
-        - { path: apps/api/src/cli.ts, what: person-data のコマンドを外す }
+        - { path: apps/api/src/cli.ts, what: person-data のコマンドを外す(中身は apps/api/src/tenant-commands.ts の personDataCommand) }
         - { path: docs/legal/data-processing.md, what: 5-2 の手順書への道しるべを外す(分担の既定は残す) }
       docs: [docs/specs/0048-person-data.md, docs/adr/0059-person-data-dry-run-first.md]
 

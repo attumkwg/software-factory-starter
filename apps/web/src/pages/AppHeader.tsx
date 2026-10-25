@@ -4,7 +4,13 @@ import { useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { api } from "../api.ts";
 import { formatDateTime } from "../format.ts";
-import { canManageAccount, canOpenSettings, canStartSupport, roleLabel } from "../permissions.ts";
+import {
+  canManageAccount,
+  canOpenSettings,
+  canStartSupport,
+  canSwitchOrganization,
+  roleLabel,
+} from "../permissions.ts";
 import { useAction } from "../use-action.ts";
 import { LegalLinks, LegalNotices } from "./LegalNotices.tsx";
 
@@ -58,6 +64,8 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
                   {canStartSupport(me) && <Link href="/support">サポート</Link>}
                   {/* 自分のアカウント(二段階認証・メール・パスワード) */}
                   {canManageAccount(me) && <Link href="/account">アカウント</Link>}
+                  {/* 2つ以上の組織に所属している人だけ(docs/specs/0055-multi-org-membership.md) */}
+                  {canSwitchOrganization(me) && <Link href="/organizations">組織を切り替える</Link>}
                 </Inline>
               </nav>
             </Inline>

@@ -44,8 +44,10 @@ export type DeletionPlan = {
   tenantId: string;
   tenantName: string;
   counts: Record<string, number>;
-  /** 認証の製品(Cognito)の利用者。DB より先に消す(手順書の 3) */
+  /** 認証の製品(Cognito)の利用者。DB より先に消す(手順書の 3)。ほかの組織にも所属している人は入れない */
   cognitoSubs: string[];
+  /** ほかの組織にも所属しているので、Cognito からは消さない人の数(docs/specs/0055-multi-org-membership.md) */
+  cognitoSubsInOtherOrgs: number;
 };
 
 const table = (name: string) => {
@@ -71,10 +73,19 @@ export async function planTenantDeletion(
       );
       counts[t] = r.rows[0]?.n ?? 0;
     }
-    const subs = await tx.execute<{ external_id: string }>(
-      sql`select external_id from organizations.users where tenant_id = ${tenantId} and external_id is not null`,
+    // ほかの組織にも所属している人(同じ sub の行がほかにもある)は、Cognito から消さない(所属だけを消す)
+    const subs = await tx.execute<{ external_id: string; memberships: number }>(
+      sql`select external_id, auth_count_memberships(external_id) as memberships
+            from organizations.users where tenant_id = ${tenantId} and external_id is not null`,
     );
-    return { tenantId, tenantName: name, counts, cognitoSubs: subs.rows.map((r) => r.external_id) };
+    const cognitoSubs = subs.rows.filter((r) => r.memberships <= 1).map((r) => r.external_id);
+    return {
+      tenantId,
+      tenantName: name,
+      counts,
+      cognitoSubs,
+      cognitoSubsInOtherOrgs: subs.rows.length - cognitoSubs.length,
+    };
   });
 }
 
