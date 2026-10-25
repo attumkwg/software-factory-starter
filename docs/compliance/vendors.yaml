@@ -53,7 +53,7 @@ vendors:
       - name: Aurora(RDS。DB)
         terraform: [aws_rds_*, aws_db_*]
         data: [public, internal, personal]
-        note: 要配慮(sensitive)を足すときは、スキーマ sensitive と専用の鍵(ADR 0018)。そのときここに sensitive を足す
+        note: 要配慮(sensitive)の置き場所(スキーマ sensitive・専用のロール・組織ごとのデータ鍵で暗号化)は入っている(ADR 0029)が、キットには要配慮の列が無い。列を足したら、ここと AWS Backup・ECS・ELB と上の data に sensitive を足す(DB とバックアップには暗号文だけ。ECS のメモリと ALB は値そのものが通る)
       - name: AWS Backup(DB の写し)
         terraform: [aws_backup_*]
         data: [public, internal, personal]
@@ -116,6 +116,7 @@ vendors:
       - name: IAM・KMS・Secrets Manager・ACM(鍵と権限)
         terraform: [aws_iam_*, aws_kms_*, aws_secretsmanager_*, aws_acm_*, aws_caller_identity, aws_region, aws_partition]
         data: [internal]
+        note: KMS は要配慮の組織ごとのデータ鍵も包む(modules/sensitive-data。SDK @aws-sdk/client-kms)。渡すのは組織の ID(文脈)とデータ鍵だけで、要配慮の値は渡さない
       - name: Route 53(DNS・外形監視)
         terraform: [aws_route53_*]
         data: [public]

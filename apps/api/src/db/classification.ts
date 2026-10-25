@@ -7,7 +7,8 @@
 //   internal  … 仕組みの値(ID・ハッシュ・時刻・回数)。ID は単体では人が分からない。ログに出してよい
 //   personal  … 個人情報か、お客さんが入れた自由な文(名前・メールアドレス・題名)。ログ・監査ログ・送信待ち・Sentry に出さない
 //   sensitive … 要配慮個人情報(病歴・障害・信条・犯罪の経歴など。個人情報保護法 2条3項)。
-//               スキーマ sensitive の表にだけ置ける(いまは無いので足せない。分ける段は ADR 0018)
+//               スキーマ sensitive の表にだけ置ける(分ける段は ADR 0018、段1の作りは ADR 0029)。
+//               読み書きは src/sensitive/ からだけ・値は暗号化してから書く・ログ・監査ログ・AI に渡さない
 //
 // 台帳(docs/db/personal-data.md)は、ここから `pnpm docs:personal-data` で作る(手で書かない)。
 
@@ -177,4 +178,13 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   ),
   "platform.feature_usage.feature": pub("使った機能の名前(FEATURE_FLAGS の name)"),
   "platform.feature_usage.day": internal("使った日(組織の時間帯。時刻は持たない)"),
+
+  // ── 要配慮個人情報(sensitive。ADR 0018・0029)。読み書きは src/sensitive/ からだけ・接続は app_sensitive ──
+  // 要配慮の列は、ここに sensitive で足し、値は src/sensitive/ の seal() で暗号化してから書く(DB には暗号文だけ)
+  "sensitive.tenant_keys.tenant_id": internal("データ鍵の持ち主の組織"),
+  "sensitive.tenant_keys.kms_key_id": internal("データ鍵を包んだ KMS の鍵(ARN)"),
+  "sensitive.tenant_keys.wrapped_key": internal(
+    "KMS で包んだデータ鍵(KMS が無ければ開けない。消すと、その組織の要配慮の暗号文が読めなくなる)",
+  ),
+  "sensitive.tenant_keys.created_at": internal("作った時刻"),
 };

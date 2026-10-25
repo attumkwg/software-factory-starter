@@ -24,6 +24,7 @@
 
 - AI(Claude Code)に一次調査を任せてよい: 「この requestId のログと、直前のデプロイの差分を読んで、原因の候補を3つ」。**本番に書き込む操作は人が打つ**。
   - 本番のログは人が出して貼る(AI は本番に入れない)。**貼るのは ID と集計まで**: 許可リストの項目(requestId・tenantId・userId・route・status・err.type)と件数。名前・メールアドレス・題名・本文・本番の画面のスクショ・要配慮は貼らない。急いでいても同じ([compliance/ai-data.md](../compliance/ai-data.md)。項目を決めたクエリはその 2)。
+  - **要配慮個人情報は AI に渡さない**: スキーマ `sensitive` の表の中身(暗号文も)・復号した値・データ鍵・要配慮の接続(`sensitive-database-url`)。DB の行を写して貼らない。要配慮の事故の調べは、人が CloudTrail と件数で進め、AI には組織・利用者の ID と鍵の利用の記録の形(誰が・いつ)だけを渡す。要配慮の件数も渡さない(docs/security.md の AI-6・ADR 0029・[compliance/ai-data.md](../compliance/ai-data.md))。
 
 ## 3. 止血(原因が分からなくても、先に)
 

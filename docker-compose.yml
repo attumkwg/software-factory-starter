@@ -26,7 +26,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # 接続ユーザー(app_owner = 表の持ち主 / app = アプリ用・RLS がかかる)を作る
+      # 接続ユーザー(app_owner = 表の持ち主 / app = アプリ用・RLS がかかる / app_sensitive_login = 要配慮だけ)を作る
       - ./apps/api/db/init:/docker-entrypoint-initdb.d:ro
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -60,6 +60,9 @@ services:
       APP_ENV: local
       AUTH_MODE: dev
       DATABASE_URL: postgres://app:app@db:5432/app
+      # 要配慮個人情報だけの接続(ロール app_sensitive。ADR 0029)。KMS の鍵は無し = コードに書いた手元の包み鍵
+      # (db/init/001-roles.sql を足す前に作った DB のボリュームには、このユーザーが無い。docker compose down -v で作り直す)
+      SENSITIVE_DATABASE_URL: postgres://app_sensitive_login:app_sensitive_login@db:5432/app
       SESSION_SECRET: local-dev-only-session-secret-not-used-anywhere
       # 運営の組織(種データの「運営(サポート)」)。社員の代理ログイン(docs/specs/0004-support-access.md)
       SUPPORT_TENANT_ID: 0199a000-0000-7000-8000-00000000c001
