@@ -3,6 +3,7 @@
 //   pnpm checkup --json          結果を JSON で出す(知らせ・ほかの道具が読む)
 //   pnpm checkup --write-readme  詳しくない人が読む1枚(docs/checkup/README.md)を台帳から作り直す
 //   pnpm checkup --today 2026-11-16  日付を変えて試す(段階の確かめ)
+//   pnpm checkup --area compliance   認証の準備の項目だけ(/compliance-check が使う。台帳の compliance が false でも出す)
 //   pnpm checkup --issue         結果で「今週の点検」の Issue を作る・直す(前の週の Issue は閉じる)。checkup.yml が毎週流す
 //   pnpm checkup --urgent        急ぎ(severity: high の fail)を1件ずつ Issue にする・直ったら閉じる。checkup.yml が毎日流す
 // GitHub は gh で読む。gh が無い・ログインしていない・権限が無いときは落とさず、その項目を unknown にする。
@@ -15,7 +16,7 @@ import { isDate, toDate, todayInTokyo } from "./phase.mjs";
 import { README, renderReadme } from "./readme.mjs";
 import { renderReport } from "./report.mjs";
 import { loadChecks, runCheckup, toJson } from "./runner.mjs";
-import { FILE, loadLedger, validateLedger } from "./todo.mjs";
+import { AREAS, FILE, loadLedger, validateLedger } from "./todo.mjs";
 
 const args = process.argv.slice(2);
 const option = (name) => {
@@ -44,6 +45,12 @@ if (!isDate(today)) {
   process.exit(1);
 }
 
+const area = option("--area");
+if (area !== undefined && !AREAS.includes(area)) {
+  console.error(`--area は ${AREAS.join(" / ")} のどれか(いま: ${area})`);
+  process.exit(1);
+}
+
 const repo = resolveRepo();
 const ctx = makeContext({ repo, today, ledger });
 const run = await runCheckup({
@@ -51,11 +58,13 @@ const run = await runCheckup({
   checks,
   ctx,
   today,
+  area,
 });
 
 if (args.includes("--json")) console.log(JSON.stringify(toJson(run), null, 2));
 else console.log(renderReport(run));
 
-const weekly = args.includes("--issue");
-const urgent = args.includes("--urgent");
+// 知らせ(Issue)は普通の点検だけ(認証の準備だけの結果で、今週の点検の Issue を書き換えない)
+const weekly = args.includes("--issue") && !area;
+const urgent = args.includes("--urgent") && !area;
 if (weekly || urgent) await notify(run, { repo, owners: ledger.owners, weekly, urgent });

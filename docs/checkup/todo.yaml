@@ -13,11 +13,17 @@
 #   - history は足すだけ(答え・確かめの記録。いつ・誰が・何を)。答えは /checkup が pnpm checkup:answer で書く(手で書かない)
 #   - 項目を足す・直す・引退させるのは /checkup-refresh の PR(引退は消さずに status: retired と history に result: retired)
 #   - 公開のリポジトリなので、脆弱性や秘密の見つけ物の中身は書かない(件数と見る場所だけ)
+#   - 認証の準備(docs/designs/0019-evidence-soa-and-cost.md の 2.):
+#       controls: 当たる管理策(ISO/IEC 27001:2022 附属書 A の番号)。適用宣言書(docs/compliance/soa.md)の「点検の項目」になる
+#       evidence: 裏づけになる、毎月集める証跡の名前(pnpm evidence --list)
+#       area: compliance … 認証の準備だけの項目。台帳の compliance: true のときだけ毎週の点検に出る(/compliance-check はいつでも)
 
 started_on: 2026-10-17 # 使い始めた日(段階の計算の起点)
 owners:
   responder: "@attumkwg" # 知らせを受けて答える人(担当者)
   advisor: "@attumkwg" # 「分からない」の相談先(詳しい人)
+# 認証(P マーク・ISMS)の準備の項目(area: compliance)を、毎週の点検に入れるか。目指すと決めたら true(/compliance-check が聞く)
+compliance: false
 
 # 世の中の変化の取り込み(/checkup-refresh。月1回、人が手元で起動する)。
 #   refreshed_on: 前回取り込んだ日(/checkup-refresh が書く)。35日を過ぎると毎週の w-ledger が知らせる。まだ一度も流していない
@@ -69,6 +75,8 @@ items:
     verify: auto
     check: vulns
     severity: high
+    controls: [ A.8.8, A.5.7 ]
+    evidence: [ github-security ]
     status: open
     history: []
     source: docs/playbook.md の「毎週やること」(脆弱性)
@@ -84,6 +92,7 @@ items:
     verify: auto
     check: renovate-flow
     severity: normal
+    controls: [ A.8.8, A.5.21 ]
     status: open
     history: []
     source: 2026-10-20 の点検(依存の更新が一度も流れていない)
@@ -99,6 +108,7 @@ items:
     verify: auto
     check: guards
     severity: high
+    controls: [ A.8.4, A.8.32 ]
     status: open
     history: []
     source: 2026-10-20 の点検(ask から抜けていた所が6つ)
@@ -114,6 +124,8 @@ items:
     verify: auto
     check: protection-and-envs
     severity: high
+    controls: [ A.8.4, A.8.32, A.8.31 ]
+    evidence: [ github-ruleset, github-environments ]
     status: open
     history: []
     source: 2026-10-20 の点検(GitHub の守りが効いていなかった)
@@ -129,6 +141,8 @@ items:
     verify: auto
     check: secret-scanning
     severity: high
+    controls: [ A.5.17, A.8.12 ]
+    evidence: [ github-security ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(毎週の自動の確かめ)
@@ -144,6 +158,7 @@ items:
     verify: auto
     check: actions-minutes
     severity: normal
+    controls: [ A.8.6 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(毎週の自動の確かめ)
@@ -159,6 +174,7 @@ items:
     verify: auto
     check: decisions
     severity: normal
+    controls: [ A.5.8 ]
     status: open
     history: []
     source: docs/playbook.md の「毎週やること」(未確定事項)
@@ -174,6 +190,8 @@ items:
     verify: auto
     check: ledger-review
     severity: normal
+    controls: [ A.5.6, A.5.7, A.5.36 ]
+    evidence: [ checkup-ledger ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(毎週の自動の確かめ)
@@ -190,6 +208,7 @@ items:
     verify: auto
     check: github-plan
     severity: high
+    controls: [ A.8.32 ]
     status: done
     history:
       - { on: 2026-10-20, by: checkup, result: fail, note: 非公開+Free で保護の API が 403 }
@@ -207,6 +226,8 @@ items:
     verify: auto
     check: github-protection
     severity: high
+    controls: [ A.8.4, A.8.32, A.5.3 ]
+    evidence: [ github-ruleset ]
     status: done
     history:
       - { on: 2026-10-20, by: checkup, result: fail, note: 非公開+Free で 403 }
@@ -224,6 +245,8 @@ items:
     verify: auto
     check: github-environments
     severity: high
+    controls: [ A.8.2, A.8.31, A.5.3 ]
+    evidence: [ github-environments ]
     status: done
     history:
       - { on: 2026-10-22, by: pnpm checkup, result: pass, note: stg・prod・claude とも main だけ }
@@ -240,6 +263,7 @@ items:
     verify: auto
     check: renovate-installed
     severity: normal
+    controls: [ A.8.8, A.5.21 ]
     status: open
     history:
       - { on: 2026-10-20, by: checkup, result: fail, note: Renovate の PR が一度も無い }
@@ -256,6 +280,8 @@ items:
     verify: auto
     check: security-features
     severity: high
+    controls: [ A.8.8, A.5.17 ]
+    evidence: [ github-security ]
     status: done
     history:
       - { on: 2026-10-22, by: pnpm checkup, result: pass, note: Dependabot の通知・secret scanning ともオン }
@@ -278,6 +304,8 @@ items:
       recommended: 全部オンにした
       irreversible: false
     severity: high
+    controls: [ A.8.5, A.5.17 ]
+    evidence: [ aws-iam-summary, aws-iam-users ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -299,6 +327,8 @@ items:
       recommended: 2人目を決めた
       irreversible: false
     severity: normal
+    controls: [ A.8.2, A.5.30 ]
+    evidence: [ github-collaborators ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -320,6 +350,7 @@ items:
       recommended: GitHub のアプリとメール
       irreversible: false
     severity: normal
+    controls: [ A.5.24, A.6.8 ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -335,6 +366,7 @@ items:
     verify: auto
     check: coverage-total
     severity: normal
+    controls: [ A.8.29 ]
     status: done
     history:
       - { on: 2026-10-22, by: pnpm checkup, result: pass, note: PR 15 で API のカバレッジを単体と結合を合わせて測るようにした }
@@ -351,6 +383,7 @@ items:
     verify: auto
     check: attack-runbook
     severity: normal
+    controls: [ A.5.24, A.5.26 ]
     status: done
     history:
       - { on: 2026-10-24, by: pnpm checkup, result: pass, note: 手順書 docs/runbooks/attack.md と WAF の waf-hits のアラーム(Terraform。apply は人)を足した }
@@ -373,6 +406,7 @@ items:
       recommended: 読んで回せると思った
       irreversible: false
     severity: normal
+    controls: [ A.5.5, A.5.26, A.5.34 ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -388,6 +422,8 @@ items:
     verify: auto
     check: fuzz-run
     severity: normal
+    controls: [ A.8.29 ]
+    evidence: [ drills ]
     status: open
     history:
       - { on: 2026-10-20, by: checkup, result: fail, note: 一度も回していない }
@@ -410,6 +446,7 @@ items:
       - 弁護士か、規約の確認サービスに見てもらう
       - 直してもらった文を、版を上げて入れる(同意の取り直しが要るかも聞く)
     severity: normal
+    controls: [ A.5.31, A.5.34 ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -429,6 +466,7 @@ items:
       - 診断の日を決め、stg に本番と同じ形の環境を用意する
       - 見つかった物を Issue にして、直してから公開する(中身は公開の Issue に書かない)
     severity: normal
+    controls: [ A.8.29, A.5.35 ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -448,6 +486,7 @@ items:
       - 答えた行が「承認」か「変更」になったことを確かめ、変更は /rework で作り直す
       - 本番に出す前に pnpm decisions --launch が 0 で終わることを確かめる
     severity: normal
+    controls: [ A.5.8 ]
     status: open
     history: []
     source: docs/designs/0013-decisions-at-adoption.md
@@ -471,6 +510,7 @@ items:
       recommended: ちょうどよい
       irreversible: false
     severity: normal
+    controls: [ A.8.32 ]
     status: open
     history: []
     source: 2026-10-20 の点検
@@ -486,6 +526,8 @@ items:
     verify: auto
     check: restore-drill
     severity: normal
+    controls: [ A.8.13, A.5.30 ]
+    evidence: [ aws-backup, drills ]
     status: open
     history: []
     source: docs/playbook.md の「毎月・四半期にやること」
@@ -507,6 +549,7 @@ items:
       recommended: 特に無い
       irreversible: false
     severity: normal
+    controls: [ A.8.25 ]
     status: open
     history: []
     source: docs/playbook.md の「毎週やること」(数字・人の介在率)
@@ -527,6 +570,8 @@ items:
       - Sentry の Members を見る
       - 辞めた人・要らない権限・90日使っていない鍵を外す
     severity: normal
+    controls: [ A.5.18, A.8.2, A.5.11 ]
+    evidence: [ github-collaborators, aws-iam-users, aws-iam-roles ]
     status: open
     history: []
     source: docs/playbook.md の「毎月・四半期にやること」
@@ -548,6 +593,7 @@ items:
       recommended: ずれていない
       irreversible: false
     severity: normal
+    controls: [ A.5.15, A.8.3 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -569,6 +615,7 @@ items:
       recommended: 見積りどおり
       irreversible: false
     severity: normal
+    controls: [ A.8.6 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -590,6 +637,7 @@ items:
       recommended: 無かった(止めるに切り替える)
       irreversible: false
     severity: normal
+    controls: [ A.8.20, A.8.21 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -605,6 +653,7 @@ items:
     verify: auto
     check: incident-followups
     severity: normal
+    controls: [ A.5.27 ]
     status: open
     history: []
     source: docs/playbook.md の「毎月・四半期にやること」
@@ -624,6 +673,7 @@ items:
       - 1つずつ、新しい鍵を作って Secrets Manager に入れ、配備する
       - 動いたのを確かめてから、古い鍵を無効にする
     severity: normal
+    controls: [ A.5.17, A.8.24 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -639,6 +689,7 @@ items:
     verify: auto
     check: security-review-record
     severity: normal
+    controls: [ A.8.28, A.8.29 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -654,6 +705,7 @@ items:
     verify: auto
     check: major-backlog
     severity: normal
+    controls: [ A.8.8 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -674,6 +726,7 @@ items:
       - 診断の会社に見積りを取り、範囲と日を決める
       - 見つかった物を Issue にして直す(中身は公開の Issue に書かない)
     severity: normal
+    controls: [ A.8.29, A.5.35 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -689,6 +742,7 @@ items:
     verify: auto
     check: eol
     severity: normal
+    controls: [ A.8.8 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -708,6 +762,7 @@ items:
       - 利用規約・プライバシーポリシー・漏えいの手順書に、直す所があるかを専門家に聞く
       - 直すなら、規約の版を上げる PR にする
     severity: normal
+    controls: [ A.5.31, A.5.34 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -726,6 +781,7 @@ items:
       - その人に、1週ぶんの点検(/checkup)と、手順書を1つ通しでやってもらう
       - 詰まった所を手順書か台帳に直す
     severity: normal
+    controls: [ A.5.30, A.5.37 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -748,6 +804,7 @@ items:
       recommended: 今の作りのまま
       irreversible: false
     severity: normal
+    controls: [ A.8.27 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
@@ -769,7 +826,154 @@ items:
       recommended: できる(2人にする)
       irreversible: false
     severity: normal
+    controls: [ A.5.2, A.5.3 ]
     status: open
     history: []
     source: docs/designs/0007-checkup.md の 6.(台帳の初版)
     review_by: 2027-10-20
+
+  # ── 認証の準備(area: compliance。台帳の compliance: true のときだけ毎週の点検に出る。/compliance-check)──
+  - id: policies-adopt
+    title: 規程のひな形を自社の物にし、適用宣言書の適用・除外を決める
+    why: ひな形のままの規程は、審査で「決めていない」と同じに扱われる
+    if_ignored: 審査の直前に、規程と適用宣言書をまとめて書くことになり、中身と実際がずれる
+    who: human
+    phase: setup
+    every: once
+    verify: manual
+    check: policies-adopted
+    steps:
+      - docs/compliance/README.md の 3. を読み、範囲(事務所の有無・人数・委託先)を決める
+      - docs/compliance/controls.yaml の適用・除外と理由を、自社の範囲に合わせて直す(pnpm compliance --write で適用宣言書を作り直す)
+      - docs/compliance/policies/ の「要記入」の所を埋め、責任者(基本方針は経営者)の承認をもらう
+      - 承認した日を各規程の頭の established に、1年以内の日を next_review に書いて PR にする
+    severity: normal
+    controls: [ A.5.1, A.5.36, A.5.37 ]
+    evidence: [ compliance-docs ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25
+
+  - id: evidence-monthly
+    title: 毎月の証跡が、消せない置き場に集まっているか
+    why: 審査では「その時に設定していた」ことを、後から変えられない記録で見せる
+    if_ignored: 集めていない月の設定は、審査で見せられない(さかのぼって集められない)
+    who: system
+    phase: 1m
+    every: monthly
+    verify: auto
+    check: evidence-collected
+    severity: normal
+    controls: [ A.5.28, A.5.33 ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25
+
+  - id: training
+    title: 全員が教育を受ける(入るときと年1回)
+    why: 決まりを知らない人は守れない。審査では、全員が受けた記録を見る
+    if_ignored: 新しく入った人が、秘密の扱いを知らないまま本番の権限を持つ
+    who: human
+    phase: 1m
+    every: yearly
+    verify: manual
+    steps:
+      - docs/compliance/policies/training.md の 2. の中身で、全員に教育をする(30分〜1時間)
+      - 受けた後に短い確かめをし、8割に届かない人は受け直す
+      - 記録の型(training.md の 4.)で1枚にし、非公開の置き場に置く(docs/compliance/records/README.md に置き場を書く)
+    severity: normal
+    controls: [ A.6.3 ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25
+
+  - id: vendor-review
+    title: 委託先(クラウド・SaaS・業務委託)を見直す
+    why: 預けた先の守りや契約が変わると、自社の守りも変わる
+    if_ignored: 使わなくなった連携や、守りの水準が下がった委託先に、データを預けたままになる
+    who: human
+    phase: 3m
+    every: yearly
+    verify: manual
+    steps:
+      - 委託先の台帳(docs/compliance/vendors.yaml)と、業務委託の一覧(docs/compliance/policies/vendors.md の 1.)を開く
+      - 1件ずつ、第三者の認証の新しい版・事故の公表・約款とデータの場所の変更を確かめ、checked_on(確かめた日)を直す(pnpm vendors --write)
+      - 使っていない委託先は、vendors.md の 5. の手順でやめる
+    severity: normal
+    controls: [ A.5.19, A.5.20, A.5.22, A.5.23 ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25
+
+  - id: internal-audit
+    title: 内部監査をする(年1回。作った人と別の人)
+    why: 自分たちで決めたとおりに回っているかを、別の目で確かめる。審査の前に必ず要る
+    if_ignored: 回っていない所に、審査で初めて気づく
+    who: human
+    phase: 6m
+    every: yearly
+    verify: manual
+    steps:
+      - docs/compliance/policies/internal-audit.md の 2. の表から、今回見る所を決める
+      - 資料・点検の台帳・毎月の証跡を見て、担当者に聞く
+      - 報告の型(internal-audit.md の 4.)で1枚にし、不適合には直す計画を書く
+      - 報告を非公開の置き場に置き、マネジメントレビューに出す
+    severity: normal
+    controls: [ A.5.35, A.5.36 ]
+    evidence: [ checkup-ledger, compliance-docs ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25
+
+  - id: management-review
+    title: 経営者が仕組み全体を見直す(マネジメントレビュー。年1回)
+    why: 経営者が見直して資源を決めた記録が、審査で求められる
+    if_ignored: 足りない所が分かっていても、人とお金が割り当てられない
+    who: human
+    phase: 6m
+    every: yearly
+    verify: manual
+    steps:
+      - docs/compliance/policies/management-review.md の「出す物」を、責任者がそろえる(内部監査の報告を含む)
+      - 経営者・責任者・内部監査の責任者で1時間ほど話し、「決めたこと」を決める
+      - 議事録を非公開の置き場に置く
+    severity: normal
+    controls: [ A.5.1, A.5.4 ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25
+
+  - id: policy-review
+    title: 規程と適用宣言書を見直す(年1回)
+    why: 事業・法令・使う道具が変わると、規程と実際がずれる
+    if_ignored: 見直しの日を過ぎた規程は、審査で不適合になる
+    who: human
+    phase: 1y
+    every: yearly
+    verify: manual
+    check: policies-review
+    steps:
+      - pnpm compliance を流し、見直しの日を過ぎた規程を確かめる
+      - 規程ごとに、この1年の変化(事故・内部監査の指摘・法令・委託先)で直す所が無いかを見る
+      - docs/compliance/controls.yaml の適用・除外が今も合っているかを見る(pnpm compliance --write)
+      - 直したら版を上げ、last_reviewed に今日・next_review に1年以内の日を書いて PR にする
+    severity: normal
+    controls: [ A.5.1, A.5.36, A.5.37 ]
+    evidence: [ compliance-docs ]
+    area: compliance
+    status: open
+    history: []
+    source: docs/designs/0019-evidence-soa-and-cost.md の 6.(認証の準備)
+    review_by: 2027-04-25

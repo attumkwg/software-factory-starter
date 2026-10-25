@@ -189,7 +189,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 個人情報 | 🔒 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(ADR 0018 の段1・ADR 0029)。スキーマ sensitive・専用のロール app_sensitive・専用の KMS の鍵で組織ごとのデータ鍵を包み、列ごとに暗号化。読み書きは apps/api/src/sensitive/ からだけ。段2・段3は手順書と上げる目安だけ | 残す | あり |
 | 個人情報 | 1人分の削除と開示 `person-deletion` | 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別) | 残す | 未 |
 | 決まりごと | 利用規約・プライバシーポリシーの同意 `terms-consent` | 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。登録の画面での同意・変更のお知らせのメール(運営のコマンド legal-notify)も。同意の記録は監査ログに | 残す | あり |
-| 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 認証で求められる記録と規程の型(アクセスの見直し・教育の記録)。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md | 消す | 未 |
+| 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 毎月の証跡を消せない S3 に集める(evidence.yml)・附属書 A の93の管理策と適用宣言書(SoA)の生成・規程と様式のひな形・期限の来た規程の見直し・教育・内部監査を1問ずつ聞く /compliance-check。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md | 消す | あり |
 | 決まりごと | 請求と決済 `billing` | 料金の計算・請求・決済の会社(Stripe など)とのつなぎ。カード情報は持たない | 消す | 未 |
 | 決まりごと | お金と時刻の計算 `money` | 金額は最小単位の整数・時刻は組織のタイムゾーン、の計算を1か所に(packages/shared の money.ts・time.ts) | 残す | あり |
 | 開発の道具 | PR ごとのプレビュー環境 `preview-env` | PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す | 残す | あり |

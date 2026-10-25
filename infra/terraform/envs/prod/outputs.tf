@@ -60,3 +60,8 @@ output "audit_trail_log_group_name" {
 output "audit_trail_log_group_arn" {
   value = module.audit_trail.log_group_arn
 }
+
+output "evidence_bucket" {
+  description = "証跡の置き場(リポジトリの変数 EVIDENCE_BUCKET に入れる)"
+  value       = module.evidence.bucket
+}

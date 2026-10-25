@@ -291,3 +291,12 @@ module "backup" {
   #    3日のうちに、保管庫・保存の期間・毎月の分が1年、を確かめる(docs/runbooks/db-restore.md の 6)
   lock_mode = "compliance"
 }
+
+# ── 証跡の置き場(消せない S3。evidence.yml が毎月足す)。docs/compliance/README.md・ADR 0032 ──────────
+#   CloudTrail の置き場とは別。中身は GitHub と AWS の設定の写しと、訓練・点検の記録(データは入れない)
+
+module "evidence" {
+  source = "../../modules/record-store"
+  name   = "${local.name}-evidence"
+  lock   = { mode = var.evidence_lock_mode, years = var.evidence_retention_years }
+}

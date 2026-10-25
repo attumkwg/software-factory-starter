@@ -26,7 +26,8 @@ const status = (i) =>
   i.status === "snoozed"
     ? `${STATUS_LABEL.snoozed}(${toDate(i.snoozed_until)} に聞く)`
     : (STATUS_LABEL[i.status] ?? i.status);
-const who = (i) => `${WHO_LABEL[i.who] ?? i.who}${i.advisory ? "・推奨" : ""}`;
+const who = (i) =>
+  `${WHO_LABEL[i.who] ?? i.who}${i.advisory ? "・推奨" : ""}${i.area === "compliance" ? "・認証" : ""}`;
 const cell = (s) => String(s ?? "").replaceAll("|", "/");
 
 const row = (i) =>
@@ -60,6 +61,7 @@ export function renderReadme(ledger) {
     `> 使い始めた日: ${startedOn}・担当者: ${ledger.owners?.responder}・相談先: ${ledger.owners?.advisor}`,
     `> 世の中の変化の取り込み(月1回、Claude Code で \`/checkup-refresh\`): ${ledger.refreshed_on ? `前回 ${toDate(ledger.refreshed_on)}` : "まだ一度も流していない"}・調べる所 ${(ledger.refresh_sources ?? []).length}か所`,
     "> 誰が: 仕組み = 自動で済む / AI = AI が PR を出す / 人 = 担当者がやる(人・推奨 = ソフトウェアでは解けない。やるかは人が決める)",
+    `> ・認証 = 認証(P マーク・ISMS)の準備の項目。Claude Code で \`/compliance-check\`。毎週の点検には${ledger.compliance === true ? "出す(台帳の compliance: true)" : "出さない(台帳の compliance: false。認証を目指すなら true に)"}。管理策との対応は [../compliance/soa.md](../compliance/soa.md)`,
     "",
     "## 段階(使い始めた日から数える。前の段階で済んでいない物は残る)",
     "",

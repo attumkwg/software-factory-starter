@@ -1,0 +1,83 @@
+# 証跡の収集(毎月1日): GitHub と AWS(prod)の設定・訓練と点検の結果・点検の台帳の状態を JSON にまとめ、
+# 使う側の AWS の消せない置き場(S3 の Object Lock)に evidence/<年>/<年-月>/ で置く。P マーク・ISMS の審査で見せる記録。
+# 中身はログに出さない(名前と件数だけ。公開のリポジトリでは誰でもログを読める)。成果物にも置かない。
+# 決まりは docs/designs/0019-evidence-soa-and-cost.md・使い方は docs/compliance/README.md・ADR 0032
+#
+# 要るもの(prod の Terraform の出力。docs/compliance/README.md の 2.):
+#   変数 AWS_EVIDENCE_ROLE_ARN(github_role_arns の …-evidence。main からだけ引ける)・EVIDENCE_BUCKET(evidence_bucket)
+#   秘密 CHECKUP_TOKEN(任意。点検と同じ読むだけのトークン。無ければ読めない所は目録に「読めなかった」)
+# 無ければ、失敗せずに飛ばす。ひな形(KIT_ROLE=template)では定期の実行を飛ばす(ADR 0027)。
+# 費用: 1回 2〜3分(公開のリポジトリは無料)+S3 は月 数円。
+name: Evidence
+
+on:
+  workflow_dispatch:
+  # 有効にする日: 2026-10-25(変数が無ければ飛ぶので、置き場を作るまでは何もしない)
+  schedule:
+    - cron: "0 0 1 * *" # 毎月1日 日本時間 9:00
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: 証跡を集めて消せない置き場へ
+    # 定期で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)で、置き場の変数があるときだけ。手で流すのは main から
+    if: (github.event_name != 'schedule' || vars.KIT_ROLE == 'product') && vars.AWS_EVIDENCE_ROLE_ARN != '' && vars.EVIDENCE_BUCKET != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_EVIDENCE_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - name: 集める(ログには名前と件数だけ)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKUP_READ_TOKEN: ${{ secrets.CHECKUP_TOKEN }}
+        run: pnpm evidence --out "$RUNNER_TEMP/evidence"
+      - name: 消せない置き場に足す(Object Lock の既定の保存の期間がかかる)
+        env:
+          BUCKET: ${{ vars.EVIDENCE_BUCKET }}
+        run: |
+          set -euo pipefail
+          month=$(TZ=Asia/Tokyo date +%Y-%m)
+          aws s3 cp --recursive --only-show-errors "$RUNNER_TEMP/evidence" "s3://$BUCKET/evidence/${month%-*}/$month/"
+          echo "evidence/${month%-*}/$month/ に $(find "$RUNNER_TEMP/evidence" -type f | wc -l) ファイル" >> "$GITHUB_STEP_SUMMARY"
+      - name: 落ちたら Issue を立てる(同じ題名の Issue が開いていれば、コメントを足す)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="毎月の証跡の収集が失敗しました"
+          body="$(printf '%s\n\n%s\n%s\n%s' \
+            "実行: $RUN_URL" \
+            "- どこで止まったかを実行のログで見る(役割・集める・置く)" \
+            "- その月の証跡は、直してから手で流し直す(Actions → Evidence → Run workflow)" \
+            "- 手順: docs/compliance/README.md の 2.")"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

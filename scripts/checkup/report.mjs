@@ -7,6 +7,8 @@ export const MINUTES = { ask: 3, manual: 10 };
 export const WHO_LABEL = { system: "仕組み", ai: "AI", human: "人" };
 /** 1問ずつ答える入口 */
 export const ANSWER_HOW = "Claude Code で /checkup";
+/** 認証の準備の項目だけ(--area compliance)のときの入口 */
+const ANSWER_HOW_AREA = { compliance: "Claude Code で /compliance-check" };
 
 const who = (item) => `${WHO_LABEL[item.who] ?? item.who}${item.advisory ? "・推奨" : ""}`;
 
@@ -32,7 +34,7 @@ export function headline(run) {
   return [
     questions === 0
       ? "今週あなたが答えること: 答えることはありません"
-      : `今週あなたが答えること: ${questions}問(約${minutes}分) → ${ANSWER_HOW}`,
+      : `今週あなたが答えること: ${questions}問(約${minutes}分) → ${ANSWER_HOW_AREA[run.area] ?? ANSWER_HOW}`,
     urgent.length === 0
       ? "急ぎ: なし"
       : `急ぎ: ${urgent.length}件 — ${urgent.map((r) => r.item.title).join("・")}`,
