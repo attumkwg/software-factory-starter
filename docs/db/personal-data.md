@@ -10,6 +10,8 @@
 
 | 表 | 列 | 区分 | 利用目的 |
 |---|---|---|---|
+| `growth.pre_registrations` | `email` | **personal** | 確認のメール・提供開始の案内・試しの利用の招待・組織を作るときの最初の管理者 |
+| `growth.pre_registrations` | `organization_name` | **personal** | 組織を作るときの名前の案(個人事業なら人の名前になる) |
 | `organizations.email_changes` | `previous_email` | **personal** | 変わったお知らせを古いアドレスへ送る |
 | `organizations.email_changes` | `new_email` | **personal** | 確認コードを新しいアドレスへ送る |
 | `organizations.invitations` | `email` | **personal** | 招いた人のメールアドレス(招待のメールの宛先・受けたら users の行になる) |
@@ -22,6 +24,44 @@
 | `tasks.tasks` | `title` | **personal** | お客さんが入れた題名(自由な文なので個人情報が入りうる) |
 
 ## 全部の列
+
+### `growth.lp_daily_counts`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `tenant_id` | internal | 運営の組織 |
+| `day` | internal | 日(日本時間) |
+| `path` | public | ページの path |
+| `utm_source` | internal | どこから来たか(UTM) |
+| `utm_medium` | internal | どこから来たか(UTM) |
+| `utm_campaign` | internal | どこから来たか(UTM) |
+| `views` | internal | 見た数 |
+| `registrations` | internal | 登録の数 |
+| `confirmations` | internal | 確認の数 |
+
+### `growth.pre_registrations`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | 事前登録の ID(組織を作るコマンドに渡す) |
+| `tenant_id` | internal | 運営の組織 |
+| `email` | **personal** | 確認のメール・提供開始の案内・試しの利用の招待・組織を作るときの最初の管理者 |
+| `organization_name` | **personal** | 組織を作るときの名前の案(個人事業なら人の名前になる) |
+| `company_size` | public | 会社の規模の幅(集計) |
+| `utm_source` | internal | どこから来たか(UTM。英数と -_. だけ) |
+| `utm_medium` | internal | どこから来たか(UTM) |
+| `utm_campaign` | internal | どこから来たか(UTM) |
+| `landing_path` | public | どのページで登録したか(クエリを落とした path) |
+| `consent_text_version` | internal | 同意した文の版(同意の証拠) |
+| `privacy_version` | internal | そのときのプライバシーポリシーの版(同意の証拠) |
+| `consented_at` | internal | 同意して送った時刻(同意の証拠) |
+| `confirm_sent_at` | internal | 確認のメールを積んだ時刻(24時間に1通・リンクの署名) |
+| `confirmed_at` | internal | 確認のリンクを開いた時刻(本人の確認の証拠) |
+| `status` | public | 状態(pending / confirmed / converted) |
+| `converted_tenant_id` | internal | 組織にしたら、その組織の ID |
+| `converted_at` | internal | 組織にした時刻 |
+| `delete_after` | internal | この日を過ぎたら消す(保存期間) |
+| `created_at` | internal | 登録した時刻 |
 
 ### `legal.consents`
 
@@ -153,6 +193,9 @@
 | `details` の `adminUserId` | internal | 運営が組織を作ったときの、最初の管理者の ID |
 | `details` の `plan` | internal | 運営が変えたプランの名前(PLANS の id) |
 | `details` の `priceList` | internal | 運営が変えたプランの価格表の版(PRICE_LISTS の id) |
+| `details` の `preRegistrations` | internal | 期限で消した事前登録の数 |
+| `details` の `dailyCounts` | internal | 期限で消した日ごとの数の行の数 |
+| `details` の `convertedTenantId` | internal | 事前登録から作った組織の ID |
 
 ### `platform.feature_flags`
 
@@ -188,6 +231,7 @@
 | `payload` の `emailChangeId` | internal | メールアドレスの変更の ID(古いアドレスは表から読む) |
 | `payload` の `noticeId` | internal | 規約の変更のお知らせの ID(宛先と版は表から読む) |
 | `payload` の `invitationId` | internal | 招待の ID(宛先と組織は表から読む。リンクは送る直前に作る) |
+| `payload` の `preRegistrationId` | internal | 事前登録の ID(宛先とリンクは表から読む) |
 | `created_at` | internal | 積んだ時刻 |
 | `available_at` | internal | 送ってよい時刻 |
 | `locked_until` | internal | 送り出しが借りている期限 |

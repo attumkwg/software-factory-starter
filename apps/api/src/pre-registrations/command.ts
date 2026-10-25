@@ -1,0 +1,113 @@
+import type { RootDb } from "../db/client.ts";
+import { withTenant } from "../db/tenant.ts";
+import {
+  countsBySource,
+  deleteByEmail,
+  type PublicScope,
+  purgeExpired,
+  type SourceCounts,
+} from "../domains/growth/index.ts";
+
+// 運営のコマンド pre-registrations-report・pre-registrations-purge・pre-registrations-delete(cli.ts)の中身
+// (docs/runbooks/pre-registrations.md)。接続は表の持ち主。表は FORCE RLS なので、運営の組織の文脈を付けて読み書きする
+// (文脈を開くので領域の外に置く。読み書きの中身は domains/growth の operator.ts)。
+// **メールアドレス・会社名は外に出さない**(出すのは数と率だけ。AI に渡してよいのもここまで。docs/security.md の AI-6)。
+
+const DAY = 86_400_000;
+const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const rate = (num: number, den: number) => (den === 0 ? null : Math.round((num / den) * 1000) / 10);
+
+export type SourceRow = SourceCounts & {
+  /** 登録 ÷ 見た数(%。見た数が 0 なら null) */
+  registrationRate: number | null;
+  /** 確認 ÷ 登録(%) */
+  confirmationRate: number | null;
+};
+
+const inOperatorTenant = <T>(
+  db: RootDb,
+  operatorTenantId: string,
+  fn: (scope: PublicScope) => Promise<T>,
+) => withTenant(db, operatorTenantId, (tx) => fn({ tx, tenantId: operatorTenantId }));
+
+const withRates = (r: SourceCounts): SourceRow => ({
+  ...r,
+  registrationRate: rate(r.registrations, r.views),
+  confirmationRate: rate(r.confirmations, r.registrations),
+});
+
+/** 来た所(UTM)ごとの見た数・登録・確認と率。期間は日本時間の日付(両端を含む) */
+export async function preRegistrationReport(
+  db: RootDb,
+  operatorTenantId: string,
+  range: { from: string; to: string },
+): Promise<{ from: string; to: string; total: SourceRow; sources: SourceRow[] }> {
+  const rows = await inOperatorTenant(db, operatorTenantId, (scope) =>
+    countsBySource(scope, range),
+  );
+  const sources = rows
+    .map(withRates)
+    .sort((a, b) => b.registrations - a.registrations || b.views - a.views);
+  const sum = (k: "views" | "registrations" | "confirmations") =>
+    rows.reduce((n, r) => n + r[k], 0);
+  const total = withRates({
+    utmSource: "(全部)",
+    utmMedium: "",
+    utmCampaign: "",
+    views: sum("views"),
+    registrations: sum("registrations"),
+    confirmations: sum("confirmations"),
+  });
+  return { ...range, total, sources };
+}
+
+/** pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD](既定は今日までの28日) */
+export function parseReportArgs(args: string[], now = new Date()): { from: string; to: string } {
+  const value = (flag: string) => {
+    const at = args.indexOf(flag);
+    return at >= 0 ? args[at + 1] : undefined;
+  };
+  const to = value("--to") ?? isoDate(now);
+  const from = value("--from") ?? isoDate(new Date(Date.parse(to) - 27 * DAY));
+  if (!DATE.test(from) || !DATE.test(to) || from > to) {
+    throw new Error("使い方: pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD]");
+  }
+  return { from, to };
+}
+
+// ── コマンドの入口(cli.ts)。引数を読み、出す行(JSON 1行+案内)を返す。接続を開く・閉じるのは cli.ts ──
+
+export async function runReport(db: RootDb, operatorTenantId: string, args: string[]) {
+  const report = await preRegistrationReport(db, operatorTenantId, parseReportArgs(args));
+  return [JSON.stringify({ mode: "report", ...report })];
+}
+
+export async function runPurge(db: RootDb, operatorTenantId: string, args: string[]) {
+  const execute = args.includes("--execute");
+  const r = await inOperatorTenant(db, operatorTenantId, (scope) =>
+    purgeExpired(scope, { execute, now: new Date() }),
+  );
+  const lines = [JSON.stringify({ mode: execute ? "purged" : "plan", ...r })];
+  if (!execute) lines.push("まだ消していません。数を確かめて --execute を付けて流してください");
+  return lines;
+}
+
+export async function runDelete(
+  db: RootDb,
+  operatorTenantId: string,
+  email: string,
+  args: string[],
+) {
+  if (!email.includes("@")) throw new Error("メールアドレスを1行で入れてください");
+  const execute = args.includes("--execute");
+  const r = await inOperatorTenant(db, operatorTenantId, (scope) =>
+    deleteByEmail(scope, email, { execute }),
+  );
+  const lines = [JSON.stringify({ mode: execute ? "deleted" : "plan", ...r })];
+  if (!execute && r.found > 0) {
+    lines.push("まだ消していません。--execute を付けて、もう一度アドレスを入れてください");
+  }
+  return lines;
+}

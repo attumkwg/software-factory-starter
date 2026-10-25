@@ -5,7 +5,7 @@ SET LOCAL statement_timeout = '60s';--> statement-breakpoint
 -- 危険度「高」(認証の関数と権限)。前の版のアプリは新しい列も関数も使わないので、そのまま動く。
 --
 -- 1. users.last_used_at(その組織に最後に入った時刻)。アプリ(app_rw)が書ける。NULL 可の ADD COLUMN は表を書き直さない。
--- 2. 組織ごとの一意の索引(tenant_id, email)・(tenant_id, external_id)は drizzle/concurrent/0017_multi_org_keys.sql で
+-- 2. 組織ごとの一意の索引(tenant_id, email)・(tenant_id, external_id)は drizzle/concurrent/0018_multi_org_keys.sql で
 --    CONCURRENTLY に作る(すでにある表なので)。全体の一意(users_email_key・users_external_id_key)は段 ③ まで残す。
 -- 3. 組織が決まる前に、その人の所属の一覧を引く関数 auth_find_memberships(0001 の auth_find_user_by_* と同じ app_auth の権限)。
 --    返すのは所属の ID・組織の ID と名前・ロール・最後に入った時刻・作った時刻だけ。

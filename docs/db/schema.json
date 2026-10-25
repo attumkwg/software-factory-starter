@@ -1993,6 +1993,293 @@
           ]
         }
       ]
+    },
+    {
+      "name": "growth.lp_daily_counts",
+      "type": "BASE TABLE",
+      "comment": "公開の LP の日ごと・ページ・来た所(UTM)ごとの見た数・登録・確認(個人の行は持たない。3年で消す)。docs/domain/growth",
+      "columns": [
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "day",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "path",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "utm_source",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "utm_medium",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "utm_campaign",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "views",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "registrations",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "confirmations",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "lp_daily_counts_pkey",
+          "def": "CREATE UNIQUE INDEX lp_daily_counts_pkey ON growth.lp_daily_counts USING btree (tenant_id, day, path, utm_source, utm_medium, utm_campaign)",
+          "table": "growth.lp_daily_counts",
+          "columns": [
+            "tenant_id",
+            "day",
+            "path",
+            "utm_source",
+            "utm_medium",
+            "utm_campaign"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "lp_daily_counts_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "growth.lp_daily_counts",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "lp_daily_counts_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (tenant_id, day, path, utm_source, utm_medium, utm_campaign)",
+          "table": "growth.lp_daily_counts",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "day",
+            "path",
+            "utm_source",
+            "utm_medium",
+            "utm_campaign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "growth.pre_registrations",
+      "type": "BASE TABLE",
+      "comment": "公開の LP の事前登録(運営の組織の持ち物)。確認待ち → 確認済み → 組織にした。消す日を過ぎたら pre-registrations-purge が消す。docs/domain/growth",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "organization_name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "company_size",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "utm_source",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "utm_medium",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "utm_campaign",
+          "type": "text",
+          "nullable": false,
+          "default": "''::text"
+        },
+        {
+          "name": "landing_path",
+          "type": "text",
+          "nullable": false,
+          "default": "'/'::text"
+        },
+        {
+          "name": "consent_text_version",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "privacy_version",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "consented_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "confirm_sent_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "comment": "確認のメールを積んだ時刻(同じアドレスへは24時間に1通。確認のリンクの署名はこの時刻から作る)"
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'::text"
+        },
+        {
+          "name": "converted_tenant_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "converted_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "delete_after",
+          "type": "date",
+          "nullable": false,
+          "comment": "この日を過ぎたら消す(確認待ち7日・確認済みは登録から1年・組織にしてから30日)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "pre_registrations_pkey",
+          "def": "CREATE UNIQUE INDEX pre_registrations_pkey ON growth.pre_registrations USING btree (id)",
+          "table": "growth.pre_registrations",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "pre_registrations_email_key",
+          "def": "CREATE UNIQUE INDEX pre_registrations_email_key ON growth.pre_registrations USING btree (tenant_id, email)",
+          "table": "growth.pre_registrations",
+          "columns": [
+            "tenant_id",
+            "email"
+          ]
+        },
+        {
+          "name": "pre_registrations_delete_after_idx",
+          "def": "CREATE INDEX pre_registrations_delete_after_idx ON growth.pre_registrations USING btree (tenant_id, delete_after)",
+          "table": "growth.pre_registrations",
+          "columns": [
+            "tenant_id",
+            "delete_after"
+          ]
+        },
+        {
+          "name": "pre_registrations_status_idx",
+          "def": "CREATE INDEX pre_registrations_status_idx ON growth.pre_registrations USING btree (tenant_id, status, created_at)",
+          "table": "growth.pre_registrations",
+          "columns": [
+            "tenant_id",
+            "status",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "pre_registrations_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "growth.pre_registrations",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "pre_registrations_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "growth.pre_registrations",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "pre_registrations_email_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (tenant_id, email)",
+          "table": "growth.pre_registrations",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id",
+            "email"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -2343,6 +2630,32 @@
     },
     {
       "table": "platform.pmf_survey_counts",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "growth.lp_daily_counts",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
+    },
+    {
+      "table": "growth.pre_registrations",
       "columns": [
         "tenant_id"
       ],
