@@ -9,6 +9,7 @@
 | ③ 人 | PR の `risk:high` ラベル(`labeler.yml`)・「人に判断してほしい所」・`/security-review` | 中身の誤り | 見ていない PR |
 
 - 自動(auto)モードでもフックの確認は出る(フックの `ask` は自動モードより強い)。
+- **確認を飛ばすモード(`--dangerously-skip-permissions`・bypassPermissions)は、このリポジトリの中では使えない**(`.claude/settings.json` の `permissions.disableBypassPermissionsMode: "disable"`。ADR 0047)。乗っ取られた依存が、入っている AI の CLI をこのモードで呼んで鍵を探させる攻撃があったため。リポジトリの外のフォルダで呼ばれる分は、この設定では止まらない(下の「手元の設定を全社に配る」)。
 - フックは「読むだけ」のコマンド(`cat`・`grep`・`git diff` など)は聞かない。疑わしいときは聞く側に倒してある。止めすぎ・聞きすぎを見つけたら、`guard-edit.test.mjs`・`guard-bash.test.mjs` に例を足してから直す。
 
 ## 編集の確認を手元だけで外す(`KIT_EDIT_GUARD=pr`)
@@ -48,6 +49,13 @@ worktree を使う(並べたセッション)なら `~/.claude/settings.json` の
 - ① だけが守り。`.claude/settings.json` とフックを外さない・弱めない(`KIT_EDIT_GUARD=pr` も書かない)。
 - `deploy.yml` の prod の承認と、`claude.yml` の「API キーは main だけ」は働かない。AWS と Claude の鍵を入れる前に、公開にするか Pro / Team にする。
 - 並べて出した PR は、それぞれが古い main で緑でも、合わせると main が赤くなることがある(2026-10-20 に2回)。マージの前に main を取り込んで CI を回し直す。
+
+## 手元の設定を全社に配る(人が増えたら)
+
+- リポジトリの `.claude/settings.json` は、このフォルダで動く Claude Code にだけ効く。社員の端末全体で確認を飛ばすモードを止める・外への通信を絞るには、Claude Code の**管理者の設定(managed settings)**を、端末の管理の仕組み(MDM)で配る。管理者の設定は、使う人が上書きできない。
+- 配る中身の例: 確認を飛ばすモードの禁止・`.env` など秘密のファイルを読ませない・`sudo` の禁止・インラインの bash や外への通信(`curl` など)は確認・会社の方針を最初に読ませる。
+- **エンジニアと、エンジニア以外で分けて配る**: エンジニアには上書きして足せる余地を残し、エンジニア以外(営業・CS・管理部門)には最も安全な設定をそのまま。1つの設定で両方を満たそうとすると、どちらかが困る。
+- 配る・変える・外すのは人(情シス)。AI は設定の案を出すまで。
 
 ## 一覧に場所を足すとき
 
