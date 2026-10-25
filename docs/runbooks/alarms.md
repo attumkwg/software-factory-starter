@@ -1,7 +1,7 @@
 # 手順書: アラームが鳴った
 
 > Slack の `#alerts-<環境>` に出たアラームの名前から、ここの見出しへ。**まず「利用者に影響が出ているか」を見る**(画面を開く・ALB の 5xx・Slack の問い合わせ)。出ていれば、直すより先に戻す(前の版へ)。
-> 何を見張っているかの一覧は [guides/monitoring.md](../guides/monitoring.md)。
+> 何を見張っているかの一覧は [guides/monitoring.md](../guides/monitoring.md)。夜中と休日に誰が見るか・どのアラームなら起こすかは [guides/on-call.md](../guides/on-call.md)(アラームを足したら、ここの見出しと、その 3 の表を一緒に足す)。
 
 ## 最初の3分
 

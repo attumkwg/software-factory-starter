@@ -683,6 +683,29 @@ items:
     source: docs/playbook.md の「毎月・四半期にやること」
     review_by: 2027-10-20
 
+  - id: oncall-rota
+    title: 夜中のアラームを誰が見るか(当番の体制)を決める
+    why: 夜中や休日に鳴ったアラームを、誰が・何分で見るか、どれは朝まで待つかを決めておく(docs/guides/on-call.md)
+    if_ignored: 夜中の停止が朝まで続く。夜中も約束した SLA を守れない
+    who: human
+    phase: 3m
+    every: half-year
+    verify: ask
+    question:
+      text: 夜中や休日に鳴ったアラームを、誰が見ますか
+      options:
+        - { label: 当番を置く(3人以上), means: docs/guides/on-call.md の表で回します。呼び出しの道具を入れる手順(委託先の台帳・知らせの道の2本)を出します }
+        - { label: 営業時間だけ見る, means: SLA を営業時間で約束したままにします。半年後にまた聞きます }
+        - { label: まだ有料の顧客がいない, means: 3か月後にまた聞きます, after: snooze }
+      recommended: 営業時間だけ見る
+      irreversible: false
+    severity: normal
+    controls: [ A.5.24, A.5.26 ]
+    status: open
+    history: []
+    source: docs/designs/0031-on-call.md の 6.(穴 G-08)
+    review_by: 2027-04-25
+
   # ── 半年(以後半年ごと)────────────────────────────────────────────
   - id: key-rotation
     title: 長く使う鍵(外の API キー・Webhook)を替える

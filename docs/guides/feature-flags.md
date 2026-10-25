@@ -60,7 +60,7 @@
    ```
    画面を開くだけの機能なら、その画面の `loader` が読む GET の API で呼ぶ。**画面から「使った」を送る API は作らない**。
 2. 記録するのは「どの組織の・誰が・どの機能を・どの日に」だけ。何をしたか・中身・時刻・URL・IP は記録しない(設計書 0012 の 2)。代理ログインの社員・運営の組織の人は記録されない。
-3. 数えるのは運営のコマンド `usage-report`(週ごとの数だけ。手順書 [runbooks/usage-records.md](../runbooks/usage-records.md))。小石には割合で書く。
+3. 数えるのは運営のコマンド `usage-report`(手順書 [runbooks/usage-records.md](../runbooks/usage-records.md))。1行目は週ごとの使った組織・人の数、2行目は**継続率**(初めて使った週ごとの組で、N 週後に使った割合 `activePct` と N 週続けた割合 `continuedPct`。組織と人の単位。仕様 [0022](../specs/0022-usage-retention.md))。どちらも数と割合だけで、組織と人の ID は出ない。小石には組を足し合わせた行(`overall`)の割合で書く。小さい組(`small: true`)は割合だけで判定しない。
 4. 記録は400日で消える(`usage-purge`。月1回)。
 
 ## 出す・広げる・止める・片づける
