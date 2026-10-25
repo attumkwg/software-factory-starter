@@ -1,6 +1,7 @@
 // 賭けの一覧と書き方の確かめ: docs/product/bets/B-NNNN-*.md を読む。
 //   pnpm bets              一覧を出す。線より前に結果を書いた・段階を飛ばした・書き方が違う ときは 1 で終わる(CI)
 //                          期限を過ぎて決めていない賭けは ⏰ で出すだけ(落とさない。毎週の振り返りで見る)
+//                          線に届かなくても本人の意思で進んだ賭け(意思で進む)は ⚑ で出す。止める線の期限が来ても止めない
 //   pnpm bets --pr-body [--author <名前>]
 //                          PR の本文(標準入力)の「取り組み」「作業の種類」を確かめる(CI)
 //                          手元で: gh pr view <番号> --json body -q .body | pnpm bets --pr-body
@@ -46,7 +47,8 @@ const checkAll = (bets) => {
 
 const mark = (r) => {
   if (r.problems.length > 0) return "⚠️";
-  if (r.due) return "⏰";
+  if (r.due || r.willsDue?.length > 0) return "⏰";
+  if (r.wills > 0) return "⚑";
   if (r.noLine) return "⏳";
   return "・";
 };
@@ -61,6 +63,10 @@ const list = () => {
     if (r.due)
       console.log(
         `    ⏰ 期限(${r.due})を過ぎた。進む・変える(線を引き直す)・やめるを決める(/bet)`,
+      );
+    for (const w of r.willsDue ?? [])
+      console.log(
+        `    ⚑ 意思で進んだ(${w.date} ${w.stage})止める線「${w.stopLine}」の期限(${w.due})を過ぎた。続ける・やめるを決める(/bet)`,
       );
     if (r.noLine)
       console.log(`    ⏳ ${r.bet.stage} の線と期限がまだ無い。確かめる前に決める(/bet)`);
