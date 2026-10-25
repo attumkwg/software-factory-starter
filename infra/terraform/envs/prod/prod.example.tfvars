@@ -10,3 +10,5 @@ slack_team_id      = "<T で始まるワークスペースの ID>"
 slack_channel_id   = "<C で始まる #alerts-prod の ID>"
 monthly_budget_usd = 600
 sentry_dsn         = "<Sentry の DSN。stg と prod で同じプロジェクトでよい(environment で分かれる)>"
+# 公開の LP(apps/site。docs/guides/landing-page.md)を置くなら。運営の組織(support_tenant_id)も要る
+# public_site_domain = "www.example.com"

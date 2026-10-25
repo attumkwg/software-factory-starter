@@ -754,7 +754,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの損益(PL。人の時間の実績=週の記録があれば実績で・開発の段階の区分)と獲得のコスト(届け方ごとの広告費と営業の時間・1社を取るのにいくら)と1社あたりの原価(組織の大きさの帯ごと・組織の ID は出さない)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り
+    what: AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・SaaS と AI の席などの月額(手で書く)と人の時間(PR からの目安と手入力の幅)を集め、見積もり(段階の表)と賭けごとの予算の枠(超えそうなら Slack に割合だけで知らせる)と賭けごとの損益(PL。人の時間の実績=週の記録があれば実績で・開発の段階の区分)と獲得のコスト(届け方ごとの広告費と営業の時間・1社を取るのにいくら)と1社あたりの原価(組織の大きさの帯ごと・組織の ID は出さない)を並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り
     needed_by: 費用を自分で払っている・機能(賭け)ごとの費用と採算を知りたい・見積もりとずれていないかを見たい・月1回、資産と費用の区分の案を会計の側に渡したい(/ledger)
     not_needed_by: 費用を見る人が別にいて、Cost Explorer の画面で足りる
     if_removed: 「何にいくら」が AWS・GitHub・AI の画面に散ったまま。賭けごとの費用が分からず、/ledger(資産か費用か)の元が無い
@@ -783,7 +783,7 @@ parts:
         - { path: docs/README.md, what: guides の費用のページを外す }
         - { path: docs/guides/bets-and-assets.md, what: 月1回の集計(/ledger)と PL の行を「まだ無い」に戻す }
         - { path: scripts/bets-lib.mjs, what: isBetId の書き出しは残してよい }
-      docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md, docs/specs/0020-people-time-and-bet-pl.md, docs/designs/0020-people-time-and-bet-pl.md, docs/adr/0033-people-time-and-bet-pl.md, docs/specs/0042-tenant-cost.md, docs/designs/0042-tenant-cost.md, docs/adr/0053-tenant-cost-by-size-bands.md, docs/specs/0043-acquisition-cost.md, docs/designs/0043-acquisition-cost.md, docs/adr/0054-acquisition-cost-from-manual-inputs.md, docs/specs/0044-actual-hours.md, docs/designs/0044-actual-hours.md, docs/adr/0055-actual-hours-weekly-record.md]
+      docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md, docs/specs/0020-people-time-and-bet-pl.md, docs/designs/0020-people-time-and-bet-pl.md, docs/adr/0033-people-time-and-bet-pl.md, docs/specs/0042-tenant-cost.md, docs/designs/0042-tenant-cost.md, docs/adr/0053-tenant-cost-by-size-bands.md, docs/specs/0043-acquisition-cost.md, docs/designs/0043-acquisition-cost.md, docs/adr/0054-acquisition-cost-from-manual-inputs.md, docs/specs/0044-actual-hours.md, docs/designs/0044-actual-hours.md, docs/adr/0055-actual-hours-weekly-record.md, docs/specs/0054-plans-and-bet-budgets.md, docs/designs/0054-plans-and-bet-budgets.md, docs/adr/0065-bet-budgets-from-private-inputs.md]
 
   - id: security-baseline
     name: GuardDuty と Security Hub
@@ -1363,6 +1363,69 @@ parts:
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「試作の守り」の手順を外す }
       docs: [docs/adr/0020-prototypes-on-s3-cloudfront-passphrase.md]
+
+  - id: public-lp
+    name: 公開の LP の事前登録
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 公開の LP(記事・広告から人を呼ぶページ)の事前登録を、同意の版つきで運営の組織の DB に受け、確認のメール(ダブルオプトイン)・来た所(UTM)ごとの数と率・期限で消す運営のコマンド・組織を作るコマンドへの入力までを持つ。計測は外へ送らずに自前で数える
+    needed_by: 知らない人を記事・広告・メールから呼び、事前登録を集めて本物の組織につなぎたい
+    not_needed_by: 知り合いの会社にだけ売る・宣伝のページを外の CMS とフォームの道具で済ませる
+    if_removed: 事前登録が外の道具に散らばり、組織にするときに個人情報を CSV で運ぶ。どの届け方から来たかを数えられない
+    depends_on: [outbox, audit-log, terms-consent]
+    law:
+      - 個人情報保護法 17条・21条(利用目的の特定と通知・公表)
+      - 特定電子メール法(案内のメールは前もって同意した人にだけ・止める道を書く)
+      - 電気通信事業法 27条の12(外部送信の決まり。外へ送るタグを入れるときに当たりうる)
+    remove:
+      delete:
+        - apps/site
+        - infra/terraform/modules/public-site
+        - .github/scripts/deploy-site.sh
+        - apps/api/src/domains/growth
+        - apps/api/src/pre-registrations
+        - apps/api/drizzle/0017_growth_pre_registrations.sql
+        - apps/api/test/unit/growth-links.test.ts
+        - apps/api/test/integration/growth-public.int.test.ts
+        - apps/api/test/integration/growth-commands.int.test.ts
+        - apps/api/test/helpers/growth.ts
+        - packages/shared/src/pre-registration.ts
+        - packages/shared/src/pre-registration.test.ts
+        - docs/guides/landing-page.md
+        - docs/runbooks/pre-registrations.md
+        - docs/domain/growth
+      edit:
+        - { path: CLAUDE.md, what: apps/site の行を外す }
+        - { path: infra/terraform/envs/stg/main.tf, what: module public_site と public_site_environment を外す(prod も同じ) }
+        - { path: infra/terraform/envs/stg/github.tf, what: public_site_deploy と source_policy_documents を外す(prod も同じ) }
+        - { path: infra/terraform/envs/stg/variables.tf, what: public_site_domain を外す(outputs.tf の public_site も。prod も同じ) }
+        - { path: infra/terraform/modules/waf/main.tf, what: rate-limit-public-entrances と public_rate_limit を外す }
+        - { path: .github/workflows/deploy.yml, what: 公開の LP を置く手順を外す(stg と prod) }
+        - { path: docs/guides/manual-setup.md, what: STG_SITE_* / PROD_SITE_* の行を外す }
+        - { path: docs/reference.md, what: apps/site の木を外す }
+        - { path: apps/api/src/app.ts, what: /api/public/* の守り(CORS)と publicGrowthRoutes を外す }
+        - { path: apps/api/src/index.ts, what: アウトボックスの受け手の publicSite を外す }
+        - { path: apps/api/src/config.ts, what: PUBLIC_SITE_URL を外す }
+        - { path: apps/api/src/authz/policy.ts, what: /api/public/* の4行を外す }
+        - { path: docs/authz/matrix.yaml, what: /api/public/* の4行を外す }
+        - { path: apps/api/src/cli.ts, what: pre-registrations-* のコマンドを外す }
+        - { path: apps/api/src/outbox/topics.ts, what: growth.pre_registration_received を外す(足すだけの決まりなので、積んだ物が残っていないか確かめてから) }
+        - { path: apps/api/src/outbox/handlers.ts, what: growth.pre_registration_received の受け手を外す }
+        - { path: apps/api/src/db/schema.ts, what: growth の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: growth.* の行と、出来事・監査ログの details のキーを外す }
+        - { path: apps/api/src/domains/dependencies.ts, what: growth を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から growth.* を外す }
+        - { path: apps/api/src/audit/actions.ts, what: MANUAL_AUDIT_ACTIONS の preRegistration* を外す(記録の名前は残してよい) }
+        - { path: packages/shared/src/index.ts, what: pre-registration.ts の書き出しを外す }
+        - { path: packages/logging/src/fields.ts, what: ALWAYS_REDACTED の organizationName は残してよい }
+        - { path: docs/guides/data-retention.md, what: 集客のスキーマ growth の行を外す }
+        - { path: docs/domain/glossary.md, what: 事前登録・確認のメール・来た所の行を外す }
+        - { path: docs/guides/prototypes.md, what: 公開の LP へのつなぎの一言を外す }
+        - { path: docs/guides/legal-documents.md, what: プライバシーポリシーに書くことの LP の行を外す }
+        - { path: .claude/skills/prototype/SKILL.md, what: 公開の LP へのつなぎの一言を外す }
+      docs: [docs/specs/0025-public-landing-page.md, docs/designs/0025-public-landing-page.md, docs/adr/0038-public-landing-page.md]
 
   # ── 進め方 ────────────────────────────────────────────────────────────
   - id: kickoff
