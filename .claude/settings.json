@@ -46,6 +46,16 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Bash|WebFetch|WebSearch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-outbound.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {

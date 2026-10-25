@@ -71,6 +71,8 @@ export function organizationSwitchRoutes(deps: { db: RootDb; session: SessionCon
         if (actor.support || !session) throw forbidden();
         const key = await findPersonKey(c.get("tx"), actor.tenantId, actor.userId);
         if (!key) throw unauthorized();
+        // 本文の組織は「選びたい先」の候補だけ。決めるのは下の所属の確かめ(本人の所属に無ければ 404)。ADR 0066
+        // nosemgrep: semgrep.tenant-from-request -- 所属を確かめてから Cookie を出し直す(ログインと同じ扱い)
         const { tenantId } = c.req.valid("json");
         const target = (await findMemberships(c.get("tx"), key)).find(
           (m) => m.tenantId === tenantId,

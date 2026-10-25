@@ -57,7 +57,12 @@ process.stdout.write(
 
 const t = spawnSync(
   process.execPath,
-  ["--test", ".claude/hooks/guard-bash.test.mjs", ".claude/hooks/guard-edit.test.mjs"],
+  [
+    "--test",
+    ".claude/hooks/guard-bash.test.mjs",
+    ".claude/hooks/guard-edit.test.mjs",
+    ".claude/hooks/record-outbound.test.mjs",
+  ],
   { stdio: "inherit" },
 );
 process.exit(t.status ?? 1);

@@ -162,6 +162,26 @@ function acquisitionBlock(a) {
   );
 }
 
+/** 賭けごとの予算の枠(仕様 0054)。見込みが注意の線を超えたら ⚠ */
+const BUDGET_STATUS = {
+  over: "⚠ 超える見込み",
+  warn: "⚠ 注意",
+  ok: "枠の中",
+  ended: "期限を過ぎた",
+};
+function budgetBlock(b) {
+  if (!b || b.rows.length === 0) return "";
+  const rows = b.rows.map((r) => {
+    const cls = r.status === "over" || r.status === "warn" ? ' class="over"' : "";
+    const pct = r.pct === undefined ? "—" : `${r.pct}%`;
+    return `<tr><td>${esc(r.bet)}</td><td class="n">${yen(r.monthly_jpy)}</td><td class="n">${yen(r.spent_jpy)}</td><td class="n">${yen(r.projected_jpy)}</td><td class="n">${pct}</td><td>${esc(r.until)}</td><td${cls}>${esc(BUDGET_STATUS[r.status])}</td></tr>`;
+  });
+  return card(
+    "賭けごとの予算の枠(今月。推定)",
+    `<p class="muted">枠は非公開の置き場の budgets.csv。使った額は PL の原価の上の端(人の時間を含む)、月末の見込みはインフラ・人・共通の配り分を日割りで伸ばし、月額の SaaS を足した。注意の線(既定 80%)を超えたら cost.yml が Slack に知らせる(賭けの ID と割合だけ)。</p><div style="overflow-x:auto"><table><thead><tr><th>賭け</th><th class=n>枠(月)</th><th class=n>今月これまで</th><th class=n>月末の見込み</th><th class=n>枠の</th><th>期限</th><th>状態</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`,
+  );
+}
+
 export function renderHtml(s) {
   const notes = [
     ...s.notes,
@@ -177,6 +197,7 @@ ${tiles(s)}
 ${card("何にいくら(動いている物ごと)", bars(s.components))}
 ${card("見積もりと実績(区分ごと。薄い帯が見積もりの幅)", bars(s.categories, { band: true }))}
 ${plBlock(s.pl)}
+${budgetBlock(s.budgets)}
 ${tenantBlock(s.tenant_cost)}
 ${acquisitionBlock(s.acquisition)}
 <div class="split">
