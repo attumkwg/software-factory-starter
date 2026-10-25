@@ -231,7 +231,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
 | PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
 | 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
-| AI に変えさせない所 | `.claude/settings.json` の `ask`(CI・権限・移行・infra を編集するときは人の確認) |
+| AI に変えさせない所 | 編集と Bash のフック `.claude/hooks/guard-edit.mjs`・`guard-bash.mjs`(CI・権限・移行・infra を編集するときは人の確認。手元だけで外せる。[docs/guides/local-guards.md](docs/guides/local-guards.md)) |
 
 ### ハーネス3層
 
@@ -434,5 +434,5 @@ prod のバックアップの保管庫は **compliance のロック**で、apply
 
 ## ⚠️ この雛形の注意
 
-- `.claude/settings.json` の `ask` は、CI・認可・移行・infra のファイルを Claude Code が書くとき人の確認を求める(AI に勝手に変えさせない)。雛形を育てる間に邪魔なら `.claude/settings.local.json` で上書きできる。
+- 編集のフック(`.claude/hooks/guard-edit.mjs`)は、CI・認可・移行・infra のファイルを Claude Code が書くとき人の確認を求める(AI に勝手に変えさせない)。並べたセッションで邪魔なら、手元の `~/.claude/settings.json` の `env` に `KIT_EDIT_GUARD=pr` と書くと確認が出なくなり、PR の段(`risk:high`・CODEOWNERS・「人に判断してほしい所」)が最後の確認になる([docs/guides/local-guards.md](docs/guides/local-guards.md))。
 - Windows では `pnpm test:integration` に Docker Desktop が要る。古い Docker Desktop で Testcontainers が待ち続けるときのため、ヘルスチェックだけで待つようにしてある(`test/integration/global-setup.ts`)。

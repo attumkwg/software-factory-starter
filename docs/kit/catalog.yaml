@@ -268,7 +268,7 @@ parts:
     law:
       - ISMS 8.32(変更管理)
       - SOC 2 CC8.1
-    where: [.claude/hooks/protected-paths.json, scripts/check-guards.mjs, docs/guides/local-guards.md]
+    where: [.claude/hooks/protected-paths.json, .claude/hooks/guard-edit.mjs, .claude/hooks/guard-bash.mjs, scripts/check-guards.mjs, docs/guides/local-guards.md]
 
   - id: github-setup
     name: GitHub の一括のセットアップとラベルの一覧
@@ -875,7 +875,7 @@ parts:
       edit:
         - { path: .github/workflows/ci.yml, what: pnpm vendors の段を外す }
         - { path: package.json, what: vendors と test:scripts の vendors.test.mjs を外す }
-        - { path: .claude/hooks/protected-paths.json, what: docs/compliance/vendors.yaml を外す(settings.json・labeler.yml・CODEOWNERS も。pnpm guards) }
+        - { path: .claude/hooks/protected-paths.json, what: docs/compliance/vendors.yaml を外す(labeler.yml・CODEOWNERS も。pnpm guards) }
         - { path: docs/compliance/README.md, what: 台帳の行を外す(AI に渡すデータの決まり ai-data.md は残す) }
       docs: [docs/security.md, docs/compliance/ai-data.md]
 

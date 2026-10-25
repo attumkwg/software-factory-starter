@@ -5,7 +5,10 @@ import { decide } from "./guard-bash.mjs";
 
 const onMain = () => "main";
 const onFeature = () => "feat/x";
-const decision = (command, branch = onFeature) => decide(command, branch)?.decision ?? "allow";
+// 手元の env(KIT_EDIT_GUARD)に引きずられないよう、既定は空の env で見る
+const decision = (command, branch = onFeature, env = {}) =>
+  decide(command, branch, env)?.decision ?? "allow";
+const optedOut = { KIT_EDIT_GUARD: "pr" };
 
 test("main への push・危ない push は止める", () => {
   for (const c of [
@@ -73,6 +76,32 @@ test("読むだけなら聞かない", () => {
   ]) {
     assert.equal(decision(c), "allow", c);
   }
+});
+
+test("KIT_EDIT_GUARD=pr のときは、危険度「高」の場所の書き換えだけ聞かずに通す", () => {
+  assert.equal(decision("sed -i 's/a/b/' .github/workflows/ci.yml", onFeature, optedOut), "pass");
+  assert.equal(decision("echo x > infra/terraform/main.tf", onFeature, optedOut), "pass");
+  assert.equal(
+    decision("echo x > apps/api/src/domains/tasks/routes.ts", onFeature, optedOut),
+    "allow",
+  );
+  assert.equal(decision("cat .github/workflows/ci.yml", onFeature, optedOut), "allow");
+  // pr 以外の値は既定のまま聞く
+  assert.equal(decision("rm .gitleaksignore", onFeature, { KIT_EDIT_GUARD: "off" }), "ask");
+  assert.equal(decision("rm .gitleaksignore", onFeature, { KIT_EDIT_GUARD: "" }), "ask");
+});
+
+test("KIT_EDIT_GUARD=pr でも、止めるものは止める", () => {
+  for (const c of [
+    "git push origin main",
+    "git push --force origin feat/x",
+    "gh pr merge 12 --squash",
+    "gh pr review 12 --approve",
+    "git push origin --delete feat/x",
+  ]) {
+    assert.equal(decision(c, onFeature, optedOut), "deny", c);
+  }
+  assert.equal(decision("git push", onMain, optedOut), "deny");
 });
 
 test("関係の無い場所は聞かない", () => {
