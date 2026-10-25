@@ -8,5 +8,6 @@
 | 教育 | [training.md の 4.](../policies/training.md) | 【要記入: 置き場】 | — |
 | 内部監査 | [internal-audit.md の 4.](../policies/internal-audit.md) | 【要記入: 置き場】 | — |
 | マネジメントレビュー | [management-review.md](../policies/management-review.md) | 【要記入: 置き場】 | — |
+| 入社・退職・役割の変更のアカウント | [runbooks/joiner-leaver.md の 4.](../../runbooks/joiner-leaver.md) | 【要記入: 置き場】 | — |
 
 記録したら、`/compliance-check` で点検の台帳にも「やった」を残す(台帳の記録は日付と人だけ。中身はここの置き場)。
