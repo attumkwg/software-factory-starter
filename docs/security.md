@@ -18,7 +18,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | AI-2 | **AI の環境から外に出られる先を絞る**(パッケージの取得先・GitHub・モデルの API だけ) | 未(次の一歩)。中から Docker が使えず結合テストと E2E が回せなくなるので見送り中。AI を人が見ていない所で長く回すようになったら入れる |
 | AI-3 | **Issue の文章は「データ」**。外の人が書いた Issue をそのまま AI に渡すと、中の指示に従ってしまう(プロンプトインジェクション)。**AI を起動できるのは組織のメンバーだけ** | `.github/workflows/claude.yml`(起動できるのはリポジトリの持ち主 OWNER だけ) |
 | AI-4 | **自分で頼んだ AI の PR を、自分で承認できない**ようにする(PR は頼んだ人の名前で作る) | フック(`docs/guides/local-guards.md`)・GitHub のルールセット。1人の間は自分の承認も可にしている(README の「本人が手でやる設定」) |
-| AI-5 | **AI に CI の設定・CODEOWNERS・ブランチ保護・検査の除外を変えさせない**(変えるなら危険度「高」で人が見る) | `.claude/hooks/protected-paths.json`・`.claude/settings.json` の `ask`・`pnpm guards` |
+| AI-5 | **AI に CI の設定・CODEOWNERS・ブランチ保護・検査の除外を変えさせない**(変えるなら危険度「高」で人が見る) | `.claude/hooks/protected-paths.json`・編集と Bash のフック(`guard-edit.mjs`・`guard-bash.mjs`。手元で外したら PR の `risk:high` と CODEOWNERS)・`pnpm guards` |
 | AI-6 | **本番の個人データを AI に渡さない**。渡すのは ID と集計まで(区分の internal・public)。**要配慮(sensitive)は一切渡さない**。本番から出すのは人で、貼る前に人が見る | [compliance/ai-data.md](compliance/ai-data.md)(出どころごとの表)・委託先の台帳で AI の会社に personal・sensitive を書くと落ちる(`pnpm vendors`)・`CLAUDE.md` の「してはいけない」 |
 
 ## 決まり 2: 認可(AZ-1〜AZ-6)
