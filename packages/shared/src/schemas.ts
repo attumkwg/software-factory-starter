@@ -136,6 +136,8 @@ export const ERROR_CODES = [
   "invitation_not_pending", // 受けた・取り消した招待は取り消せない(409)
   "invalid_invitation", // 招待のリンクが正しくない・期限切れ・使用済み・取り消し済み(400。どれかは言わない)
   "invitation_email_in_use", // 招待のメールアドレスは、もうどこかの組織で使われている(409。1人 = 1組織)
+  // プラン(docs/specs/0047-plans.md)
+  "seat_limit_reached", // プランの人数の上限に届いている(409。いる人+受けていない招待)
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;

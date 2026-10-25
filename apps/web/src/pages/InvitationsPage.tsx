@@ -1,4 +1,11 @@
-import { INVITATION_DAYS, type Invitation, type Me, ROLES, type Role } from "@app/shared";
+import {
+  INVITATION_DAYS,
+  type Invitation,
+  type Me,
+  type OrganizationPlan,
+  ROLES,
+  type Role,
+} from "@app/shared";
 import {
   Badge,
   Button,
@@ -30,7 +37,15 @@ const STATUS: Record<
   revoked: { label: "取り消し済み", tone: "neutral" },
 };
 
-export function InvitationsPage({ me, invitations }: { me: Me; invitations: Invitation[] }) {
+export function InvitationsPage({
+  me,
+  invitations,
+  plan,
+}: {
+  me: Me;
+  invitations: Invitation[];
+  plan: OrganizationPlan;
+}) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("member");
   const inviting = useAction();
@@ -87,6 +102,7 @@ export function InvitationsPage({ me, invitations }: { me: Me; invitations: Invi
         メールアドレスとロールを選んで招くと、招待のメールが届きます。リンクは{INVITATION_DAYS}
         日間・1回だけ使えます。招かれた人は、そのメールアドレスで登録してログインすると、この組織に入ります。
       </Muted>
+      <SeatLine plan={plan} />
       <form onSubmit={onInvite}>
         <Stack gap={2}>
           <Inline gap={2}>
@@ -120,5 +136,17 @@ export function InvitationsPage({ me, invitations }: { me: Me; invitations: Invi
         emptyMessage="まだ誰も招いていません"
       />
     </Stack>
+  );
+}
+
+/** プランと人数(docs/specs/0047-plans.md)。人数は「いる人+受けていない招待」で数える */
+function SeatLine({ plan }: { plan: OrganizationPlan }) {
+  const used = plan.members + plan.pendingInvitations;
+  if (!plan.plan) return <Muted>いまの人数: {used} 人(受けていない招待を含む)</Muted>;
+  const limit = plan.plan.seats === null ? "上限なし" : `${plan.plan.seats} 人まで`;
+  return (
+    <Muted>
+      プラン「{plan.plan.label}」: {limit}・いまの人数 {used} 人(受けていない招待を含む)
+    </Muted>
   );
 }

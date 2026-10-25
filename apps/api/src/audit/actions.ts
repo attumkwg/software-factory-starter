@@ -77,6 +77,9 @@ export const MANUAL_AUDIT_ACTIONS = {
   tenantCreate: "tenant.create",
   // 招かれた人が、ログインの前に招待を受けた(公開の API。行為者は受けてできた人)
   invitationAccept: "invitation.accept",
+  // 運営のコマンド plan・create-tenant が、組織の契約のプランを変えた(docs/specs/0047-plans.md)。
+  // details.plan・details.priceList に名前(PLANS・PRICE_LISTS。人数・日付は platform.tenant_plans の行)
+  planChange: "plan.change",
 } as const;
 
 /**

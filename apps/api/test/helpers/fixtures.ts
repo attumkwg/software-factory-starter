@@ -3,6 +3,7 @@ import {
   type FeatureFlagDefinition,
   LEGAL_DOCUMENTS,
   type LegalVersion,
+  type PlanDefinition,
   type Role,
 } from "@app/shared";
 import { v7 as uuidv7 } from "uuid";
@@ -115,6 +116,7 @@ export function createTestApp(
   opts: {
     legalVersions?: readonly LegalVersion[];
     featureFlags?: readonly FeatureFlagDefinition[];
+    plans?: readonly PlanDefinition[];
   } = {},
 ) {
   const { db, pool } = createDb(appUrl);
@@ -132,6 +134,7 @@ export function createTestApp(
     lifecycle,
     ...(opts.legalVersions ? { legalVersions: opts.legalVersions } : {}),
     ...(opts.featureFlags ? { featureFlags: opts.featureFlags } : {}),
+    ...(opts.plans ? { plans: opts.plans } : {}),
   });
   return { app, pool, lifecycle };
 }

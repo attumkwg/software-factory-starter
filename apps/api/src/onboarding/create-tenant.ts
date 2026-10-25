@@ -1,4 +1,11 @@
-import { DEFAULT_TIME_ZONE, TimeZoneSchema } from "@app/shared";
+import {
+  DateOnlySchema,
+  DEFAULT_TIME_ZONE,
+  PLANS,
+  PRICE_LISTS,
+  TimeZoneSchema,
+  toLocalDate,
+} from "@app/shared";
 import { sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
@@ -7,6 +14,7 @@ import type { RootDb, TenantTx } from "../db/client.ts";
 import { tenants, users } from "../db/schema.ts";
 import { withTenant } from "../db/tenant.ts";
 import { enqueue } from "../outbox/index.ts";
+import { type Defs, insertPlan, planChange } from "../plans/index.ts";
 
 // 申し込みを受けた組織を作る(運営が、申込書を確かめてから。docs/specs/0026-tenant-provisioning.md・ADR 0039)。
 // 手順は docs/runbooks/tenant-provisioning.md。API は作らない(組織を増やすのは契約の後で、画面や API の鍵1本でできないようにする)。
@@ -33,6 +41,11 @@ export const TenantApplicationSchema = z.looseObject({
       .transform((e) => e.toLowerCase()),
     name: z.string().trim().min(1).max(100),
   }),
+  // 契約のプラン(docs/specs/0047-plans.md)。申込書の「プラン」「人数」の欄。無ければプランを入れない(後から plan のコマンドで)
+  plan: z.string().min(1).max(32).optional(),
+  seats: z.number().int().positive().optional(),
+  priceList: z.string().min(1).max(32).optional(),
+  priceLockedUntil: DateOnlySchema.optional(),
 });
 
 export type TenantApplication = z.infer<typeof TenantApplicationSchema>;
@@ -53,7 +66,16 @@ export function parseTenantApplication(json: string): {
     const fields = [...new Set(parsed.error.issues.map((i) => i.path.join(".") || "(全体)"))];
     throw new Error(`申し込みの項目が正しくありません: ${fields.join(", ")}`);
   }
-  const known = new Set(["name", "timeZone", "mfaRequired", "admin"]);
+  const known = new Set([
+    "name",
+    "timeZone",
+    "mfaRequired",
+    "admin",
+    "plan",
+    "seats",
+    "priceList",
+    "priceLockedUntil",
+  ]);
   const ignoredKeys = Object.keys(raw as object).filter((k) => !known.has(k));
   return { application: parsed.data, ignoredKeys };
 }
@@ -77,8 +99,9 @@ class DryRun extends Error {}
 export async function createTenant(
   db: RootDb,
   application: TenantApplication,
-  opts: { execute: boolean; confirmName?: string; supportTenantId: string | null },
+  opts: { execute: boolean; confirmName?: string; supportTenantId: string | null; defs?: Defs },
 ): Promise<CreatedTenant> {
+  const defs = opts.defs ?? { plans: PLANS, priceLists: PRICE_LISTS };
   if (opts.execute && opts.confirmName !== application.name) {
     throw new Error("--confirm-name が申し込みの組織の名前と違うので、何も作っていません");
   }
@@ -117,6 +140,22 @@ export async function createTenant(
         details: { adminUserId },
       };
       await recordAudit(tx, { tenantId, ...entry });
+      if (application.plan) {
+        // 申込書のプランと人数(docs/specs/0047-plans.md)。価格表を省けば、その日の版
+        const today = toLocalDate(new Date(), application.timeZone);
+        const line = planChange(
+          null,
+          {
+            plan: application.plan,
+            priceList: application.priceList,
+            seats: application.seats ?? null,
+            priceLockedUntil: application.priceLockedUntil ?? null,
+          },
+          defs,
+          today,
+        );
+        await insertPlan(tx, tenantId, line);
+      }
       if (opts.supportTenantId && opts.supportTenantId !== tenantId) {
         await withSupportContext(tx, opts.supportTenantId, () =>
           recordAudit(tx, { tenantId: opts.supportTenantId as string, ...entry }),

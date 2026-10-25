@@ -1426,6 +1426,41 @@ parts:
         - { path: .claude/skills/positioning/SKILL.md, what: /brand へのつなぎを外す }
       docs: [docs/adr/0037-promise-before-lp-and-brand.md]
 
+  - id: plans
+    name: 契約のプランの表
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 組織ごとのプラン・人数の上限・どの版の価格表か・据え置きの期限を足すだけの表に持ち、機能フラグ(状態 plan)と招待の人数の上限につなぐ。変えるのは運営のコマンド。金額と請求は持たない(会計ソフトで手で)
+    needed_by: 会社向けでプランや人数で値段を分ける・値上げで今のお客さんを旧価格に残す
+    not_needed_by: 値段が1つで人数も数えない・請求の会社(Stripe など)のプランをそのまま正にする
+    if_removed: 上のプランだけの機能を組織ごとに手で入れる。人数の上限を守れない。値上げのとき、誰が旧価格かを外で管理する
+    depends_on: [feature-flags, invitations, provisioning]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/plans
+        - apps/api/test/unit/plans.test.ts
+        - apps/api/test/integration/plans.int.test.ts
+        - packages/shared/src/plans.ts
+        - packages/shared/src/plans.test.ts
+        - docs/runbooks/plans.md
+      edit:
+        - { path: apps/api/src/app.ts, what: plans(AppDeps と c.set)と planRoutes を外す }
+        - { path: apps/api/src/env.ts, what: plans を外す }
+        - { path: apps/api/src/cli.ts, what: plan・plan-report のコマンドを外す }
+        - { path: apps/api/src/feature-flags/repository.ts, what: 状態 plan とプランの機能を外す(packages/shared/src/feature-flags.ts も) }
+        - { path: apps/api/src/domains/organizations/invitations.ts, what: ensureSeatAvailable を外す }
+        - { path: apps/api/src/onboarding/create-tenant.ts, what: 申し込みの plan・seats・priceList・priceLockedUntil を外す }
+        - { path: apps/api/src/db/schema.ts, what: plans の表の読み込みを外す(表は消す移行で) }
+        - { path: apps/api/src/db/classification.ts, what: platform.tenant_plans の行と監査ログの details の plan・priceList を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES から platform.tenant_plans を外す }
+        - { path: apps/web/src/pages/InvitationsPage.tsx, what: プランと人数の行を外す }
+        - { path: docs/legal/order-form.md, what: プラン・人数の欄を「欄だけ」に戻す }
+      matrix: [GET /api/organization/plan]
+      docs: [docs/specs/0047-plans.md, docs/adr/0058-plans-table.md]
+
   - id: feature-flags
     name: 組織ごとの機能フラグ
     group: process
