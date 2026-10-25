@@ -29,7 +29,7 @@
 | [reference.md](reference.md) | キットの中身の早見表(ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物・わざとやっていないこと・注意)。AI が「どこに何があるか」を探す入口 | ファイル・コマンド・ワークフローを足す・動かしたとき | 低 |
 | [scenarios/](scenarios/README.md) | 想定の場面(架空の A 社 10人・B 社 100人が企画 → 法令 → 開発 → お金 → 運用 → セキュリティ → 規模拡大を回す台本)と、足りない物の一覧([scenarios/gaps.md](scenarios/gaps.md)) | 部品を足した・穴を埋めたとき(場面の判定と gaps.md の行を同じ PR で) | 低 |
 | [getting-started.md](getting-started.md) | 使い始めの手引き(手元 → 置き換え → GitHub → AWS → Slack → 運用) | 手順や費用が変わったとき | 低 |
-| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか・[PMF の前の進め方](guides/before-pmf.md)(何を作るかを安く確かめる)・[試作を出す](guides/prototypes.md)(押せる画面だけ・合言葉つきの URL)・[公開の LP を出す](guides/landing-page.md)(事前登録の同意・どこから来たかの計測)・[人が見る所を絞る](guides/human-review.md)(未確定事項・人向けのまとめ・上流からの作り直し)・[守りの3層](guides/local-guards.md)(AI に勝手に変えさせない所と、GitHub のプランで変わる所)・[GitHub を一括で整える](guides/github-setup.md)(pnpm setup:github・ひな形と使う側)・[ラベルの手引き](guides/labels.md)(何のラベルか・誰が付けるか・付いたらどうするか)・[費用のページ](guides/cost-dashboard.md)(何にいくら・見積もりとの比べ)・[手でやる設定](guides/manual-setup.md)(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織) など、仕組みの使い方 | 仕組みを変えたとき | 低 |
+| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか・[PMF の前の進め方](guides/before-pmf.md)(何を作るかを安く確かめる)・[試作を出す](guides/prototypes.md)(押せる画面だけ・合言葉つきの URL)・[公開の LP を出す](guides/landing-page.md)(事前登録の同意・どこから来たかの計測)・[人が見る所を絞る](guides/human-review.md)(未確定事項・人向けのまとめ・上流からの作り直し)・[守りの3層](guides/local-guards.md)(AI に勝手に変えさせない所と、GitHub のプランで変わる所)・[GitHub を一括で整える](guides/github-setup.md)(pnpm setup:github・ひな形と使う側)・[ラベルの手引き](guides/labels.md)(何のラベルか・誰が付けるか・付いたらどうするか)・[費用のページ](guides/cost-dashboard.md)(何にいくら・見積もりとの比べ)・[当番の決まり](guides/on-call.md)(夜中に誰が見るか・どのアラームで起こすか)・[手でやる設定](guides/manual-setup.md)(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織) など、仕組みの使い方 | 仕組みを変えたとき | 低 |
 
 ## 記録(書いた時のまま。古くなっても直さない)
 
@@ -39,7 +39,7 @@
 | [specs/](specs/) | 機能ごとの仕様(受け入れ条件・悪用のされ方)。テンプレートあり | 作る前(`/new-feature` が書く) |
 | [designs/](designs/) | 機能ごとの設計書(AI 用。8つの観点で網羅的に)と、AI の仮決めを追う「未確定事項」。テンプレートあり。仕様と同じ番号 | 仕様と同じ PR で(`/design` が書く)。完了までは作り直しで直してよい(`/rework`) |
 | [adr/](adr/) | 設計の判断となぜそうしたか。テンプレートあり | 後から「なぜ?」と聞かれそうな判断をしたとき |
-| [runbooks/](runbooks/) | 困ったときの手順。入口は [runbooks/incident.md](runbooks/incident.md)(障害対応の型)。アラーム・Sentry・サポートの代理ログイン・解約・DB を戻す・デプロイと移行を戻す・秘密が漏れた・他社のデータが見えた・個人データが漏れた(委員会への報告と本人への通知)・管理操作の記録(CloudTrail)・要配慮個人情報の段を上げる・Cognito・メール | 事故のあと・当番の手順を決めたとき |
+| [runbooks/](runbooks/) | 困ったときの手順。入口は [runbooks/incident.md](runbooks/incident.md)(障害対応の型)。アラーム・Sentry・サポートの代理ログイン・開通(組織を作る)・解約・DB を戻す・デプロイと移行を戻す・秘密が漏れた・他社のデータが見えた・個人データが漏れた(委員会への報告と本人への通知)・管理操作の記録(CloudTrail)・要配慮個人情報の段を上げる・Cognito・メール | 事故のあと・当番の手順を決めたとき |
 | [incidents/](incidents/) | 障害の振り返り(S1・S2。1件1ファイル) | 障害のあと5営業日以内([runbooks/incident.md](runbooks/incident.md) の 6) |
 
 - 仕様と今の姿が違ってきたら、**仕様は直さず**、domain(いまの正)を直し、必要なら新しい仕様を足す(設計書も同じ)。
