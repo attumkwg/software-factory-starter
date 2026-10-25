@@ -21,6 +21,8 @@ export const MeSchema = z.object({
   support: z.object({ expiresAt: InstantSchema }).optional(),
   /** 運営の組織の人(サポート番号で代理ログインできる)なら true */
   isSupportStaff: z.boolean().optional(),
+  /** 本人が所属している組織の数(2つ以上なら、画面は組織の切り替えを出す。docs/specs/0055-multi-org-membership.md) */
+  organizationsCount: z.number().int().nonnegative().optional(),
   /**
    * 二段階認証(docs/specs/0006-account-security.md)。setupRequired なら、画面は設定(/account)へ回す
    * (組織が必須で、本人が未設定。開発用ログイン・代理の最中は false)
@@ -362,3 +364,24 @@ export const AcceptedInvitationSchema = z.object({
   email: z.email(),
 });
 export type AcceptedInvitation = z.infer<typeof AcceptedInvitationSchema>;
+
+// ── 所属している組織と、組織の切り替え(docs/specs/0055-multi-org-membership.md) ──────────
+
+export const OrganizationMembershipSchema = z.object({
+  tenantId: IdSchema,
+  name: z.string(),
+  role: RoleSchema,
+  /** いまのセッションの組織か */
+  current: z.boolean(),
+});
+export type OrganizationMembership = z.infer<typeof OrganizationMembershipSchema>;
+
+/** 本人が所属している組織(本人にだけ返す。名前の順) */
+export const OrganizationMembershipListSchema = z.object({
+  organizations: z.array(OrganizationMembershipSchema),
+});
+export type OrganizationMembershipList = z.infer<typeof OrganizationMembershipListSchema>;
+
+/** 組織を選び直す。本人が所属している組織だけ(ほかは 404) */
+export const SwitchOrganizationSchema = z.object({ tenantId: IdSchema });
+export type SwitchOrganization = z.infer<typeof SwitchOrganizationSchema>;

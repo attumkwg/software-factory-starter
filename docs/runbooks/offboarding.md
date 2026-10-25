@@ -43,7 +43,7 @@ aws ecs run-task --cluster $CLUSTER --task-definition $CLUSTER-migrate --launch-
 
 ## 3. Cognito の利用者を消す(DB より先に)
 
-DB を先に消すと、誰が Cognito のどの人か分からなくなる。2 の `cognitoSubs` を1人ずつ:
+DB を先に消すと、誰が Cognito のどの人か分からなくなる。2 の `cognitoSubs` を1人ずつ(**ほかの組織にも所属している人は、もともと `cognitoSubs` に入っていない**。その人は Cognito から消さず、この組織の所属だけが 4 で消える。数は `cognitoSubsInOtherOrgs`。docs/specs/0055-multi-org-membership.md):
 
 ```bash
 POOL=<ユーザープールの ID>

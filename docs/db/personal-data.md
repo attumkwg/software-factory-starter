@@ -124,6 +124,7 @@
 | `role` | public | ロール(admin / member / viewer) |
 | `mfa_enabled` | public | 二段階認証が有効か |
 | `sessions_valid_after` | internal | これより前のセッションを切る |
+| `last_used_at` | internal | その組織に最後に入った時刻(ログインで前回の組織を選ぶ) |
 | `created_at` | internal | 作った時刻 |
 
 ### `platform.audit_events`

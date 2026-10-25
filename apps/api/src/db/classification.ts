@@ -50,6 +50,9 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.users.role": pub("ロール(admin / member / viewer)"),
   "organizations.users.mfa_enabled": pub("二段階認証が有効か"),
   "organizations.users.sessions_valid_after": internal("これより前のセッションを切る"),
+  "organizations.users.last_used_at": internal(
+    "その組織に最後に入った時刻(ログインで前回の組織を選ぶ)",
+  ),
   "organizations.users.created_at": internal("作った時刻"),
 
   "organizations.invitations.id": internal("招待の ID(リンクの署名の元)"),

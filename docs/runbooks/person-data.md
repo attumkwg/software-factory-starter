@@ -65,7 +65,7 @@ COMMIT;
 - 招待のメール(`organizations.invitations.email`)・送信待ち(`platform.outbox`)も試しで出たら、同じく匿名化・削除する(SQL は試しの `table` と `column` を見て書く)。
 - **残す物**: 監査ログ(`actor_id`)・規約への同意(`legal.consents`)・作った人や許可した人の ID。値は入っていない。
 - 流した後にもう一度 2 の試しを流し、`delete` の行が0になったのを確かめる。
-- Cognito: `cognitoSub` が出ていたら、その利用者を Cognito から消す([offboarding.md](offboarding.md) の 3 と同じ `admin-delete-user`)。
+- Cognito: `cognitoSub` が出ていて、**`otherMemberships` が 0 のときだけ**、その利用者を Cognito から消す([offboarding.md](offboarding.md) の 3 と同じ `admin-delete-user`)。1以上なら、その人はほかの組織にも所属しているので、この組織の所属だけを扱う(docs/specs/0055-multi-org-membership.md)。
 - 消した後も残る所(バックアップ最長 365日・ログ 30〜90日)を、お客さんの管理者に知らせる([guides/data-retention.md](../guides/data-retention.md) の 1)。
 
 ## 6. 終わったら

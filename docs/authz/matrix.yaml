@@ -171,6 +171,17 @@ routes:
     note: この組織のプラン・人数の上限・いる人と受けていない招待の数(docs/specs/0047-plans.md)。契約の中身なので管理者だけ。変えるのは運営のコマンドだけ
     expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
 
+  - route: GET /api/me/organizations
+    permission: me:read
+    note: 本人が所属している組織の一覧(docs/specs/0055-multi-org-membership.md)。本人にだけ返す。代理の社員には空
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 401 }
+
+  - route: POST /api/session/organization
+    permission: session:switch
+    note: 組織を選び直す(本人が所属している組織だけ。ほかは 404。代理の最中は 403)。ここではいまの組織を選び直すので全員 200。ほかの組織・所属していない組織は multi-org.int.test.ts
+    body: { tenantId: "{tenantId}" }
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 401 }
+
   - route: POST /api/support/sessions
     permission: support:start
     note: 社員がサポート番号で入る。運営の組織(SUPPORT_TENANT_ID)の人でなければ 403。入れることは support-access.int.test.ts で確かめる

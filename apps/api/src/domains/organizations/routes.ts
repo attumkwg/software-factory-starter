@@ -5,6 +5,7 @@ import { unauthorized } from "../../errors.ts";
 import { findEnabledFeatures } from "../../feature-flags/index.ts";
 import { authErrors, createRouter, json } from "../../http/common.ts";
 import { findAccess } from "./account.ts";
+import { findMemberships, findPersonKey } from "./memberships.ts";
 import { getMe } from "./repository.ts";
 import { getSupportMe } from "./support.ts";
 
@@ -36,6 +37,9 @@ export const organizationRoutes = createRouter().openapi(
     const access = await findAccess(scope.tx, scope.tenantId, scope.userId);
     if (!me || !access) throw unauthorized();
     const supportTenantId = c.get("supportTenantId");
+    // 所属している組織の数(2つ以上なら画面が切り替えを出す。docs/specs/0055-multi-org-membership.md)
+    const key = await findPersonKey(scope.tx, scope.tenantId, scope.userId);
+    const organizationsCount = key ? (await findMemberships(scope.tx, key)).length : 1;
     // 二段階認証の設定待ちなら、画面は /account へ回す(docs/specs/0006-account-security.md)
     const mfa = {
       enabled: access.mfaEnabled,
@@ -48,6 +52,7 @@ export const organizationRoutes = createRouter().openapi(
       {
         ...me,
         isSupportStaff: supportTenantId === me.tenantId,
+        organizationsCount,
         mfa,
         ...(legal ? { legal } : {}),
         features,

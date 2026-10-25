@@ -22,6 +22,14 @@ export {
   tenantOpenedMail,
   verifyInvitationToken,
 } from "./invitations.ts";
+export {
+  countMemberships,
+  findMemberships,
+  findPersonKey,
+  type Membership,
+  markMembershipUsed,
+  type PersonKey,
+} from "./memberships.ts";
 export { mfaRequirementRoutes } from "./mfa-requirement-routes.ts";
 export {
   type AccountNotice,

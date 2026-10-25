@@ -60,6 +60,12 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   "POST /api/legal/consents": { action: "legal.consent", target: "user", param: "none" },
   // 招待(docs/specs/0027-invitations.md)。メールアドレス・ロールは details に入れない(招待の行にある)
   "POST /api/invitations": { action: "invitation.create", target: "invitation" },
+  // 組織の選び直し(docs/specs/0055-multi-org-membership.md)。関所が元の組織に「出た」を残す。先の組織の「入った」はハンドラーが手で
+  "POST /api/session/organization": {
+    action: "auth.switch_out",
+    target: "organization",
+    param: "none",
+  },
   "DELETE /api/invitations/{invitationId}": { action: "invitation.revoke", target: "invitation" },
   // 「無くなったら困るか」に答えた(docs/specs/0046-pmf-survey.md)。**何と答えたかは details に入れない**(数の表にだけある)
   "POST /api/pmf-survey": { action: "pmf_survey.respond", target: "user", param: "none" },
@@ -82,6 +88,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド plan・create-tenant が、組織の契約のプランを変えた(docs/specs/0047-plans.md)。
   // details.plan・details.priceList に名前(PLANS・PRICE_LISTS。人数・日付は platform.tenant_plans の行)
   planChange: "plan.change",
+  // 組織を選び直して、この組織に入った(元の組織には関所が auth.switch_out を残す)
+  switchIn: "auth.switch_in",
 } as const;
 
 /**

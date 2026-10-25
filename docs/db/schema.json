@@ -293,7 +293,7 @@
     {
       "name": "organizations.users",
       "type": "BASE TABLE",
-      "comment": "組織の中の人とロール(admin / member / viewer)。いまは1人=1組織。docs/domain/organizations",
+      "comment": "組織への所属(名前とロール admin / member / viewer)。同じ人が複数の組織に所属できる(ADR 0066)。docs/domain/organizations",
       "columns": [
         {
           "name": "id",
@@ -314,7 +314,7 @@
           "name": "external_id",
           "type": "text",
           "nullable": true,
-          "comment": "認証の製品(Cognito)側の ID(sub)"
+          "comment": "認証の製品(Cognito)側の ID(sub)。同じ人の所属は同じ sub"
         },
         {
           "name": "name",
@@ -338,13 +338,19 @@
           "type": "boolean",
           "nullable": false,
           "default": "false",
-          "comment": "二段階認証が有効か(正は Cognito。ログインと確かめ直しのたびに写し直す)"
+          "comment": "二段階認証が有効か(正は Cognito。ログインと確かめ直しのたびに、全部の所属に写し直す)"
         },
         {
           "name": "sessions_valid_after",
           "type": "timestamp with time zone",
           "nullable": true,
-          "comment": "これより前にログインしたセッションは使えない(パスワードなどを変えて、ほかの端末を切った時刻)"
+          "comment": "これより前にログインしたセッションは使えない(パスワードなどを変えて、ほかの端末を切った時刻。全部の所属にそろえる)"
+        },
+        {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "その組織に最後に入った(ログイン・組織の切り替え)時刻。ログインで前回の組織を選ぶ"
         }
       ],
       "indexes": [
@@ -378,6 +384,24 @@
           "def": "CREATE UNIQUE INDEX users_external_id_key ON organizations.users USING btree (external_id)",
           "table": "organizations.users",
           "columns": [
+            "external_id"
+          ]
+        },
+        {
+          "name": "users_tenant_email_key",
+          "def": "CREATE UNIQUE INDEX users_tenant_email_key ON organizations.users USING btree (tenant_id, email)",
+          "table": "organizations.users",
+          "columns": [
+            "tenant_id",
+            "email"
+          ]
+        },
+        {
+          "name": "users_tenant_external_id_key",
+          "def": "CREATE UNIQUE INDEX users_tenant_external_id_key ON organizations.users USING btree (tenant_id, external_id)",
+          "table": "organizations.users",
+          "columns": [
+            "tenant_id",
             "external_id"
           ]
         }
@@ -2408,6 +2432,24 @@
       "name": "public.auth_accept_invitation",
       "return_type": "record",
       "arguments": "p_id uuid, p_user_id uuid, p_name text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_find_memberships",
+      "return_type": "record",
+      "arguments": "p_external_id text, p_email text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_sync_person",
+      "return_type": "int4",
+      "arguments": "p_external_id text, p_email text, p_mfa_enabled boolean, p_sessions_valid_after timestamp with time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_count_memberships",
+      "return_type": "int4",
+      "arguments": "p_external_id text",
       "type": "FUNCTION"
     }
   ],
