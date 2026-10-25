@@ -11,13 +11,14 @@
 | 組織に入れた(行がある = 入っている) | 表 `platform.feature_flags`(`tenant_id`+RLS) | 運営のコマンド `feature-flag` だけ |
 | 入れた・切ったの記録 | その組織の監査ログ(`feature_flag.enable` / `feature_flag.disable`。「仕組み」として) | コマンドが自動で |
 
-状態は3つ:
+状態は4つ:
 
 | 状態 | 誰に出るか | 使う時 |
 |---|---|---|
 | `rollout` | 運営が入れた組織だけ | 賭けの `psf`(話を聞く組織だけ)・`rollout`(選んだ組織に出す) |
 | `on` | 全部の組織(行は見ない) | 賭けの `adopted`(定着した) |
 | `off` | 誰にも出ない(行があっても) | 壊れたときに全部で止める。デプロイ(数分)で効く |
+| `plan` | いまの契約のプランに入っている組織(`PLANS` の `features`)と、運営が入れた組織 | 賭けの `adopted` で、上のプランにだけ出す機能(docs/specs/0047-plans.md・[runbooks/plans.md](../runbooks/plans.md)) |
 
 ## 足す(新しい機能を出し分ける)
 
@@ -69,6 +70,7 @@
 |---|---|
 | 1つの組織に出す・外す | 手順書のコマンド(`feature-flag <組織の ID> <機能> on|off`)。試し → `--execute` |
 | 全部に出す(賭けが `adopted`) | 状態を `on` にする PR。組織の行はそのままでよい(効かなくなる) |
+| 上のプランにだけ出す(賭けが `adopted`) | 状態を `plan` にし、`PLANS` のそのプランの `features` に名前を足す PR。組織の行も効く(プランの外の組織に試しに出す) |
 | 壊れたので全部で止める | 状態を `off` にする PR → デプロイ。直したら元の状態に戻す PR |
 | 撤去する(賭けが `retired`)・やめた(`dropped`) | 定義と、`requireFeature` / `hasFeature` / `recordUsage` の呼び出しと、その機能のコードを一緒に消す PR。残っていると単体テストが落ちる。組織の行は残っても効かない(解約で消える) |
 
