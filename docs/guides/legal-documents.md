@@ -3,6 +3,7 @@
 > ⚠️ **このキットは仕組みだけを持つ。規約の文面・何を「同意し直し」にするか・予告の日数は、法務の確認を経て決める。**
 > 下の「法令の要点」は、一次資料の要旨と、e-Gov 法令 API で読んだ条文の現行の版で確かめた(2026-10-22。設計書 `docs/designs/0009-legal-consent.md` の U-7)。ほかの法令は、サービスの中身に合わせて法務と確かめる。
 >
+> プロダクト全体で確かめる法令の一覧(専門家に聞くこと)は `docs/product/legal.md`(ひな形 [../product/_legal-template.md](../product/_legal-template.md)。`/kickoff` が書く)。
 > 決めた理由は [ADR 0022](../adr/0022-legal-documents-and-consent.md)、仕様は [specs/0009](../specs/0009-legal-consent.md)。お知らせのメールの送り方は [runbooks/legal-notice.md](../runbooks/legal-notice.md)。
 
 ## 仕組み
