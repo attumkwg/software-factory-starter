@@ -1,10 +1,11 @@
 {
-  "$comment": "危険度「高」の場所の一覧(ここが正)。AI は人の確認なしに変えない。.claude/settings.json の ask・.github/labeler.yml の risk:high・.github/CODEOWNERS・Bash のフック(guard-bash.mjs)がこれを使う。ずれたら `pnpm guards` が落ちる。足したら4か所にも足す",
+  "$comment": "危険度「高」の場所の一覧(ここが正)。AI は人の確認なしに変えない。編集のフック(guard-edit.mjs)と Bash のフック(guard-bash.mjs)がじかに読む。.github/labeler.yml の risk:high・.github/CODEOWNERS とずれたら `pnpm guards` が落ちる。足したらその2か所にも足す",
   "paths": [
     "apps/api/src/auth/**",
     "apps/api/src/authz/**",
     "apps/api/src/db/**",
     "apps/api/test/unit/classification.test.ts",
+    "apps/api/src/sensitive/**",
     "apps/api/src/logger.ts",
     "packages/error-reporting/**",
     "packages/logging/**",

@@ -47,6 +47,11 @@ comments:
     columnComments:
       feature: 機能の名前(FEATURE_FLAGS の name)
       day: 使った日(組織の時間帯での日付)
+  - table: sensitive.tenant_keys
+    tableComment: 組織ごとのデータ鍵(要配慮個人情報を暗号化する鍵。KMS で包んだ物だけ)。読めるのはロール app_sensitive だけ(app_rw はスキーマに入れない)。行を消すとその組織の要配慮の暗号文は読めない。docs/adr/0029-sensitive-data-tier1.md
+    columnComments:
+      kms_key_id: 包んだ KMS の鍵の ARN(手元は local)
+      wrapped_key: KMS で包んだデータ鍵(base64)
   - table: legal.consents
     tableComment: 利用規約・プライバシーポリシーへの同意の記録(足すだけ。アプリは読む・足すだけ)。版の一覧は @app/shared の LEGAL_VERSIONS。docs/specs/0009-legal-consent.md
     columnComments:

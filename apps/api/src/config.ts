@@ -15,6 +15,10 @@ const EnvObject = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   // アプリの接続ユーザー(表の持ち主ではない・RLS がかかる)
   DATABASE_URL: z.string().min(1),
+  // 要配慮個人情報だけの接続ユーザー(ロール app_sensitive。ADR 0029)。無ければ要配慮は扱わない(段0)
+  SENSITIVE_DATABASE_URL: z.string().min(1).optional(),
+  // 組織ごとのデータ鍵を包む KMS の鍵の ARN。無ければ手元の包み鍵(local / test / preview だけ)
+  SENSITIVE_KMS_KEY_ID: z.string().optional(),
   AUTH_MODE: z.enum(["dev", "cognito"]).default("dev"),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET は32文字以上にしてください"),
   // ログインの有効期間(ADR 0017): 無操作でこの秒数たったら切れる・使い続けてもログインからこの秒数で切れる
@@ -72,7 +76,40 @@ function envIssues(env: Env): Issue[] {
     ...sentryIssues(env),
     ...cognitoIssues(env),
     ...sessionIssues(env),
+    ...sensitiveIssues(env),
   ];
+}
+
+/** 要配慮個人情報の接続と鍵(ADR 0029) */
+function sensitiveIssues(env: Env): Issue[] {
+  const url = env.SENSITIVE_DATABASE_URL;
+  const key = env.SENSITIVE_KMS_KEY_ID;
+  if (!url) {
+    return key
+      ? [{ path: "SENSITIVE_KMS_KEY_ID", message: "SENSITIVE_DATABASE_URL もそろえてください" }]
+      : [];
+  }
+  const issues: Issue[] = [];
+  if (url === env.DATABASE_URL) {
+    issues.push({
+      path: "SENSITIVE_DATABASE_URL",
+      message:
+        "SENSITIVE_DATABASE_URL は DATABASE_URL と別の接続ユーザー(app_sensitive)にしてください",
+    });
+  }
+  if (!key && !DEV_LOGIN_ALLOWED.has(env.APP_ENV)) {
+    issues.push({
+      path: "SENSITIVE_KMS_KEY_ID",
+      message: `${env.APP_ENV} では KMS の鍵(SENSITIVE_KMS_KEY_ID)が要ります(手元の包み鍵は local / test / preview だけ)`,
+    });
+  }
+  if (key && !key.startsWith("arn:aws:kms:")) {
+    issues.push({
+      path: "SENSITIVE_KMS_KEY_ID",
+      message: "SENSITIVE_KMS_KEY_ID は鍵の ARN にしてください",
+    });
+  }
+  return issues;
 }
 
 function sessionIssues(env: Env): Issue[] {
@@ -170,6 +207,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     port: e.PORT,
     logLevel: e.LOG_LEVEL,
     databaseUrl: e.DATABASE_URL,
+    sensitive: e.SENSITIVE_DATABASE_URL
+      ? { databaseUrl: e.SENSITIVE_DATABASE_URL, kmsKeyArn: e.SENSITIVE_KMS_KEY_ID ?? null }
+      : null,
     auth:
       e.AUTH_MODE === "cognito"
         ? {

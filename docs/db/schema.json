@@ -1456,6 +1456,58 @@
           ]
         }
       ]
+    },
+    {
+      "name": "sensitive.tenant_keys",
+      "type": "BASE TABLE",
+      "comment": "組織ごとのデータ鍵(要配慮個人情報を暗号化する鍵。KMS で包んだ物だけ)。読めるのはロール app_sensitive だけ(app_rw はスキーマに入れない)。行を消すとその組織の要配慮の暗号文は読めない。docs/adr/0029-sensitive-data-tier1.md",
+      "columns": [
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kms_key_id",
+          "type": "text",
+          "nullable": false,
+          "comment": "包んだ KMS の鍵の ARN(手元は local)"
+        },
+        {
+          "name": "wrapped_key",
+          "type": "text",
+          "nullable": false,
+          "comment": "KMS で包んだデータ鍵(base64)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "tenant_keys_pkey",
+          "def": "CREATE UNIQUE INDEX tenant_keys_pkey ON sensitive.tenant_keys USING btree (tenant_id)",
+          "table": "sensitive.tenant_keys",
+          "columns": [
+            "tenant_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "tenant_keys_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (tenant_id)",
+          "table": "sensitive.tenant_keys",
+          "referenced_table": "",
+          "columns": [
+            "tenant_id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [

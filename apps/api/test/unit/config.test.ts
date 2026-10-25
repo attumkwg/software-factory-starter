@@ -115,3 +115,42 @@ describe("設定", () => {
     );
   });
 });
+
+describe("要配慮個人情報の接続と鍵(ADR 0029)", () => {
+  const url = "postgres://app_sensitive_login@db/app";
+  const arn = "arn:aws:kms:ap-northeast-1:123456789012:key/abcd";
+
+  it("接続が無ければ要配慮は扱わない(null)", () => {
+    expect(loadConfig(base).sensitive).toBeNull();
+  });
+
+  it("手元では KMS の鍵が無くてよい(手元の包み鍵)。stg・prod では鍵が要る", () => {
+    expect(loadConfig({ ...base, SENSITIVE_DATABASE_URL: url }).sensitive).toEqual({
+      databaseUrl: url,
+      kmsKeyArn: null,
+    });
+    expect(() =>
+      loadConfig({ ...base, ...cognito, APP_ENV: "prod", SENSITIVE_DATABASE_URL: url }),
+    ).toThrow(/SENSITIVE_KMS_KEY_ID/);
+    const prod = loadConfig({
+      ...base,
+      ...cognito,
+      APP_ENV: "prod",
+      SENSITIVE_DATABASE_URL: url,
+      SENSITIVE_KMS_KEY_ID: arn,
+    });
+    expect(prod.sensitive).toEqual({ databaseUrl: url, kmsKeyArn: arn });
+  });
+
+  it("アプリと同じ接続・ARN でない鍵・接続の無い鍵は通さない", () => {
+    expect(() => loadConfig({ ...base, SENSITIVE_DATABASE_URL: base.DATABASE_URL })).toThrow(
+      /別の接続ユーザー/,
+    );
+    expect(() =>
+      loadConfig({ ...base, SENSITIVE_DATABASE_URL: url, SENSITIVE_KMS_KEY_ID: "alias/x" }),
+    ).toThrow(/ARN/);
+    expect(() => loadConfig({ ...base, SENSITIVE_KMS_KEY_ID: arn })).toThrow(
+      /SENSITIVE_DATABASE_URL もそろえて/,
+    );
+  });
+});

@@ -268,7 +268,7 @@ parts:
     law:
       - ISMS 8.32(変更管理)
       - SOC 2 CC8.1
-    where: [.claude/hooks/protected-paths.json, scripts/check-guards.mjs, docs/guides/local-guards.md]
+    where: [.claude/hooks/protected-paths.json, .claude/hooks/guard-edit.mjs, .claude/hooks/guard-bash.mjs, scripts/check-guards.mjs, docs/guides/local-guards.md]
 
   - id: github-setup
     name: GitHub の一括のセットアップとラベルの一覧
@@ -909,25 +909,31 @@ parts:
       edit:
         - { path: .github/workflows/ci.yml, what: pnpm vendors の段を外す }
         - { path: package.json, what: vendors と test:scripts の vendors.test.mjs を外す }
-        - { path: .claude/hooks/protected-paths.json, what: docs/compliance/vendors.yaml を外す(settings.json・labeler.yml・CODEOWNERS も。pnpm guards) }
+        - { path: .claude/hooks/protected-paths.json, what: docs/compliance/vendors.yaml を外す(labeler.yml・CODEOWNERS も。pnpm guards) }
         - { path: docs/compliance/README.md, what: 台帳の行を外す(AI に渡すデータの決まり ai-data.md は残す) }
       docs: [docs/security.md, docs/compliance/ai-data.md]
 
   - id: sensitive-isolation
     name: 要配慮個人情報を分けて置く
     group: personal
-    status: 未
-    removable: true
-    default: 消す
-    what: 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている
+    status: あり
+    removable: false
+    default: 残す
+    what: 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(ADR 0018 の段1・ADR 0029)。スキーマ sensitive・専用のロール app_sensitive・専用の KMS の鍵で組織ごとのデータ鍵を包み、列ごとに暗号化。読み書きは apps/api/src/sensitive/ からだけ。段2・段3は手順書と上げる目安だけ
     needed_by: 要配慮個人情報を扱う
-    not_needed_by: 要配慮個人情報を扱わない(足せない守りは土台に残るので、間違って足すことは止まる)
-    if_removed: まだ無い
-    depends_on: [column-classification]
+    not_needed_by: 要配慮個人情報を扱わない(使わない間は費用0。Terraform の sensitive_data_enabled が false・DB には空のスキーマとデータ鍵の表だけ。消すと、後で要配慮を足すときに作り直しになるので消さない)
+    if_removed: 消さない(使わない間は Terraform で作らない)
+    depends_on: [column-classification, offboarding]
     law:
-      - 個人情報保護法 2条3項・20条2項(要配慮個人情報の取得には同意)
+      - 個人情報保護法 2条3項・20条2項(要配慮個人情報の取得には同意)・23条(安全管理措置)
+      - ISMS 8.24(暗号の利用)
       - P マーク
-    keep_when: [personal-data=要配慮も扱う]
+    where:
+      - apps/api/src/sensitive/index.ts
+      - apps/api/drizzle/0013_sensitive_schema.sql
+      - infra/terraform/modules/sensitive-data/main.tf
+      - docs/adr/0029-sensitive-data-tier1.md
+      - docs/runbooks/sensitive-data-tiers.md
 
   - id: person-deletion
     name: 1人分の削除と開示

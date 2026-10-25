@@ -151,6 +151,21 @@ WAF が5分に100回以上(`alarm_threshold`)止めた。WAF が「数えるだ�
 - 攻撃かもしれない → [attack.md](attack.md) の 0 で、総当たり・大量のアクセス・API の悪用・型どおりの試しのどれかを見分ける。
 - 利用者のふつうのアクセスが当たっている(誤検知)なら、当たった規則を WAF のログで見て(`terminatingRuleId`・`ruleGroupList`)、その規則を「数えるだけ」にする PR を出す。
 
+## sensitive-key
+
+**<名前>-sensitive-key-{other-principals,admin-changes,api-decrypts}**(要配慮個人情報の鍵。`modules/sensitive-data`。ADR 0029)
+
+**要配慮のデータの事故として扱う**(S1 の候補)。値・暗号文・鍵の中身は Slack・Issue に貼らない(貼ってよいのは役割の名前・時刻・件数まで)。AI には件数も渡さない(docs/security.md の AI-6)。
+
+| アラーム | 意味 | まずやること |
+|---|---|---|
+| `other-principals` | API のタスクの役割**以外**が、要配慮の鍵で復号・暗号化しようとした(断られた物も) | CloudTrail(コンソール → イベント履歴。イベントソース `kms.amazonaws.com`)で、誰が(`userIdentity`)・どこから(`sourceIPAddress`)・どの組織の鍵を(`requestParameters.encryptionContext.tenant_id`)・通ったか(`errorCode` の有無)を見る。人や Actions の役割なら、何の作業かを本人に確かめる。分からなければ [secret-leak.md](secret-leak.md) の型でその役割を止める |
+| `admin-changes` | 鍵を消す予約・止めた・鍵のポリシーを変えた・権限の付与(grant) | Terraform の apply の予定どおりなら、plan の差分と同じかを確かめて閉じる。予定に無ければ、**消す予約はすぐ取り消す**(`aws kms cancel-key-deletion --key-id <鍵>`・止めたなら `aws kms enable-key`)。鍵が消えると、全部の組織の要配慮のデータが戻せない(バックアップも) |
+| `api-decrypts` | API のタスクが5分にデータ鍵を開いた数が多すぎる(ふつうは 組織の数 × タスクの数 まで) | 大量の持ち出しの疑い。ログ(Logs Insights)で同じ時間の要配慮の API の呼び出しを、組織・利用者ごとに数える。タスクが何度も入れ替わっただけ(デプロイ・落ち続け。[task-stops](#task-stops))なら、組織の数が増えたのに線が古いなら `decrypt_alarm_threshold` を上げる PR |
+
+- 通っていた(`errorCode` が無い)・説明がつかない → [personal-data-breach.md](personal-data-breach.md)(要配慮は1件でも報告の対象)。止血は [incident.md](incident.md) の 3(要配慮の機能を機能フラグで止める)。
+- 段を上げる・鍵の扱いは [sensitive-data-tiers.md](sensitive-data-tiers.md)。
+
 ## cert-expiry
 
 証明書(ACM)の期限まで30日を切った。ACM は期限の60日前から DNS で確認して自動で更新するので、**ここまで来たら更新が失敗している**。
