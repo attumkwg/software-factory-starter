@@ -67,7 +67,10 @@ export function actualPhases(actuals) {
     if (!r.approved_by) g.unapproved += 1;
     out.set(key, g);
   }
+  // 並びは環境の言語の設定に頼らない(賭けは文字の順・段階は 研究開発 → 制作 → 運用 の順)
+  const order = Object.keys(PHASES);
+  const byText = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
   return [...out.values()].sort((a, b) =>
-    a.bet === b.bet ? a.phase.localeCompare(b.phase) : a.bet.localeCompare(b.bet),
+    a.bet === b.bet ? order.indexOf(a.phase) - order.indexOf(b.phase) : byText(a.bet, b.bet),
   );
 }
