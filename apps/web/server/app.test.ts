@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pino } from "pino";
 import { describe, expect, it } from "vitest";
-import { createWebApp, type SsrHandler } from "./app.ts";
+import { createWebApp, reportOriginOf, type SsrHandler } from "./app.ts";
 
 function setup(
   ssr: SsrHandler = () => new Response("<html></html>"),
-  env: { appEnv?: string; indexablePaths?: string[] } = {},
+  env: { appEnv?: string; indexablePaths?: string[]; sentryDsn?: string } = {},
 ) {
   const clientDir = mkdtempSync(join(tmpdir(), "web-client-"));
   mkdirSync(join(clientDir, "assets"));
@@ -127,6 +127,61 @@ describe("画面のサーバー", () => {
     const res = await app.request("/");
     expect(res.status).toBe(500);
     expect(await res.text()).not.toContain("hunter2");
+  });
+});
+
+describe("CSP(Content-Security-Policy)", () => {
+  const cspOf = (res: Response) => res.headers.get("content-security-policy") ?? "";
+  const nonceOf = (csp: string) => csp.split("'nonce-")[1]?.split("'")[0];
+
+  it("読み込むのは自分の origin と nonce の付いた埋め込みだけ。枠への埋め込み・object・base を止める", async () => {
+    const { app } = setup();
+    const csp = cspOf(await app.request("/"));
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]{20,}'/);
+    expect(csp).toMatch(/style-src 'self' 'nonce-/);
+    expect(csp).toContain("style-src-attr 'unsafe-inline'");
+    expect(csp).toContain("connect-src 'self';");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("base-uri 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    // スクリプトを、属性や埋め込みの文字だけで許す抜け道が無い
+    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp.split("script-src")[1]?.split(";")[0]).not.toContain("'unsafe-inline'");
+  });
+
+  it("nonce は1リクエストごとに変わり、同じ値を SSR に渡す(ブラウザから来た値は捨てる)", async () => {
+    const seen: (string | null)[] = [];
+    const { app } = setup((req) => {
+      seen.push(req.headers.get("x-csp-nonce"));
+      return new Response("<html></html>");
+    });
+    const first = await app.request("/projects", { headers: { "x-csp-nonce": "attacker" } });
+    const second = await app.request("/projects");
+    const n1 = nonceOf(cspOf(first));
+    const n2 = nonceOf(cspOf(second));
+    expect(n1).toBeTruthy();
+    expect(n1).not.toBe(n2);
+    expect(seen).toEqual([n1, n2]);
+  });
+
+  it("Sentry の DSN があれば、送る先の origin だけを connect-src に足す", async () => {
+    const { app } = setup(undefined, { sentryDsn: "https://key@o1.ingest.sentry.io/123" });
+    expect(cspOf(await app.request("/"))).toContain(
+      "connect-src 'self' https://o1.ingest.sentry.io;",
+    );
+    expect(reportOriginOf(undefined)).toBeUndefined();
+    expect(reportOriginOf("not a url")).toBeUndefined();
+  });
+
+  it("転送(302)・失敗(500)・ビルド済みの JS にも付く", async () => {
+    const redirect = setup(() => Response.redirect("http://web/login", 302)).app;
+    expect(cspOf(await redirect.request("/projects"))).toContain("default-src 'self'");
+    const failing = setup(() => {
+      throw new Error("x");
+    }).app;
+    expect(cspOf(await failing.request("/"))).toContain("default-src 'self'");
+    expect(cspOf(await failing.request("/assets/app-abc123.js"))).toContain("default-src 'self'");
   });
 });
 
