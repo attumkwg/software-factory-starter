@@ -138,7 +138,7 @@ PR の本文(と背景の AI の最後の報告)に、次の表を必ず付け�
 | 1 | ② 背景の AI の道具を絞る(`claude.yml` の `--disallowedTools`・結合テストは自分で回し、コンテナは外へ出られない) | 高(CI) | U-1・U-3 |
 | 2 | 外へ出した物の記録のフックと PR テンプレートの欄 | 高(ハーネス・CI) | 6 の型 |
 | 3 | ① 絞った devcontainer(プロキシ・firewall・中の Docker の取得)と、中で結合テスト・E2E・VRT が通ることの確かめ | 高(ハーネス) | U-1 |
-| 4 | CI の結合テスト・E2E のテストのコードの通信を絞る | 高(CI) | U-2 |
+| 4 | CI の結合テスト・E2E のテストのコードの通信を絞る(`ci.yml` の結合テストの前と、E2E のイメージを作った後に `block-container-egress.sh`。偽物の Cognito のイメージも止める前に作る。テストを動かす Node は絞れない) | 高(CI) | U-2 |
 | 5 | `docs/security.md` の AI-2 を「あり」に・`docs/guides/local-guards.md` に層を足す | 中 | 1〜3 |
 
 ## 8. 非機能
