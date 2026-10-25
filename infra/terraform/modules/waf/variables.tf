@@ -23,6 +23,12 @@ variable "rate_limit" {
   default     = 2000
 }
 
+variable "public_rate_limit" {
+  description = "公開の LP の入口(/api/public/*)に、1つの IP から5分に何回まで(WAF の下限は 10)"
+  type        = number
+  default     = 100
+}
+
 variable "log_retention_days" {
   type    = number
   default = 30

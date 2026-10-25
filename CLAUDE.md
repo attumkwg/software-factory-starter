@@ -26,6 +26,7 @@
 - `docs/scenarios/` … 想定の場面(架空の A 社 10人・B 社 100人が企画から運用まで回す台本)と、足りない物の一覧 `gaps.md`(G-01 など)。**部品を足した・穴を埋めた PR では、当たる場面の判定と `gaps.md` の行も直す**。何を足すか迷ったら `gaps.md` の上から
 - `apps/api` … Hono の API。領域ごとに `src/domains/<領域>/`。ルールは `apps/api/CLAUDE.md`
 - `apps/web` … TanStack Start の画面(SSR。API とは別のサービス)。ルールは `apps/web/CLAUDE.md`
+- `apps/site` … 公開の LP(記事・広告から人を呼ぶ静的なページ。本番だけ検索に載る)。事前登録は API の `/api/public/*` へ(運営の組織の持ち物・`apps/api/src/domains/growth`)。言葉は `src/content.ts`(`docs/product/positioning.md` から写す)。決まりは `docs/guides/landing-page.md`
 - `docker/postfix` … メールの中継(本番は ECS で SES へ・手元は Mailpit へ。http://localhost:8025)。`docs/guides/mail.md`
 - `packages/fake-cognito` … 開発とテスト専用の偽物の Cognito と、本物と比べる契約テスト(`contract/`)。偽物の振る舞いを変えたら契約テストも直す。手元の AWS の代わりの一覧は `docs/guides/local-environment.md`
 - `apps/api/src/audit` … 監査ログ(誰が・いつ・何を)。書き込みの API は認可の関所が自動で記録する。**書き込みの API を足したら `actions.ts` に名前を1行**(無ければ CI が落ちる)。記録は足すだけ
