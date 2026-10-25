@@ -2,13 +2,17 @@
 //   pnpm bets              一覧を出す。線より前に結果を書いた・段階を飛ばした・書き方が違う ときは 1 で終わる(CI)
 //                          期限を過ぎて決めていない賭けは ⏰ で出すだけ(落とさない。毎週の振り返りで見る)
 //                          線に届かなくても本人の意思で進んだ賭け(意思で進む)は ⚑ で出す。止める線の期限が来ても止めない
+//   pnpm bets --roadmap [--public] [--write]
+//                          ロードマップの1枚。社内の版(段階・親・次に決める日)と、--public の社外の版
+//                          (約束しない書き方)。--write で docs/product/roadmap.md・roadmap-public.md に書く
 //   pnpm bets --pr-body [--author <名前>]
 //                          PR の本文(標準入力)の「取り組み」「作業の種類」を確かめる(CI)
 //                          手元で: gh pr view <番号> --json body -q .body | pnpm bets --pr-body
 // 決まりは docs/guides/bets-and-assets.md。
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkBet, checkPrBody, idOfFile, parseBet } from "./bets-lib.mjs";
+import { renderInternal, renderPublic } from "./bets-roadmap.mjs";
 
 const DIR = "docs/product/bets";
 const today = new Date().toISOString().slice(0, 10);
@@ -96,5 +100,23 @@ const prBody = () => {
   console.log(`会計区分の案: ${result.proposal}(案。確定は人。docs/guides/bets-and-assets.md)`);
 };
 
+const roadmap = () => {
+  const { problems, rows } = checkAll(readBets());
+  if (problems.length > 0) {
+    console.log("⚠️ 賭けの書き方に問題があるので、先に pnpm bets で直してください。");
+    process.exit(1);
+  }
+  const isPublic = process.argv.includes("--public");
+  const text = (isPublic ? renderPublic : renderInternal)(rows, today).join("\n");
+  if (!process.argv.includes("--write")) {
+    console.log(text);
+    return;
+  }
+  const out = isPublic ? "docs/product/roadmap-public.md" : "docs/product/roadmap.md";
+  writeFileSync(out, text);
+  console.log(`${out} を作り直しました`);
+};
+
 if (process.argv.includes("--pr-body")) prBody();
+else if (process.argv.includes("--roadmap")) roadmap();
 else list();
