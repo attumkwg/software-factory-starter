@@ -406,7 +406,7 @@ parts:
   - id: provisioning
     name: 開通(組織を作るコマンド)
     group: business
-    status: 作成中
+    status: あり
     removable: true
     default: 残す
     what: 申し込みを受けた会社を、運営がコマンドで組織にし、最初の管理者を作る(試し → 名前の確認 → 実行・監査ログ)
