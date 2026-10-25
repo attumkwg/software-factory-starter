@@ -71,7 +71,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | T-2 | **アプリの入口でテナントの文脈を作り**、以後の読み書きはその文脈で自動で絞る部品(リポジトリ)を必ず通す。生の SQL・接続プールの直接の利用は検査で止める | `c.var.tx`・`src/domains/*/repository.ts`・Semgrep の `tenant-scoped-db-only`・`no-raw-sql` |
 | T-3 | **DB の行レベルセキュリティ(RLS)を最後の砦に**。トランザクションごとに `SET LOCAL` でテナント ID を渡し、ポリシーで他社の行を返さない。アプリの接続ユーザーは**表の持ち主にしない**(持ち主は RLS をすり抜ける)・`FORCE ROW LEVEL SECURITY` | `src/db/tenant.ts`・`drizzle/0001_rls.sql`・`db/init/001-roles.sql` |
 | T-4 | **キャッシュ・検索・ファイル・キューにもテナント**。キャッシュのキーと検索の条件にテナント ID・S3 はテナントごとの置き場所+テナントで絞った一時的な権限・キューのメッセージにテナント ID を載せ、受け取った側で文脈を作り直す | 送信待ち(アウトボックス)の出来事に `tenantId` を載せ、受け取った側で `withTenant`(`src/outbox/`)。キャッシュ・検索・ファイルは、足すときにこの決まりで |
-| T-5 | **鍵を分ける(必要な顧客だけ)**。専用の顧客はテナントごとの KMS の鍵。契約が終わったら鍵を消せば、バックアップの中のデータも読めなくなる(暗号による消去) | 未(大きな顧客が付いたら)。[guides/data-retention.md](guides/data-retention.md) |
+| T-5 | **鍵を分ける(必要な顧客だけ)**。専用の顧客はテナントごとの KMS の鍵。契約が終わったら鍵を消せば、バックアップの中のデータも読めなくなる(暗号による消去) | 要配慮個人情報だけ一部あり: 組織ごとのデータ鍵を KMS の鍵1本で包み、列ごとに暗号化(`apps/api/src/sensitive/`・[ADR 0029](adr/0029-sensitive-data-tier1.md))。テナントごとの KMS の鍵は未(大きな顧客が付いたら。[runbooks/sensitive-data-tiers.md](runbooks/sensitive-data-tiers.md) の 4・[guides/data-retention.md](guides/data-retention.md)) |
 | T-6 | **1社の暴走を止める**: テナントごとの流量の上限・バッチの同時実行の上限・クエリの時間切れ(`statement_timeout`)。重すぎる会社は専用へ | `src/db/client.ts`(クエリ5秒・止まったトランザクション10秒)・WAF の IP ごとの上限。テナントごとの流量の上限は PMF の後 |
 | T-7 | **社員のアクセスは「代理ログイン」だけ**: お客さんの許可・時間制限つき・全部の操作を記録・お客さんからも見える監査ログ。全社を一覧できる管理画面を作らない | [ADR 0014](adr/0014-support-access.md)・[runbooks/support-access.md](runbooks/support-access.md) |
 | T-8 | **SSO はドメインを確かめてから**: 会社のドメインを DNS で確かめてから、その IdP を有効にする。招待はリンクの期限と1回きり | 未(SSO・招待の画面を足すときに) |

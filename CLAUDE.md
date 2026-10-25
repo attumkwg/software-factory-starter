@@ -27,6 +27,7 @@
 - `apps/api/src/feature-flags` … 組織ごとの機能フラグ(定義は `packages/shared` の `FEATURE_FLAGS`・賭けに結びつける)。機能の API は `requireFeature`、画面は `hasFeature(me, …)`。切り替えは運営のコマンドだけ。使われたかは `apps/api/src/usage` の `recordUsage`(1日1人1機能1行。中身・時刻は記録しない・400日で消す)で測る。`docs/guides/feature-flags.md`
 - `apps/api/src/offboarding` … 解約の削除のコマンド(`delete-tenant`。試し → `--execute --confirm-name`)。`tenant_id` の表を足したら `TENANT_TABLES` にも。手順は `docs/runbooks/offboarding.md`
 - `apps/api/src/db/classification.ts` … 列の分類表(全部の列に `public` / `internal` / `personal` / `sensitive` と目的)。**列を足したら1行**(無ければ CI が落ちる)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ(ADR 0018)。台帳は `docs/db/personal-data.md`
+- `apps/api/src/sensitive` … 要配慮個人情報の入口(段1。ADR 0029)。別の接続(ロール `app_sensitive`)と、組織ごとのデータ鍵(KMS で包む)で列ごとに暗号化。**要配慮の表の読み書きはこのフォルダの中だけ**(外からは `index.ts`。触ると Semgrep が落ちる)。段を上げる手順は `docs/runbooks/sensitive-data-tiers.md`
 - `packages/logging` … API と画面のサーバーのログの部品。**出してよい項目だけ出す**(許可リスト。知らない名前は `[REDACTED]`)。ログに新しい名前を出すなら `ALLOWED_KEYS` に足す(人の確認)。ADR 0019
 - `packages/error-reporting` … error 以上のログを Sentry に送る(値を落としてから)。Sentry を直接呼ばず、`logger.error({ err }, "…")` で残す。`docs/guides/monitoring.md`
 - `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
@@ -56,6 +57,7 @@
 - ログにオブジェクトを丸ごと渡す(`logger.info(user)`)。必要な項目だけを `{ userId }` の形で。
 - 本番の個人データ(名前・メールアドレス・題名・本文・画面のスクショ)を読む・求める。受け取ってよいのは ID と集計まで。要配慮は件数も受け取らない(`docs/security.md` の AI-6・`docs/compliance/ai-data.md`)。貼られたら使わずに、そう伝える
 - 秘密・本番の値をコード・ログ・PR に書く。`.env` を読む・作る。
+- 要配慮個人情報(スキーマ `sensitive` の中身・暗号文・復号した値・データ鍵)を読む・ログや PR や Issue に書く・自分の調べの材料にする。事故の調べでも、受け取るのは組織・利用者の ID と鍵の利用の記録の形(誰が・いつ)まで。要配慮の件数も受け取らない(AI-6・`docs/runbooks/incident.md` の 2)。
 - 本番の DB や AWS に書き込む操作(戻す・入れ替える・止める)を自分で打つ。手順書(`docs/runbooks/`)のコマンドを、確かめた形で人に渡す。
 - 人の承認なしに次を変える(危険度「高」): 一覧は `.claude/hooks/protected-paths.json`(認証・認可・DB・移行・権限の表・infra・CI・ハーネス・検査の除外・依存の入れ方)。Edit・Write は確認が出る(使う人が手元の `env` に `KIT_EDIT_GUARD=pr` と書いたときは出ない。そのときは PR の危険度を「高」にして、変えた理由を「人に判断してほしい所」に書く)。Bash で書き換えて確認を避けない(フックが聞く)。変数は自分で書かない
 - main へ push する・強制 push する・PR をマージする・承認する(フックが止める。`docs/guides/local-guards.md`)

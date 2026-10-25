@@ -34,6 +34,11 @@ output "task_role_arn" {
   value = aws_iam_role.task.arn
 }
 
+output "migrate_task_role_arn" {
+  description = "移行・運営のコマンドの役割(何も許していない)"
+  value       = aws_iam_role.migrate.arn
+}
+
 output "alb_arn" {
   description = "WAF を付ける先"
   value       = aws_lb.this.arn

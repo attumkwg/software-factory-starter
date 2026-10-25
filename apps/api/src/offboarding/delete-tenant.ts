@@ -16,6 +16,8 @@ import { withTenant } from "../db/tenant.ts";
  * (無ければ結合テスト offboarding.int.test.ts が落ちる)。
  */
 export const TENANT_TABLES = [
+  // 要配慮個人情報(ADR 0029)。データ鍵を最初に消す = 暗号による消去(要配慮の表を足したら、この前に)
+  "sensitive.tenant_keys",
   "legal.notices",
   "legal.consents",
   "organizations.email_changes",
