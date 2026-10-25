@@ -292,6 +292,11 @@ controls: [A.5.1, …]     # 当たる管理策(1件以上・実在)
 - 記録(教育・内部監査・マネジメントレビュー)は人の名前が入るので、公開のリポジトリには置かず、置き場だけを `records/README.md` に書く
 - `pnpm checkup --area` のときは Issue を書かない — 今週の点検の Issue を、認証の準備だけの結果で書き換えないため
 - (②)CloudWatch のダッシュボードは足さない(ADR 0032)。`Component` は provider の別名で付ける — 14のモジュールの中を変えずに済む
+- (②)役割 `…-cost` は Environment `cost`(main だけ)から引く(OIDC の `sub` が `environment:cost` になる)— 管理用の鍵も同じ Environment に置くので、ジョブを1つにできる
+- (②)プレビュー(`envs/preview`)の Terraform には `Bet`・`Component` を足さない — PR ごとの環境は使い捨てで、タグ `PullRequest` で分かれる。dev のアカウントには役割 `preview-cost`(読むだけ)だけを足す
+- (②)Actions の分数は、実行の始まりから終わりまで(ジョブごとの請求の分とは少しずれる)。金額は非公開のリポジトリの枠を超えた分だけ(請求の API)
+- (②)`gh api` の読み取りの上限を 64MB に(`scripts/checkup/gh.mjs`。実行の一覧100件が既定の 1MB を超えて読めなかった)
+- (②)ページの色は1系列の青と、見積もりを超えたときだけ注意の赤(⚠ と文字も付ける)。外の読み込みもスクリプトも無し(テストで確かめる)
 - (②)Cost Anomaly Detection は「AWS のサービスごと」の監視ではなく、タグ `Project` に絞った監視にする — 「サービスごと」の監視はアカウントに1つまでで、AWS が既定で作っていることがあり、重ねると apply が落ちる
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)

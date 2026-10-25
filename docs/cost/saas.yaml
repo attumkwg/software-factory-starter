@@ -1,0 +1,13 @@
+# そのほかの SaaS の月額(手で書く)。費用のページ(cost.yml)が、AWS・Actions・AI と並べる。
+# ⚠️ 公開のリポジトリなら、金額を書かない(monthly_jpy: null のまま。ページには「金額なし」と出る)。請求の詳細を公開しないため(ADR 0032)
+# 書き方:
+#   name … 名前 / what … 何に使うか / monthly_jpy … 月額(円の整数。年額なら12で割る。null なら数えない)
+#   category … ai(AI の席など)/ scan(有料の検査)/ other(そのほか)。見積もりの区分(estimates.yaml)に足される
+#   bet … どの賭けのためか(docs/product/bets の ID。土台は core)/ since・until … 使い始めた月・やめた月(YYYY-MM)
+#   vendor … 委託先の台帳(docs/compliance/vendors.yaml)の id(あれば)
+# 使っているのにここに無い物は、ページに出ない(Cost Explorer・Actions・Anthropic の API で取れる物は書かない)。
+
+items:
+  - { name: Claude(席), what: Claude Code・Claude の席(人数分), monthly_jpy: null, category: ai, bet: core, since: 2026-10 }
+  - { name: Sentry, what: 失敗の知らせ(docs/guides/monitoring.md), monthly_jpy: null, category: other, bet: core, since: 2026-10 }
+  - { name: ドメイン, what: 画面と API のドメイン(年額を12で割る), monthly_jpy: null, category: other, bet: core, since: 2026-10 }

@@ -24,6 +24,7 @@
     "scripts/checkup/**",
     "scripts/setup/**",
     "scripts/evidence/**",
+    "scripts/cost/**",
     ".gitleaksignore",
     ".trivyignore.yaml",
     "renovate.json",

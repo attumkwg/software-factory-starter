@@ -85,6 +85,14 @@ export function makeBundle({ kind, month, collectedAt, repo, commit, entries }) 
   return files;
 }
 
+/** 何回かに分けて書いた物(Map<ファイル名, 中身>)の目録。費用(scripts/cost)のように、最後にまとめて作るとき */
+export const manifestOf = (meta, files) => ({
+  ...meta,
+  files: [...files]
+    .filter(([file]) => file !== "manifest.json")
+    .map(([file, body]) => ({ file, sha256: sha256(body), bytes: Buffer.byteLength(body) })),
+});
+
 export function writeBundle(dir, files) {
   mkdirSync(dir, { recursive: true });
   for (const [name, body] of files) writeFileSync(join(dir, name), body);

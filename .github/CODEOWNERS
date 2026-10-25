@@ -39,6 +39,7 @@
 /scripts/checkup/                   @attumkwg
 /scripts/setup/                     @attumkwg
 /scripts/evidence/                  @attumkwg
+/scripts/cost/                      @attumkwg
 /.gitleaksignore                    @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg

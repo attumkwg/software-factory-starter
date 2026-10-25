@@ -24,6 +24,7 @@
 | `restore-drill.yml` | stg の DB を一時の DB に戻して確かめ、消す([runbooks/db-restore.md](../runbooks/db-restore.md) の 5) | 手動(有効にすると毎月1日)。変数が無ければ飛ばす | 1回 数十円(一時の DB を30分ほど) | ここに日付を入れてください |
 | `zap-api-scan.yml` | ZAP の認証つき API スキャン(stg) | 手動 | 分数+stg が少し動く分 | ここに日付を入れてください |
 | `checkup.yml` | 点検の知らせ。毎週「点検 YYYY-Www」の Issue(担当者に assign)・急ぎは毎日1件ずつ Issue(直ったら閉じる)。答えは `/checkup`([checkup/README.md](../checkup/README.md))。**毎週の Issue が来なければ点検が止まっている** | 自動(毎週 月曜 8:00・急ぎは毎日 8:00。キットから作ったリポジトリだけ)・手動でも | 分数だけ(毎週 2〜3分・毎日 1分。月 約40分) | 2026-10-24 |
+| `cost.yml` | 費用のページ。AWS(stg・dev・prod の Cost Explorer)・Actions の分数・AI・SaaS の月額を集め、何にいくら(動いている物ごと)と見積もりとの比べを HTML の1枚にして、非公開の S3 に置く([cost-dashboard.md](cost-dashboard.md)) | 手動(有効にすると毎日 7:00)。変数が無ければ飛ばす | Cost Explorer 1回 $0.01 × 1日 最大18回(月 約800円)+分数 | ここに日付を入れてください |
 | `evidence.yml` | 証跡の収集。GitHub と AWS(prod)の設定・訓練と点検の結果・点検の台帳を、消せない S3 に毎月置く(認証の準備。[compliance/README.md](../compliance/README.md)) | 自動(毎月1日 9:00。キットから作ったリポジトリで、置き場の変数があるときだけ)・手動でも | 分数だけ(1回 2〜3分)+S3 は月 数円 | 2026-10-25(変数が無ければ飛ぶ) |
 | `vuln-scan.yml` | 定期の脆弱性チェック(Trivy fs・zizmor のオンライン版)。落ちたら Issue(`/cve` で精査する) | 自動(毎週月曜 5:00。キットのリポジトリでも回す)・手動でも | 分数だけ(5分ほど) | 2026-10-22 |
 

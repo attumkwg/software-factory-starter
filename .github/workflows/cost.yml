@@ -1,0 +1,97 @@
+# 費用のページ: AWS(stg・dev・prod の Cost Explorer)・GitHub Actions の分数・AI(Anthropic の使用の金額)・SaaS の月額を集め、
+# 何にいくら(動いている物ごと・環境・賭け)と、見積もり(段階の表)との比べを、静的な HTML の1枚にして、非公開の S3 に置く。
+# 金額と中身はログに出さない(名前と件数だけ。公開のリポジトリでは誰でもログを読める)。成果物は非公開のリポジトリのときだけ。
+# 決まりは docs/designs/0019-evidence-soa-and-cost.md・手引きは docs/guides/cost-dashboard.md・ADR 0032
+#
+# 要るもの(Terraform の出力。docs/guides/cost-dashboard.md の 2.):
+#   変数 AWS_PROD_COST_ROLE_ARN・COST_BUCKET(prod の出力 cost_bucket)。あれば AWS_STG_COST_ROLE_ARN・AWS_DEV_COST_ROLE_ARN
+#   Environment「cost」(main だけ。pnpm setup:github が作る)。秘密 ANTHROPIC_ADMIN_KEY は任意(設計書 0019 の U-4)
+# 無ければ、失敗せずに飛ばす。
+# 費用: Cost Explorer が1回 $0.01 × 1アカウント6回 = 1日 最大 $0.18(3アカウント)+分数 1〜2分。
+name: Cost
+
+# いまは手動だけ(Actions → Cost → Run workflow)。お金がかかる(Cost Explorer)ので、毎日にするのは人(docs/guides/automation.md)。
+on:
+  workflow_dispatch:
+  # 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+  # 有効にすると、毎日 日本時間 7:00 に作り直す(1日 最大 約27円)。
+  # schedule:
+  #   - cron: "0 22 * * *" # 日本時間 7:00
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cost
+  cancel-in-progress: false
+
+jobs:
+  page:
+    name: 費用を集めてページを作る
+    # 定期で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)だけ。置き場の変数が無ければ飛ばす
+    if: (github.event_name != 'schedule' || vars.KIT_ROLE == 'product') && vars.AWS_PROD_COST_ROLE_ARN != '' && vars.COST_BUCKET != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 役割は Environment「cost」(main だけ)からだけ引ける。管理用の鍵もここ
+    environment: cost
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: AWS の外(Actions の分数・AI・SaaS・見積もり)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKUP_READ_TOKEN: ${{ secrets.CHECKUP_TOKEN }}
+          ANTHROPIC_ADMIN_KEY: ${{ secrets.ANTHROPIC_ADMIN_KEY }}
+        run: pnpm cost --out "$RUNNER_TEMP/cost" --only github,anthropic,saas
+      - if: vars.AWS_STG_COST_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_STG_COST_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          unset-current-credentials: true
+      - if: vars.AWS_STG_COST_ROLE_ARN != ''
+        run: pnpm cost --out "$RUNNER_TEMP/cost" --account stg
+      - if: vars.AWS_DEV_COST_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEV_COST_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          unset-current-credentials: true
+      - if: vars.AWS_DEV_COST_ROLE_ARN != ''
+        run: pnpm cost --out "$RUNNER_TEMP/cost" --account dev
+      # prod は最後(このあと置き場に書くのも prod の役割)
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PROD_COST_ROLE_ARN }}
+          aws-region: ap-northeast-1
+          unset-current-credentials: true
+      - run: pnpm cost --out "$RUNNER_TEMP/cost" --account prod
+      - name: ページを作る
+        run: pnpm cost --render "$RUNNER_TEMP/cost"
+      - name: 非公開の置き場に置く(cost/<年-月>/ と cost/latest/index.html)
+        env:
+          BUCKET: ${{ vars.COST_BUCKET }}
+        run: |
+          set -euo pipefail
+          month=$(TZ=Asia/Tokyo date +%Y-%m)
+          aws s3 cp --recursive --only-show-errors "$RUNNER_TEMP/cost" "s3://$BUCKET/cost/$month/"
+          aws s3 cp --only-show-errors --content-type "text/html; charset=utf-8" "$RUNNER_TEMP/cost/index.html" "s3://$BUCKET/cost/latest/index.html"
+          echo "cost/latest/index.html を作り直しました(見方: docs/guides/cost-dashboard.md の 3.)" >> "$GITHUB_STEP_SUMMARY"
+      # 公開のリポジトリでは成果物を誰でも落とせるので、非公開のときだけ
+      - if: github.event.repository.private
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cost
+          path: ${{ runner.temp }}/cost/index.html
+          retention-days: 7

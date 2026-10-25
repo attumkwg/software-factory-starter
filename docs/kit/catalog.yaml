@@ -672,6 +672,41 @@ parts:
         - { file: infra/terraform/envs/prod/main.tf, module: waf }
       docs: [docs/security.md]
 
+  - id: cost-dashboard
+    name: 費用のページ(何にいくら)
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・AI(Anthropic の使用の金額)・SaaS の月額を集め、見積もり(段階の表)と並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り
+    needed_by: 費用を自分で払っている・機能(賭け)ごとの費用を知りたい・見積もりとずれていないかを見たい
+    not_needed_by: 費用を見る人が別にいて、Cost Explorer の画面で足りる
+    if_removed: 「何にいくら」が AWS・GitHub・AI の画面に散ったまま。賭けごとの費用が分からず、/ledger(資産か費用か)の元が無い
+    depends_on: [alarms]
+    law: []
+    remove:
+      delete:
+        - scripts/cost
+        - docs/cost
+        - .github/workflows/cost.yml
+        - docs/guides/cost-dashboard.md
+        - infra/terraform/modules/cost-watch
+      edit:
+        - { path: package.json, what: cost と、test:scripts の scripts/cost を外す }
+        - { path: .github/setup.yml, what: Environment cost を外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: module.cost_watch・module.cost_reports を外す(タグの provider の別名は残してよい) }
+        - { path: infra/terraform/envs/prod/github.tf, what: 役割 …-cost と data.aws_iam_policy_document.cost を外す }
+        - { path: infra/terraform/envs/prod/outputs.tf, what: cost_bucket を外す }
+        - { path: infra/terraform/envs/stg/main.tf, what: module.cost_watch を外す }
+        - { path: infra/terraform/envs/stg/github.tf, what: 役割 …-cost と data.aws_iam_policy_document.cost を外す }
+        - { path: infra/terraform/envs/preview/base/github.tf, what: 役割 preview-cost と data.aws_iam_policy_document.cost を外す }
+        - { path: infra/terraform/modules/alerts/main.tf, what: publishers の costalerts.amazonaws.com を外す }
+        - { path: .claude/hooks/protected-paths.json, what: scripts/cost/** を外す(.claude/settings.json・.github/labeler.yml・.github/CODEOWNERS も) }
+        - { path: CLAUDE.md, what: 費用のページの行を外す }
+        - { path: docs/guides/automation.md, what: cost.yml の行を外す }
+        - { path: docs/README.md, what: guides の費用のページを外す }
+      docs: [docs/specs/0019-evidence-soa-and-cost.md, docs/designs/0019-evidence-soa-and-cost.md, docs/adr/0032-evidence-and-cost-outside-the-repo.md]
+
   - id: security-baseline
     name: GuardDuty と Security Hub
     group: watch

@@ -31,6 +31,8 @@ export function ghApi(path) {
       env: readEnv(),
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 60_000,
+      // 実行の一覧(100件)などは 1MB(既定)を超える
+      maxBuffer: 64 * 1024 * 1024,
     });
     return { ok: true, data: out.trim() ? JSON.parse(out) : null };
   } catch (e) {

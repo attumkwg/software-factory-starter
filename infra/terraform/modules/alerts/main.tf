@@ -1,6 +1,6 @@
 # 知らせの通り道(環境ごとに1つ)。アラーム・費用・セキュリティの見つけ物は、全部ここの SNS に集める。
 #
-#   CloudWatch のアラーム・EventBridge(Security Hub)・RDS のイベント・AWS Budgets(費用)
+#   CloudWatch のアラーム・EventBridge(Security Hub)・RDS のイベント・AWS Budgets(費用)・Cost Anomaly Detection(費用の急な変化)
 #     → SNS(KMS で暗号化)→ Slack(Amazon Q Developer in chat applications。旧 AWS Chatbot)
 #                          → メール(任意)
 #
@@ -21,6 +21,7 @@ locals {
     "cloudwatch.amazonaws.com",
     "events.amazonaws.com",
     "budgets.amazonaws.com",
+    "costalerts.amazonaws.com", # 費用の急な変化(Cost Anomaly Detection。modules/cost-watch)
     "events.rds.amazonaws.com",
   ]
   slack_enabled = var.slack_team_id != null && var.slack_channel_id != null

@@ -178,6 +178,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 見張り | アラームと知らせ・費用の警報 `alarms` | 5xx・遅さ・DB・証明書のアラーム、月の費用の警報を SNS → Slack(とメール)へ | 残す | あり |
 | 見張り | 外形監視 `uptime` | 外から本番が開けるかを Route 53 のヘルスチェックで見る | 残す | あり |
 | 見張り | WAF `waf` | ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める) | 残す | あり |
+| 見張り | 費用のページ(何にいくら) `cost-dashboard` | AWS(Cost Explorer。環境・動いている物 Component・賭け Bet・PR ごと)・GitHub Actions の分数・AI(Anthropic の使用の金額)・SaaS の月額を集め、見積もり(段階の表)と並べた HTML の1枚を、非公開の S3 に置く(cost.yml)。全部のリソースにタグ Bet と Component・コスト配分タグ・費用の急な変化の見張り | 残す | あり |
 | 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
 | 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
 | 表側(画面) | 検索に載せない(noindex)とスマホの幅の E2E `noindex-mobile` | 本番以外と、ログインの後の画面を検索に載せない(X-Robots-Tag・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る | 残す | あり |

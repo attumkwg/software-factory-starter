@@ -15,6 +15,11 @@ module "github_oidc" {
       subjects    = ["pull_request", "ref:refs/heads/main"]
       policy_json = data.aws_iam_policy_document.preview.json
     }
+    "preview-cost" = {
+      description = "cost.yml (environment cost, main only): read Cost Explorer"
+      subjects    = ["environment:cost"]
+      policy_json = data.aws_iam_policy_document.cost.json
+    }
   }
 }
 
@@ -112,4 +117,17 @@ data "aws_iam_policy_document" "preview" {
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
+}
+
+# ── 費用を読む(cost.yml。毎日・有効にしたら)。docs/guides/cost-dashboard.md・ADR 0032 ─────────────
+#   AWS_<環境>_COST_ROLE_ARN … github_role_arns の …-cost。Environment「cost」(main だけ)のジョブからだけ引ける
+#   Cost Explorer の集計を読むだけ(PR ごとの環境はタグ PullRequest で分かれる)。1回 $0.01 なので、呼ぶ回数は scripts/cost が決める(1日 6回まで)
+
+data "aws_iam_policy_document" "cost" {
+  statement {
+    sid     = "ReadCost"
+    actions = ["ce:GetCostAndUsage", "ce:GetCostForecast"]
+    #trivy:ignore:AVD-AWS-0057 Cost Explorer はリソースを絞れない(AWS の仕様)。読むのは金額の集計だけ
+    resources = ["*"]
+  }
 }
