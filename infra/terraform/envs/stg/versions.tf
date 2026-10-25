@@ -22,15 +22,23 @@ terraform {
   backend "s3" {}
 }
 
+# 全部のリソースに付けるタグ(費用を「何に・どの環境・どの賭け」で分ける。docs/guides/cost-dashboard.md・ADR 0032)。
+#   Component は動いている物ごと。モジュールに、既定のタグの違う provider(下の別名)を渡して付ける(モジュールの中は変えない)。
+#   Bet は賭けの ID(docs/product/bets)。土台は core。賭けだけのリソースは、リソースの tags で Bet = "B-NNNN" に上書きする
+locals {
+  default_tags = {
+    Project     = var.project
+    Environment = local.env
+    ManagedBy   = "terraform"
+    Repository  = var.github_repository
+    Bet         = var.bet
+  }
+}
+
 provider "aws" {
   region = var.region
   default_tags {
-    tags = {
-      Project     = var.project
-      Environment = local.env
-      ManagedBy   = "terraform"
-      Repository  = var.github_repository
-    }
+    tags = merge(local.default_tags, { Component = "shared" })
   }
 }
 
@@ -39,11 +47,51 @@ provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
   default_tags {
-    tags = {
-      Project     = var.project
-      Environment = local.env
-      ManagedBy   = "terraform"
-      Repository  = var.github_repository
-    }
+    tags = merge(local.default_tags, { Component = "shared" })
+  }
+}
+
+# Component = api(API と入口(ALB・ECS のクラスター))
+provider "aws" {
+  alias  = "api"
+  region = var.region
+  default_tags {
+    tags = merge(local.default_tags, { Component = "api" })
+  }
+}
+
+# Component = web(画面の SSR)
+provider "aws" {
+  alias  = "web"
+  region = var.region
+  default_tags {
+    tags = merge(local.default_tags, { Component = "web" })
+  }
+}
+
+# Component = mail(メールの中継と SES)
+provider "aws" {
+  alias  = "mail"
+  region = var.region
+  default_tags {
+    tags = merge(local.default_tags, { Component = "mail" })
+  }
+}
+
+# Component = db(DB(Aurora)とバックアップ)
+provider "aws" {
+  alias  = "db"
+  region = var.region
+  default_tags {
+    tags = merge(local.default_tags, { Component = "db" })
+  }
+}
+
+# Component = network(VPC・NAT・フローログ)
+provider "aws" {
+  alias  = "network"
+  region = var.region
+  default_tags {
+    tags = merge(local.default_tags, { Component = "network" })
   }
 }

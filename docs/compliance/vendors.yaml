@@ -91,7 +91,7 @@ vendors:
       - name: S3
         terraform: [aws_s3_*]
         data: [public, internal]
-        note: 管理操作の記録と、試作の画面(偽のデータだけ)。お客さんのデータは置かない
+        note: 管理操作の記録・毎月の証跡(設定の写し。社員の GitHub と IAM の名前を含む)・費用のページ・試作の画面(偽のデータだけ)。お客さんのデータは置かない
       - name: CloudFront(試作の画面の配信)
         terraform: [aws_cloudfront_*]
         data: [public]
@@ -124,10 +124,10 @@ vendors:
       - name: GuardDuty・Security Hub(見張り)
         terraform: [aws_guardduty_*, aws_securityhub_*]
         data: [internal]
-      - name: SNS・AWS Chatbot・Budgets(知らせ・予算)
-        terraform: [aws_sns_*, aws_chatbot_*, aws_budgets_*]
+      - name: SNS・AWS Chatbot・Budgets・Cost Explorer(知らせ・予算・費用の集計と急な変化の見張り)
+        terraform: [aws_sns_*, aws_chatbot_*, aws_budgets_*, aws_ce_*]
         data: [internal]
-        note: 知らせの中身はアラームの名前と数だけ。Chatbot から先は Slack(下の slack)
+        note: 知らせの中身はアラームの名前と数だけ。Chatbot から先は Slack(下の slack)。Cost Explorer はこのアカウントの請求の集計を読むだけ(コスト配分タグ・費用の急な変化。docs/guides/cost-dashboard.md)
 
   - id: github
     name: GitHub

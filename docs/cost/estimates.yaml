@@ -1,0 +1,41 @@
+# 費用の見積もり(段階ごとの月の目安)。費用のページ(pnpm cost --render)が、実績と並べる。
+# 元は docs/concepts/stages.md の 4.(2026-10 時点の目安・東京リージョン・定価・1ドル = 150円)。stages.md を直したら、ここも直す。
+#   stage … 今の段階(stages の id)。段階が変わったら書き換える(/bet・/kickoff の段階とそろえる)
+#   lines … 区分ごとの下と上(円)。区分と実績の対応:
+#     infra      … AWS の stg と prod のアカウント
+#     preview_ci … AWS の dev のアカウント(PR ごとの環境)+GitHub Actions(非公開のときの枠を超えた分)
+#     ai         … saas.yaml の category: ai(AI の席・使用料の月額。API で自動では取らない)
+#     scan       … saas.yaml の category: scan(有料の検査)
+#   saas.yaml の category: other は、見積もりの無い「そのほか」に出る
+usd_jpy: 150 # 1ドルの円(ドルの実績を円にするとき。stages.md と同じ)
+stage: pre-pmf
+
+stages:
+  - id: pre-pmf
+    name: ① PMF の前(2人)
+    lines:
+      - { id: infra, name: 本番+stg, min: 40000, max: 40000 }
+      - { id: preview_ci, name: PR ごとの環境・CI, min: 0, max: 10000 }
+      - { id: ai, name: AI(席+背景エージェント), min: 30000, max: 60000 }
+      - { id: scan, name: 有料の検査, min: 0, max: 0 }
+  - id: post-pmf-5
+    name: ② PMF の後(5人)
+    lines:
+      - { id: infra, name: 本番+stg, min: 100000, max: 100000 }
+      - { id: preview_ci, name: PR ごとの環境・CI, min: 30000, max: 30000 }
+      - { id: ai, name: AI(席+背景エージェント), min: 140000, max: 220000 }
+      - { id: scan, name: 有料の検査, min: 0, max: 40000 }
+  - id: post-pmf-15
+    name: ② PMF の後(15人)
+    lines:
+      - { id: infra, name: 本番+stg, min: 300000, max: 450000 }
+      - { id: preview_ci, name: PR ごとの環境・CI, min: 80000, max: 150000 }
+      - { id: ai, name: AI(席+背景エージェント), min: 600000, max: 900000 }
+      - { id: scan, name: 有料の検査, min: 110000, max: 110000 }
+  - id: scale-100
+    name: ③ 規模拡大(100人)
+    lines:
+      - { id: infra, name: 本番+stg, min: 7500000, max: 7500000 }
+      - { id: preview_ci, name: PR ごとの環境・CI, min: 3000000, max: 3000000 }
+      - { id: ai, name: AI(席+背景エージェント), min: 5000000, max: 9000000 }
+      - { id: scan, name: 有料の検査, min: 700000, max: 700000 }

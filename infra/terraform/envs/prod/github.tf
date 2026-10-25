@@ -29,6 +29,11 @@ module "github_oidc" {
       subjects    = ["ref:refs/heads/main"]
       policy_json = data.aws_iam_policy_document.evidence.json
     }
+    "${local.name}-cost" = {
+      description = "cost.yml (main only): read Cost Explorer"
+      subjects    = ["ref:refs/heads/main"]
+      policy_json = data.aws_iam_policy_document.cost.json
+    }
   }
 }
 
@@ -111,5 +116,28 @@ data "aws_iam_policy_document" "evidence" {
     sid       = "EncryptEvidence"
     actions   = ["kms:GenerateDataKey", "kms:Encrypt"]
     resources = [module.evidence.kms_key_arn]
+  }
+}
+
+# ── 費用を読む(cost.yml。毎日・有効にしたら)。docs/guides/cost-dashboard.md・ADR 0032 ─────────────
+#   AWS_<環境>_COST_ROLE_ARN … github_role_arns の …-cost。main のコードからだけ引ける(PR の版は書き換えられるので、請求の詳細を読ませない)
+#   Cost Explorer の集計を読むだけ+費用のページの置き場へ書くだけ。1回 $0.01 なので、呼ぶ回数は scripts/cost が決める(1日 6回まで)
+
+data "aws_iam_policy_document" "cost" {
+  statement {
+    sid     = "ReadCost"
+    actions = ["ce:GetCostAndUsage", "ce:GetCostForecast"]
+    #trivy:ignore:AVD-AWS-0057 Cost Explorer はリソースを絞れない(AWS の仕様)。読むのは金額の集計だけ
+    resources = ["*"]
+  }
+  statement {
+    sid       = "PutCostPage"
+    actions   = ["s3:PutObject"]
+    resources = ["${module.cost_reports.bucket_arn}/cost/*"]
+  }
+  statement {
+    sid       = "EncryptCostPage"
+    actions   = ["kms:GenerateDataKey", "kms:Encrypt"]
+    resources = [module.cost_reports.kms_key_arn]
   }
 }

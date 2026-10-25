@@ -89,3 +89,21 @@ variable "sensitive_data_enabled" {
   type        = bool
   default     = false
 }
+
+variable "bet" {
+  description = "既定のタグ Bet(賭けの ID)。土台は core。賭けだけのリソースは、リソースの tags で上書きする"
+  type        = string
+  default     = "core"
+}
+
+variable "activate_cost_allocation_tags" {
+  description = "コスト配分タグ(Project・Environment・Component・Bet)を有効にする。タグが請求に出てから(最初の apply の翌日以降)true に。Organizations なら管理のアカウントで"
+  type        = bool
+  default     = false
+}
+
+variable "anomaly_threshold_usd" {
+  description = "費用の急な変化(Cost Anomaly Detection)を知らせる、見込みの影響の下限(ドル)。null なら見張らない"
+  type        = number
+  default     = 10
+}

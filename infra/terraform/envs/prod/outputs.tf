@@ -65,3 +65,8 @@ output "evidence_bucket" {
   description = "証跡の置き場(リポジトリの変数 EVIDENCE_BUCKET に入れる)"
   value       = module.evidence.bucket
 }
+
+output "cost_bucket" {
+  description = "費用のページの置き場(リポジトリの変数 COST_BUCKET に入れる)"
+  value       = module.cost_reports.bucket
+}

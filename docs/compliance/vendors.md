@@ -152,10 +152,10 @@
 | WAF | internal・personal | `aws_wafv2_*` | ログは IP・URL(検索の値が入る)・ヘッダー(Cookie と Authorization は伏せる)。30日 |
 | CloudWatch(ログ・メトリクス・アラーム)・EventBridge | internal・personal | `aws_cloudwatch_*` | アプリのログは許可リストの項目だけ(ADR 0019)。personal が入るのは WAF のログ(URL の検索の値)だけ |
 | CloudTrail(管理操作の記録) | internal | `aws_cloudtrail` | 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。ロックした S3 に置く(docs/runbooks/audit-trail.md) |
-| S3 | public・internal | `aws_s3_*` | 管理操作の記録と、試作の画面(偽のデータだけ)。お客さんのデータは置かない |
+| S3 | public・internal | `aws_s3_*` | 管理操作の記録・毎月の証跡(設定の写し。社員の GitHub と IAM の名前を含む)・費用のページ・試作の画面(偽のデータだけ)。お客さんのデータは置かない |
 | CloudFront(試作の画面の配信) | public | `aws_cloudfront_*` |  |
 | VPC(ネットワーク) | internal | `aws_vpc`・`aws_vpc_*`・`aws_subnet`・`aws_subnets`・`aws_route`・`aws_route_table`・`aws_route_table_association`・`aws_internet_gateway`・`aws_nat_gateway`・`aws_eip`・`aws_security_group`・`aws_default_security_group`・`aws_flow_log`・`aws_availability_zones` | フローログ(IP と通信の量。中身は無い) |
 | IAM・KMS・Secrets Manager・ACM(鍵と権限) | internal | `aws_iam_*`・`aws_kms_*`・`aws_secretsmanager_*`・`aws_acm_*`・`aws_caller_identity`・`aws_region`・`aws_partition` | KMS は要配慮の組織ごとのデータ鍵も包む(modules/sensitive-data。SDK @aws-sdk/client-kms)。渡すのは組織の ID(文脈)とデータ鍵だけで、要配慮の値は渡さない |
 | Route 53(DNS・外形監視) | public | `aws_route53_*` | 外形監視は世界の何か所かから公開のページを開くだけ |
 | GuardDuty・Security Hub(見張り) | internal | `aws_guardduty_*`・`aws_securityhub_*` |  |
-| SNS・AWS Chatbot・Budgets(知らせ・予算) | internal | `aws_sns_*`・`aws_chatbot_*`・`aws_budgets_*` | 知らせの中身はアラームの名前と数だけ。Chatbot から先は Slack(下の slack) |
+| SNS・AWS Chatbot・Budgets・Cost Explorer(知らせ・予算・費用の集計と急な変化の見張り) | internal | `aws_sns_*`・`aws_chatbot_*`・`aws_budgets_*`・`aws_ce_*` | 知らせの中身はアラームの名前と数だけ。Chatbot から先は Slack(下の slack)。Cost Explorer はこのアカウントの請求の集計を読むだけ(コスト配分タグ・費用の急な変化。docs/guides/cost-dashboard.md) |

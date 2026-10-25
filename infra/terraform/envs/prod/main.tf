@@ -20,8 +20,9 @@ locals {
 }
 
 module "network" {
-  source = "../../modules/network"
-  name   = local.name
+  source    = "../../modules/network"
+  providers = { aws = aws.network }
+  name      = local.name
   # 本番は AZ ごとに NAT を持つ(1つの AZ の障害で外に出られなくならないように)
   single_nat_gateway      = false
   flow_log_retention_days = 90
@@ -49,6 +50,7 @@ resource "aws_secretsmanager_secret_version" "session" {
 
 module "aurora" {
   source                     = "../../modules/aurora"
+  providers                  = { aws = aws.db }
   name                       = local.name
   vpc_id                     = module.network.vpc_id
   subnet_ids                 = module.network.private_subnet_ids
@@ -77,6 +79,7 @@ module "sensitive_data" {
 
 module "app" {
   source             = "../../modules/ecs-service"
+  providers          = { aws = aws.api }
   name               = local.name
   vpc_id             = module.network.vpc_id
   vpc_cidr           = module.network.vpc_cidr
@@ -124,6 +127,7 @@ module "app" {
 # 画面(SSR)。ALB・クラスターは module.app と共有。/api/* 以外がここに来る
 module "web" {
   source                        = "../../modules/web-service"
+  providers                     = { aws = aws.web }
   name                          = "${local.name}-web"
   image                         = "${var.web_image_repository_url}:${var.initial_image_tag}"
   desired_count                 = 2
@@ -184,6 +188,7 @@ resource "aws_route53_record" "app" {
 
 module "ses" {
   source          = "../../modules/ses-domain"
+  providers       = { aws = aws.mail }
   name            = local.name
   domain          = var.app_domain
   route53_zone_id = var.route53_zone_id
@@ -192,6 +197,7 @@ module "ses" {
 
 module "mail" {
   source                        = "../../modules/mail-relay"
+  providers                     = { aws = aws.mail }
   name                          = "${local.name}-mail"
   image                         = "${var.mail_image_repository_url}:${var.initial_image_tag}"
   cluster_arn                   = module.app.cluster_arn
@@ -284,6 +290,7 @@ module "uptime" {
 
 module "backup" {
   source         = "../../modules/backup"
+  providers      = { aws = aws.db }
   name           = local.name
   db_cluster_arn = module.aurora.cluster_arn
   topic_arn      = module.alerts.topic_arn
@@ -299,4 +306,21 @@ module "evidence" {
   source = "../../modules/record-store"
   name   = "${local.name}-evidence"
   lock   = { mode = var.evidence_lock_mode, years = var.evidence_retention_years }
+}
+
+# ── 費用の見張り(コスト配分タグ・急な変化の知らせ)。docs/guides/cost-dashboard.md ─────────────────
+
+module "cost_watch" {
+  source                = "../../modules/cost-watch"
+  name                  = local.name
+  project               = var.project
+  topic_arn             = module.alerts.topic_arn
+  activate              = var.activate_cost_allocation_tags
+  anomaly_threshold_usd = var.anomaly_threshold_usd
+}
+
+# 費用のページの置き場(非公開の S3。cost.yml が毎日上書きする。古い版は400日で消える)。ADR 0032
+module "cost_reports" {
+  source = "../../modules/record-store"
+  name   = "${local.name}-cost"
 }
