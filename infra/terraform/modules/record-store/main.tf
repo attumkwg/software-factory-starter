@@ -1,4 +1,5 @@
-# 記録の置き場(非公開の S3)。証跡(evidence.yml)と、費用のページ(cost.yml)が使う。ADR 0032
+# 記録の置き場(非公開の S3)。証跡(evidence.yml)と、費用のページ(cost.yml)と、申し込みの置き場(create-tenant)が使う。ADR 0032
+#   expire_days を渡すと、今の版もその日数で消す(短い間だけ置く物。申し込みの置き場は7日。docs/designs/0026-tenant-provisioning.md)
 #   lock を渡すと Object Lock(保存の期間の間は、誰も消せない・上書きしても前の版が残る)。証跡はこちら
 #   lock を渡さなければ、古い版を noncurrent_expire_days で消す(費用のページのように毎日上書きする物)
 # 中身は公開しない(公開を止める設定+TLS だけ+自前の鍵)。読むのは AWS のコンソールか、人が作る期限つきの URL だけ。
@@ -76,9 +77,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
     id     = "archive"
     status = "Enabled"
     filter {}
-    transition {
-      days          = var.archive_after_days
-      storage_class = "GLACIER_IR"
+    dynamic "transition" {
+      for_each = var.archive_after_days == null ? [] : [1]
+      content {
+        days          = var.archive_after_days
+        storage_class = "GLACIER_IR"
+      }
+    }
+    dynamic "expiration" {
+      for_each = var.expire_days == null ? [] : [1]
+      content {
+        days = var.expire_days
+      }
     }
     dynamic "noncurrent_version_expiration" {
       for_each = var.lock == null ? [1] : []

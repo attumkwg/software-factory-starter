@@ -86,3 +86,8 @@ output "audit_trail_log_group_name" {
 output "audit_trail_log_group_arn" {
   value = module.audit_trail.log_group_arn
 }
+
+output "applications_bucket" {
+  description = "申し込みの置き場(create-tenant が読む。applications/<申込番号>.json に置き、読み終えたら消す。docs/runbooks/tenant-provisioning.md)"
+  value       = module.applications.bucket
+}

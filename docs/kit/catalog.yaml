@@ -403,6 +403,30 @@ parts:
         - { file: infra/terraform/envs/prod/main.tf, what: support_tenant_id を渡す所を消す }
       docs: [docs/specs/0004-support-access.md, docs/adr/0014-support-access.md]
 
+  - id: provisioning
+    name: 開通(組織を作るコマンド)
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 申し込みを受けた会社を、運営がコマンドで組織にし、最初の管理者を作る(試し → 名前の確認 → 実行・監査ログ)
+    needed_by: 会社向けで、契約してから使い始める
+    not_needed_by: 個人向け・誰でも自分で組織を作れる形(セルフサーブの申し込みを別に作る)
+    if_removed: 組織を作るのに、本番の DB に SQL を打つことになる(監査ログに残らない)
+    depends_on: [tenant-isolation]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/onboarding
+        - apps/api/test/integration/tenant-provisioning.int.test.ts
+        - apps/api/test/unit/create-tenant.test.ts
+        - docs/runbooks/tenant-provisioning.md
+      edit:
+        - { path: apps/api/src/cli.ts, what: create-tenant のコマンドを外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: module.applications と app の applications_store を外す(stg も) }
+        - { path: apps/api/package.json, what: "@aws-sdk/client-s3 を外す(ほかで使っていなければ)" }
+      docs: [docs/specs/0026-tenant-provisioning.md, docs/adr/0039-tenant-provisioning-command.md]
+
   - id: offboarding
     name: 解約(書き出しと削除)
     group: business
