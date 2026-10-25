@@ -152,7 +152,13 @@ describe("ログに個人情報が出ない", () => {
     const member = await login(app, f.users.member.email);
     await call(app, "PATCH", `/api/tasks/${f.taskId}`, { cookie: member, body: { done: true } });
     const handlers = (send: () => Promise<void>) =>
-      outboxHandlers({ db: appDb.db, logger, mailer: { send }, appUrl: "http://localhost:8080" });
+      outboxHandlers({
+        db: appDb.db,
+        logger,
+        mailer: { send },
+        appUrl: "http://localhost:8080",
+        linkSecret: "test-only-".padEnd(40, "x"),
+      });
     const failing = handlers(async () => {
       throw new Error(`550 5.1.1 <${f.users.admin.email}>: Recipient rejected: ${MARKED}`);
     });

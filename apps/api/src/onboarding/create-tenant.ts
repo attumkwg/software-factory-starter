@@ -6,6 +6,7 @@ import { MANUAL_AUDIT_ACTIONS, recordAudit } from "../audit/index.ts";
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { tenants, users } from "../db/schema.ts";
 import { withTenant } from "../db/tenant.ts";
+import { enqueue } from "../outbox/index.ts";
 
 // 申し込みを受けた組織を作る(運営が、申込書を確かめてから。docs/specs/0026-tenant-provisioning.md・ADR 0039)。
 // 手順は docs/runbooks/tenant-provisioning.md。API は作らない(組織を増やすのは契約の後で、画面や API の鍵1本でできないようにする)。
@@ -101,6 +102,10 @@ export async function createTenant(
         email: application.admin.email,
         name: application.admin.name,
         role: "admin",
+      });
+      // 最初の管理者への案内のメール(登録の仕方)。送るのは API のアウトボックスの送り出し(docs/specs/0027-invitations.md)
+      await enqueue({ tx, tenantId, userId: adminUserId }, "organizations.tenant_opened", {
+        userId: adminUserId,
       });
       const entry = {
         actor: { kind: "system" as const, id: null },

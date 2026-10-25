@@ -9,7 +9,15 @@ import { v7 as uuidv7 } from "uuid";
 import { createApp } from "../../src/app.ts";
 import { loadConfig } from "../../src/config.ts";
 import { createDb, type RootDb } from "../../src/db/client.ts";
-import { consents, projects, supportGrants, tasks, tenants, users } from "../../src/db/schema.ts";
+import {
+  consents,
+  invitations,
+  projects,
+  supportGrants,
+  tasks,
+  tenants,
+  users,
+} from "../../src/db/schema.ts";
 import { withTenant } from "../../src/db/tenant.ts";
 import { capacityOf } from "../../src/domains/legal/index.ts";
 import { createLogger } from "../../src/logger.ts";
@@ -22,6 +30,8 @@ export type TenantFixture = {
   taskId: string;
   /** サポートへの許可(管理者が出した。番号は分からない) */
   supportGrantId: string;
+  /** 管理者が出した、まだ受けていない招待(メールは積まない) */
+  invitationId: string;
 };
 
 /**
@@ -42,6 +52,7 @@ export async function createTenantFixture(
   const projectId = uuidv7();
   const taskId = uuidv7();
   const supportGrantId = uuidv7();
+  const invitationId = uuidv7();
 
   await withTenant(ownerDb, tenantId, async (tx) => {
     await tx.insert(tenants).values({ tenantId, name: `${label}-${suffix}` });
@@ -73,6 +84,14 @@ export async function createTenantFixture(
       codeHash: `fixture-${supportGrantId}`,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
+    await tx.insert(invitations).values({
+      id: invitationId,
+      tenantId,
+      email: `invited-${suffix}@${label}.test`,
+      role: "member",
+      invitedBy: admin.id,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
   });
 
   return {
@@ -85,6 +104,7 @@ export async function createTenantFixture(
     projectId,
     taskId,
     supportGrantId,
+    invitationId,
   };
 }
 
