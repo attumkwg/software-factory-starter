@@ -1,0 +1,65 @@
+# 営業のデモ用の組織を、きれいな状態に戻す(stg だけ。docs/guides/sales.md の 1・設計書 0053)。
+# **デモの前に人が手で流す**(Actions → Demo reset → Run workflow)。定期では流さない(デモの前に一度戻せば足りる。設計書 0053 の 11)。
+# stg の移行のタスク(最後にデプロイした版のイメージ)を、コマンドだけ demo-reset --execute に替えて1回流す。
+# 本番には流さない: 使う役割は stg のデプロイの役割だけ(environment: stg・main からだけ)、コマンドも APP_ENV=stg と DEMO_TENANT_ID が無いと止まる。
+# 要るもの: 変数 DEMO_TENANT_ID(デモ用の組織の ID。先に create-tenant で作る)・AWS_STG_DEPLOY_ROLE_ARN(deploy.yml と同じ)
+# 費用: 流すたびに 1〜2分の Actions と、Fargate の小さなタスク1回(0.25 vCPU・数十秒)
+name: Demo reset
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  reset:
+    name: デモ用の組織を戻す(stg)
+    # main からだけ。デモの組織と役割の変数が無ければ飛ばす
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.DEMO_TENANT_ID != '' && vars.AWS_STG_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: stg
+    env:
+      CLUSTER: ${{ vars.PROJECT || 'sfs' }}-stg
+    steps:
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_STG_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 移行のタスクで demo-reset --execute を流す
+        env:
+          DEMO_TENANT_ID: ${{ vars.DEMO_TENANT_ID }}
+        run: |
+          set -euo pipefail
+          overrides=$(jq -cn --arg tenant "$DEMO_TENANT_ID" '{containerOverrides: [{
+            name: "migrate",
+            command: ["dist/cli.js", "demo-reset", "--execute"],
+            environment: [{name: "APP_ENV", value: "stg"}, {name: "DEMO_TENANT_ID", value: $tenant}]
+          }]}')
+          network=$(aws ecs describe-services --cluster "$CLUSTER" --services "$CLUSTER" \
+            --query 'services[0].networkConfiguration' --output json)
+          task=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$CLUSTER-migrate" --launch-type FARGATE \
+            --network-configuration "$network" --overrides "$overrides" --started-by "github-demo-${GITHUB_RUN_ID}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$task"
+          code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$task" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$code" != "0" ]; then
+            echo "::error::デモを戻せませんでした(exit $code)。CloudWatch Logs の migrate を見てください(docs/guides/sales.md の 1)"
+            exit 1
+          fi
+          echo "デモ用の組織を戻しました" >> "$GITHUB_STEP_SUMMARY"

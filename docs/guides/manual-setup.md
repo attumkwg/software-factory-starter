@@ -75,6 +75,7 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 | `STG_URL` / `PROD_URL` | `https://app.stg.example.com` など | deploy(疎通) |
 | `STG_SITE_BUCKET` / `STG_SITE_DISTRIBUTION_ID` / `STG_SITE_URL`(prod は `PROD_…`) | stg・prod の出力 `public_site`(`*.auto.tfvars` に `public_site_domain` を入れて apply したときだけ。docs/guides/landing-page.md) | deploy(公開の LP を置く。無ければ飛ばす) |
 | `PROJECT` | 名前の頭(既定 `sfs`) | deploy |
+| `DEMO_TENANT_ID` | stg のデモ用の組織の ID(先に stg で `create-tenant`。[sales.md](sales.md) の 1) | demo-reset(デモの前に手で) |
 
 **Secrets** は、リポジトリ全体(Repository secrets)には置かず、**使う Environment の秘密**(Settings → Environments → 名前 → Environment secrets)に置く。Environment は main だけに絞ってあるので(上の 1. の 3)、PR のブランチのワークフローからは読めない:
 
