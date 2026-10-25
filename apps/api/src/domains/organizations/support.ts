@@ -1,8 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Me, SupportGrant } from "@app/shared";
-import { and, desc, eq, getTableColumns, gt, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
-import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { supportGrants, supportSessions, tenants } from "./schema.ts";
 
@@ -238,25 +237,13 @@ export async function getSupportMe(
   };
 }
 
-/** データの書き出し(docs/specs/0018-export-stream.md)。許可を新しい順に1ページずつ(番号のハッシュは入らない) */
-export async function exportSupportGrantsPage(
-  s: TenantScope,
-  after: string | null,
-  limit: number,
-): Promise<{ rows: SupportGrant[]; nextCursor: string | null }> {
-  const cursor = after ? decodeCursor(after) : null;
+/** データの書き出し(docs/specs/0005-offboarding.md)。許可を全部(番号のハッシュは入らない) */
+export async function exportSupportGrants(s: TenantScope): Promise<SupportGrant[]> {
   const rows = await s.tx
-    .select({ ...getTableColumns(supportGrants), cursorAt: cursorTime(supportGrants.createdAt) })
+    .select()
     .from(supportGrants)
-    .where(
-      and(
-        eq(supportGrants.tenantId, s.tenantId),
-        beyondCursor(cursor, "desc", supportGrants.createdAt, supportGrants.id),
-      ),
-    )
-    .orderBy(desc(supportGrants.createdAt), desc(supportGrants.id))
-    .limit(limit + 1);
-  const page = toPage(rows, limit, (r) => ({ at: r.cursorAt, id: r.id }));
+    .where(eq(supportGrants.tenantId, s.tenantId))
+    .orderBy(desc(supportGrants.createdAt));
   const now = new Date();
-  return { rows: page.rows.map((r) => toGrant(r, now)), nextCursor: page.nextCursor };
+  return rows.map((r) => toGrant(r, now));
 }

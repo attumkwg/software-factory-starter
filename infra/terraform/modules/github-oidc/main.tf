@@ -73,8 +73,6 @@ locals {
     "cognito-idp:ListUsers", "cognito-idp:ListUsersInGroup", "cognito-idp:AdminGetUser",
     "cognito-idp:AdminListGroupsForUser", "cognito-idp:AdminListDevices", "cognito-idp:AdminGetDevice",
     "cognito-idp:AdminListUserAuthEvents",
-    # 管理操作の記録(社員の名前と IP。modules/audit-trail。ロググループとバケットの物は上と下で止まる)
-    "cloudtrail:LookupEvents", "cloudtrail:GetQueryResults",
     # DB のログ(遅いクエリの SQL)
     "rds:DownloadDBLogFilePortion", "rds:DownloadCompleteDBLogFile",
     # イメージの中身(コードと依存)

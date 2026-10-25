@@ -12,6 +12,8 @@ declare module "vitest" {
     ownerUrl: string;
     /** アプリの接続ユーザー(RLS がかかる) */
     appUrl: string;
+    /** 要配慮個人情報だけの接続ユーザー(ロール app_sensitive。ADR 0029) */
+    sensitiveUrl: string;
     /** superuser(postgres の DB)。別の DB を作るときだけ使う(`createIsolatedDatabase`) */
     adminUrl: string;
   }
@@ -44,6 +46,7 @@ export default async function setup(project: TestProject) {
 
   project.provide("ownerUrl", ownerUrl);
   project.provide("appUrl", `postgres://app:app@${base}`);
+  project.provide("sensitiveUrl", `postgres://app_sensitive_login:app_sensitive_login@${base}`);
   project.provide("adminUrl", adminUrl);
 
   return async () => {

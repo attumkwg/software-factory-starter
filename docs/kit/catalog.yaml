@@ -693,32 +693,6 @@ parts:
         - { file: infra/terraform/envs/prod/main.tf, module: security_baseline }
       docs: [docs/security.md]
 
-  - id: audit-trail
-    name: 管理操作の記録(CloudTrail)
-    group: watch
-    status: あり
-    removable: true
-    default: 残す
-    what: AWS の操作(誰が・いつ・どの API)を、消せない S3(400日)と CloudWatch Logs に残し、root の利用と記録を止める操作で鳴らす
-    needed_by: AWS に出すすべて(事故のあとに「誰が何をしたか」を出す)
-    not_needed_by: まだ AWS に出していない
-    if_removed: 鍵が盗まれて使われても、何をされたかが90日で消え、消されても気づかない
-    depends_on: [alarms]
-    law:
-      - ISMS 8.15(ログ取得)
-      - SOC 2 CC7.2
-    keep_when: [certification=P マーク, certification=ISMS, certification=SOC 2]
-    remove:
-      delete: [infra/terraform/modules/audit-trail, docs/runbooks/audit-trail.md]
-      terraform:
-        - { file: infra/terraform/envs/stg/main.tf, module: audit_trail }
-        - { file: infra/terraform/envs/prod/main.tf, module: audit_trail }
-      edit:
-        - { path: infra/terraform/envs/stg/outputs.tf, what: audit_trail_ の出力を外す }
-        - { path: infra/terraform/envs/prod/outputs.tf, what: 同上 }
-        - { path: docs/compliance/README.md, what: 管理操作の記録の行を外す }
-      docs: [docs/security.md]
-
   # ── 表側(画面)─────────────────────────────────────────────────────────
   - id: web
     name: 画面(SSR)とデザインシステム
@@ -848,52 +822,27 @@ parts:
         - { path: docs/runbooks/tenant-data-leak.md, what: 同上 }
         - { path: docs/runbooks/secret-leak.md, what: 同上 }
 
-  - id: vendor-ledger
-    name: 委託先の台帳と、AI に渡すデータの決まり
-    group: personal
-    status: あり
-    removable: true
-    default: 残す
-    what: 外の会社ごとに預け方・国・渡す区分・契約・認証・消え方を台帳に書き、コード(SDK・AWS のサービス・Actions)と CI で照らす。AI の会社には ID と集計まで(docs/security.md の AI-6)
-    needed_by: 個人情報を扱うすべて(委託先の監督)・認証を取る予定がある
-    not_needed_by: 個人情報をまったく扱わない(まれ)
-    if_removed: SDK や AWS のサービスを足しても、どこに何を預けたかが分からない。AI の会社に個人データが渡っても機械では止まらない
-    depends_on: [column-classification]
-    law:
-      - 個人情報保護法 25条(委託先の監督)・28条(外国にある第三者への提供)
-      - ISMS 5.19〜5.23(供給者関係・クラウドサービス)
-      - P マーク(委託先の監督)
-    keep_when: [certification=P マーク, certification=ISMS, certification=SOC 2]
-    remove:
-      delete:
-        - docs/compliance/vendors.yaml
-        - docs/compliance/vendors.md
-        - scripts/vendors.mjs
-        - scripts/vendors-lib.mjs
-        - scripts/vendors-render.mjs
-        - scripts/vendors.test.mjs
-      edit:
-        - { path: .github/workflows/ci.yml, what: pnpm vendors の段を外す }
-        - { path: package.json, what: vendors と test:scripts の vendors.test.mjs を外す }
-        - { path: .claude/hooks/protected-paths.json, what: docs/compliance/vendors.yaml を外す(settings.json・labeler.yml・CODEOWNERS も。pnpm guards) }
-        - { path: docs/compliance/README.md, what: 台帳の行を外す(AI に渡すデータの決まり ai-data.md は残す) }
-      docs: [docs/security.md, docs/compliance/ai-data.md]
-
   - id: sensitive-isolation
     name: 要配慮個人情報を分けて置く
     group: personal
-    status: 未
-    removable: true
-    default: 消す
-    what: 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている
+    status: あり
+    removable: false
+    default: 残す
+    what: 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(ADR 0018 の段1・ADR 0029)。スキーマ sensitive・専用のロール app_sensitive・専用の KMS の鍵で組織ごとのデータ鍵を包み、列ごとに暗号化。読み書きは apps/api/src/sensitive/ からだけ。段2・段3は手順書と上げる目安だけ
     needed_by: 要配慮個人情報を扱う
-    not_needed_by: 要配慮個人情報を扱わない(足せない守りは土台に残るので、間違って足すことは止まる)
-    if_removed: まだ無い
-    depends_on: [column-classification]
+    not_needed_by: 要配慮個人情報を扱わない(使わない間は費用0。Terraform の sensitive_data_enabled が false・DB には空のスキーマとデータ鍵の表だけ。消すと、後で要配慮を足すときに作り直しになるので消さない)
+    if_removed: 消さない(使わない間は Terraform で作らない)
+    depends_on: [column-classification, offboarding]
     law:
-      - 個人情報保護法 2条3項・20条2項(要配慮個人情報の取得には同意)
+      - 個人情報保護法 2条3項・20条2項(要配慮個人情報の取得には同意)・23条(安全管理措置)
+      - ISMS 8.24(暗号の利用)
       - P マーク
-    keep_when: [personal-data=要配慮も扱う]
+    where:
+      - apps/api/src/sensitive/index.ts
+      - apps/api/drizzle/0013_sensitive_schema.sql
+      - infra/terraform/modules/sensitive-data/main.tf
+      - docs/adr/0029-sensitive-data-tier1.md
+      - docs/runbooks/sensitive-data-tiers.md
 
   - id: person-deletion
     name: 1人分の削除と開示
@@ -976,7 +925,7 @@ parts:
     status: 未
     removable: true
     default: 消す
-    what: 認証で求められる記録と規程の型(アクセスの見直し・教育の記録)。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md
+    what: 認証で求められる記録と規程の型(アクセスの見直し・委託先の管理・教育の記録)
     needed_by: 認証を取る予定がある
     not_needed_by: 予定なし
     if_removed: まだ無い

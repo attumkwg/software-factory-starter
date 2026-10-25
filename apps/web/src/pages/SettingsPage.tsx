@@ -1,4 +1,4 @@
-import type { Me, MfaRequirement } from "@app/shared";
+import type { ExportData, Me, MfaRequirement } from "@app/shared";
 import { Button, Card, Heading, Link, Muted, Stack } from "@app/ui";
 import { api } from "../api.ts";
 import { useAction } from "../use-action.ts";
@@ -57,12 +57,13 @@ export function SettingsPage({ me, mfa }: { me: Me; mfa: MfaRequirement }) {
   );
 }
 
-/** 受け取った JSON を、読み直さずにブラウザのダウンロードとして保存する(大きい組織でも JS の値にしない) */
-function saveAsFile({ blob, filename }: { blob: Blob; filename: string }) {
+/** 受け取った JSON を、ブラウザのダウンロードとして保存する */
+function saveAsFile(data: ExportData) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = `export-${data.exportedAt.slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

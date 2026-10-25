@@ -93,3 +93,15 @@ variable "support_tenant_id" {
   type        = string
   default     = null
 }
+
+variable "sensitive_data_enabled" {
+  description = "要配慮個人情報の段1(専用の KMS の鍵・要配慮だけの接続)を作るか。要配慮の列を足す仕様が承認されたら true(ADR 0029)"
+  type        = bool
+  default     = false
+}
+
+variable "cloudtrail_log_group_name" {
+  description = "CloudTrail を受けているロググループ(このアカウント・この地域)。あれば要配慮の鍵の利用を見張る。null の間は見張らない"
+  type        = string
+  default     = null
+}

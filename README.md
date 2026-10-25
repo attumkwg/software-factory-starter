@@ -179,17 +179,15 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 見張り | 外形監視 `uptime` | 外から本番が開けるかを Route 53 のヘルスチェックで見る | 残す | あり |
 | 見張り | WAF `waf` | ALB の前で、よくある攻撃の形と大量アクセスを数える(誤検知が無ければ止める) | 残す | あり |
 | 見張り | GuardDuty と Security Hub `security-baseline` | AWS の中の怪しい動き(鍵の悪用・知らない場所からの操作)と、設定の穴を見つけて知らせる | 残す | あり |
-| 見張り | 管理操作の記録(CloudTrail) `audit-trail` | AWS の操作(誰が・いつ・どの API)を、消せない S3(400日)と CloudWatch Logs に残し、root の利用と記録を止める操作で鳴らす | 残す | あり |
 | 表側(画面) | 画面(SSR)とデザインシステム `web` | TanStack Start の SSR の画面と、React Aria の部品(packages/ui)。API とは別のサービス | 残す | あり |
 | 表側(画面) | 検索に載せない(noindex)とスマホの幅の E2E `noindex-mobile` | 本番以外と、ログインの後の画面を検索に載せない(X-Robots-Tag・robots.txt)。スマホの幅で画面がはみ出さないかを E2E で見る | 残す | あり |
 | 表側(画面) | 見た目の回帰テスト(VRT)と部品の一覧ページ `vrt` | 主な画面と部品の一覧(/design-system)を、Docker の中の Chromium でパソコンとスマホの幅で撮り、リポジトリの基準の画像と比べる。PR に結果と画面の一覧をコメントする | 残す | あり |
 | 表側(画面) | 公開のページと SEO の型 `seo` | 検索から人を呼ぶための公開のページ(説明・料金・ブログ)の型 | 消す | 未 |
 | 個人情報 | 個人データが漏れたときの手順書 `breach-runbook` | 委員会への報告(速報3〜5日・確報30日 / 60日)と本人への通知、B2B のお客さんへの知らせの段取り | 残す | あり |
-| 個人情報 | 委託先の台帳と、AI に渡すデータの決まり `vendor-ledger` | 外の会社ごとに預け方・国・渡す区分・契約・認証・消え方を台帳に書き、コード(SDK・AWS のサービス・Actions)と CI で照らす。AI の会社には ID と集計まで(docs/security.md の AI-6) | 残す | あり |
-| 個人情報 | 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている | 消す | 未 |
+| 個人情報 | 🔒 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(ADR 0018 の段1・ADR 0029)。スキーマ sensitive・専用のロール app_sensitive・専用の KMS の鍵で組織ごとのデータ鍵を包み、列ごとに暗号化。読み書きは apps/api/src/sensitive/ からだけ。段2・段3は手順書と上げる目安だけ | 残す | あり |
 | 個人情報 | 1人分の削除と開示 `person-deletion` | 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別) | 残す | 未 |
 | 決まりごと | 利用規約・プライバシーポリシーの同意 `terms-consent` | 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。登録の画面での同意・変更のお知らせのメール(運営のコマンド legal-notify)も。同意の記録は監査ログに | 残す | あり |
-| 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 認証で求められる記録と規程の型(アクセスの見直し・教育の記録)。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md | 消す | 未 |
+| 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 認証で求められる記録と規程の型(アクセスの見直し・委託先の管理・教育の記録) | 消す | 未 |
 | 決まりごと | 請求と決済 `billing` | 料金の計算・請求・決済の会社(Stripe など)とのつなぎ。カード情報は持たない | 消す | 未 |
 | 決まりごと | お金と時刻の計算 `money` | 金額は最小単位の整数・時刻は組織のタイムゾーン、の計算を1か所に(packages/shared の money.ts・time.ts) | 残す | あり |
 | 開発の道具 | PR ごとのプレビュー環境 `preview-env` | PR ごとに dev の AWS に環境を立て、E2E と ZAP を流し、閉じたら消す | 残す | あり |
@@ -370,6 +368,12 @@ CREATE ROLE app_rw NOLOGIN;
 CREATE ROLE app LOGIN PASSWORD '<database-url の中のパスワード>' NOSUPERUSER NOBYPASSRLS IN ROLE app_rw;
 ```
 
+   要配慮個人情報を扱うとき(Terraform の `sensitive_data_enabled = true` にした後)だけ、要配慮だけの接続ユーザーも作る(パスワードは `<name>/sensitive-database-url` の中の値。ロール `app_sensitive` は移行が作る。[docs/runbooks/sensitive-data-tiers.md](docs/runbooks/sensitive-data-tiers.md) の 1):
+
+```sql
+CREATE ROLE app_sensitive_login LOGIN PASSWORD '<sensitive-database-url の中のパスワード>' NOSUPERUSER NOBYPASSRLS IN ROLE app_sensitive;
+```
+
 ### 3. OIDC の役割と GitHub の変数・秘密
 
 Terraform の出力(`github_role_arns` など)を、Settings → Secrets and variables → Actions の **Variables** に入れる(秘密ではないので Variables):
@@ -404,11 +408,9 @@ Terraform の出力(`github_role_arns` など)を、Settings → Secrets and var
 2. Slack に `#alerts-stg` と `#alerts-prod` を作り、チャンネルの ID(`C…`)を `*.auto.tfvars` の `slack_team_id` / `slack_channel_id` に入れて apply
 3. 試しに鳴らして Slack に出るのを確かめる。月の上限(`monthly_budget_usd`)も見直す
 
-### 5. バックアップと管理操作の記録(prod は確かめてから)
+### 5. バックアップ(prod は3日のうちに確かめる)
 
 prod のバックアップの保管庫は **compliance のロック**で、apply から3日を過ぎると、ロックも保存の期間も誰にも変えられない(root でも)。**3日のうちに**、保管庫・毎日 35日・毎月 365日・1回目のバックアップが取れたこと、を確かめる([docs/runbooks/db-restore.md](docs/runbooks/db-restore.md) の 6)。prod の戻す訓練は四半期に1回、手で(同じ手順書の 5)。
-
-管理操作の記録(CloudTrail)の S3 も、prod は **compliance のロック**(400日は誰も消せない・猶予なし)。**prod に apply する前に**保存の日数を決め、apply の後に記録が流れていることを確かめる([docs/runbooks/audit-trail.md](docs/runbooks/audit-trail.md) の 1 と 2)。委託先の台帳(`docs/compliance/vendors.yaml`)の契約の欄も、自分の契約に書き直す([docs/compliance/README.md](docs/compliance/README.md))。
 
 ### 6. サポートの代理ログイン(運営の組織)
 

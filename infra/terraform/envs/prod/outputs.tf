@@ -42,21 +42,3 @@ output "db_cluster_identifier" {
 output "backup_vault_name" {
   value = module.backup.vault_name
 }
-
-output "audit_trail_arn" {
-  value = module.audit_trail.trail_arn
-}
-
-output "audit_trail_bucket" {
-  description = "管理操作の記録の置き場(消せない S3)"
-  value       = module.audit_trail.bucket_name
-}
-
-output "audit_trail_log_group_name" {
-  description = "管理操作の記録を流すロググループ(ほかのアラームのメトリクスフィルターはここに)"
-  value       = module.audit_trail.log_group_name
-}
-
-output "audit_trail_log_group_arn" {
-  value = module.audit_trail.log_group_arn
-}

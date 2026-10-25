@@ -6,9 +6,8 @@ import {
   type LegalVersionRef,
   type Role,
 } from "@app/shared";
-import { and, asc, eq, getTableColumns, max } from "drizzle-orm";
+import { and, asc, eq, max } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
-import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { consents } from "./schema.ts";
 
@@ -62,26 +61,14 @@ export async function recordConsents(
     .onConflictDoNothing();
 }
 
-/** 書き出し(解約の前にお客さんが持ち出す。docs/specs/0018-export-stream.md)。古い順に1ページずつ */
-export async function exportLegalConsentsPage(
-  s: TenantScope,
-  after: string | null,
-  limit: number,
-): Promise<{ rows: ExportData["legalConsents"]; nextCursor: string | null }> {
-  const cursor = after ? decodeCursor(after) : null;
+/** 書き出し(解約の前にお客さんが持ち出す)。古い順 */
+export async function exportLegalConsents(s: TenantScope): Promise<ExportData["legalConsents"]> {
   const rows = await s.tx
-    .select({ ...getTableColumns(consents), cursorAt: cursorTime(consents.acceptedAt) })
+    .select()
     .from(consents)
-    .where(
-      and(
-        eq(consents.tenantId, s.tenantId),
-        beyondCursor(cursor, "asc", consents.acceptedAt, consents.id),
-      ),
-    )
-    .orderBy(asc(consents.acceptedAt), asc(consents.id))
-    .limit(limit + 1);
-  const page = toPage(rows, limit, (r) => ({ at: r.cursorAt, id: r.id }));
-  const mapped: ExportData["legalConsents"] = page.rows.map((r) => ({
+    .where(eq(consents.tenantId, s.tenantId))
+    .orderBy(asc(consents.acceptedAt), asc(consents.id));
+  return rows.map((r) => ({
     userId: r.userId,
     document: LegalDocumentSchema.parse(r.document),
     version: r.version,
@@ -89,5 +76,4 @@ export async function exportLegalConsentsPage(
     source: r.source === "sign_up" ? "sign_up" : "acceptance",
     acceptedAt: r.acceptedAt.toISOString(),
   }));
-  return { rows: mapped, nextCursor: page.nextCursor };
 }

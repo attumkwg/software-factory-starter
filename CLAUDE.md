@@ -11,7 +11,6 @@
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)
 - `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`
-- `pnpm vendors`(委託先の台帳 `docs/compliance/vendors.yaml` とコードの照らし合わせ。CI)/ `pnpm vendors --write`(人が読む一覧 `vendors.md` を作り直す)
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
 - `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
@@ -27,6 +26,7 @@
 - `apps/api/src/feature-flags` … 組織ごとの機能フラグ(定義は `packages/shared` の `FEATURE_FLAGS`・賭けに結びつける)。機能の API は `requireFeature`、画面は `hasFeature(me, …)`。切り替えは運営のコマンドだけ。使われたかは `apps/api/src/usage` の `recordUsage`(1日1人1機能1行。中身・時刻は記録しない・400日で消す)で測る。`docs/guides/feature-flags.md`
 - `apps/api/src/offboarding` … 解約の削除のコマンド(`delete-tenant`。試し → `--execute --confirm-name`)。`tenant_id` の表を足したら `TENANT_TABLES` にも。手順は `docs/runbooks/offboarding.md`
 - `apps/api/src/db/classification.ts` … 列の分類表(全部の列に `public` / `internal` / `personal` / `sensitive` と目的)。**列を足したら1行**(無ければ CI が落ちる)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ(ADR 0018)。台帳は `docs/db/personal-data.md`
+- `apps/api/src/sensitive` … 要配慮個人情報の入口(段1。ADR 0029)。別の接続(ロール `app_sensitive`)と、組織ごとのデータ鍵(KMS で包む)で列ごとに暗号化。**要配慮の表の読み書きはこのフォルダの中だけ**(外からは `index.ts`。触ると Semgrep が落ちる)。段を上げる手順は `docs/runbooks/sensitive-data-tiers.md`
 - `packages/logging` … API と画面のサーバーのログの部品。**出してよい項目だけ出す**(許可リスト。知らない名前は `[REDACTED]`)。ログに新しい名前を出すなら `ALLOWED_KEYS` に足す(人の確認)。ADR 0019
 - `packages/error-reporting` … error 以上のログを Sentry に送る(値を落としてから)。Sentry を直接呼ばず、`logger.error({ err }, "…")` で残す。`docs/guides/monitoring.md`
 - `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
@@ -35,7 +35,6 @@
 - `docs/product/bets/` … 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。`/bet` が書き、`pnpm bets` が確かめる。PR の本文に「取り組み」と「作業の種類」。`docs/guides/bets-and-assets.md`
 - `docs/concepts/` … 考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)。`docs/security.md` … セキュリティの決まり(`AI-n`・`AZ-n`・`L-n`・`T-n`・`V-n`・`D-n`。番号は動かさない)と確かめ方。**根拠はこの2つを指す**(外の資料や PR の番号を根拠にしない。`pnpm self-contained`)
 - `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ。番号は仕様と対で同じ。`pnpm adr` が出す「仕様と設計書の次の番号」)/ `docs/adr` 設計判断(番号は `pnpm adr` が出す「次の番号」。仕様・設計書・設計判断とも、同じフォルダで重なると CI が落ちる)/ `docs/runbooks` 手順(障害のときの入口は `incident.md`)
-- `docs/compliance/` … 認証の準備(P マーク・ISMS)の入口。委託先の台帳 `vendors.yaml`(外の会社ごとに預け方・国・区分・契約・消え方)。**外のサービスの SDK・新しい種類の AWS の資源・Actions を足したら台帳に1件か1行**(無ければ CI が落ちる。台帳は人の確認が要る)。AI に渡すデータの決まり `ai-data.md`。AWS の管理操作の記録は `infra/terraform/modules/audit-trail`(手順は `docs/runbooks/audit-trail.md`)
 - `docs/review-viewpoints.md` … 設計とレビューの観点(共通の8つ+このプロダクト特有)。人が気づいた観点は足していく。使い方は `docs/guides/human-review.md`
 - `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
 - `.github/setup.yml`・`.github/labels.yml` … GitHub の設定とラベルの正(ADR 0027)。**ラベルを使う物を足したら `labels.yml` に1件(意味・誰が・いつ・付いたらどうするか)・ジョブの名前を変えたら `required_checks` も**(無ければ CI が落ちる)。PR に「マージの後に人がやる設定」を書かず、設定ファイルを直す(マージの後に人が `pnpm setup:github --apply`)。定期で動くワークフローは `vars.KIT_ROLE == 'product'` のときだけ(ひな形では運用を回さない)
@@ -54,8 +53,8 @@
 - テナントをリクエストの値(URL・本文・ヘッダー)で決める。テナントはセッションからだけ。
 - ルートやリポジトリで接続プール(`RootDb`)を直接使う。`c.var.tx`(テナントの文脈つき)だけを使う。
 - ログにオブジェクトを丸ごと渡す(`logger.info(user)`)。必要な項目だけを `{ userId }` の形で。
-- 本番の個人データ(名前・メールアドレス・題名・本文・画面のスクショ)を読む・求める。受け取ってよいのは ID と集計まで。要配慮は件数も受け取らない(`docs/security.md` の AI-6・`docs/compliance/ai-data.md`)。貼られたら使わずに、そう伝える
 - 秘密・本番の値をコード・ログ・PR に書く。`.env` を読む・作る。
+- 要配慮個人情報(スキーマ `sensitive` の中身・暗号文・復号した値・データ鍵)を読む・ログや PR や Issue に書く・自分の調べの材料にする。事故の調べでも、受け取るのは ID と件数まで(`docs/runbooks/incident.md` の 2)。
 - 本番の DB や AWS に書き込む操作(戻す・入れ替える・止める)を自分で打つ。手順書(`docs/runbooks/`)のコマンドを、確かめた形で人に渡す。
 - 人の承認なしに次を変える(危険度「高」): 一覧は `.claude/hooks/protected-paths.json`(認証・認可・DB・移行・権限の表・infra・CI・ハーネス・検査の除外・依存の入れ方)。Edit・Write は確認が出る。Bash で書き換えて確認を避けない(フックが聞く)
 - main へ push する・強制 push する・PR をマージする・承認する(フックが止める。`docs/guides/local-guards.md`)
