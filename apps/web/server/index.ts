@@ -40,6 +40,8 @@ const app = createWebApp({
   lifecycle,
   // 本番(prod)以外は全部、検索に載せない(server/app.ts)
   appEnv: process.env.APP_ENV,
+  // ブラウザから失敗を送る先(CSP の connect-src に足す)
+  sentryDsn: process.env.SENTRY_DSN,
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
