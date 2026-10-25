@@ -10,7 +10,7 @@ minutes:
   review: 20 # 人のレビュー1回(作った人以外)
   comment: 3 # PR のコメント1件(作った人に付ける)
 
-# AI が書いた PR の見分け方(本文にこのどれかがあれば AI の PR)
+# AI が書いた PR の見分け方(本文にこのどれかがあれば AI の PR。ai-label.yml がラベル ai:assisted も付け、ラベルでも見分ける。週の数字 pnpm metrics と同じ)
 ai_markers:
   - "Generated with [Claude Code]"
   - "Co-Authored-By: Claude"

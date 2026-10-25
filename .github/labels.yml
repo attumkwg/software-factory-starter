@@ -69,6 +69,17 @@ labels:
     action: 何もしなくてよい。apply はマージの後に人が CI で
     used_by: .github/labeler.yml
 
+  # ── 数えるための印(PR)──
+  - name: ai:assisted
+    color: "5319e7"
+    description: AI が手伝った PR(本文の印から自動で付く。週の数字と費用のページが数える)
+    group: 数えるための印(PR)
+    meaning: AI(Claude Code など)が書いた・手伝った PR。週の数字(pnpm metrics)の「AI が手伝った PR の割合」「人の介在率」と、費用のページの人の時間が数える
+    who: 自動(ai-label.yml。本文に docs/cost/people.yaml の ai_markers がある・AI のボットが作った PR)。印の無い AI の PR は人が手で付ける
+    when: PR を開いた・本文を直したとき(付けるだけで外さない)
+    action: 何もしなくてよい。間違って付いたら外し、本文の印も消す(残っていると本文を直したときにまた付く)
+    used_by: .github/workflows/ai-label.yml・scripts/metrics
+
   # ── Issue の種類・仕分け ──
   - name: kind:bug
     color: d73a4a
