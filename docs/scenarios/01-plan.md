@@ -1,6 +1,7 @@
 # 1. 企画 → 困りごとの確認(CPF)→ PMF
 
 > 入口は [README.md](README.md)。人は [companies.md](companies.md)。判定の印: ✅ 回る / 🟡 人の手か外の道具で回る / ❌ 穴([gaps.md](gaps.md))。
+> 最高の想定で通しで回した記録は [00-best-case-run.md](00-best-case-run.md)、何をどの順で決めるかは [fit-journey.md](fit-journey.md)。
 > 考え方の本体は [../guides/before-pmf.md](../guides/before-pmf.md) と [../guides/bets-and-assets.md](../guides/bets-and-assets.md)。
 > 「📚 世の中では」は、公開の事故報告・登壇・記事から一般化した学び(2026-10 時点。出どころは書かない)。
 
