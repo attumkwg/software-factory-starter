@@ -112,7 +112,8 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | パスワード・コードが漏れる | ログに出さない(Cognito の失敗は例外の名前だけ残す) | 結合「ログの中に、パスワード・メール・確認コード・トークンが出ない」 |
 | よそのサイトへ飛ばす | ログインの後の戻り先はアプリの中のパスだけ(`safeReturnTo`) | 単体「戻り先」 |
 | 偽物の Cognito を本番で | 入口を変える設定(`COGNITO_ENDPOINT`)は local / test だけ | 単体(設定) |
-| 共有の PC で前の人の画面が見える | 画面の HTML は `Cache-Control: no-store`(ブラウザにも途中にも残さない)。HSTS は1年(http に落とさせない)。使わないブラウザの機能(カメラ・マイク・位置など)は Permissions-Policy で止める。CSP は見送り(SSR が埋め込むスクリプトに nonce が要る) | 単体(`apps/web/server/app.test.ts`) |
+| 共有の PC で前の人の画面が見える | 画面の HTML は `Cache-Control: no-store`(ブラウザにも途中にも残さない)。HSTS は1年(http に落とさせない)。使わないブラウザの機能(カメラ・マイク・位置など)は Permissions-Policy で止める | 単体(`apps/web/server/app.test.ts`) |
+| 差し込まれたスクリプトが動く(XSS)・よそのサイトに枠で埋め込まれる | 画面の全部の応答に CSP。スクリプトとスタイルは自分の origin と、1リクエストごとの nonce の付いた埋め込みだけ(SSR が埋め込む物には TanStack が付ける)。`eval` の類・`object`・`base` を止め、枠への埋め込みは `frame-ancestors 'none'`。外へ送るのは Sentry の origin だけ。部品が描く style 属性だけは許す([設計書 0045](designs/0045-web-csp.md)) | 単体(`apps/web/server/app.test.ts`)・E2E `csp.spec.ts`(主な画面で違反が無い・nonce の無い埋め込みが止まる) |
 | プレビュー・stg・ログインの後ろの画面が検索に載る | 画面のサーバーが全部の応答に `X-Robots-Tag: noindex, nofollow`(本番も既定は全部。外すのは本番で一覧に書いたパスだけ)。`robots.txt` は本番以外 `Disallow: /`。拡張子のあるパスの探り(`/wp-login.php` など)は SSR に回さずに 404 | 単体(`apps/web/server/app.test.ts`)・E2E `not-found.spec.ts` |
 | 偽物が本物とずれる | 同じ契約テストを、偽物には PR ごと・stg の本物には手動で(有効にすると週1回)。落ちたら Issue | `cognito-contract.yml` |
 
