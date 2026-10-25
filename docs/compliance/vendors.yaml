@@ -1,0 +1,322 @@
+# 委託先の台帳(ここが正)。外の会社・外の部品のうち、データか処理を預ける物を1社1件で書く。
+#   pnpm vendors           コードと台帳を照らし合わせる(CI)。無い物があれば 1 で終わる:
+#                          package.json の外のサービスの SDK / Terraform の資源の種類(AWS はサービスごと)/
+#                          ワークフローの uses:(Actions)/ 人が読む一覧(vendors.md)の作り忘れ
+#   pnpm vendors --write   人が読む一覧 docs/compliance/vendors.md をここから作り直す(手で書かない)
+# 決まりは docs/designs/0017-vendors-ai-data-audit-trail.md・ADR 0030。AI に渡してよいデータは docs/compliance/ai-data.md。
+#
+# 書き方:
+#   - relation(預け方):
+#       委託       … 個人データ(か、それと結びつく ID)を預けて、こちらの用のために扱ってもらう(個人情報保護法 25条の監督が要る)
+#       第三者提供 … 相手が自分の用のために使う(本人の同意が要る。このキットには無い。足すなら人が決める)
+#       渡さない   … 個人データを渡さない。部品・道具・場所を使うだけ(Actions・GitHub App など)
+#   - data: 渡すデータの区分。apps/api/src/db/classification.ts の区分(public / internal / personal / sensitive)と同じ言葉。
+#           internal(ID・時刻・回数)は単体では人が分からないが、こちらの DB と突き合わせれば人に結びつくので「委託」にしている。
+#   - ai: true は AI の会社。personal・sensitive を書くと CI が落ちる(docs/security.md の AI-6)
+#   - country: データが置かれる・扱われる国。日本の外なら越境(個人情報保護法 28条)。扱いは設計書 0017 の未確定事項 U-1
+#   - contract.dpa: 結んだ(日付)/ 約款に含む / 未確認 / 不要(渡さない)。link は相手の公開の約款・DPA。
+#     キットの既定は「公開の約款を確かめただけ」。使う人は自分の契約(プラン・地域・保存期間)を確かめて書き直す
+#   - certifications: 相手が公開している第三者の認証(ISO/IEC 27001・SOC 2 など)。checked_on に確かめた日
+#   - deletion: when_we_leave(こちらが使うのをやめたとき)/ when_tenant_leaves(お客さんが解約したとき。docs/runbooks/offboarding.md)
+#   - match: コードのどこで使っているか。CI がこの形で照らし合わせる(* は何文字でも)
+#       packages: package.json の依存の名前 / actions: uses: の owner/repo /
+#       terraform_sources: Terraform の提供者(providers)と登録簿のモジュール。資源の種類の頭(aws_・random_)はここで決まる
+#     services を持つ会社(AWS)は、資源の種類をサービスごとに分けて区分を書く(新しい種類を足すと、どれかの services に1行要る)
+#   - 足す・区分を変えるのは人の確認が要る(危険度「高」。.claude/hooks/protected-paths.json)。足すだけで、使うのをやめた会社は
+#     消さずに status: ended と ended_on を書く(いつまで預けていたかの記録)
+
+version: 1
+
+vendors:
+  - id: aws
+    name: Amazon Web Services(AWS)
+    status: active
+    relation: 委託
+    what: 本番・stg・プレビューの動く所すべて(DB・ログイン・メールの送信・ログ・バックアップ・管理操作の記録)
+    country: 日本(東京 ap-northeast-1)。外形監視のアラーム・CloudFront の証明書だけ米国(us-east-1。個人データは置かない)
+    data: [public, internal, personal]
+    contract:
+      dpa: 約款に含む
+      link: https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf
+      note: AWS のサービス条件(https://aws.amazon.com/service-terms/)に DPA が組み込まれる。別に署名しなくてよい
+    certifications: [ISO/IEC 27001, ISO/IEC 27017, ISO/IEC 27018, SOC 2 Type II, ISMAP]
+    certifications_link: https://aws.amazon.com/compliance/programs/
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: アカウントを閉じると、90日の猶予のあとに中身が消える。消せない保管庫(バックアップ・管理操作の記録)は期限まで残る
+      when_tenant_leaves: 解約の削除のコマンドで DB と Cognito から消す。バックアップは保存の期限(最長1年)で消える(docs/runbooks/offboarding.md)
+    match:
+      packages: ["@aws-sdk/*"]
+      actions: [aws-actions/*]
+      terraform_sources: [hashicorp/aws]
+    services:
+      - name: Aurora(RDS。DB)
+        terraform: [aws_rds_*, aws_db_*]
+        data: [public, internal, personal]
+        note: 要配慮(sensitive)を足すときは、スキーマ sensitive と専用の鍵(ADR 0018)。そのときここに sensitive を足す
+      - name: AWS Backup(DB の写し)
+        terraform: [aws_backup_*]
+        data: [public, internal, personal]
+      - name: Cognito(ログイン)
+        terraform: [aws_cognito_*]
+        data: [internal, personal]
+        note: メールアドレス・パスワードのハッシュ・二段階認証の鍵
+      - name: SES(メールの送信)
+        terraform: [aws_sesv2_*]
+        data: [internal, personal]
+        note: 宛先と本文(名前・題名が入る)
+      - name: EFS(メールの中継の送信待ち)
+        terraform: [aws_efs_*]
+        data: [internal, personal]
+      - name: ECS・ECR・Cloud Map・Application Auto Scaling(アプリを動かす)
+        terraform: [aws_ecs_*, aws_ecr_*, aws_service_discovery_*, aws_appautoscaling_*]
+        data: [public, internal, personal]
+        note: 動いている間のメモリの中だけ。イメージに個人データは入れない
+      - name: ELB(ALB。入口)
+        terraform: [aws_lb, aws_lb_*]
+        data: [internal, personal]
+        note: 通るだけ(TLS をここで解く)。アクセスログは取っていない
+      - name: WAF
+        terraform: [aws_wafv2_*]
+        data: [internal, personal]
+        note: ログは IP・URL(検索の値が入る)・ヘッダー(Cookie と Authorization は伏せる)。30日
+      - name: CloudWatch(ログ・メトリクス・アラーム)・EventBridge
+        terraform: [aws_cloudwatch_*]
+        data: [internal, personal]
+        note: アプリのログは許可リストの項目だけ(ADR 0019)。personal が入るのは WAF のログ(URL の検索の値)だけ
+      - name: CloudTrail(管理操作の記録)
+        terraform: [aws_cloudtrail]
+        data: [internal]
+        note: 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。消せない S3 に置く(docs/runbooks/audit-trail.md)
+      - name: S3
+        terraform: [aws_s3_*]
+        data: [public, internal]
+        note: 管理操作の記録と、試作の画面(偽のデータだけ)。お客さんのデータは置かない
+      - name: CloudFront(試作の画面の配信)
+        terraform: [aws_cloudfront_*]
+        data: [public]
+      - name: VPC(ネットワーク)
+        terraform:
+          - aws_vpc
+          - aws_vpc_*
+          - aws_subnet
+          - aws_subnets
+          - aws_route
+          - aws_route_table
+          - aws_route_table_association
+          - aws_internet_gateway
+          - aws_nat_gateway
+          - aws_eip
+          - aws_security_group
+          - aws_default_security_group
+          - aws_flow_log
+          - aws_availability_zones
+        data: [internal]
+        note: フローログ(IP と通信の量。中身は無い)
+      - name: IAM・KMS・Secrets Manager・ACM(鍵と権限)
+        terraform: [aws_iam_*, aws_kms_*, aws_secretsmanager_*, aws_acm_*, aws_caller_identity, aws_region, aws_partition]
+        data: [internal]
+      - name: Route 53(DNS・外形監視)
+        terraform: [aws_route53_*]
+        data: [public]
+        note: 外形監視は世界の何か所かから公開のページを開くだけ
+      - name: GuardDuty・Security Hub(見張り)
+        terraform: [aws_guardduty_*, aws_securityhub_*]
+        data: [internal]
+      - name: SNS・AWS Chatbot・Budgets(知らせ・予算)
+        terraform: [aws_sns_*, aws_chatbot_*, aws_budgets_*]
+        data: [internal]
+        note: 知らせの中身はアラームの名前と数だけ。Chatbot から先は Slack(下の slack)
+
+  - id: github
+    name: GitHub
+    status: active
+    relation: 委託
+    what: ソースコード・Issue・PR・CI(Actions)・依存の通知(Dependabot)・npm の取得元
+    country: 米国
+    data: [internal]
+    contract:
+      dpa: 未確認
+      link: https://github.com/customer-terms
+      note: 有料のプランの約款に DPA がある。無料のプランで使うなら、何に同意しているかを確かめる
+    certifications: [ISO/IEC 27001, SOC 2 Type II]
+    certifications_link: https://github.com/security
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: リポジトリを消すと、90日は戻せる状態で残り、そのあと消える。Actions の成果物とログは保存の日数(7日)で消える
+      when_tenant_leaves: 残らない(Issue・PR にお客さんの個人データを書かない決まり。docs/compliance/ai-data.md)
+    match:
+      actions: [actions/*]
+
+  - id: sentry
+    name: Sentry(Functional Software)
+    status: active
+    relation: 委託
+    what: API・画面のサーバー・ブラウザの失敗の記録(ADR 0011)
+    country: 米国(EU の置き場も選べる。どちらにしたかを書く)
+    data: [internal]
+    contract:
+      dpa: 未確認
+      link: https://sentry.io/legal/dpa/
+    certifications: [ISO/IEC 27001, SOC 2 Type II]
+    certifications_link: https://sentry.io/security/
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: 組織を消すと消える。それまでは保存の日数(プランで決まる)で古い物から消える
+      when_tenant_leaves: 利用者の ID だけが残り、保存の日数で消える(値は送る前に落としている。packages/error-reporting)
+    match:
+      packages: ["@sentry/*"]
+
+  - id: anthropic
+    name: Anthropic(Claude・Claude Code)
+    status: active
+    relation: 委託
+    ai: true
+    what: AI が作る・調べる(Claude Code・@claude の Actions)。渡すのはコード・設計書・ID と集計まで(docs/compliance/ai-data.md)
+    country: 米国
+    data: [internal]
+    contract:
+      dpa: 未確認
+      link: https://www.anthropic.com/legal/commercial-terms
+      note: 商用の約款に DPA(https://www.anthropic.com/legal/data-processing-addendum)。入れた物を学習に使わないこと・保存の日数を、自分の契約で確かめる
+    certifications: [ISO/IEC 27001, ISO/IEC 42001, SOC 2 Type II]
+    certifications_link: https://trust.anthropic.com/
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: 契約の保存の日数で消える(日数は契約と設定で確かめる)
+      when_tenant_leaves: 残らない(お客さんの個人データを渡さない決まり)
+    match:
+      packages: ["@anthropic-ai/*"]
+      actions: [anthropics/*]
+
+  - id: slack
+    name: Slack(Salesforce)
+    status: active
+    relation: 委託
+    what: アラームと点検の知らせ(AWS Chatbot・checkup.yml)・障害のときのやり取り
+    country: 米国
+    data: [internal]
+    contract:
+      dpa: 未確認
+      link: https://slack.com/terms-of-service/data-processing
+    certifications: [ISO/IEC 27001, SOC 2 Type II]
+    certifications_link: https://slack.com/trust/compliance
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: ワークスペースを消すと消える
+      when_tenant_leaves: 残らない(知らせに個人データを入れない。障害のスレッドにも ID だけを書く)
+    match:
+      packages: ["@slack/*"]
+
+  - id: renovate
+    name: Renovate(Mend.io の GitHub App)
+    status: active
+    relation: 渡さない
+    what: 依存の更新の PR を出す。リポジトリのコードを読む
+    country: 米国
+    data: []
+    contract:
+      dpa: 不要
+      link: https://docs.renovatebot.com/security-and-permissions/
+    certifications: []
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: GitHub App を外す
+      when_tenant_leaves: 関係しない
+
+  - id: docker
+    name: Docker(Docker Hub・Buildx の Actions)
+    status: active
+    relation: 渡さない
+    what: CI でのイメージの作成と、検査の道具のイメージの取得
+    country: 米国
+    data: []
+    contract:
+      dpa: 不要
+      link: https://www.docker.com/legal/docker-subscription-service-agreement/
+    certifications: []
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: 関係しない(預けている物は無い)
+      when_tenant_leaves: 関係しない
+    match:
+      actions: [docker/*]
+
+  - id: hashicorp
+    name: HashiCorp(Terraform・その登録簿)
+    status: active
+    relation: 渡さない
+    what: Terraform の本体と提供者(providers)の取得。状態ファイルは自分の S3 に置く(HCP は使わない)
+    country: 米国
+    data: []
+    contract:
+      dpa: 不要
+      link: https://registry.terraform.io/
+    certifications: []
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: 関係しない
+      when_tenant_leaves: 関係しない
+    match:
+      actions: [hashicorp/*]
+      terraform_sources: [hashicorp/random]
+
+  - id: oss-ci-tools
+    name: 公開の道具(pnpm・TFLint・ZAP)
+    status: active
+    relation: 渡さない
+    what: CI の中で動く公開の道具(SHA で固定)。ZAP は試しのアカウントで stg を叩く
+    country: なし(CI の中で動く)
+    data: []
+    contract:
+      dpa: 不要
+      link: https://github.com/pnpm/action-setup
+    certifications: []
+    checked_on: 2026-10-25
+    deletion:
+      when_we_leave: 関係しない
+      when_tenant_leaves: 関係しない
+    match:
+      actions: [pnpm/*, terraform-linters/*, zaproxy/*]
+
+# 外のサービスの SDK らしい名前(台帳に無ければ CI が落ちる)。台帳の match.packages はそれ自体でも見分けに使う。
+# ここに無い名前の SDK・fetch で直接呼ぶ外の API は見つけられない(足したら、ここにも名前を足す)
+service_packages:
+  - "@aws-sdk/*"
+  - aws-sdk
+  - "@sentry/*"
+  - "@anthropic-ai/*"
+  - openai
+  - "@google/genai"
+  - "@google-cloud/*"
+  - googleapis
+  - firebase
+  - firebase-admin
+  - "@azure/*"
+  - "@slack/*"
+  - stripe
+  - "@stripe/*"
+  - "@sendgrid/*"
+  - resend
+  - twilio
+  - "@datadog/*"
+  - dd-trace
+  - newrelic
+  - posthog-js
+  - posthog-node
+  - "@segment/*"
+  - mixpanel
+  - mixpanel-browser
+  - "@amplitude/*"
+  - algoliasearch
+  - "@algolia/*"
+  - "@supabase/*"
+  - "@vercel/*"
+  - "@cloudflare/*"
+  - "@upstash/*"
+  - "@octokit/*"
+  - "@launchdarkly/*"
+  - "@intercom/*"
+  - "@hubspot/*"
+  - "@notionhq/*"
+
