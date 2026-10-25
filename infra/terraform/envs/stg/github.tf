@@ -76,7 +76,7 @@ data "aws_iam_policy_document" "deploy" {
     sid     = "PassTaskRoles"
     actions = ["iam:PassRole"]
     resources = [
-      module.app.execution_role_arn, module.app.task_role_arn,
+      module.app.execution_role_arn, module.app.task_role_arn, module.app.migrate_task_role_arn,
       module.web.execution_role_arn, module.web.task_role_arn,
       module.mail.execution_role_arn, module.mail.task_role_arn,
     ]
@@ -97,9 +97,12 @@ data "aws_iam_policy_document" "plan_state" {
   # Terraform が値を持つ秘密は、plan のときに今の値と比べる(GetSecretValue。ReadOnlyAccess に無い)。
   # 同じ値は状態ファイルにも入っているので、読める範囲は広がらない
   statement {
-    sid       = "RefreshManagedSecrets"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.session.arn, module.aurora.database_url_secret_arn, module.ses.smtp_credentials_secret_arn]
+    sid     = "RefreshManagedSecrets"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = concat(
+      [aws_secretsmanager_secret.session.arn, module.aurora.database_url_secret_arn, module.ses.smtp_credentials_secret_arn],
+      [for m in module.sensitive_data : m.database_url_secret_arn],
+    )
   }
   statement {
     sid       = "DecryptManagedSecrets"

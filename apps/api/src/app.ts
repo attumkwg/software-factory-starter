@@ -34,6 +34,7 @@ import { exportRoutes } from "./export/routes.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
+import type { SensitiveStore } from "./sensitive/index.ts";
 
 export type AppDeps = {
   config: Config;
@@ -46,6 +47,8 @@ export type AppDeps = {
   legalVersions?: readonly LegalVersion[];
   /** テスト用: 機能フラグの定義を差し替える(キットには1つも無いので)。既定は FEATURE_FLAGS */
   featureFlags?: readonly FeatureFlagDefinition[];
+  /** 要配慮個人情報の入口(ADR 0029。index.ts が設定から作る)。無ければ null(段0) */
+  sensitive?: SensitiveStore | null;
 };
 
 /**
@@ -111,7 +114,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/*", authenticate(config.session));
   // 運営の組織(社員の代理ログイン)。ハンドラーと /api/me が「社員か」を判断するのに使う。
   // 二段階認証の必須を効かせるか(関所と /api/me が使う)。規約の版の一覧(関所と同意の API が使う)。
-  // 機能フラグの定義(/api/me と機能の API の requireFeature が使う)
+  // 機能フラグの定義(/api/me と機能の API の requireFeature が使う)。要配慮個人情報の入口(sensitiveOf(c) が使う)
   const legalVersions = deps.legalVersions ?? LEGAL_VERSIONS;
   const featureFlags = deps.featureFlags ?? FEATURE_FLAGS;
   app.use("/api/*", async (c, next) => {
@@ -119,6 +122,7 @@ export function createApp(deps: AppDeps) {
     c.set("mfaEnforced", config.auth.mode === "cognito");
     c.set("legalVersions", legalVersions);
     c.set("featureFlags", featureFlags);
+    c.set("sensitive", deps.sensitive ?? null);
     await next();
   });
   app.use("/api/*", authorize({ db, logger, session: config.session }));

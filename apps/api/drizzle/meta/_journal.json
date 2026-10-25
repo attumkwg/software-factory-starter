@@ -92,6 +92,13 @@
       "when": 1792843451204,
       "tag": "0012_usage_records",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792901359834,
+      "tag": "0013_sensitive_schema",
+      "breakpoints": true
     }
   ]
 }

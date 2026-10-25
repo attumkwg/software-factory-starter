@@ -187,7 +187,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 表側(画面) | 公開のページと SEO の型 `seo` | 検索から人を呼ぶための公開のページ(説明・料金・ブログ)の型 | 消す | 未 |
 | 個人情報 | 個人データが漏れたときの手順書 `breach-runbook` | 委員会への報告(速報3〜5日・確報30日 / 60日)と本人への通知、B2B のお客さんへの知らせの段取り | 残す | あり |
 | 個人情報 | 委託先の台帳と、AI に渡すデータの決まり `vendor-ledger` | 外の会社ごとに預け方・国・渡す区分・契約・認証・消え方を台帳に書き、コード(SDK・AWS のサービス・Actions)と CI で照らす。AI の会社には ID と集計まで(docs/security.md の AI-6) | 残す | あり |
-| 個人情報 | 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所(スキーマ sensitive・別の鍵)にだけ置く(ADR 0018 の段1から)。分けるまで列を足せない守りは、土台の列の分類表に入っている | 消す | 未 |
+| 個人情報 | 🔒 要配慮個人情報を分けて置く `sensitive-isolation` | 病歴・信条などの要配慮個人情報を、分けた場所にだけ置く(ADR 0018 の段1・ADR 0029)。スキーマ sensitive・専用のロール app_sensitive・専用の KMS の鍵で組織ごとのデータ鍵を包み、列ごとに暗号化。読み書きは apps/api/src/sensitive/ からだけ。段2・段3は手順書と上げる目安だけ | 残す | あり |
 | 個人情報 | 1人分の削除と開示 `person-deletion` | 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別) | 残す | 未 |
 | 決まりごと | 利用規約・プライバシーポリシーの同意 `terms-consent` | 規約の版を持ち、重要な変更は次のログインで同意し直すまで使えなくする。登録の画面での同意・変更のお知らせのメール(運営のコマンド legal-notify)も。同意の記録は監査ログに | 残す | あり |
 | 決まりごと | 認証の準備(P マーク・ISMS・SOC 2) `certification-prep` | 毎月の証跡を消せない S3 に集める(evidence.yml)・附属書 A の93の管理策と適用宣言書(SoA)の生成・規程と様式のひな形・期限の来た規程の見直し・教育・内部監査を1問ずつ聞く /compliance-check。委託先の台帳は vendor-ledger・入口は docs/compliance/README.md | 消す | あり |
@@ -232,7 +232,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
 | PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
 | 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
-| AI に変えさせない所 | `.claude/settings.json` の `ask`(CI・権限・移行・infra を編集するときは人の確認) |
+| AI に変えさせない所 | 編集と Bash のフック `.claude/hooks/guard-edit.mjs`・`guard-bash.mjs`(CI・権限・移行・infra を編集するときは人の確認。手元だけで外せる。[docs/guides/local-guards.md](docs/guides/local-guards.md)) |
 
 ### ハーネス3層
 
@@ -371,6 +371,12 @@ CREATE ROLE app_rw NOLOGIN;
 CREATE ROLE app LOGIN PASSWORD '<database-url の中のパスワード>' NOSUPERUSER NOBYPASSRLS IN ROLE app_rw;
 ```
 
+   要配慮個人情報を扱うとき(Terraform の `sensitive_data_enabled = true` にした後)だけ、要配慮だけの接続ユーザーも作る(パスワードは `<name>/sensitive-database-url` の中の値。ロール `app_sensitive` は移行が作る。[docs/runbooks/sensitive-data-tiers.md](docs/runbooks/sensitive-data-tiers.md) の 1):
+
+```sql
+CREATE ROLE app_sensitive_login LOGIN PASSWORD '<sensitive-database-url の中のパスワード>' NOSUPERUSER NOBYPASSRLS IN ROLE app_sensitive;
+```
+
 ### 3. OIDC の役割と GitHub の変数・秘密
 
 Terraform の出力(`github_role_arns` など)を、Settings → Secrets and variables → Actions の **Variables** に入れる(秘密ではないので Variables):
@@ -435,5 +441,5 @@ prod のバックアップの保管庫は **compliance のロック**で、apply
 
 ## ⚠️ この雛形の注意
 
-- `.claude/settings.json` の `ask` は、CI・認可・移行・infra のファイルを Claude Code が書くとき人の確認を求める(AI に勝手に変えさせない)。雛形を育てる間に邪魔なら `.claude/settings.local.json` で上書きできる。
+- 編集のフック(`.claude/hooks/guard-edit.mjs`)は、CI・認可・移行・infra のファイルを Claude Code が書くとき人の確認を求める(AI に勝手に変えさせない)。並べたセッションで邪魔なら、手元の `~/.claude/settings.json` の `env` に `KIT_EDIT_GUARD=pr` と書くと確認が出なくなり、PR の段(`risk:high`・CODEOWNERS・「人に判断してほしい所」)が最後の確認になる([docs/guides/local-guards.md](docs/guides/local-guards.md))。
 - Windows では `pnpm test:integration` に Docker Desktop が要る。古い Docker Desktop で Testcontainers が待ち続けるときのため、ヘルスチェックだけで待つようにしてある(`test/integration/global-setup.ts`)。

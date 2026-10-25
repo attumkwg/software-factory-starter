@@ -94,6 +94,12 @@ variable "support_tenant_id" {
   default     = null
 }
 
+variable "sensitive_data_enabled" {
+  description = "要配慮個人情報の段1(専用の KMS の鍵・要配慮だけの接続)を作るか。要配慮の列を足す仕様が承認されたら true(ADR 0029)"
+  type        = bool
+  default     = false
+}
+
 variable "evidence_lock_mode" {
   description = "証跡の置き場の Object Lock。GOVERNANCE(特別な権限の人だけ消せる)か COMPLIANCE(期間の間は root でも消せない・戻せない)。設計書 0019 の U-1"
   type        = string

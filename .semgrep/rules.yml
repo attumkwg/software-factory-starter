@@ -156,6 +156,37 @@ rules:
       exclude: ["/apps/api/src/http/common.ts"]
     pattern-regex: '\bbody:\s*\{\s*content:'
 
+  - id: sensitive-data-only-in-module
+    message: >-
+      要配慮個人情報(スキーマ sensitive・その鍵・その接続)には、apps/api/src/sensitive/ の中からだけ触る。
+      外からは apps/api/src/sensitive/index.ts の関数だけを使う(要配慮の表の SQL は、表ごとの関数としてモジュールの中に書く)。
+      ほかから読むと、暗号化されずに書かれる・ふつうの接続で読める・ログに出る道ができる。ADR 0029
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+      exclude:
+        - "/apps/api/src/sensitive/"
+        # 型と移行の生成のための集め先(アプリの接続 app_rw はスキーマに入れないので、ここ経由では読めない)
+        - "/apps/api/src/db/schema.ts"
+        # 列の分類表(列の名前を書くだけ)・解約の削除(表の持ち主で、データ鍵の行を消す = 暗号による消去)
+        - "/apps/api/src/db/classification.ts"
+        - "/apps/api/src/offboarding/delete-tenant.ts"
+        # テストは、分けられていることを確かめるために、わざと外から触る
+        - "/apps/api/test/"
+        - "*.test.ts"
+    pattern-either:
+      # モジュールの中のファイル(index.ts 以外)を読み込む
+      - pattern-regex: (?m)^import\s+[^;]*?from\s+["'](\.\.?/)+sensitive/(?!index(\.ts)?["'])[^"']+["']
+      # 鍵(KMS)を直接呼ぶ
+      - pattern-regex: from\s+["']@aws-sdk/client-kms["']
+      # スキーマ sensitive の表を、モジュールの外で定義する・SQL で名指しする
+      - pattern: pgSchema("sensitive")
+      - pattern: $SQL.identifier("sensitive")
+      - pattern-regex: (?i)\b(from|join|into|update|table)\s+"?sensitive"?\."?[a-z_]
+      # 要配慮の接続・鍵の設定を、設定(config.ts)を通さずに読む
+      - pattern-regex: process\.env(\.|\[["'])SENSITIVE_
+
   - id: web-writes-through-use-action
     message: >-
       画面から API に書き込むとき(create・update・delete・logout)は useAction を通す(apps/web/src/use-action.ts)。

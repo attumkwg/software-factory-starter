@@ -14,7 +14,7 @@
 | AWS の月ごと・日ごと・サービスごと | 前の3か月と今月・今月の日ごと・AWS のサービスの上の10 | Cost Explorer |
 | PR ごとの環境 | タグ `PullRequest`(dev のアカウント) | Cost Explorer |
 | GitHub Actions | ワークフローごとの実行の数と分数(非公開なら、枠を超えた分を金額に) | Actions の API |
-| 読めなかった物・足りない物 | 役割が無い・鍵が無い・金額を書いていない SaaS。**0円として隠さない** | — |
+| 読めなかった物・足りない物 | 役割が無い・金額を書いていない SaaS。**0円として隠さない** | — |
 
 金額は目安(1ドル = `estimates.yaml` の `usd_jpy` 円で換算・税は含まない)。正は請求書。
 
@@ -23,7 +23,7 @@
 1. **Terraform を apply する**(人が CI で。stg・prod・preview/base)。全部のリソースにタグ `Bet`・`Component` が付き、役割 `…-cost`(Cost Explorer を読むだけ。prod は置き場へ書くのも)・prod に置き場 `module.cost_reports`・費用の急な変化の見張り(`module.cost_watch`)ができる。
 2. **翌日以降に、コスト配分タグを有効にする**: 変数 `activate_cost_allocation_tags = true` で apply(タグが請求に出てからでないと有効にできない)。AWS Organizations の中のアカウントなら、管理のアカウントの「請求 → コスト配分タグ」で `Project`・`Environment`・`Component`・`Bet`・`PullRequest` を有効にする。有効にした日より前の費用には、タグが付かない(「タグなし」に出る)。
 3. **変数を入れる**(Settings → Secrets and variables → Actions → Variables): `AWS_PROD_COST_ROLE_ARN`・`COST_BUCKET`(prod の出力 `cost_bucket`)。あれば `AWS_STG_COST_ROLE_ARN`・`AWS_DEV_COST_ROLE_ARN`。役割はどれも main のコードからだけ引ける。
-4. **SaaS の月額を書く**: `docs/cost/saas.yaml`。AI の席・使用料もここ(`category: ai`。API で自動では取らない。設計書 0019 の U-4)。**公開のリポジトリなら金額を書かない**(名前だけ。ページに「金額なし」と出る)。
+4. **SaaS の月額を書く**: `docs/cost/saas.yaml`。AI の席・使用料もここ(`category: ai`)。**AI の費用は API で自動では取らない**: 使用と費用の API は Anthropic の管理用の鍵でしか読めず、その鍵は組織の人と鍵を作り・消せるので、GitHub に置かない(漏れると組織ごと取られる。ADR 0032)。毎月、Anthropic のコンソールの請求の画面を見て、人が書き写す。**公開のリポジトリなら金額を書かない**(名前だけ。ページに「金額なし」と出る)。
 5. Actions → Cost → Run workflow(main で)を流す。毎日にするなら、`cost.yml` の「有効にする日」を書いて `schedule` を生かす(1日 最大 約27円。[automation.md](automation.md))。
 
 ## 3. 見る

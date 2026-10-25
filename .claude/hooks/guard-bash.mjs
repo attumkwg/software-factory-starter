@@ -1,12 +1,14 @@
-// PreToolUse(Bash): settings.json の deny・ask を Bash で回り道されないようにする(auto モードでも効く)。
-// - main への push・強制 push・ブランチの削除・PR のマージと承認は止める(deny)
-// - 危険度「高」の場所(protected-paths.json)に触る、読むだけでないコマンドは人に聞く(ask)
+// PreToolUse(Bash): settings.json の deny と編集のフック(guard-edit.mjs)を Bash で回り道されないようにする(auto モードでも効く)。
+// - main への push・強制 push・ブランチの削除・PR のマージと承認は止める(deny。KIT_EDIT_GUARD に関係なく)
+// - 危険度「高」の場所(protected-paths.json)に触る、読むだけでないコマンドは人に聞く(ask)。
+//   手元の env に KIT_EDIT_GUARD=pr と書いたときだけ、この確認を出さずに通す(編集のフックと同じ)
 // 完全ではない(スクリプトの中で書くもの・変数で組み立てた道は見えない)。疑わしいときは聞く側に倒す。
 // 最後の守りは PR の risk:high ラベル(labeler)と人のレビュー。docs/guides/local-guards.md
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { GUARD_OFF_REASON, guardOff, hookOutput } from "./guard-edit.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { paths } = JSON.parse(readFileSync(join(here, "protected-paths.json"), "utf8"));
@@ -115,14 +117,15 @@ export function touchedProtected(command) {
     .map(({ p }) => p);
 }
 
-// { decision: "deny" | "ask", reason } か null(ふつうに通す)
-export function decide(command, currentBranch = () => "") {
+// { decision: "deny" | "ask" | "pass", reason } か null(ふつうに通す)。deny は env に関係なく止める
+export function decide(command, currentBranch = () => "", env = process.env) {
   for (const segment of segments(command)) {
     const reason = checkPush(segment, currentBranch) ?? checkMerge(segment);
     if (reason) return { decision: "deny", reason };
   }
   const touched = touchedProtected(command);
   if (touched.length > 0 && !segments(command).every(isReadOnly)) {
+    if (guardOff(env)) return { decision: "pass", reason: GUARD_OFF_REASON };
     return {
       decision: "ask",
       reason: `危険度「高」の場所(${touched.join("・")})を変えるかもしれないコマンドです。人が確かめてください`,
@@ -137,16 +140,7 @@ function main() {
   const currentBranch = () =>
     spawnSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).stdout.trim();
   const result = decide(input.tool_input?.command ?? "", currentBranch);
-  if (!result) return;
-  process.stdout.write(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: result.decision,
-        permissionDecisionReason: result.reason,
-      },
-    }),
-  );
+  if (result) process.stdout.write(JSON.stringify(hookOutput(result)));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main();

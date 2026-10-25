@@ -118,3 +118,36 @@ export function moneyAndTime() {
   const tokyo = createdAt.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
   return [withTax, shown, doubled, hour, day, label, utcDay, tokyo];
 }
+
+// ruleid: sensitive-data-only-in-module
+import { tenantKeys } from "../sensitive/schema.ts";
+// ruleid: sensitive-data-only-in-module
+import { createSensitiveStore } from "./sensitive/store.ts";
+// ruleid: sensitive-data-only-in-module
+import { KMSClient } from "@aws-sdk/client-kms";
+// ok: sensitive-data-only-in-module
+import { sensitiveOf } from "../sensitive/index.ts";
+
+declare const pgSchema: (name: string) => unknown;
+declare const sqlId: { identifier: (n: string) => unknown };
+declare const tx: { execute: (q: string) => Promise<unknown> };
+
+export async function sensitiveData() {
+  // ruleid: sensitive-data-only-in-module
+  const health = pgSchema("sensitive");
+  // ok: sensitive-data-only-in-module
+  const tasksSchema = pgSchema("tasks");
+  // ruleid: sensitive-data-only-in-module
+  await tx.execute("select wrapped_key from sensitive.tenant_keys");
+  // ruleid: sensitive-data-only-in-module
+  await tx.execute(`insert into "sensitive"."health_notes" (id) values ($1)`);
+  // ok: sensitive-data-only-in-module
+  await tx.execute("select title from tasks.tasks");
+  // ruleid: sensitive-data-only-in-module
+  const url = process.env.SENSITIVE_DATABASE_URL;
+  // ok: sensitive-data-only-in-module
+  const appUrl = process.env.DATABASE_URL;
+  // ruleid: sensitive-data-only-in-module
+  const schemaName = sqlId.identifier("sensitive");
+  return [health, tasksSchema, url, appUrl, schemaName, tenantKeys, createSensitiveStore, KMSClient, sensitiveOf];
+}
