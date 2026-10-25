@@ -1,13 +1,17 @@
 import type {
+  AcceptedInvitation,
   Account,
   ApiError,
   AuditEventPage,
   AuthNext,
   AuthOptions,
   CreatedSupportGrant,
+  CreateInvitation,
   CreateProject,
   CreateSupportGrant,
   CreateTask,
+  Invitation,
+  InvitationPage,
   LegalVersionRef,
   Me,
   MfaRequirement,
@@ -254,6 +258,14 @@ export const api = {
   createSupportGrant: (input: CreateSupportGrant) =>
     request<CreatedSupportGrant>("POST", "/support-grants", input),
   revokeSupportGrant: (id: string) => request<void>("DELETE", `/support-grants/${id}`),
+  // 招待(docs/specs/0027-invitations.md)。管理者だけ。受けるのはログインの前(リンクの札で)
+  listInvitations: async (): Promise<{ invitations: Invitation[] }> => ({
+    invitations: await readPages<InvitationPage, Invitation>("/invitations", (p) => p.invitations),
+  }),
+  createInvitation: (input: CreateInvitation) => request<Invitation>("POST", "/invitations", input),
+  revokeInvitation: (id: string) => request<void>("DELETE", `/invitations/${id}`),
+  acceptInvitation: (token: string, name: string) =>
+    request<AcceptedInvitation>("POST", "/invitations/accept", { token, name }),
   startSupport: (input: StartSupport) =>
     request<SupportSession>("POST", "/support/sessions", input),
   endSupport: () => request<void>("POST", "/support/end"),

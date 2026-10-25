@@ -47,6 +47,7 @@ export function createCognitoApp(appUrl: string, env: Record<string, string> = {
     logger,
     mailer: { send: async (m) => void sent.push(m) },
     appUrl: APP_URL,
+    linkSecret: config.session.secret,
   });
   return { app, pool, fake, logs, db, handlers, sent };
 }

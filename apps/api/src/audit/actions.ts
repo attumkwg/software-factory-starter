@@ -58,6 +58,9 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   },
   // 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)。どの版かは legal.consents の行
   "POST /api/legal/consents": { action: "legal.consent", target: "user", param: "none" },
+  // 招待(docs/specs/0027-invitations.md)。メールアドレス・ロールは details に入れない(招待の行にある)
+  "POST /api/invitations": { action: "invitation.create", target: "invitation" },
+  "DELETE /api/invitations/{invitationId}": { action: "invitation.revoke", target: "invitation" },
 };
 
 /** 関所の外(ログインの API など)で、手で記録する物 */
@@ -72,6 +75,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド create-tenant が組織を作った(docs/specs/0026-tenant-provisioning.md)。
   // 作った組織と運営の組織の両方に残す。details.adminUserId に最初の管理者の ID
   tenantCreate: "tenant.create",
+  // 招かれた人が、ログインの前に招待を受けた(公開の API。行為者は受けてできた人)
+  invitationAccept: "invitation.accept",
 } as const;
 
 /**
