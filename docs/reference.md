@@ -24,12 +24,16 @@
 │  │  ├─ test/unit/             DB 無しのテスト(権限の表の網羅 ① を含む)
 │  │  ├─ test/integration/      Testcontainers の Postgres(RLS・2社・権限の表 ②)
 │  │  └─ Dockerfile             distroless・root で動かさない(API と移行だけ。画面は配らない)
-│  └─ web/                      TanStack Start の SSR(ログイン → プロジェクト → タスク)と Playwright の E2E
-│     ├─ src/routes/            画面と URL(ファイルの置き場所が URL になる)。loader が SSR でデータを読む
-│     ├─ src/pages/             画面の中身(@app/ui の部品だけ)
-│     ├─ src/api.ts             API の呼び出し(ブラウザからは /api、SSR からは API_INTERNAL_URL)
-│     ├─ server/                本番の Node サーバー(静的ファイル・/readyz・SSR への受け渡し)
-│     └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
+│  ├─ web/                      TanStack Start の SSR(ログイン → プロジェクト → タスク)と Playwright の E2E
+│  │  ├─ src/routes/            画面と URL(ファイルの置き場所が URL になる)。loader が SSR でデータを読む
+│  │  ├─ src/pages/             画面の中身(@app/ui の部品だけ)
+│  │  ├─ src/api.ts             API の呼び出し(ブラウザからは /api、SSR からは API_INTERNAL_URL)
+│  │  ├─ server/                本番の Node サーバー(静的ファイル・/readyz・SSR への受け渡し)
+│  │  └─ Dockerfile             distroless・1つにまとめた JS だけ(node_modules も秘密も無い)
+│  └─ site/                     公開の LP(静的。ビルドのときにページごとの HTML を作る。本番だけ検索に載る。docs/guides/landing-page.md)
+│     ├─ src/content.ts         LP の言葉(架空の見本。docs/product/positioning.md から写す)
+│     ├─ src/pages/             LP・確認・取り消しのページ(@app/ui の部品だけ)
+│     └─ scripts/prerender.mjs  ページごとの HTML・robots.txt・sitemap.xml を作る
 ├─ packages/shared/             画面と API の契約(Zod のスキーマと型)
 ├─ packages/ui/                 デザインシステム(React Aria の部品とトークン)
 ├─ packages/error-reporting/   error 以上のログを Sentry に送る(値を落としてから。API と画面のサーバー)。ブラウザは apps/web/src/report-error.ts
@@ -254,7 +258,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **複数の組織に入る人**: いまは「1人 = 1組織」(ADR 0001)。
 - **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)・当番**: ログには traceId を入れてあるので、トレースは後から足せる。
 - **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
-- **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。
+- **devcontainer の外への通信の制限**(AI の環境から出られる先を絞る)。設計はある([設計書 0057](designs/0057-ai-egress.md)。人が見ていない作業は、絞った devcontainer か背景の AI でだけ回す)。作るのは段ごとの PR。
 - **WAF を「止める」にすること**: stg・prod の ALB の前に WAF はある(`infra/terraform/modules/waf`)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
 - **CSP の違反の知らせを集めること**(`report-to`): 画面の CSP はある([設計書 0045](designs/0045-web-csp.md))が、違反を受け取る口は無い。止めた物は E2E の `csp.spec.ts` で見つける。本番で起きた違反を数えたくなったら、受け口を API に足す。
 

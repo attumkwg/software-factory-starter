@@ -62,6 +62,8 @@ export const ALWAYS_REDACTED: readonly string[] = [
   "staffEmail",
   "previousEmail",
   "newEmail",
+  // 公開の LP の事前登録の会社名(docs/specs/0025-public-landing-page.md)
+  "organizationName",
 ];
 
 export const REDACTED = "[REDACTED]";
