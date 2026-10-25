@@ -6,6 +6,8 @@ import {
   type AccountNotice,
   accountNoticeMail,
   emailChangedMail,
+  invitationMail,
+  tenantOpenedMail,
 } from "../domains/organizations/index.ts";
 import { taskCompletedMail } from "../domains/tasks/index.ts";
 import type { Logger } from "../logger.ts";
@@ -19,6 +21,8 @@ export type HandlerDeps = {
   mailer: Mailer;
   /** メールの中のリンクの頭(https://app.example.com) */
   appUrl: string;
+  /** 招待のリンクの署名の元(SESSION_SECRET。docs/specs/0027-invitations.md) */
+  linkSecret: string;
   /** 公開の LP の URL とリンクの鍵(事前登録の確認のメール)。無ければ確認のメールは送らない */
   publicSite?: PublicSiteLinks | null;
 };
@@ -32,7 +36,7 @@ export type HandlerDeps = {
  * 2回送っても困らないように書く(メールは Message-ID を出来事ごとに固定している)。
  */
 export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, OutboxHandler>> {
-  const { db, logger, mailer, appUrl, publicSite = null } = deps;
+  const { db, logger, mailer, appUrl, linkSecret, publicSite = null } = deps;
 
   /** 宛先と本文をその会社の文脈(RLS)の中で作り、DB のトランザクションの外で送る */
   async function sendIn(
@@ -67,6 +71,14 @@ export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, O
     "organizations.email_changed": (event) => {
       const payload = OUTBOX_TOPICS["organizations.email_changed"].parse(event.payload);
       return sendIn(event, (tx) => emailChangedMail(tx, event, payload, appUrl));
+    },
+    "organizations.invitation_created": (event) => {
+      const payload = OUTBOX_TOPICS["organizations.invitation_created"].parse(event.payload);
+      return sendIn(event, (tx) => invitationMail(tx, event, payload, { appUrl, linkSecret }));
+    },
+    "organizations.tenant_opened": (event) => {
+      const payload = OUTBOX_TOPICS["organizations.tenant_opened"].parse(event.payload);
+      return sendIn(event, (tx) => tenantOpenedMail(tx, event, payload, appUrl));
     },
     "legal.change_notified": (event) => {
       const payload = OUTBOX_TOPICS["legal.change_notified"].parse(event.payload);

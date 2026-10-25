@@ -46,10 +46,10 @@
 <text text-anchor="start" x="137.28" y="-678.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
 <polygon fill="none" stroke="black" points="46.2,-635.4 46.2,-666.2 361.15,-666.2 361.15,-635.4 46.2,-635.4"/>
 <text text-anchor="start" x="53.2" y="-647.6" font-family="Arial" font-size="14.00">consent_text_version </text>
-<text text-anchor="start" x="189.39" y="-647.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="189.39" y="-647.6" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="black" points="46.2,-604.6 46.2,-635.4 361.15,-635.4 361.15,-604.6 46.2,-604.6"/>
 <text text-anchor="start" x="53.2" y="-616.8" font-family="Arial" font-size="14.00">privacy_version </text>
-<text text-anchor="start" x="154.35" y="-616.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="154.35" y="-616.8" font-family="Arial" font-size="14.00" fill="#666666">[bigint]</text>
 <polygon fill="none" stroke="black" points="46.2,-573.8 46.2,-604.6 361.15,-604.6 361.15,-573.8 46.2,-573.8"/>
 <text text-anchor="start" x="53.2" y="-586" font-family="Arial" font-size="14.00">consented_at </text>
 <text text-anchor="start" x="141.16" y="-586" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>

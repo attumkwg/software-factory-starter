@@ -23,6 +23,7 @@ export const TENANT_TABLES = [
   "growth.lp_daily_counts",
   "legal.notices",
   "legal.consents",
+  "organizations.invitations",
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",

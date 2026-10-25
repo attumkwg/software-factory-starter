@@ -28,6 +28,10 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "legal.consent": "利用規約などに同意した",
   "feature_flag.enable": "機能を入れた",
   "feature_flag.disable": "機能を切った",
+  "tenant.create": "組織を作った",
+  "invitation.create": "人を招いた",
+  "invitation.revoke": "招待を取り消した",
+  "invitation.accept": "招待を受けて参加した",
 };
 
 const TARGET_LABELS: Record<string, string> = {
@@ -37,6 +41,7 @@ const TARGET_LABELS: Record<string, string> = {
   support_session: "サポートの入室",
   user: "アカウント",
   organization: "組織",
+  invitation: "招待",
 };
 const FIELD_LABELS: Record<string, string> = { title: "題名", done: "完了" };
 

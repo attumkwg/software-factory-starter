@@ -11,6 +11,8 @@ export const roleLabel = (role: Role) => ROLE_LABELS[role];
 
 /** サポートへの許可を出す・取り消す(組織の管理者だけ。代理の社員は閲覧者なので出ない) */
 export const canManageSupportGrants = (me: Me) => me.role === "admin" && !me.support;
+/** 人を招く・招待を取り消す(組織の管理者だけ。代理の社員は閲覧者なので出ない) */
+export const canManageInvitations = (me: Me) => me.role === "admin" && !me.support;
 /** 運営の社員が、サポート番号で代理ログインに入る画面 */
 export const canStartSupport = (me: Me) => me.isSupportStaff === true && !me.support;
 /** 自分のアカウント(二段階認証・メール・パスワード)を変える。代理の社員は変えられない(API も 403) */

@@ -87,6 +87,11 @@ output "audit_trail_log_group_arn" {
   value = module.audit_trail.log_group_arn
 }
 
+output "applications_bucket" {
+  description = "申し込みの置き場(create-tenant が読む。applications/<申込番号>.json に置き、読み終えたら消す。docs/runbooks/tenant-provisioning.md)"
+  value       = module.applications.bucket
+}
+
 output "public_site" {
   description = "公開の LP の置き場所(GitHub の変数 STG_SITE_BUCKET・STG_SITE_DISTRIBUTION_ID・STG_SITE_URL に)。public_site_domain が無ければ null"
   value = var.public_site_domain == null ? null : {

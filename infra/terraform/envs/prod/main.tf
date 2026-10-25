@@ -124,6 +124,24 @@ module "app" {
     PGPASSWORD = "${module.aurora.master_user_secret_arn}:password::"
   }
   secrets_kms_key_arns = [aws_kms_key.app.arn, module.aurora.kms_key_arn]
+  # 申し込みの置き場(create-tenant が読むだけ)
+  applications_store = {
+    bucket      = module.applications.bucket
+    bucket_arn  = module.applications.bucket_arn
+    kms_key_arn = module.applications.kms_key_arn
+  }
+}
+
+# 申し込みの置き場(非公開の S3)。開通のとき、開発が申込書の JSON を applications/<申込番号>.json に置き、
+# create-tenant がキーだけを受けて読む(管理者の名前・メールを CloudTrail に残さない)。読み終えたら人が消す。
+# 消し忘れても今の版は7日・古い版は1日で消える。docs/runbooks/tenant-provisioning.md・docs/designs/0026-tenant-provisioning.md
+module "applications" {
+  source                 = "../../modules/record-store"
+  providers              = { aws = aws.api }
+  name                   = "${local.name}-applications"
+  archive_after_days     = null
+  expire_days            = 7
+  noncurrent_expire_days = 1
 }
 
 # 画面(SSR)。ALB・クラスターは module.app と共有。/api/* 以外がここに来る

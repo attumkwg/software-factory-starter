@@ -555,6 +555,30 @@ items:
     source: docs/playbook.md の「毎週やること」(数字・人の介在率)
     review_by: 2027-10-20
 
+  - id: people-changes
+    title: 先月、入った人・辞めた人・役割が変わった人のアカウント
+    why: 辞めた人のアカウントが、四半期の棚卸しまで残らないようにする(docs/runbooks/joiner-leaver.md)
+    if_ignored: 辞めた人が、本番やお客さんの画面に入れるまま何か月も残る
+    who: human
+    phase: 1m
+    every: monthly
+    verify: ask
+    question:
+      text: 先月、入った人・辞めた人・役割が変わった人はいましたか
+      options:
+        - { label: いない, means: 来月また聞きます }
+        - { label: いた(記録がそろっている), means: 手順書の 4 の記録の置き場と日付だけを台帳に残します }
+        - { label: いた(記録が無い・途中), means: 手順書の 3(辞めた人)か 1(入った人)を今日やる手順を出します, after: open }
+      recommended: いない
+      irreversible: false
+    severity: normal
+    controls: [ A.6.5, A.5.18, A.5.11 ]
+    evidence: [ github-collaborators, aws-iam-users ]
+    status: open
+    history: []
+    source: docs/designs/0034-joiner-leaver.md の 6.(穴 G-13)
+    review_by: 2027-04-25
+
   # ── 3か月(以後四半期ごと)────────────────────────────────────────
   - id: access-review
     title: GitHub・AWS・Sentry の人と権限、使っていない鍵の棚卸し
@@ -568,7 +592,7 @@ items:
       - GitHub の Settings → Collaborators で、人と役割を一覧にする
       - AWS の IAM Identity Center(または IAM)で、人と権限・アクセスキーの最後に使った日を見る
       - Sentry の Members を見る
-      - 辞めた人・要らない権限・90日使っていない鍵を外す
+      - 辞めた人・要らない権限・90日使っていない鍵を外す(辞めた人が見つかったら docs/runbooks/joiner-leaver.md の 3 をその日に)
     severity: normal
     controls: [ A.5.18, A.8.2, A.5.11 ]
     evidence: [ github-collaborators, aws-iam-users, aws-iam-roles ]
@@ -658,6 +682,29 @@ items:
     history: []
     source: docs/playbook.md の「毎月・四半期にやること」
     review_by: 2027-10-20
+
+  - id: oncall-rota
+    title: 夜中のアラームを誰が見るか(当番の体制)を決める
+    why: 夜中や休日に鳴ったアラームを、誰が・何分で見るか、どれは朝まで待つかを決めておく(docs/guides/on-call.md)
+    if_ignored: 夜中の停止が朝まで続く。夜中も約束した SLA を守れない
+    who: human
+    phase: 3m
+    every: half-year
+    verify: ask
+    question:
+      text: 夜中や休日に鳴ったアラームを、誰が見ますか
+      options:
+        - { label: 当番を置く(3人以上), means: docs/guides/on-call.md の表で回します。呼び出しの道具を入れる手順(委託先の台帳・知らせの道の2本)を出します }
+        - { label: 営業時間だけ見る, means: SLA を営業時間で約束したままにします。半年後にまた聞きます }
+        - { label: まだ有料の顧客がいない, means: 3か月後にまた聞きます, after: snooze }
+      recommended: 営業時間だけ見る
+      irreversible: false
+    severity: normal
+    controls: [ A.5.24, A.5.26 ]
+    status: open
+    history: []
+    source: docs/designs/0031-on-call.md の 6.(穴 G-08)
+    review_by: 2027-04-25
 
   # ── 半年(以後半年ごと)────────────────────────────────────────────
   - id: key-rotation

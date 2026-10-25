@@ -61,8 +61,8 @@ flowchart LR
 | `company_size` | text(`1-9` / `10-49` / `50-299` / `300+` / 空) | internal | 誰が来ているかの集計 |
 | `utm_source`・`utm_medium`・`utm_campaign` | text(各 100 まで・英数と `-_.` だけ。外れたら空) | internal | どこから来たか |
 | `landing_path` | text(200 まで。クエリを落とした path だけ) | public | どのページで登録したか |
-| `consent_text_version` | integer | internal | 同意の文の版(手引きの型。文を変えたら版を上げる) |
-| `privacy_version` | integer | internal | そのとき出したプライバシーポリシーの版(`LEGAL_VERSIONS`) |
+| `consent_text_version` | bigint | internal | 同意の文の版(手引きの型。文を変えたら版を上げる) |
+| `privacy_version` | bigint | internal | そのとき出したプライバシーポリシーの版(`LEGAL_VERSIONS`) |
 | `consented_at` | timestamptz | internal | 同意のチェックを付けて送った時刻 |
 | `confirm_sent_at` | timestamptz | internal | 確認のメールを最後に積んだ時刻(24時間に1通。確認のリンクの署名はこの時刻から作る) |
 | `confirmed_at` | timestamptz(空あり) | internal | リンクを開いた時刻 |
@@ -88,7 +88,7 @@ flowchart LR
 | `day` | date(日本時間) | internal | |
 | `path` | text(200 まで) | public | |
 | `utm_source`・`utm_medium`・`utm_campaign` | text(空は `''`) | internal | |
-| `views`・`registrations`・`confirmations` | integer | internal | 見た数・登録の数・確認の数 |
+| `views`・`registrations`・`confirmations` | bigint | internal | 見た数・登録の数・確認の数 |
 
 - 主キー: `(tenant_id, day, path, utm_source, utm_medium, utm_campaign)`。来るたびに `+1` するだけ(行は日ごと・組み合わせごとにしか増えない)。
 - 保存期間: 3年(個人に結びつかない集計。届け方の比べに使う)。U-3 と一緒に確かめる。

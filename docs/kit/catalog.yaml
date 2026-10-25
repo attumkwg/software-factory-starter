@@ -403,6 +403,30 @@ parts:
         - { file: infra/terraform/envs/prod/main.tf, what: support_tenant_id を渡す所を消す }
       docs: [docs/specs/0004-support-access.md, docs/adr/0014-support-access.md]
 
+  - id: provisioning
+    name: 開通(組織を作るコマンド)
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 申し込みを受けた会社を、運営がコマンドで組織にし、最初の管理者を作る(試し → 名前の確認 → 実行・監査ログ)
+    needed_by: 会社向けで、契約してから使い始める
+    not_needed_by: 個人向け・誰でも自分で組織を作れる形(セルフサーブの申し込みを別に作る)
+    if_removed: 組織を作るのに、本番の DB に SQL を打つことになる(監査ログに残らない)
+    depends_on: [tenant-isolation]
+    law: []
+    remove:
+      delete:
+        - apps/api/src/onboarding
+        - apps/api/test/integration/tenant-provisioning.int.test.ts
+        - apps/api/test/unit/create-tenant.test.ts
+        - docs/runbooks/tenant-provisioning.md
+      edit:
+        - { path: apps/api/src/cli.ts, what: create-tenant のコマンドを外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: module.applications と app の applications_store を外す(stg も) }
+        - { path: apps/api/package.json, what: "@aws-sdk/client-s3 を外す(ほかで使っていなければ)" }
+      docs: [docs/specs/0026-tenant-provisioning.md, docs/adr/0039-tenant-provisioning-command.md]
+
   - id: offboarding
     name: 解約(書き出しと削除)
     group: business
@@ -468,15 +492,42 @@ parts:
   - id: invitations
     name: 招待の画面
     group: business
-    status: 未
+    status: あり
     removable: true
     default: 残す
-    what: 管理者が画面から人を招く(いまは SQL で users に行を足す)
+    what: 管理者が画面から人を招く(メールとロール)。リンクは期限つき・1回きり・取り消せる。受けた人は登録 → その組織に入る。開通の最初の管理者への案内のメールも
     needed_by: 会社向けで、お客さんが自分で人を足す
     not_needed_by: 個人向け(本人が登録する)
-    if_removed: まだ無い
-    depends_on: [organizations, login]
-    law: []
+    if_removed: お客さんが人を足せず、運営が SQL で users に行を足す(監査ログに残らない)
+    depends_on: [organizations, login, mail]
+    law:
+      - ISMS 5.18(アクセス権)
+    remove:
+      delete:
+        - apps/api/src/domains/organizations/invitations.ts
+        - apps/api/src/domains/organizations/invitation-routes.ts
+        - apps/api/src/auth/invitation-routes.ts
+        - apps/api/test/integration/invitations.int.test.ts
+        - apps/api/test/integration/invitation-mail.int.test.ts
+        - apps/web/src/pages/InvitationsPage.tsx
+        - apps/web/src/pages/InvitationAcceptPage.tsx
+        - apps/web/src/routes/_app/invitations.tsx
+        - apps/web/src/routes/invitation.tsx
+        - apps/web/e2e/invitations.spec.ts
+      edit:
+        - { path: apps/api/src/app.ts, what: invitationAcceptRoutes と invitationRoutes を外す }
+        - { path: apps/api/src/authz/policy.ts, what: invitation:manage と招待の4行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: 招待の3つの名前を外す }
+        - { path: apps/api/src/outbox/handlers.ts, what: 招待と開通の案内の受け手を外す }
+        - { path: apps/api/src/onboarding/create-tenant.ts, what: 開通の案内のメールを積むのを外す(手順書の文の型で CS が送る) }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 招待の欄を外す }
+        - { path: apps/api/src/domains/organizations/schema.ts, what: invitations の表を外す移行を足す(表は消す移行で) }
+      matrix:
+        - GET /api/invitations
+        - POST /api/invitations
+        - DELETE /api/invitations/{invitationId}
+        - POST /api/invitations/accept
+      docs: [docs/specs/0027-invitations.md, docs/adr/0040-invitations-signed-link.md]
 
   # ── ログイン ────────────────────────────────────────────────────────────
   - id: mfa
@@ -649,6 +700,32 @@ parts:
         - { file: infra/terraform/envs/stg/main.tf, module: uptime }
         - { file: infra/terraform/envs/prod/main.tf, module: uptime }
       docs: [docs/guides/monitoring.md]
+
+  - id: on-call
+    name: 当番の決まり
+    group: watch
+    status: あり
+    removable: true
+    default: 残す
+    what: 夜中と休日に鳴ったアラームを誰が・何分で見るか(一次・予備・上げる先・15分ずつの段)、どのアラームなら起こすか(お客さんに影響がある・約束の水準を割りそう・漏えいのおそれ)、当番の間は改善だけ、SLA の連絡の時間との対応。表(名前・電話)はリポジトリの外。点検の台帳の oncall-rota が半年ごとに体制を聞く
+    needed_by: 夜中や休日も連絡・復旧を約束する契約を結ぶ
+    not_needed_by: 営業時間だけで約束する・社内だけで使う
+    if_removed: 夜中に鳴っても、誰が見るか・朝まで待ってよいかが決まらない。全部で起こして当番が続かないか、誰も見ない
+    depends_on: [alarms, uptime]
+    law:
+      - ISMS 5.24・5.26(インシデント管理の計画と対応)
+    where:
+      - docs/guides/on-call.md
+    remove:
+      delete: [docs/guides/on-call.md]
+      edit:
+        - { path: docs/checkup/todo.yaml, what: oncall-rota を status retired にする(消さない)。pnpm checkup --write-readme・pnpm compliance --write }
+        - { path: docs/runbooks/alarms.md, what: 頭の on-call.md へのリンクを外す }
+        - { path: docs/guides/monitoring.md, what: on-call.md へのリンクを外す }
+        - { path: docs/runbooks/incident.md, what: 2 の当番の1行を外す }
+        - { path: docs/legal/sla.md, what: 6 の on-call.md へのリンクを外す }
+        - { path: docs/README.md, what: guides の行から当番の決まりを外す }
+      docs: [docs/specs/0031-on-call.md, docs/designs/0031-on-call.md, docs/adr/0042-on-call-wake-only-for-customer-impact.md]
 
   - id: waf
     name: WAF
@@ -1012,6 +1089,35 @@ parts:
       matrix: [POST /api/legal/consents]
       docs: [docs/specs/0009-legal-consent.md, docs/adr/0022-legal-documents-and-consent.md, docs/guides/legal-documents.md]
 
+  - id: contract-templates
+    name: お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い)
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: 申込書・SLA・個人データの取り扱いの取り決めに要る項目を、キットの既定・根拠のファイル・使う人が決めることで並べた型。文面は書かない(専門家が書く)。条件を「変えない / 仕組みを変えれば変えられる / 契約だけで変えられる」に分け、SLA の測り方・数える停止・補償の段・事実と例外を決める人を先に決める
+    needed_by: 会社向けで、申込書・稼働の約束・取り扱いの取り決めを求められる
+    not_needed_by: 個人向けで規約だけ・社内だけで使う
+    if_removed: 営業が書類を毎回一から作る。SLA を割ったときに、測り方・補償・決める人で揉める。仕組みで守れない約束(バックアップから早く消すなど)を書いてしまう
+    depends_on: [backup, offboarding, uptime, vendor-ledger]
+    law:
+      - 個人情報保護法 25条(委託先の監督)・26条(漏えい等の報告。委託先から委託元への通知)
+      - ISMS 5.20(供給者との合意の中のセキュリティ)
+      - P マーク(委託の契約)
+    where:
+      - docs/legal/README.md
+      - docs/legal/order-form.md
+      - docs/legal/sla.md
+      - docs/legal/data-processing.md
+    remove:
+      delete: [docs/legal]
+      edit:
+        - { path: docs/README.md, what: legal/ の行を外す }
+        - { path: docs/reference.md, what: legal/ の行を外す }
+        - { path: docs/guides/data-retention.md, what: 頭の docs/legal/ へのリンクを外す }
+        - { path: docs/runbooks/incident.md, what: 振り返りの型の SLA の行を外す }
+      docs: [docs/specs/0028-contract-templates.md, docs/designs/0028-contract-templates.md, docs/adr/0041-contract-templates-fixed-and-negotiable.md]
+
   - id: certification-prep
     name: 認証の準備(P マーク・ISMS・SOC 2)
     group: rules
@@ -1189,6 +1295,29 @@ parts:
         - { path: docs/playbook.md, what: 脆弱性の行を外す }
         - { path: scripts/checkup/checks/vulns.mjs, what: 消し、台帳(docs/checkup/todo.yaml)の w-vuln を引退(retired)にする(点検を残すとき) }
 
+  - id: security-questionnaire
+    name: セキュリティの質問票の下書き(/security-questionnaire)
+    group: rules
+    status: あり
+    removable: true
+    default: 残す
+    what: お客さんから届いたセキュリティの質問票に、docs/security.md の決まり・適用宣言書・委託先の一覧・手順書・SLA と取り扱いの取り決めの型・点検の答えから、答えの下書きを根拠のリンクつきで作る。「はい」は根拠があり本番で有効だと確かめた物だけ。下書きはリポジトリの外・出す前に責任者が確かめる
+    needed_by: 会社向けで、病院・大企業などからセキュリティの質問票が届く
+    not_needed_by: 個人向けだけ・質問票が来ない
+    if_removed: 質問票のたびに、営業とセキュリティの担当が手で資料を探す。根拠の無い「はい」を書いてしまう
+    depends_on: [vendor-ledger, contract-templates]
+    law:
+      - ISMS 5.20(供給者との合意の中のセキュリティ。お客さんの側から見て)
+      - P マーク(委託先としての説明)
+    where:
+      - .claude/skills/security-questionnaire
+    remove:
+      delete: [.claude/skills/security-questionnaire]
+      edit:
+        - { path: CLAUDE.md, what: /security-questionnaire の所を外す }
+        - { path: docs/reference.md, what: /security-questionnaire を外す }
+      docs: [docs/specs/0039-security-questionnaire.md, docs/designs/0039-security-questionnaire.md]
+
   - id: prototypes
     name: プロトタイプの置き場
     group: dev
@@ -1247,7 +1376,7 @@ parts:
         - infra/terraform/modules/public-site
         - .github/scripts/deploy-site.sh
         - apps/api/src/domains/growth
-        - apps/api/drizzle/0014_growth_pre_registrations.sql
+        - apps/api/drizzle/0015_growth_pre_registrations.sql
         - apps/api/test/unit/growth-links.test.ts
         - apps/api/test/integration/growth-public.int.test.ts
         - apps/api/test/integration/growth-commands.int.test.ts
@@ -1337,6 +1466,51 @@ parts:
       ci:
         - { file: .github/workflows/ci.yml, job: fast, what: 「賭けの記録」の手順から pnpm bets を外す(pnpm test:scripts は脆弱性の記録のテストも回すので、cve-triage を残すなら残す) }
 
+  - id: positioning
+    name: 約束と売り文句(/positioning)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 話の記録・賭けの小石・計画の代わりの物から、約束(誰の何を、どう変えるか)の案を3つ・売り文句・代わりとの違い・言わないことを根拠つきで出し、1問ずつ選んで docs/product/positioning.md に残す。LP・チラシ・営業の資料・ブランドはここから作る
+    needed_by: PSF の後に、LP・チラシ・営業の言葉を作る
+    not_needed_by: 受託など、売る言葉を自分たちで決めない
+    if_removed: LP・チラシ・ブランドの色が、それぞれ別の言葉から作られて合わなくなる。売り文句の根拠(どの話・どの結果か)が残らない
+    depends_on: [kickoff, bets]
+    law: [景品表示法 5条(根拠の無い優良・有利の表示。言わないことの案に入れる)]
+    where: [.claude/skills/positioning/SKILL.md, docs/product/_template-positioning.md, docs/guides/before-pmf.md]
+    remove:
+      delete: [.claude/skills/positioning, docs/product/_template-positioning.md]
+      edit:
+        - { path: CLAUDE.md, what: /positioning と positioning.md の行を外す }
+        - { path: docs/README.md, what: product/positioning.md の行を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の約束の所を外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
+  - id: brand
+    name: ブランドを決める段取り(/brand・pnpm contrast)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 約束と相手(業種・使う場所)から名前(仮)・話し方のトーン・色の案を2〜3つ出し、色は tokens.css の主な色を置き換えた PR にする。案ごとのコントラストの比を pnpm contrast で計算して添え、画面は VRT のスクショで人が決める。docs/product/brand.md に理由を残す
+    needed_by: 自分たちのブランドで売る(LP・チラシ・画面の色をそろえる)
+    not_needed_by: 受託で、色と名前をお客さんが決める
+    if_removed: 色を約束と相手から決める段取りが無くなり、比を目で決めることになる(トークン・axe・VRT は残る)
+    depends_on: [positioning, vrt]
+    law: [商標法(名前は商標を確かめるまで仮。当てはめは弁理士)]
+    where: [.claude/skills/brand/SKILL.md, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+    remove:
+      delete: [.claude/skills/brand, docs/product/_template-brand.md, scripts/contrast.mjs, scripts/contrast-lib.mjs, scripts/contrast.test.mjs]
+      edit:
+        - { path: package.json, what: contrast を外す・test:scripts から contrast.test.mjs を外す }
+        - { path: CLAUDE.md, what: /brand と brand.md と pnpm contrast の行を外す }
+        - { path: docs/README.md, what: product/brand.md の行を外す }
+        - { path: docs/design-system.md, what: /brand と pnpm contrast の所を外す }
+        - { path: docs/guides/before-pmf.md, what: 「PSF の後」の節の /brand の所を外す }
+        - { path: .claude/skills/positioning/SKILL.md, what: /brand へのつなぎを外す }
+      docs: [docs/adr/0037-promise-before-lp-and-brand.md]
+
   - id: feature-flags
     name: 組織ごとの機能フラグ
     group: process
@@ -1383,7 +1557,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数(組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す
+    what: どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数と継続率(初めて使った週ごとの組の N 週後。組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す
     needed_by: 機能を出した後に「使われ続けているか」を数で確かめる
     not_needed_by: 賭けの線を話を聞くことだけで確かめる・個人の行動を記録したくない
     if_removed: 賭けの rollout の線(使う組織の割合・使い続ける割合)を数で測れない
@@ -1395,6 +1569,7 @@ parts:
         - apps/api/src/usage
         - apps/api/drizzle/0012_usage_records.sql
         - apps/api/test/integration/usage-records.int.test.ts
+        - apps/api/test/unit/usage-retention.test.ts
         - docs/runbooks/usage-records.md
       edit:
         - { path: apps/api/src/cli.ts, what: usage-report・usage-purge のコマンドを外す }
@@ -1407,7 +1582,7 @@ parts:
         - { path: CLAUDE.md, what: recordUsage の文を外す }
         - { path: apps/api/CLAUDE.md, what: recordUsage の文を外す }
       migration: 表 platform.feature_usage と関数 operator_tenant_ids を消す移行を足す(.claude/skills/db-migration。0012 は書き換えない)
-      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/adr/0025-feature-flags-and-usage-records.md]
+      docs: [docs/specs/0012-feature-flags-and-usage.md, docs/specs/0022-usage-retention.md, docs/adr/0025-feature-flags-and-usage-records.md]
 
   - id: ledger
     name: 資産と費用の台帳(/ledger)
@@ -1427,6 +1602,31 @@ parts:
       edit:
         - { path: docs/guides/cost-dashboard.md, what: /ledger の段を外す }
         - { path: CLAUDE.md, what: 「月1回の資産と費用の区分の案は /ledger」を外す }
+
+  - id: metrics
+    name: 週の数字(pnpm metrics)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: DORA の4つ(デプロイの頻度・リードタイム・変更の失敗率・復旧の時間)・AI が手伝った PR の割合(Actions がラベル ai:assisted を付けて数える)・人の介在率(人が答えた問い・人の手直し)・仕様の在庫を、決裁用(週ごとの並び)と改善用(先週の PR ごと)に分けて、毎週 Actions の要約に出す。人の名前と PR の中身・人ごとの数は出さない
+    needed_by: AI に任せる範囲を広げるか(自動マージ・本番の承認)を数で決める・AI に払う額を説明する・毎週の振り返りで何を機械に回すかを決める
+    not_needed_by: 1人で試している間(PR が少なく、数より中身を見たほうが早い)
+    if_removed: 任せる範囲を広げる判断と、仕様の詰まりを、感覚でしか見られない
+    depends_on: [github-setup, harness]
+    law: []
+    where: [scripts/metrics/run.mjs, .github/workflows/metrics.yml, .github/workflows/ai-label.yml, docs/guides/metrics.md]
+    remove:
+      delete: [scripts/metrics, .github/workflows/metrics.yml, .github/workflows/ai-label.yml, docs/guides/metrics.md]
+      edit:
+        - { path: package.json, what: metrics と、test:scripts の scripts/metrics を外す }
+        - { path: .github/labels.yml, what: ai:assisted を外す(pnpm setup:labels で手引きも) }
+        - { path: scripts/cost/source-people.mjs, what: ai:assisted で見分ける行と AI_LABEL の import を外す(本文の印だけに戻す) }
+        - { path: docs/runbooks/incident.md, what: 振り返りの「戻るまで」「変更が原因」の2行は残してよい }
+        - { path: docs/playbook.md, what: 毎週やることの「数字」の使うものを GitHub の Insights に戻す }
+        - { path: docs/reference.md, what: ai-label.yml・metrics.yml の行と pnpm metrics を外す }
+        - { path: CLAUDE.md, what: pnpm metrics の行を外す }
+      docs: [docs/specs/0035-delivery-metrics.md, docs/designs/0035-delivery-metrics.md, docs/adr/0046-metrics-from-labels-and-repo-records.md]
 
   - id: checkup
     name: 点検(/checkup)

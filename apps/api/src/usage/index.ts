@@ -7,7 +7,17 @@ export {
   runUsageReport,
   USAGE_RETENTION_DAYS,
   type UsageReport,
+  type UsageRetention,
   type UsageWeek,
   usageReport,
 } from "./command.ts";
 export { recordUsage } from "./repository.ts";
+export {
+  RETENTION_SMALL_BELOW,
+  type RetentionCell,
+  type RetentionCohort,
+  type RetentionOverall,
+  type RetentionUnit,
+  retention,
+  type TenantWeeks,
+} from "./retention.ts";
