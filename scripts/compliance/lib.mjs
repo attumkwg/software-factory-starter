@@ -12,6 +12,8 @@ export const POLICIES_DIR = `${DIR}/policies`;
 export const CONTROL_COUNT = { 5: 37, 6: 8, 7: 14, 8: 34 };
 /** 規程のひな形で、人が埋める所の印(残っている間は「まだ自社の物になっていない」) */
 export const PLACEHOLDER = /【要記入[^】]*】/g;
+/** 管理策の番号の形(A.5.1〜A.8.34) */
+const CONTROL_ID = /^A\.[5-8]\.\d{1,2}$/;
 
 const isDateText = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const dateText = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v);
@@ -35,7 +37,7 @@ export const loadPolicies = (files) =>
 function checkControl(c, exists) {
   const name = `管理策 ${c?.id ?? "(番号なし)"}`;
   const problems = [];
-  if (!/^A\.[5-8]\.\d{1,2}$/.test(String(c?.id))) problems.push(`${name} の番号の形が違う`);
+  if (!CONTROL_ID.test(String(c?.id))) problems.push(`${name} の番号の形が違う`);
   if (!c?.name) problems.push(`${name} に name が無い`);
   if (typeof c?.applies !== "boolean") problems.push(`${name} の applies は true か false`);
   if (!c?.why) problems.push(`${name} に why(適用・除外の理由)が無い`);
