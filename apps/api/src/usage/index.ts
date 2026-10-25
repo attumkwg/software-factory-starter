@@ -22,3 +22,13 @@ export {
   retention,
   type TenantWeeks,
 } from "./retention.ts";
+export {
+  parseTenantSharesArgs,
+  runTenantShares,
+  type ShareBand,
+  SIZE_BANDS,
+  sharesOf,
+  type TenantMeasure,
+  type TenantShares,
+  tenantShares,
+} from "./shares.ts";
