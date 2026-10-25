@@ -42,6 +42,22 @@ LP は、**約束(誰の何を、どう変えるか)と売り文句が決まっ�
 
 - どちらでも、LP を出した・直したら、賭けの小石か全体の計画の「これまでの判断」に **どの文を・いつ出したか** を1行残す(後で「どの言葉が効いたか」を比べるため)。
 
+## キットの中の公開のページ(`apps/site`)
+
+キットの既定の置き場所(ADR 0038)。静的なページで、ビルドのときにページごとの HTML を作る(`scripts/prerender.mjs`)。部品とトークンは画面と同じ `@app/ui`。
+
+| 物 | 置き場所 |
+|---|---|
+| LP の言葉(見出し・困りごと・解決・値段・運営者) | `apps/site/src/content.ts`(**架空の見本**。`docs/product/positioning.md` から写す) |
+| 同意の文 | `packages/shared/src/pre-registration.ts`(API と同じ物。ページには最後の版が出る) |
+| ページ | `/`(LP)・`/confirm/`(確認のメールのリンク)・`/withdraw/`(取り消し)。`robots.txt`・`sitemap.xml`(本番だけ) |
+| 設定(ビルドのときの環境変数) | `SITE_ENV`(`prod` のときだけ検索に載る)・`SITE_URL`(このページの URL = API の `PUBLIC_SITE_URL`)・`APP_URL`(画面と API の URL)。秘密は無い |
+
+- 手元: `pnpm --filter @app/site dev`(http://localhost:5190)。事前登録まで通すには、API に `PUBLIC_SITE_URL=http://localhost:5190` と `SUPPORT_TENANT_ID`(運営の組織)を渡す(無ければ公開の入口は 404)。確認のメールは Mailpit(http://localhost:8025)に届く。
+- ビルド: `SITE_ENV=prod SITE_URL=https://www.example.com APP_URL=https://app.example.com pnpm --filter @app/site build` → `apps/site/dist/` を置き場所(S3+CloudFront)へ。置き場所と配る仕組みは次の PR(設計書 0025 の 5)。
+- 外のサイトの読み込み(解析・広告のタグ・外のフォント・外の画像)を入れない(単体テストが確かめる。入れるなら下の「計測」の決まり)。
+- 確認・取り消しのページは、どの環境でも検索に載せない。
+
 ## 同意の文の型(事前登録)
 
 メールアドレスと会社名は個人情報(個人事業なら会社名が人の名前になる)。**集めるなら必ず、送るボタンの近くに**:
