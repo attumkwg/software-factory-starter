@@ -132,6 +132,21 @@ function plBlock(pl) {
   );
 }
 
+/** 獲得のコスト(届け方ごと。仕様 0043)。個社の名前・人ごとの時間は無い */
+function acquisitionBlock(a) {
+  if (!a) return "";
+  const per = (c) =>
+    `${yen(c.per_won_jpy)}${c.small && c.won > 0 ? ` <span class="muted">(${c.won}組織。少ない)</span>` : ""}`;
+  const tr = (c, name) =>
+    `<tr><td>${esc(name ?? c.channel)}</td><td class="n">${yen(c.ad_jpy)}</td><td class="n">${c.sales_hours ?? "—"}h</td><td class="n">${yen(c.sales_jpy)}</td><td class="n">${yen(c.total_jpy)}</td><td class="n">${c.won}</td><td class="n">${per(c)}</td></tr>`;
+  const head =
+    "<tr><th>届け方</th><th class=n>広告費など</th><th class=n>営業の時間</th><th class=n>営業の費用</th><th class=n>合計</th><th class=n>獲得</th><th class=n>1社を取るのに</th></tr>";
+  return card(
+    `獲得のコスト(届け方ごと。${esc(a.from)}〜${esc(a.to)} の合計・推定)`,
+    `<p class="muted">広告費と営業の時間は手入力(非公開の置き場の acquisition.csv)。営業の費用は時給の既定(rates.json の default)で円にした${a.rate_known ? "" : "(時給が無いので円にしていない)"}。獲得が5組織未満の届け方は、1社の違いで大きく動く。</p><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${a.channels.map((c) => tr(c)).join("")}${tr({ ...a.total, sales_hours: null, sales_jpy: null, small: false }, "全体")}</tbody></table></div>`,
+  );
+}
+
 export function renderHtml(s) {
   const notes = [
     ...s.notes,
@@ -147,6 +162,7 @@ ${tiles(s)}
 ${card("何にいくら(動いている物ごと)", bars(s.components))}
 ${card("見積もりと実績(区分ごと。薄い帯が見積もりの幅)", bars(s.categories, { band: true }))}
 ${plBlock(s.pl)}
+${acquisitionBlock(s.acquisition)}
 <div class="split">
 ${card("環境ごと(AWS)", table(s.environments, "環境"))}
 ${card("賭けごと(AWS のタグ Bet と SaaS)", table(s.bets, "賭け"))}

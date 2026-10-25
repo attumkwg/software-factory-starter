@@ -1,5 +1,7 @@
 // 集めた費用(aws-<環境>・github-actions・saas・estimates)を、ページの元(summary.json)にまとめる。
 // 金額は円の整数。ドルの物はセントで足してから、estimates.yaml の usd_jpy で円にする。読めなかった物は notes に出す(0円として隠さない)。
+
+import { acquisitionCost } from "./acquisition.mjs";
 import { centsToJpy, mergeCounts, periodOf, sum } from "./period.mjs";
 import { makePl } from "./pl.mjs";
 
@@ -102,6 +104,9 @@ const peopleNotes = (inputs, prs) => [
     : ["人の時給: 無い(非公開の置き場の cost/inputs/rates.json)。人の費用を円にしていない"]),
   ...(inputs.time ? [] : ["人の時間の手入力: 無い(cost/inputs/time.csv)。自動の目安だけ"]),
   ...(inputs.revenue ? [] : ["売上: 無い(cost/inputs/revenue.csv)"]),
+  ...(inputs.acquisition
+    ? []
+    : ["獲得のコスト: 無い(cost/inputs/acquisition.csv。届け方ごとの広告費・営業の時間)"]),
 ];
 
 const noteOf = (name, e) => (e ? `${name}: 読めなかった(${e.reason})` : `${name}: 集めていない`);
@@ -139,9 +144,17 @@ export function makeSummary(entries, { today, generatedAt, people }) {
   ];
   const pl = plOf(entries, parts, people);
   if (people) notes.push(...peopleNotes(people.inputs, entries["people-prs"]));
+  // 獲得のコスト(届け方ごと。仕様 0043)
+  const acquisition = people?.inputs.acquisition
+    ? acquisitionCost(people.inputs.acquisition, {
+        month: period.month,
+        rates: people.inputs.rates,
+      })
+    : null;
   return {
     month: period.month,
     pl,
+    acquisition,
     today,
     day: period.day,
     days_in_month: period.daysInMonth,
