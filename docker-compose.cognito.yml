@@ -1,6 +1,7 @@
 # Cognito でのログインを手元で丸ごと試す(偽物の Cognito を使う。AWS は要らない)。
 #   docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d
-#   → http://localhost:8080 で、登録・確認コード・ログイン・二段階認証・パスワードの再設定
+#   → http://localhost:8080 で、登録・確認コード・ログイン・二段階認証・パスワードの再設定・
+#     会社のアカウント(SSO。種データの Initech: member@initech.test など。テスト用の IdP の画面でメールを入れるだけ)
 #     確認コードのメールは、本番と同じ Postfix を通って Mailpit(http://localhost:8025)に届く
 #   E2E: E2E_AUTH=cognito pnpm test:e2e
 # 普段の開発は docker-compose.yml だけ(開発用ログイン)でよい。ここにある値はすべて手元専用で、秘密ではない。
@@ -18,6 +19,8 @@ services:
       FAKE_COGNITO_CLIENT_ID: local-web-client
       FAKE_COGNITO_SMTP_URL: smtp://postfix:25
       FAKE_COGNITO_MAIL_FROM: Tasks <no-reply@example.test>
+      # 種データの SSO の組織(Initech)の IdP。テスト用の IdP の画面(メールを入れるだけ)で戻ってくる
+      FAKE_COGNITO_SAML_PROVIDERS: org-seed-initech
     # 起動の間だけ1秒ごとに確かめる(docker-compose.yml の x-fast-start と同じ。ファイルをまたいでアンカーは使えない)
     healthcheck:
       start_period: 60s
@@ -36,6 +39,9 @@ services:
       COGNITO_USER_POOL_ID: local_fakepool
       COGNITO_CLIENT_ID: local-web-client
       COGNITO_ENDPOINT: http://fake-cognito:9231
+      # SSO: ブラウザは localhost で偽物の OAuth の入口へ、API はコンテナの名前でコードを交換する
+      COGNITO_OAUTH_URL: http://localhost:9231
+      COGNITO_OAUTH_INTERNAL_URL: http://fake-cognito:9231
       APP_URL: http://localhost:8080
     depends_on:
       fake-cognito:

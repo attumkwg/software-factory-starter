@@ -14,6 +14,9 @@ export const Route = createFileRoute("/_app")({
       // ログインの後に、開こうとしていた画面へ戻れるように(戻り先はアプリの中のパスだけ。safeReturnTo)
       if (e instanceof HttpError && e.status === 401)
         throw redirect({ to: "/login", search: { returnTo: location.href } });
+      // 組織が SSO を必須にしていて、このセッションは SSO で入っていない → 会社のアカウントでログインし直す
+      if (e instanceof HttpError && e.code === "sso_required")
+        throw redirect({ to: "/login", search: { sso: "required", returnTo: location.href } });
       throw e;
     }
     // 同意し直しが要る規約の版に、まだ同意していない → 同意の画面へ(ほかの API も 403。守りは API 側)。

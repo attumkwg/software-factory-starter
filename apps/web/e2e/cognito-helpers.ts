@@ -62,5 +62,5 @@ export async function register(request: APIRequestContext, email: string) {
 export async function fillLogin(page: Page, email: string, password: string) {
   await page.getByLabel("メールアドレス").fill(email);
   await page.getByLabel("パスワード", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByRole("button", { name: "ログイン", exact: true }).click();
 }

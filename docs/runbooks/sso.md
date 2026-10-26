@@ -80,6 +80,10 @@ node dist/cli.js sso-connect <組織の tenant_id> --metadata-url <URL>
 | `feature_off` | 組織のプランに `sso` が無い |
 | `state_mismatch` | 10分以上かかった・別のタブで始め直した。もう一度ログインの画面から |
 
+### 手元で試す
+
+`docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` で、種データの **Initech**(`initech.test` を確かめ済み・IdP `org-seed-initech` をつないだ組織)が使える。ログインの画面の「会社のアカウントでログイン」で `member@initech.test` などを入れると、偽物の Cognito の「テスト用の IdP」の画面(メールを入れるだけ)へ移り、戻るとその組織に入る。E2E は `apps/web/e2e/cognito-sso.spec.ts`。
+
 ## 5. IdP の証明書が変わる・IdP が止まった
 
 - 証明書の更新: メタデータの URL を渡してあれば、Cognito がメタデータを読み直す(だいたい6時間ごと)。急ぐなら、外してつなぎ直す(下の 7 → 4。つなぎ直すまで SSO で入れないので、必須の組織は先に緊急用で入れることを確かめる)。

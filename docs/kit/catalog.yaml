@@ -644,6 +644,9 @@ parts:
         - infra/terraform/envs/stg/sso.tf
         - infra/terraform/envs/prod/sso.tf
         - apps/web/src/pages/settings/DomainsCard.tsx
+        - apps/web/src/pages/settings/SsoCard.tsx
+        - apps/web/src/pages/auth/SsoStep.tsx
+        - apps/web/e2e/cognito-sso.spec.ts
       edit:
         - { path: apps/api/src/domains/organizations/security-routes.ts, what: domainRoutes・ssoRoutes を外す }
         - { path: apps/api/src/auth/routes.ts, what: addSsoRoutes を外す }
@@ -655,7 +658,10 @@ parts:
         - { path: apps/api/src/authz/policy.ts, what: sso:manage・domain:verify と8行を外す }
         - { path: apps/api/src/audit/actions.ts, what: domain.*・sso.* を外す }
         - { path: packages/shared/src/feature-flags.ts, what: sso を外す }
-        - { path: apps/web/src/pages/SettingsPage.tsx, what: 会社のドメインの欄を外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: 会社のドメインと SSO の欄を外す }
+        - { path: apps/web/src/pages/LoginPage.tsx, what: 「会社のアカウントでログイン」の段を外す }
+        - { path: apps/api/src/db/seed.ts, what: 種データの Initech(SSO の組織)を外す }
+        - { path: docker-compose.cognito.yml, what: COGNITO_OAUTH_*・FAKE_COGNITO_SAML_PROVIDERS を外す }
       migration: 表 organizations.domains・sso_connections と列 users.sso_exempt・関数 auth_find_sso_*(移行 0021)を、使わなくしてから消す(拡張 → 縮小の縮小)
       matrix:
         - POST /api/auth/sso/start

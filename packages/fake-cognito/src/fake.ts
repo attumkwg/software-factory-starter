@@ -101,6 +101,18 @@ export class FakeCognito {
     this.issuer = this.#pool.issuer;
   }
 
+  /** 手元用: IdP をつないで、アプリクライアントの一覧に足す(運営のコマンド sso-connect の代わり) */
+  connectSamlProvider(name: string): void {
+    this.#pool.identityProviders.set(name, {
+      type: "SAML",
+      details: { MetadataURL: "https://idp.example.test/metadata.xml" },
+      attributeMapping: { email: "email" },
+    });
+    if (!this.#pool.supportedIdentityProviders.includes(name)) {
+      this.#pool.supportedIdentityProviders.push(name);
+    }
+  }
+
   /**
    * テスト用: IdP へ回す URL(/oauth2/authorize)に、IdP がこのメールの人を返したことにしてコードを出す
    * (結合テストが、テスト用の IdP の画面の代わりに使う)

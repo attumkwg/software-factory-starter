@@ -6,6 +6,7 @@ import { serve } from "./serve.ts";
 //   FAKE_COGNITO_USER_POOL_ID / FAKE_COGNITO_CLIENT_ID … API の COGNITO_USER_POOL_ID / COGNITO_CLIENT_ID と同じ値
 //   FAKE_COGNITO_SMTP_URL    … 確認コードのメールを渡す先(手元は Postfix → Mailpit)。無ければ送らない
 //   FAKE_COGNITO_MAIL_FROM   … 送り元(Postfix が許すドメイン)
+//   FAKE_COGNITO_SAML_PROVIDERS … 起動したときにつないでおく IdP の名前(カンマ区切り。種データの SSO の組織と同じ名前)
 
 const env = process.env;
 const baseUrl = env.FAKE_COGNITO_BASE_URL ?? "http://fake-cognito:9231";
@@ -22,6 +23,10 @@ const fake = new FakeCognito({
       )
     : undefined,
 });
+
+for (const name of (env.FAKE_COGNITO_SAML_PROVIDERS ?? "").split(",").filter(Boolean)) {
+  fake.connectSamlProvider(name.trim());
+}
 
 await serve(fake.fetch, port);
 process.stdout.write(

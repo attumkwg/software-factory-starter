@@ -27,6 +27,9 @@ import type {
   PmfSurveyStatus,
   Project,
   ProjectPage,
+  PutSsoSettings,
+  SsoSettings,
+  SsoStartResult,
   StartSupport,
   SupportGrant,
   SupportSession,
@@ -245,6 +248,8 @@ export const api = {
   login: (email: string, password: string) =>
     request<AuthNext>("POST", "/auth/login", { email, password }),
   answerMfa: (code: string) => request<AuthNext>("POST", "/auth/mfa", { code }),
+  // 会社のアカウント(SSO)。SSO のドメインなら IdP へ移る URL(docs/designs/0056-sso-scim-ip-audit-export.md)
+  ssoStart: (email: string) => request<SsoStartResult>("POST", "/auth/sso/start", { email }),
   signUp: (email: string, password: string) =>
     request<AuthNext>("POST", "/auth/sign-up", { email, password }),
   // consents … 登録の画面で同意した版(確認コードが通った後に API が記録する)
@@ -302,6 +307,9 @@ export const api = {
     ),
   }),
   signOutMember: (id: string) => request<void>("POST", `/organization/members/${id}/sign-out`),
+  // SSO の必須と緊急用(プランの機能 sso。IdP をつなぐのは運営)
+  getSso: () => request<SsoSettings>("GET", "/organization/sso"),
+  putSso: (body: PutSsoSettings) => request<SsoSettings>("PUT", "/organization/sso", body),
   acceptInvitation: (token: string, name: string) =>
     request<AcceptedInvitation>("POST", "/invitations/accept", { token, name }),
   startSupport: (input: StartSupport) =>
