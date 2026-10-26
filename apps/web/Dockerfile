@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # リポジトリのルートを文脈にして作る: docker build -f apps/web/Dockerfile .
 # 画面のサービス(TanStack Start の SSR)。API とは別のイメージ・別の ECS サービス。本番もプレビューも同じイメージ。
 
@@ -27,7 +27,7 @@ RUN pnpm --filter @app/web build
 
 # 実行用: シェルもパッケージ管理も無い distroless(攻撃面と Trivy の指摘を減らす)。root では動かさない。
 # 中身は「1つにまとめた JS(index.js)」と「配る JS・CSS(client/)」だけ。node_modules も DB の接続も無い。
-FROM gcr.io/distroless/nodejs24-debian13:nonroot
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:cb606325b7ec4af55462cb0b424a53b452a5b4a894ffe841fcf1048d216fb9f8
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3001

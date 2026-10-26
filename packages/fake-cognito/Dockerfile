@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # 開発とテスト専用の偽物の Cognito(docker compose の fake-cognito)。**本番には出さない**。
 # 依存は Node の標準だけなので、ソースを置いて Node の型の取り除き(type stripping)でそのまま動かす。
 # Cognito の設定(パスワードの決まりなど)は packages/shared の cognito-settings.json を読む(Terraform と同じ物)。
