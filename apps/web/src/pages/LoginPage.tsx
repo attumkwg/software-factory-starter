@@ -1,28 +1,38 @@
-import type { AuthOptions } from "@app/shared";
+import type { AuthNext, AuthOptions } from "@app/shared";
 import { Alert, Button, Card, Heading, Inline, Link, Muted, Page, Stack, TextField } from "@app/ui";
 import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api, HttpError } from "../api.ts";
 import { AUTH_NOTICES } from "../messages.ts";
 import { CodeField, EmailField, FormError, PasswordField, Submit } from "./auth/fields.tsx";
+import { SsoStep } from "./auth/SsoStep.tsx";
 import { useSubmit } from "./auth/use-submit.ts";
 
 // ログインの画面。方式(GET /api/auth/options)で出し方を変える。
-//   cognito … メールとパスワード →(二段階認証のコード / 確認がまだなら確認コード)。API が Cognito に聞く
+//   cognito … メールとパスワード →(二段階認証のコード / 確認がまだなら確認コード)。API が Cognito に聞く。
+//             SSO が使える環境(options.sso)なら「会社のアカウントでログイン」の段(SsoStep)も出す
 //   dev     … 開発環境(local / preview)だけの簡易ログイン。メールアドレスだけ
 // メールアドレスは URL に載せない(履歴・ログに残る)。段は画面の中で進める。
 
 export type LoginNotice = "registered" | "reset";
+/** failed / ip_not_allowed … SSO の戻りで断られた / required … 組織が SSO を必須にしている */
+export type SsoResult = "failed" | "ip_not_allowed" | "required";
 
-type Props = { options: AuthOptions; notice?: LoginNotice; returnTo: string };
+type Props = { options: AuthOptions; notice?: LoginNotice; sso?: SsoResult; returnTo: string };
 
-export function LoginPage({ options, notice, returnTo }: Props) {
+const SSO_ALERTS: Record<SsoResult, { tone: "info" | "danger"; text: string }> = {
+  failed: { tone: "danger", text: AUTH_NOTICES.ssoFailed },
+  ip_not_allowed: { tone: "danger", text: AUTH_NOTICES.ssoIpNotAllowed },
+  required: { tone: "info", text: AUTH_NOTICES.ssoRequired },
+};
+
+export function LoginPage({ options, notice, sso, returnTo }: Props) {
   return (
     <Page>
       <main>
         <Card>
           {options.method === "cognito" ? (
-            <CognitoLogin notice={notice} returnTo={returnTo} />
+            <CognitoLogin notice={notice} sso={sso} ssoEnabled={options.sso} returnTo={returnTo} />
           ) : (
             <DevLogin returnTo={returnTo} />
           )}
@@ -32,16 +42,29 @@ export function LoginPage({ options, notice, returnTo }: Props) {
   );
 }
 
-type Step = "password" | "mfa" | "confirm";
+type Step = "password" | "mfa" | "confirm" | "sso";
 
-function CognitoLogin({ notice, returnTo }: { notice?: LoginNotice; returnTo: string }) {
+type CognitoProps = {
+  notice?: LoginNotice;
+  sso?: SsoResult;
+  ssoEnabled: boolean;
+  returnTo: string;
+};
+
+function CognitoLogin({ notice, sso, ssoEnabled, returnTo }: CognitoProps) {
   const router = useRouter();
   const { submit, pending, error } = useSubmit();
-  const [step, setStep] = useState<Step>("password");
+  const [step, setStep] = useState<Step>(ssoEnabled && sso ? "sso" : "password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [info, setInfo] = useState<string | null>(notice ? AUTH_NOTICES[notice] : null);
+  const ssoAlert = sso && step !== "password" ? SSO_ALERTS[sso] : null;
+
+  function openSso() {
+    setInfo(null);
+    setStep("sso");
+  }
 
   async function signedIn() {
     // 前の人のデータを画面の覚え(キャッシュ)に残さない
@@ -52,8 +75,15 @@ function CognitoLogin({ notice, returnTo }: { notice?: LoginNotice; returnTo: st
   async function onPassword(e: FormEvent) {
     e.preventDefault();
     setInfo(null);
-    const r = await submit(() => api.login(email, password));
+    const r = await submit(() => passwordLogin(email, password));
     if (!r) return;
+    if (r === "sso") {
+      // この組織は SSO を必須にしている → 会社のアカウントの段へ
+      setPassword("");
+      setInfo(AUTH_NOTICES.ssoRequired);
+      if (ssoEnabled) setStep("sso");
+      return;
+    }
     setCode("");
     if (r.next === "done") await signedIn();
     else if (r.next === "mfa") setStep("mfa");
@@ -100,14 +130,26 @@ function CognitoLogin({ notice, returnTo }: { notice?: LoginNotice; returnTo: st
   return (
     <Stack gap={4}>
       <Heading level={1}>ログイン</Heading>
+      {ssoAlert ? <Alert tone={ssoAlert.tone}>{ssoAlert.text}</Alert> : null}
       {info ? <Alert tone="info">{info}</Alert> : null}
-      <FormError message={error} />
+      {step !== "sso" && <FormError message={error} />}
+      {step === "sso" && (
+        <SsoStep
+          email={email}
+          onEmailChange={setEmail}
+          onPassword={(notSso) => {
+            setInfo(notSso ? AUTH_NOTICES.ssoNotAvailable : null);
+            setStep("password");
+          }}
+        />
+      )}
       {step === "password" && (
         <form onSubmit={onPassword}>
           <Stack gap={4}>
             <EmailField value={email} onChange={setEmail} />
             <PasswordField kind="current" value={password} onChange={setPassword} />
             <Submit pending={pending}>ログイン</Submit>
+            {ssoEnabled && <SsoButton onPress={() => openSso()} />}
             <Inline gap={4}>
               <Link href={`/sign-up?returnTo=${encodeURIComponent(returnTo)}`}>
                 初めての方は登録
@@ -152,6 +194,26 @@ function CognitoLogin({ notice, returnTo }: { notice?: LoginNotice; returnTo: st
         </form>
       )}
     </Stack>
+  );
+}
+
+/** パスワードでログイン。組織が SSO を必須にしていれば "sso"(失敗の文にしない) */
+async function passwordLogin(email: string, password: string): Promise<AuthNext | "sso"> {
+  try {
+    return await api.login(email, password);
+  } catch (err) {
+    if (err instanceof HttpError && err.code === "sso_required") return "sso";
+    throw err;
+  }
+}
+
+function SsoButton({ onPress }: { onPress: () => void }) {
+  return (
+    <div>
+      <Button variant="secondary" onPress={onPress}>
+        会社のアカウントでログイン
+      </Button>
+    </div>
   );
 }
 

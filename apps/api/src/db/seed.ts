@@ -2,7 +2,16 @@ import { currentVersion, LEGAL_DOCUMENTS, type Role } from "@app/shared";
 import { eq } from "drizzle-orm";
 import { capacityOf } from "../domains/legal/index.ts";
 import { createDb } from "./client.ts";
-import { consents, projects, tasks, tenants, users } from "./schema.ts";
+import {
+  consents,
+  domains,
+  featureFlags,
+  projects,
+  ssoConnections,
+  tasks,
+  tenants,
+  users,
+} from "./schema.ts";
 import { withTenant } from "./tenant.ts";
 
 // 開発・プレビュー・E2E 用の種データ。**必ず2社**作る(自社と他社で漏れを確かめるため)。
@@ -21,7 +30,17 @@ type SeedTenant = {
    */
   users: { id: string; email: string; name: string; role: Role; notConsented?: boolean }[];
   projects: { id: string; name: string; tasks: string[] }[];
+  /**
+   * 会社のアカウント(SSO)を試す組織(docs/specs/0056-sso-scim-ip-audit-export.md)。確かめ済みのドメイン・機能 sso・つないだ IdP。
+   * IdP は偽物の Cognito が起動時に同じ名前でつなぐ(docker-compose.cognito.yml の FAKE_COGNITO_SAML_PROVIDERS)
+   */
+  sso?: { domain: string; providerName: string };
 };
+
+type SeedTx = Parameters<Parameters<typeof withTenant>[2]>[0];
+
+/** 種データの SSO の組織の IdP の名前(偽物の Cognito の FAKE_COGNITO_SAML_PROVIDERS と同じ) */
+export const SEED_SSO_PROVIDER = "org-seed-initech";
 
 /** 運営の組織(手元・プレビューの SUPPORT_TENANT_ID と同じ) */
 export const SUPPORT_SEED_TENANT_ID = "0199a000-0000-7000-8000-00000000c001";
@@ -88,6 +107,29 @@ export const SEED: SeedTenant[] = [
     ],
   },
   {
+    // 会社のアカウント(SSO)を試す組織。Cognito の手元の構成(docker-compose.cognito.yml)と E2E の cognito-sso.spec.ts で使う。
+    // 開発用ログインのときは、SSO の欄が出るだけ(IdP の入口が無いので、ログインはパスワードの段のまま)
+    tenantId: "0199a000-0000-7000-8000-00000000d001",
+    name: "Initech 株式会社",
+    timeZone: "Asia/Tokyo",
+    users: [
+      {
+        id: "0199a000-0000-7000-8000-0000000d0001",
+        email: "admin@initech.test",
+        name: "Initech 管理者",
+        role: "admin",
+      },
+      {
+        id: "0199a000-0000-7000-8000-0000000d0002",
+        email: "member@initech.test",
+        name: "Initech メンバー",
+        role: "member",
+      },
+    ],
+    projects: [],
+    sso: { domain: "initech.test", providerName: SEED_SSO_PROVIDER },
+  },
+  {
     // 運営の組織(社員がサポート番号で代理ログインする。SUPPORT_TENANT_ID。docs/specs/0004-support-access.md)
     tenantId: SUPPORT_SEED_TENANT_ID,
     name: "運営(サポート)",
@@ -105,6 +147,34 @@ export const SEED: SeedTenant[] = [
     projects: [],
   },
 ];
+
+/** SSO の組織: 確かめ済みのドメイン・機能 sso(運営が組織ごとに入れた形)・つないだ IdP(必須にはしない) */
+async function seedSso(
+  tx: SeedTx,
+  tenantId: string,
+  adminId: string,
+  sso: { domain: string; providerName: string },
+) {
+  await tx
+    .insert(domains)
+    .values({
+      id: tenantId.replace(/d001$/, "d201"),
+      tenantId,
+      domain: sso.domain,
+      verifyToken: "seed",
+      verifiedAt: new Date(),
+      createdBy: adminId,
+    })
+    .onConflictDoNothing();
+  await tx
+    .insert(featureFlags)
+    .values({ id: tenantId.replace(/d001$/, "d202"), tenantId, flag: "sso" })
+    .onConflictDoNothing();
+  await tx
+    .insert(ssoConnections)
+    .values({ id: tenantId.replace(/d001$/, "d203"), tenantId, providerName: sso.providerName })
+    .onConflictDoNothing();
+}
 
 /** 種データの人の同意(いまの版。source は同意の画面と同じ扱い) */
 function seedConsents(t: SeedTenant) {
@@ -152,20 +222,26 @@ export async function seed(databaseUrl: string | undefined): Promise<void> {
         await tx.insert(consents).values(seedConsents(t)).onConflictDoNothing();
         const owner = t.users[0];
         if (!owner) return;
-        for (const p of t.projects) {
-          await tx
-            .insert(projects)
-            .values({ id: p.id, tenantId: t.tenantId, name: p.name, createdBy: owner.id })
-            .onConflictDoNothing();
-          const existing = await tx.$count(tasks, eq(tasks.projectId, p.id));
-          if (existing > 0) continue;
-          await tx
-            .insert(tasks)
-            .values(p.tasks.map((title) => ({ tenantId: t.tenantId, projectId: p.id, title })));
-        }
+        if (t.sso) await seedSso(tx, t.tenantId, owner.id, t.sso);
+        await seedProjects(tx, t, owner.id);
       });
     }
   } finally {
     await pool.end();
+  }
+}
+
+/** プロジェクトと最初のタスク(タスクがもうあるプロジェクトには足さない) */
+async function seedProjects(tx: SeedTx, t: SeedTenant, ownerId: string) {
+  for (const p of t.projects) {
+    await tx
+      .insert(projects)
+      .values({ id: p.id, tenantId: t.tenantId, name: p.name, createdBy: ownerId })
+      .onConflictDoNothing();
+    const existing = await tx.$count(tasks, eq(tasks.projectId, p.id));
+    if (existing > 0) continue;
+    await tx
+      .insert(tasks)
+      .values(p.tasks.map((title) => ({ tenantId: t.tenantId, projectId: p.id, title })));
   }
 }

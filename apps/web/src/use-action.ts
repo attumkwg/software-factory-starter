@@ -74,6 +74,12 @@ export async function handleFailure(
     await router.navigate({ to: "/legal/accept" });
     return;
   }
+  // 組織が SSO を必須にしていて、このセッションは SSO で入っていない → 会社のアカウントでログインし直す
+  if (e instanceof HttpError && e.code === "sso_required") {
+    router.clearCache();
+    await router.navigate({ to: "/login", search: { sso: "required" } });
+    return;
+  }
   // 組織が二段階認証を必須にしていて、まだ設定していない → 設定の画面へ(docs/specs/0006-account-security.md)
   if (e instanceof HttpError && e.code === "mfa_setup_required") {
     await router.navigate({ to: "/account" });
