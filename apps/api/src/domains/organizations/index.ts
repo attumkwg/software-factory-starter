@@ -61,6 +61,7 @@ export {
   findSsoMember,
   findSsoProviderByDomain,
   insertSsoConnection,
+  mfaNeeded,
   passwordAllowedIn,
   ssoDemandOf,
   ssoRequired,

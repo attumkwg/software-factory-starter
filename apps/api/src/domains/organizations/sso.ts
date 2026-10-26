@@ -55,6 +55,18 @@ export async function ssoDemandOf(
   return s.ssoCovered ? "sso" : "none";
 }
 
+/**
+ * 二段階認証が要るか: 組織が全員に必須にしている・緊急用のアカウント。SSO で入ったセッションには当てない
+ * (IdP の役目。Cognito は IdP から来た人の TOTP を持てない)。関所と GET /api/me が同じ物を使う
+ */
+export function mfaNeeded(
+  access: { mfaRequired: boolean },
+  demand: "sso" | "exempt" | "none",
+  via: "sso" | undefined,
+): boolean {
+  return (access.mfaRequired || demand === "exempt") && via !== "sso";
+}
+
 export async function findSsoStatus(
   tx: TenantTx,
   tenantId: string,

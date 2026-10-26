@@ -13,6 +13,7 @@ import {
   findActiveSupportSession,
   ipAllowedFor,
   ipNotAllowed,
+  mfaNeeded,
   ssoDemandOf,
   ssoRequired,
 } from "../domains/organizations/index.ts";
@@ -265,8 +266,8 @@ async function refuseUntilReady(c: Context<AppEnv>, tx: TenantTx, gate: Gate, ac
   const sso = await ssoDemandOf(tx, session.tenantId, access, defs);
   if (sso === "sso" && session.via !== "sso") throw ssoRequired();
   const legal = await legalStatusOf(c, tx, session);
-  const mfaNeeded = (access.mfaRequired || sso === "exempt") && session.via !== "sso";
-  const waitingForMfa = c.get("mfaEnforced") && mfaNeeded && !access.mfaEnabled;
+  const waitingForMfa =
+    c.get("mfaEnforced") && mfaNeeded(access, sso, session.via) && !access.mfaEnabled;
   // 止める理由は同意を先に(画面も同意 → 二段階認証の設定の順に回す)
   if (legal?.pending.length && !allowedWhileWaiting(gate)) throw termsAcceptanceRequired();
   if (waitingForMfa && !allowedWhileWaiting(gate)) throw mfaSetupRequired();

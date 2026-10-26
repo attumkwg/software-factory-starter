@@ -7,6 +7,7 @@ import { authErrors, createRouter, json } from "../../http/common.ts";
 import { findAccess } from "./account.ts";
 import { findMemberships, findPersonKey } from "./memberships.ts";
 import { getMe } from "./repository.ts";
+import { mfaNeeded, ssoDemandOf } from "./sso.ts";
 import { getSupportMe } from "./support.ts";
 
 export const organizationRoutes = createRouter().openapi(
@@ -40,11 +41,15 @@ export const organizationRoutes = createRouter().openapi(
     // 所属している組織の数(2つ以上なら画面が切り替えを出す。docs/specs/0055-multi-org-membership.md)
     const key = await findPersonKey(scope.tx, scope.tenantId, scope.userId);
     const organizationsCount = key ? (await findMemberships(scope.tx, key)).length : 1;
-    // 二段階認証の設定待ちなら、画面は /account へ回す(docs/specs/0006-account-security.md)
+    // 二段階認証の設定待ちなら、画面は /account へ回す(docs/specs/0006-account-security.md)。
+    // SSO の緊急用も必須・SSO で入った人には当てない(関所と同じ。設計書 0056 の 6)
+    const defs = { featureFlags: c.get("featureFlags"), plans: c.get("plans") };
+    const demand = await ssoDemandOf(scope.tx, scope.tenantId, access, defs);
+    const needed = mfaNeeded(access, demand, c.get("session")?.via);
     const mfa = {
       enabled: access.mfaEnabled,
-      required: access.mfaRequired,
-      setupRequired: c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled,
+      required: needed,
+      setupRequired: c.get("mfaEnforced") && needed && !access.mfaEnabled,
     };
     // 規約の同意(関所が引いて置いた物。docs/specs/0009-legal-consent.md)。pending なら画面は /legal/accept へ回す
     const legal = c.get("legalStatus");

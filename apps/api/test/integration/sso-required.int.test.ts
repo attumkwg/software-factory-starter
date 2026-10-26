@@ -91,6 +91,9 @@ describe("SSO の必須と緊急用", () => {
     const projects = await call(ctx.t.app, "GET", "/api/projects", { cookie: emergency });
     expect(projects.status).toBe(403);
     expect(await codeOf(projects)).toBe("mfa_setup_required");
+    // 画面が設定へ回せるように、/api/me も設定待ちと言う
+    const mine = (await (await me(emergency)).json()) as { mfa: { setupRequired: boolean } };
+    expect(mine.mfa.setupRequired).toBe(true);
     // SSO で入った同じ人は、二段階認証を求められない(IdP の役目)
     expect((await call(ctx.t.app, "GET", "/api/projects", { cookie: admin })).status).toBe(200);
   });
