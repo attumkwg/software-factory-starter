@@ -76,7 +76,7 @@ sequenceDiagram
 - 一意: `organizations.domains(domain) where verified_at is not null`(確かめたドメインは全体で1つの組織だけ。RLS は一意の索引に効かないので、他社のドメインとも重ならない)。
 - 組織が決まる前に引く関数(`app_auth` が持ち主・返す物を絞る):
   - `auth_find_sso_by_domain(p_domain)` → `provider_name` だけ(組織の ID は返さない)
-  - `auth_find_sso_member(p_provider_name, p_email, p_sub)` → その IdP の組織で、メールのドメインが確かめたドメインで、その組織に行がある(sub が一致か、sub の無い行はメールで結びつける)ときだけ `user_id, tenant_id`
+  - `auth_find_sso_member(p_provider_name, p_email)` → その IdP の組織で、メールのドメインが確かめたドメインで、その組織にそのメールの行があるときだけ `user_id, tenant_id`。**sub では結びつけず、`external_id` も書かない**(下の 13。パスワードで先に結びついた人も同じ行に入る)
   - `auth_find_scim_token(p_hash)` → 取り消されていない鍵の `tenant_id`(段2)
   - `scim_create_user(p_tenant_id, p_email, p_name, p_external_id)` → 確かめたドメインのメールだけ・ロールは member(段2。`auth_accept_invitation` と同じ形)
 - 列の分類表: `domains.domain` は internal(会社のドメイン。個人ではない)・`ip_allowlist.cidr` は internal・`scim_tokens.token_hash` は internal・`users.scim_external_id` は personal(情シスの道具の人の ID)。
@@ -118,7 +118,7 @@ sequenceDiagram
   - アプリクライアントの `supported_identity_providers` は運営のコマンドが足すので、Terraform は `lifecycle { ignore_changes }` にする。
   - 移行のタスクの役割に、そのユーザープールの `CreateIdentityProvider`・`UpdateIdentityProvider`・`DeleteIdentityProvider`・`DescribeUserPoolClient`・`UpdateUserPoolClient` だけ。
   - 1つのユーザープールの IdP は数百まで(AWS の上限)。超えそうならプールを分ける(見直す合図)。
-- **運営のコマンド** `sso-connect <組織の ID> --metadata-url <URL>`(試し → 本番): 組織に確かめたドメインがあるかを見てから、IdP(名前 `org-<組織の ID の頭>`・属性の対応 `email`)を作り、アプリクライアントに足し、`sso_connections` に行。外すのは `sso-disconnect`。メタデータの URL はお客さんの情シスから受け取る(公開の物。秘密ではない)。
+- **運営のコマンド** `sso-connect <組織の ID> --metadata-url <URL>`(試し → 本番): 組織に確かめたドメインがあるかを見てから、IdP(名前 `org-<組織の ID の後ろ 20 桁>`・属性の対応 `email`)を作り、アプリクライアントに足し、`sso_connections` に行。外すのは `sso-disconnect`(先に DB の行を消して止め、それから Cognito を掃除する)。メタデータの URL はお客さんの情シスから受け取る(公開の物。秘密ではない)。`UpdateUserPoolClient` は渡さなかった項目を既定に戻すので、いまの設定を読んで全部渡し直す。
 - **ID トークンの確かめ**: Cognito の JWKS(`jose` の `createRemoteJWKSet`)・`iss`(プール)・`aud`(アプリクライアント)・`token_use: id`・`identities[0].providerName`。
 - **DNS**: `resolveTxt("_sfs-verify." + domain)` に `sfs-verify=<verify_token>` があるか。VPC のリゾルバーで引く。待つのはトランザクションの外。
 - **偽物の Cognito**(`packages/fake-cognito`): OAuth の authorize と token・JWKS・「つないだ IdP」を、テスト用に組織とメールを決めて返す形で足す。本物の SAML は stg で、テスト用の IdP(手順書に作り方)で人が確かめる(契約テストに SAML は入れない。U-8)。
@@ -126,9 +126,12 @@ sequenceDiagram
 
 ## 6. 業務ルール
 
-- 組織が決まる流れ: IdP の名前 → その組織(`sso_connections`)→ メールのドメインがその組織の確かめたドメインか → その組織に人の行があるか(sub で。無ければメールで結びつける)。どれか外れたら入れない(理由は言わない。ログに `reason`)。
+- 組織が決まる流れ: IdP の名前 → その組織(`sso_connections`)→ メールのドメインがその組織の確かめたドメインか → その組織にそのメールの行があるか → プランの機能 `sso` が入っているか。どれか外れたら入れない(ログインの画面へ `?sso=failed`。理由は言わない。ログに `reason`)。
+- SSO で入ったセッションには印(Cookie の5つ目 `sso`)を付ける。関所は、必須の組織の確かめたドメインの人(緊急用でない)を、印の無いセッションでは 403 `sso_required` にする(必須にした時より前のパスワードのセッションも止まる)。組織を切り替えると印は外れる(SSO で確かめたのは入った組織だけ)ので、必須の組織への切り替えは 403 `sso_required`(その組織の SSO で入り直す)。
+- SSO で入った人には、組織の二段階認証の必須を当てない(IdP の役目。Cognito は IdP から来た人の TOTP を持てない)。
+- パスワードのログインは、前回の組織の順に所属を見て、SSO が要る組織を飛ばす。全部が SSO の組織なら 403 `sso_required`。
 - JIT(初めてのログインで人を作る)はしない(U-2)。
-- 必須の組織で、確かめたドメインの人がパスワードでログインしたら断る。緊急用(`sso_exempt`)だけは通す。緊急用は二段階認証が必須(未設定なら設定の画面へ)。
+- 必須の組織で、確かめたドメインの人がパスワードでログインしたら断る。緊急用(`sso_exempt`)だけは通す。緊急用は二段階認証が必須(未設定なら設定の画面へ)。緊急用の印は、その人が管理者のときだけ効く(後でメンバーに下げたら効かない)。
 - 確かめたドメイン以外のメールの人(取引先など)は、必須の組織でもパスワードで入れる(SSO の外の人)。
 - IP の制限: 組織に一覧があれば、関所はセッションの組織の一覧に、いまの IP が入っているかを毎回見る(リクエストごとに1回読む)。ログインと組織の切り替え(ADR 0066)でも見る。
   - いまの IP: 設定の `CLIENT_IP_HEADER`(既定 `X-Forwarded-For`。CloudFront を前に置いたら `CloudFront-Viewer-Address`)の、右から `TRUSTED_PROXY_HOPS` 個目の値(ポートは外す)。画面のサーバー(SSR)からの呼び出しは、画面のサーバーが受け取った同じヘッダーを渡す(画面のサーバーは中の通信なので、そのヘッダーを信じてよい)。U-9。
@@ -222,3 +225,6 @@ sequenceDiagram
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
+| 2026-10-26 | 段1b の実装で、Cognito は IdP から来た人を**別の人(別の sub)**として作ると確かめた。sub で結びつけると、パスワードで先に結びついた人が SSO で入れない | 設計(2・6) | `auth_find_sso_member` から sub を外し、その組織の確かめたドメインのメールの行に入れる(`external_id` は書かない)。組織を決めるのは IdP のまま | 移行 0021・`sso.ts`・結合テスト `sso-login.int.test.ts` |
+| 2026-10-26 | 段1b の実装で、UUID v7 の頭 8 桁は時刻なので、近い時刻に作った組織の IdP の名前が重なると分かった | 設計(5) | IdP の名前を `org-<組織の ID の後ろ 20 桁>` に | `src/sso/connect.ts` |
+| 2026-10-26 | 段1b の実装で、SSO で入った人と組織の切り替え・二段階認証の必須の扱いが設計に無かった | 設計(6) | セッションの SSO の印・関所の `sso_required`・切り替えで外れる・SSO の人に二段階認証の必須を当てない、を足した | `session.ts`・`middleware.ts`・`organization-routes.ts` |

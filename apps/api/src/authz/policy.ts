@@ -73,6 +73,9 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "POST /api/auth/resend-code": PUBLIC,
   "POST /api/auth/forgot-password": PUBLIC,
   "POST /api/auth/reset-password": PUBLIC,
+  // SSO(SAML)の開始と戻り(docs/designs/0056-sso-scim-ip-audit-export.md の 3)。戻りは IdP の組織の人だけを入れる
+  "POST /api/auth/sso/start": PUBLIC,
+  "GET /api/auth/sso/callback": PUBLIC,
   "POST /api/auth/logout": PUBLIC,
   // 公開の LP(apps/site)の事前登録と見た数(docs/specs/0025-public-landing-page.md)。ログインを見ない。
   // テナントはリクエストから決めず、設定の運営の組織に固定(src/pre-registrations/routes.ts)。設定が無ければ 404
@@ -118,6 +121,8 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "GET /api/pmf-survey": "me:read",
   "POST /api/pmf-survey": "pmf_survey:answer",
   "GET /api/organization/domains": "sso:manage",
+  "GET /api/organization/sso": "sso:manage",
+  "PUT /api/organization/sso": "sso:manage",
   "POST /api/organization/domains": "sso:manage",
   "POST /api/organization/domains/{domainId}/verify": "domain:verify",
   "DELETE /api/organization/domains/{domainId}": "sso:manage",

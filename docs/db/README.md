@@ -7,7 +7,7 @@
 | [projects.projects](projects.projects.md)                           | 5       | プロジェクト。タスクのまとまり。docs/domain/projects                                                                                                                                                                        | BASE TABLE |
 | [tasks.tasks](tasks.tasks.md)                                       | 7       | タスク。プロジェクトの中のやること。docs/domain/tasks                                                                                                                                                                       | BASE TABLE |
 | [organizations.tenants](organizations.tenants.md)                   | 5       | 組織(テナント)。tenant_id がこのシステムでの会社の単位。docs/domain/organizations                                                                                                                                           | BASE TABLE |
-| [organizations.users](organizations.users.md)                       | 10      | 組織への所属(名前とロール admin / member / viewer)。同じ人が複数の組織に所属できる(ADR 0066)。docs/domain/organizations                                                                                                     | BASE TABLE |
+| [organizations.users](organizations.users.md)                       | 11      | 組織への所属(名前とロール admin / member / viewer)。同じ人が複数の組織に所属できる(ADR 0066)。docs/domain/organizations                                                                                                     | BASE TABLE |
 | [platform.outbox](platform.outbox.md)                               | 11      | 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md                                                                                             | BASE TABLE |
 | [platform.audit_events](platform.audit_events.md)                   | 11      | 監査ログ(誰が・いつ・何をしたか)。足すだけで直せない・消せない(トリガー)。値は入れない。docs/specs/0003-audit-log.md・ADR 0013                                                                                              | BASE TABLE |
 | [organizations.support_grants](organizations.support_grants.md)     | 8       | サポートへの許可(管理者が期限つきで出す)。番号は持たない。社員は support_find_grant 関数で番号のハッシュから探す。docs/specs/0004-support-access.md                                                                         | BASE TABLE |
@@ -26,6 +26,7 @@
 | [growth.pre_registrations](growth.pre_registrations.md)             | 19      | 公開の LP の事前登録(運営の組織の持ち物)。確認待ち → 確認済み → 組織にした。消す日を過ぎたら pre-registrations-purge が消す。docs/domain/growth                                                                             | BASE TABLE |
 | [organizations.domains](organizations.domains.md)                   | 7       | 組織が登録した会社のドメイン(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067)。DNS の TXT で確かめた物だけを SSO に使う。確かめたドメインは全体で1つの組織だけ(domains_verified_domain_key)                           | BASE TABLE |
 | [organizations.ip_allowlist](organizations.ip_allowlist.md)         | 5       | 組織に入れる IP の範囲(docs/specs/0056-sso-scim-ip-audit-export.md)。空なら制限しない。管理者が一覧ごと入れ替える(20 まで)。プランの機能 ip-allowlist が入っているときだけ効く                                              | BASE TABLE |
+| [organizations.sso_connections](organizations.sso_connections.md)   | 6       | 組織につないだ SAML の IdP(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067)。1組織に1つ・1つの IdP は1つの組織だけ。行を足す・消すのは運営のコマンド sso-connect(表の持ち主)。アプリは必須の入切だけ                  | BASE TABLE |
 
 ## Stored procedures and functions
 
@@ -48,6 +49,8 @@
 | public.auth_sync_person                | int4       | p_external_id text, p_email text, p_mfa_enabled boolean, p_sessions_valid_after timestamp with time zone | FUNCTION |
 | public.auth_count_memberships          | int4       | p_external_id text                                                                                       | FUNCTION |
 | public.auth_count_memberships_by_email | int4       | p_email text                                                                                             | FUNCTION |
+| public.auth_find_sso_by_domain         | text       | p_domain text                                                                                            | FUNCTION |
+| public.auth_find_sso_member            | record     | p_provider_name text, p_email text                                                                       | FUNCTION |
 
 ## Enums
 

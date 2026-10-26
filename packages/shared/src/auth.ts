@@ -61,3 +61,15 @@ export const ResetPasswordSchema = z.object({ email: Email, code: Code, password
  */
 export const AuthNextSchema = z.object({ next: z.enum(["done", "mfa", "confirm", "login"]) });
 export type AuthNext = z.infer<typeof AuthNextSchema>;
+
+// ── SSO(docs/designs/0056-sso-scim-ip-audit-export.md の 3) ──
+/** ログインの画面: メールを入れて、SSO の組織なら IdP へ回る */
+export const SsoStartSchema = z.object({ email: Email });
+export type SsoStart = z.infer<typeof SsoStartSchema>;
+
+/** redirect … url へ移る(IdP)/ password … このメールは SSO ではない(パスワードの欄へ) */
+export const SsoStartResultSchema = z.discriminatedUnion("next", [
+  z.object({ next: z.literal("redirect"), url: z.url() }),
+  z.object({ next: z.literal("password") }),
+]);
+export type SsoStartResult = z.infer<typeof SsoStartResultSchema>;

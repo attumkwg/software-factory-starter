@@ -6,9 +6,11 @@ import {
   ipAllowedFor,
   ipNotAllowed,
   markMembershipUsed,
+  passwordAllowedIn,
   setMfaEnabled,
+  ssoRequired,
 } from "../domains/organizations/index.ts";
-import type { AppEnv } from "../env.ts";
+import type { AppEnv, NewSession } from "../env.ts";
 import { ApiError } from "../errors.ts";
 import { clientIp } from "../http/client-ip.ts";
 import type { Logger } from "../logger.ts";
@@ -28,6 +30,8 @@ export const loginFailed = () =>
  * users の行を引き(初めてなら確認済みのメールで結びつけ)、セッションの Cookie を発行する。
  * mfa … Cognito のログインで二段階認証のコードを聞かれたか(= Cognito で有効か)。写し(users.mfa_enabled)を合わせる。
  * 開発用ログインでは undefined(写しに触らない)。
+ * SSO を必須にした組織(この人が確かめたドメインの人で、緊急用でない)には入らず、次の所属へ。どこにも入れなければ
+ * 403 sso_required(設計書 0056 の 6・U-7)。
  */
 export async function logIn(
   deps: LoginDeps,
@@ -35,41 +39,60 @@ export async function logIn(
   c: Context<AppEnv>,
   opts: { mfa?: boolean } = {},
 ) {
-  const session = await findLogin(deps.db, identity);
-  if (!session) {
+  const defs = { featureFlags: c.get("featureFlags"), plans: c.get("plans") };
+  const found = await findLogin(deps.db, identity, (m) =>
+    withTenant(deps.db, m.tenantId, (tx) => passwordAllowedIn(tx, m.tenantId, m.userId, defs)),
+  );
+  if (!found.session) {
     // どの人か(メール・sub)は書かない。確認済みのメールがあったかどうかだけ
     deps.logger.warn(
       {
         kind: identity.kind,
         hasVerifiedEmail: identity.kind === "external" ? identity.verifiedEmail !== null : null,
+        reason: found.refused ? "sso_required" : "no_membership",
       },
-      "ログインに失敗(users に結びつく行が無い)",
+      "ログインに失敗(入れる所属が無い)",
     );
-    throw loginFailed();
+    throw found.refused ? ssoRequired() : loginFailed();
   }
+  await finishLogin(deps, c, found.session, opts);
+}
+
+/**
+ * 入る所属が決まった後: IP の範囲を見て、セッションの Cookie を出し、監査ログに「入った」を残す。
+ * via … "sso" なら SSO で入った(セッションに印。監査ログの details.via)
+ */
+export async function finishLogin(
+  deps: LoginDeps,
+  c: Context<AppEnv>,
+  session: NewSession & { linked?: boolean },
+  opts: { mfa?: boolean; via?: "sso" } = {},
+) {
+  const { userId, tenantId } = session;
   await refuseOutsideIpAllowlist(deps, c, session);
-  await writeSession(c, deps.session, session);
+  await writeSession(c, deps.session, { userId, tenantId, ...(opts.via ? { via: opts.via } : {}) });
   // 入った記録(監査ログ)。失敗したログインは、会社に結びつけられないのでアプリのログだけ
-  await withTenant(deps.db, session.tenantId, async (tx) => {
-    const scope = { tx, tenantId: session.tenantId, userId: session.userId };
+  await withTenant(deps.db, tenantId, async (tx) => {
+    const scope = { tx, tenantId, userId };
     // 運営が Cognito で外した(認証アプリを無くした人の回復)なども、次のログインでそろう
     if (opts.mfa !== undefined) await setMfaEnabled(scope, opts.mfa);
     // 次のログインで「前回の組織」になる(docs/specs/0055-multi-org-membership.md)
-    await markMembershipUsed(tx, session.tenantId, session.userId);
+    await markMembershipUsed(tx, tenantId, userId);
     await recordAudit(tx, {
-      tenantId: session.tenantId,
-      actor: { kind: "user", id: session.userId },
+      tenantId,
+      actor: { kind: "user", id: userId },
       action: MANUAL_AUDIT_ACTIONS.login,
       outcome: "allowed",
+      ...(opts.via ? { details: { via: opts.via } } : {}),
     });
   });
   if (session.linked) {
     deps.logger.info(
-      { userId: session.userId, loginTenantId: session.tenantId },
+      { userId, loginTenantId: tenantId },
       "初めてのログインで、Cognito のアカウントと users の行を結びつけました",
     );
   }
-  deps.logger.info({ userId: session.userId, loginTenantId: session.tenantId }, "ログイン");
+  deps.logger.info({ userId, loginTenantId: tenantId, kind: opts.via ?? "password" }, "ログイン");
 }
 
 /**

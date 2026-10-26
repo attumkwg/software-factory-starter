@@ -63,6 +63,17 @@ describe("セッションの Cookie の形", () => {
     });
   });
 
+  it("SSO で入ったセッションは5つ目が sso(ほかの5つ目は読まない)", () => {
+    expect(parseSession(`${USER}.${TENANT}.${T0 + 3600}.${T0}.sso`, cfg, T0)).toEqual({
+      userId: USER,
+      tenantId: TENANT,
+      loggedInAt: T0,
+      expiresAt: T0 + 3600,
+      via: "sso",
+    });
+    expect(parseSession(`${USER}.${TENANT}.${T0 + 3600}.${T0}.saml`, cfg, T0)).toBeNull();
+  });
+
   it("古い形(3つ・5つ)は読まない(出したときに1回だけログインし直し)", () => {
     expect(parseSession(`${USER}.${TENANT}.${T0 + 3600}`, cfg, T0)).toBeNull();
     const old = `${USER}.${TENANT}.${T0 + 3600}.${SUPPORT_SESSION}.${ACTING}`;

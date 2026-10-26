@@ -50,6 +50,9 @@ export const users = organizations.table(
     sessionsValidAfter: instant("sessions_valid_after"),
     // その組織に最後に入った(ログイン・組織の切り替え)時刻。ログインで「前回の組織」を選ぶ(docs/specs/0055-multi-org-membership.md)
     lastUsedAt: instant("last_used_at"),
+    // SSO を必須にした組織の緊急用のアカウント(IdP が止まったときにパスワードで入れる)。1組織 2人まで・管理者だけ・
+    // 二段階認証が必須(docs/designs/0056-sso-scim-ip-audit-export.md の U-3)。管理者が設定の画面で選ぶ
+    ssoExempt: boolean("sso_exempt").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
@@ -243,5 +246,28 @@ export const ipAllowlist = organizations.table(
       columns: [t.tenantId, t.createdBy],
       foreignColumns: [users.tenantId, users.id],
     }),
+  ],
+);
+
+/**
+ * 組織につないだ SAML の IdP(Cognito の IdP の名前)。1組織に1つ。つなぐ・外すのは運営のコマンド(sso-connect。設計書 0056 の U-1)、
+ * 必須にする・外すのは管理者(API)。組織を決めるのは IdP の名前で、メールのドメインは「確かめたドメインか」の確かめにだけ使う(T-8・L-8)。
+ */
+export const ssoConnections = organizations.table(
+  "sso_connections",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    providerName: text("provider_name").notNull(),
+    required: boolean("required").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: instant("updated_at"),
+  },
+  (t) => [
+    // 1組織に1つ・1つの IdP は1つの組織だけ
+    uniqueIndex("sso_connections_tenant_key").on(t.tenantId),
+    uniqueIndex("sso_connections_provider_key").on(t.providerName),
   ],
 );

@@ -6,6 +6,8 @@ import {
   OrganizationDomainSchema,
   OrganizationMemberPageSchema,
   PutIpAllowlistSchema,
+  PutSsoSettingsSchema,
+  SsoSettingsSchema,
 } from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
 import { scopeOf } from "../../db/scope.ts";
@@ -32,9 +34,10 @@ import {
   replaceIpAllowlist,
   signOutMember,
 } from "./security.ts";
+import { getSsoSettings, updateSsoSettings } from "./sso.ts";
 
-// 大きなお客さん向けの守りの段1a(管理者。docs/specs/0056-sso-scim-ip-audit-export.md):
-// 会社のドメインの確認・組織に入れる IP の範囲・人の一覧と強制ログアウト。
+// 大きなお客さん向けの守りの段1a・1b(管理者。docs/specs/0056-sso-scim-ip-audit-export.md):
+// 会社のドメインの確認・SSO の必須と緊急用・組織に入れる IP の範囲・人の一覧と強制ログアウト。
 // ドメインと IP の範囲はプランの機能(sso・ip-allowlist。入っていなければ 404。設計書 0056 の U-6)。
 // 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
 
@@ -97,6 +100,42 @@ const domainRoutes = createRouter()
       await requireFeature(c, "sso");
       if (!(await deleteDomain(scopeOf(c), c.req.valid("param").domainId))) throw notFound();
       return c.body(null, 204);
+    },
+  );
+
+/** SSO の必須と緊急用(段1b・プランの機能 sso)。IdP をつなぐ・外すのは運営のコマンド(設計書 0056 の U-1) */
+const ssoRoutes = createRouter()
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/organization/sso",
+      tags,
+      summary: "【管理者】SSO の設定(IdP がつながっているか・必須か・緊急用のアカウント)",
+      responses: { 200: json(SsoSettingsSchema, "設定"), ...authErrors },
+    }),
+    async (c) => {
+      await requireFeature(c, "sso");
+      return c.json(await getSsoSettings(scopeOf(c)), 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "put",
+      path: "/organization/sso",
+      tags,
+      summary:
+        "【管理者】SSO の必須と緊急用のアカウント(管理者だけ・2人まで)を入れ替える。必須には IdP と緊急用が1人以上要る(409)",
+      request: { body: jsonBody(PutSsoSettingsSchema) },
+      responses: {
+        200: json(SsoSettingsSchema, "入れ替えた"),
+        ...bodyErrors,
+        ...authErrors,
+        ...conflictError,
+      },
+    }),
+    async (c) => {
+      await requireFeature(c, "sso");
+      return c.json(await updateSsoSettings(scopeOf(c), c.req.valid("json")), 200);
     },
   );
 
@@ -178,8 +217,9 @@ export const memberRoutes = createRouter()
     },
   );
 
-/** 段1a のルートをまとめて(app.ts は1行で足す。DNS で確かめる API だけは src/auth/domain-verify-routes.ts) */
+/** 段1a・1b のルートをまとめて(app.ts は1行で足す。DNS で確かめる API だけは src/auth/domain-verify-routes.ts) */
 export const securityRoutes = createRouter()
   .route("/", domainRoutes)
+  .route("/", ssoRoutes)
   .route("/", ipAllowlistRoutes)
   .route("/", memberRoutes);

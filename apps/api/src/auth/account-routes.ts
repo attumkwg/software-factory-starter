@@ -149,7 +149,13 @@ class AccountFlow {
     });
     const { userId, tenantId } = c.get("actor");
     const loggedInAt = Math.floor(now.getTime() / 1000);
-    await writeSession(c, this.#deps.session, { userId, tenantId, loggedInAt });
+    const via = c.get("session")?.via;
+    await writeSession(c, this.#deps.session, {
+      userId,
+      tenantId,
+      loggedInAt,
+      ...(via ? { via } : {}),
+    });
     clearReauth(c, this.#deps.session);
     await this.idp.signOutEverywhere(accessToken).catch((err: unknown) => {
       // 変更は済んでいる。トークンは15分で切れるので、失敗しても止めない

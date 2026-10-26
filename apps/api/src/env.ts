@@ -17,6 +17,12 @@ export type Session = {
   userId: string;
   tenantId: string;
   support?: { sessionId: string; homeTenantId: string };
+  /**
+   * "sso" … この組織の IdP(SSO)で入った。SSO を必須にした組織に入れるのはこれだけ(緊急用を除く)。
+   * 二段階認証は IdP の役目なので、組織の必須を当てない(docs/designs/0056-sso-scim-ip-audit-export.md の 6)。
+   * 組織を切り替えると外れる(SSO で確かめたのは入った組織だけ)
+   */
+  via?: "sso";
   /** ログインした時刻(UNIX 秒)。ここから最長(既定12時間)で切れる(ADR 0017) */
   loggedInAt: number;
   /** この Cookie の期限(UNIX 秒)。使っている間は関所が出し直して延ばす */

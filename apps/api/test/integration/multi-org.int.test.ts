@@ -233,7 +233,7 @@ describe("人に1つの物は、全部の所属にそろう", () => {
       externalId: SUB,
       verifiedEmail: null,
     });
-    expect(found?.tenantId).toBe(a.tenantId);
+    expect(found.session?.tenantId).toBe(a.tenantId);
   });
 });
 

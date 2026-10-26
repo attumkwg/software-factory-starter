@@ -32,7 +32,7 @@ export async function recordSignUpConsents(
   }
   if (acceptable.length === 0) return;
   try {
-    const user = await findLogin(deps.db, { kind: "email", email });
+    const { session: user } = await findLogin(deps.db, { kind: "email", email });
     if (!user) {
       deps.logger.info({ what: "sign_up_consent", reason: "not_registered" }, "同意は記録しません");
       return;

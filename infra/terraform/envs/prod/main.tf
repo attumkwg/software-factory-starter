@@ -116,7 +116,7 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment, local.client_ip_environment)
+  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment, local.client_ip_environment, local.sso_environment)
   secrets = merge({
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
@@ -126,11 +126,17 @@ module "app" {
     PGDATABASE = module.aurora.database_name
     PGUSER     = "app_owner"
     PGSSLMODE  = "verify-full"
+    # 運営のコマンド sso-connect・sso-disconnect が Cognito に IdP を作る・消す(sso_enabled のときだけ権限がある)
+    COGNITO_REGION       = var.region
+    COGNITO_USER_POOL_ID = aws_cognito_user_pool.this.id
+    COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.web.id
   }
   migration_secrets = {
     PGPASSWORD = "${module.aurora.master_user_secret_arn}:password::"
   }
   secrets_kms_key_arns = [aws_kms_key.app.arn, module.aurora.kms_key_arn]
+  # 運営のコマンド sso-connect が、このユーザープールの IdP とアプリクライアントだけを触る
+  sso_user_pool_arn = var.sso_enabled ? aws_cognito_user_pool.this.arn : null
   # 申し込みの置き場(create-tenant が読むだけ)
   applications_store = {
     bucket      = module.applications.bucket

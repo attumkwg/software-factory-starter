@@ -56,6 +56,16 @@ export {
 } from "./security.ts";
 export { securityRoutes } from "./security-routes.ts";
 export {
+  deleteSsoConnection,
+  findSsoConnectState,
+  findSsoMember,
+  findSsoProviderByDomain,
+  insertSsoConnection,
+  passwordAllowedIn,
+  ssoDemandOf,
+  ssoRequired,
+} from "./sso.ts";
+export {
   endSupportSession,
   exportSupportGrantsPage,
   findActiveSupportSession,

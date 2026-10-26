@@ -143,6 +143,9 @@ export const ERROR_CODES = [
   "domain_not_verified", // DNS にまだ確かめの文字が見えない(409)
   "ip_not_allowed", // 組織が決めた IP の範囲の外から(403)
   "allowlist_excludes_you", // いまの IP を含まない一覧は保存できない(409。自分を締め出さない)
+  "sso_required", // この組織は SSO を必須にしている。パスワードでは入れない(403)。画面はログインの SSO の段へ
+  "sso_not_connected", // IdP がまだつながっていないので、SSO を必須にできない(409)
+  "sso_exempt_required", // 必須にするには緊急用の管理者が1人以上要る(409)
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -302,7 +305,12 @@ export type ExportData = z.infer<typeof ExportSchema>;
  */
 export const AuthOptionsSchema = z.discriminatedUnion("method", [
   z.object({ method: z.literal("dev") }),
-  z.object({ method: z.literal("cognito"), logoutUrl: z.url() }),
+  z.object({
+    method: z.literal("cognito"),
+    logoutUrl: z.url(),
+    /** 会社のアカウント(SSO)でのログインを出すか(COGNITO_OAUTH_URL があるとき。docs/designs/0056-sso-scim-ip-audit-export.md) */
+    sso: z.boolean(),
+  }),
 ]);
 export type AuthOptions = z.infer<typeof AuthOptionsSchema>;
 

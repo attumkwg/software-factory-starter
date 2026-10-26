@@ -137,6 +137,17 @@
 | `created_at` | internal | 足した時刻 |
 | `created_by` | internal | 足した管理者 |
 
+### `organizations.sso_connections`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | つないだ IdP の行の ID |
+| `tenant_id` | internal | IdP をつないだ組織 |
+| `provider_name` | internal | Cognito の IdP の名前(SSO で戻ってきた人の組織を決める) |
+| `required` | internal | SSO を必須にしているか |
+| `created_at` | internal | つないだ時刻 |
+| `updated_at` | internal | 必須を入れた・切った時刻 |
+
 ### `organizations.support_grants`
 
 | 列 | 区分 | 利用目的 |
@@ -187,6 +198,7 @@
 | `mfa_enabled` | public | 二段階認証が有効か |
 | `sessions_valid_after` | internal | これより前のセッションを切る |
 | `last_used_at` | internal | その組織に最後に入った時刻(ログインで前回の組織を選ぶ) |
+| `sso_exempt` | internal | SSO を必須にした組織の緊急用のアカウントか(パスワードで入れる管理者) |
 | `created_at` | internal | 作った時刻 |
 
 ### `platform.audit_events`

@@ -69,3 +69,23 @@ export const OrganizationMemberPageSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 export type OrganizationMemberPage = z.infer<typeof OrganizationMemberPageSchema>;
+
+// ── SSO(段1b。docs/designs/0056-sso-scim-ip-audit-export.md の 3) ──────────────────────────
+
+/** 緊急用のアカウントは1組織 2人まで(設計書 0056 の U-3) */
+export const SSO_EXEMPT_MAX = 2;
+
+/** 組織の SSO の設定。IdP をつなぐ・外すのは運営(connected が false なら、必須にできない) */
+export const SsoSettingsSchema = z.object({
+  connected: z.boolean(),
+  required: z.boolean(),
+  /** 緊急用のアカウント(SSO を必須にしてもパスワードで入れる管理者。二段階認証が必須) */
+  exemptUserIds: z.array(IdSchema).max(SSO_EXEMPT_MAX),
+});
+export type SsoSettings = z.infer<typeof SsoSettingsSchema>;
+
+export const PutSsoSettingsSchema = z.object({
+  required: z.boolean(),
+  exemptUserIds: z.array(IdSchema).max(SSO_EXEMPT_MAX),
+});
+export type PutSsoSettings = z.infer<typeof PutSsoSettingsSchema>;

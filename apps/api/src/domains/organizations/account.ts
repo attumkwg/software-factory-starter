@@ -5,6 +5,7 @@ import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.
 import type { TenantScope } from "../../db/scope.ts";
 import { syncPerson } from "./memberships.ts";
 import { emailChanges, tenants, users } from "./schema.ts";
+import { type SsoStatus, ssoStatusColumns } from "./sso.ts";
 
 // アカウントの安全(docs/specs/0006-account-security.md)の読み書き。Cognito は呼ばない(auth/account-routes.ts が呼ぶ)。
 
@@ -12,7 +13,7 @@ import { emailChanges, tenants, users } from "./schema.ts";
 const EMAIL_CHANGE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** 認可の関所が毎回引く「この人を通してよいか」の材料。いなければ null */
-export type Access = {
+export type Access = SsoStatus & {
   role: Role;
   mfaEnabled: boolean;
   /** これより前にログインしたセッションは使えない */
@@ -32,6 +33,7 @@ export async function findAccess(
       mfaEnabled: users.mfaEnabled,
       sessionsValidAfter: users.sessionsValidAfter,
       mfaRequired: tenants.mfaRequired,
+      ...ssoStatusColumns,
     })
     .from(users)
     .innerJoin(tenants, eq(tenants.tenantId, users.tenantId))

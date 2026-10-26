@@ -114,6 +114,12 @@ variable "public_site_domain" {
   default     = null
 }
 
+variable "sso_enabled" {
+  description = "SSO(SAML)の入口を作る: ユーザープールの OAuth の入口 auth.<app_domain>(証明書は us-east-1)・アプリクライアントの OAuth・運営のコマンド sso-connect の権限(docs/runbooks/sso.md の 4)。SSO をプランに入れるお客さんが来たら true"
+  type        = bool
+  default     = false
+}
+
 variable "app_cloudfront" {
   description = "アプリ(画面と API)の前に CloudFront を置き、ALB は CloudFront からだけ受ける(キットの既定。docs/specs/0058-cloudfront-in-front-of-app.md)。false で前の形(ALB をインターネットに・WAF は ALB)"
   type        = bool

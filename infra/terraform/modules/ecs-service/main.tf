@@ -152,6 +152,28 @@ resource "aws_iam_role_policy" "migrate_read_applications" {
   })
 }
 
+# 運営のコマンド sso-connect・sso-disconnect が、1つのユーザープールの IdP とアプリクライアントの IdP の一覧だけを触る
+resource "aws_iam_role_policy" "migrate_sso" {
+  count = var.sso_user_pool_arn == null ? 0 : 1
+  name  = "sso-connect"
+  role  = aws_iam_role.migrate.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "cognito-idp:CreateIdentityProvider",
+        "cognito-idp:DescribeIdentityProvider",
+        "cognito-idp:UpdateIdentityProvider",
+        "cognito-idp:DeleteIdentityProvider",
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:UpdateUserPoolClient",
+      ]
+      Resource = var.sso_user_pool_arn
+    }]
+  })
+}
+
 # blue/green の切り替えで、ECS が ALB のルールを書き換えるための役割
 resource "aws_iam_role" "ecs_infrastructure" {
   name = "${var.name}-ecs-infrastructure"
