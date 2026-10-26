@@ -3,6 +3,7 @@ import type {
   Account,
   ApiError,
   AuditEventPage,
+  AuditExportRequest,
   AuthNext,
   AuthOptions,
   CreatedScimToken,
@@ -211,8 +212,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
  * データの書き出し(docs/specs/0018-export-stream.md)。API が少しずつ流す JSON を、読み直さずに
  * そのままファイルの中身として受け取る(1社の全部を JS の値にしない)。途中で切れたら NetworkError。
  */
-async function download(path: string): Promise<{ blob: Blob; filename: string }> {
-  const res = await send("POST", path, undefined, { untilHeaders: true });
+async function download(path: string, body?: unknown): Promise<{ blob: Blob; filename: string }> {
+  const res = await send("POST", path, body, { untilHeaders: true });
   const filename =
     res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "export.json";
   try {
@@ -340,6 +341,8 @@ export const api = {
   unrequireMfa: () => request<void>("DELETE", "/organization/mfa-requirement"),
   // データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。管理者だけ
   exportData: () => download("/exports"),
+  // 監査ログの書き出し(プランの機能 audit-export。docs/specs/0056-sso-scim-ip-audit-export.md の段3)
+  exportAuditEvents: (range: AuditExportRequest) => download("/audit-events/export", range),
   listAuditEvents: (before?: string) =>
     request<AuditEventPage>(
       "GET",

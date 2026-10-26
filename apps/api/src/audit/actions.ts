@@ -25,6 +25,12 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   "POST /api/support/end": { action: "support.end", target: "support_session" },
   // データの書き出し(対象は組織全体なので ID は無い)
   "POST /api/exports": { action: "data.export", target: "organization", param: "none" },
+  // 監査ログの書き出し(段3。期間は details に入れない。いつ書き出したかはこの行の時刻)
+  "POST /api/audit-events/export": {
+    action: "audit.export",
+    target: "organization",
+    param: "none",
+  },
   // 本人のアカウント(docs/specs/0006-account-security.md)。対象はいつも行為者の本人なので ID は無い
   "POST /api/account/reauth": { action: "account.reauth", target: "user", param: "none" },
   "POST /api/account/password": {

@@ -170,6 +170,12 @@ routes:
     note: 自社の監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので管理者だけ。他社の分は RLS で見えない
     expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
 
+  - route: POST /api/audit-events/export
+    permission: audit:read
+    note: 監査ログを期間(日付・最長 366 日)を選んで JSON Lines で書き出す。プランの機能 audit-export が入っていなければ 404。流れは audit-export.int.test.ts
+    body: { from: "2026-10-01", to: "2026-10-02" }
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
   - route: GET /api/support-grants
     permission: support_grant:manage
     note: サポートへの許可の一覧(docs/specs/0004-support-access.md)。番号は出ない

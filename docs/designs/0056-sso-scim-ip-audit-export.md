@@ -2,7 +2,7 @@
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
 > 仕様: [docs/specs/0056-sso-scim-ip-audit-export.md](../specs/0056-sso-scim-ip-audit-export.md)
-> 状態: 承認済み(@attumkwg 2026-10-25。会話で「全部おすすめどおり」)。実装は段ごとに別の PR(段1a・1b・2 は済み。残りは段3)
+> 状態: 承認済み(@attumkwg 2026-10-25。会話で「全部おすすめどおり」)。実装は段ごとに別の PR(段1a・1b・2・3 とも済み)
 > 観点の順は [review-viewpoints.md](../review-viewpoints.md)。当てはまらない節も消さずに「該当なし(理由)」と書く。
 
 ## 0. 全体像
@@ -99,7 +99,7 @@ sequenceDiagram
 | `GET /api/auth/sso/callback` | 公開 | `code`・`state` | 302(画面へ)。失敗はログインの画面へ(理由は言わない) | `auth.login`(details に `via: sso`) |
 | `GET/POST/DELETE /api/organization/scim-tokens` | `scim:manage`(admin) | — | 作ったときだけ鍵 | `scim_token.create` / `.revoke` |
 | `GET/POST /api/scim/v2/Users`・`GET/PUT/PATCH/DELETE /api/scim/v2/Users/{id}` | 公開(SCIM の鍵) | SCIM 2.0 | SCIM 2.0 | `scim.user_create` / `_update` / `_disable`(行為者は `kind: scim`) |
-| `GET /api/audit-events/export` | `audit:read`(admin) | `from`・`to`(1年まで) | JSON Lines を流す | `audit.export` |
+| `POST /api/audit-events/export` | `audit:read`(admin) | `{ from, to }`(日付・両端を含む・組織の時間帯の1日・366 日まで) | JSON Lines を古い順に流す(`application/x-ndjson`) | `audit.export`(期間は details に入れない) |
 
 - SCIM は ALB が `/api/*` だけを API に回すので `/api/scim/v2` に置く。お客さんの道具には `https://<アプリ>/api/scim/v2` を渡す。
 - 監査ログの行為者の種類に `scim` を足す(`user` / `support` / `system` / `scim`)。
@@ -141,7 +141,7 @@ sequenceDiagram
   - いまの IP を含まない一覧は保存できない(409)。運営が外す手順は手順書に(表の持ち主で行を消す。2人で)。
 - 強制ログアウト: 管理者が人を選ぶ → その人の行の `sessions_valid_after = now()`。自分自身もできる(ほかの端末を切る)。
 - SCIM: 作るときのメールは確かめたドメインだけ。名前を直せる。ロールは変えない(管理者が画面で)。`active: false` で止める(`disabled_at` と `sessions_valid_after`)。DELETE は止めると同じ。行と監査ログは残す(U-5)。
-- 監査ログの書き出し: `from`〜`to`(最長 1年)を、古い順に1ページずつ JSON Lines で流す(書き出しの ADR 0031 と同じ)。項目は画面の監査ログと同じ(値は入っていない)。
+- 監査ログの書き出し: `from`〜`to`(日付・両端を含む・組織の時間帯の1日・最長 366 日)を、古い順に1ページずつ JSON Lines で流す(書き出しの ADR 0031 と同じ。並びは UUIDv7 の ID の順・期間は `occurred_at` で絞る)。項目は画面の監査ログと同じ(値は入っていない)。プランの機能 `audit-export`。
 
 ## 7. 要求との対応
 
@@ -240,3 +240,4 @@ sequenceDiagram
 | 2026-10-26 | 段1b の実装で、SSO で入った人と組織の切り替え・二段階認証の必須の扱いが設計に無かった | 設計(6) | セッションの SSO の印・関所の `sso_required`・切り替えで外れる・SSO の人に二段階認証の必須を当てない、を足した | `session.ts`・`middleware.ts`・`organization-routes.ts` |
 | 2026-10-26 | 段2 の実装で、`scim_create_user` のドメインの確かめを行の方針(INSERT の WITH CHECK)に置くと、組織の文脈の中では `tenant_isolation` の許しと「または」になって効かないとテストで分かった | 設計(2) | ドメインの確かめを関数の中に移した(確かめたドメインでなければ check_violation)。行の方針は足さない | 移行 0022・`scim.ts`・`scim.int.test.ts` |
 | 2026-10-26 | 段2 の実装で、監査ログの行為者の種類の制約を広げるとき、同じトランザクションで VALIDATE すると大きな表の読みが止まると分かった | 設計(2) | 制約は NOT VALID で足し直すだけにし、VALIDATE は次の移行で1文だけ流す(今ある行は全部 3つのどれか) | 移行 0022 |
+| 2026-10-26 | 段3 の実装で、監査ログの名前は「書き込みの API(GET 以外)」だけに付く決まり(関所が自動で残す・単体テストが網羅を見る)で、GET の書き出しは記録の仕組みに乗らないと分かった | 設計(3) | `POST /api/audit-events/export`(本文に `from`・`to` の日付)にした。データの書き出し(`POST /api/exports`)と同じ形で、CSRF の守り・関所の監査ログ・画面のダウンロードの部品がそのまま使える。期間は1年ではなく 366 日(うるう年) | 仕様の権限の表・`audit-routes.ts`・`audit-export.int.test.ts` |

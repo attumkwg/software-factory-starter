@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { LegalDocumentSchema, LegalStatusSchema } from "./legal.ts";
 import { RoleSchema } from "./roles.ts";
-import { InstantSchema, TimeZoneSchema } from "./time.ts";
+import { DateOnlySchema, InstantSchema, TimeZoneSchema } from "./time.ts";
 
 // 画面と API で共有する「契約」。API はここから OpenAPI を作り、画面は型として使う。
 // 項目は足すだけ・消さない・意味を変えない(古い画面やアプリから呼ばれても壊れないように)。
@@ -245,6 +245,22 @@ export const AuditEventPageSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 export type AuditEventPage = z.infer<typeof AuditEventPageSchema>;
+
+/** 監査ログの書き出しの期間の上限(日。「最長 1年」。うるう年も入るよう 366) */
+export const AUDIT_EXPORT_MAX_DAYS = 366;
+
+/**
+ * 監査ログの書き出し(docs/specs/0056-sso-scim-ip-audit-export.md の段3)。from〜to の日付(両端を含む・組織の時間帯の1日)。
+ * 1行1件の JSON(JSON Lines)で、古い順に返る。1行の形は AuditEventSchema
+ */
+export const AuditExportRequestSchema = z
+  .object({ from: DateOnlySchema, to: DateOnlySchema })
+  .refine((r) => r.from <= r.to, { message: "to は from と同じ日か後にしてください", path: ["to"] })
+  .refine((r) => (Date.parse(r.to) - Date.parse(r.from)) / 86_400_000 < AUDIT_EXPORT_MAX_DAYS, {
+    message: `期間は ${AUDIT_EXPORT_MAX_DAYS} 日までです`,
+    path: ["to"],
+  });
+export type AuditExportRequest = z.infer<typeof AuditExportRequestSchema>;
 
 // ── データの書き出し(docs/specs/0005-offboarding.md) ──────────────────────────
 

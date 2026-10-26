@@ -44,6 +44,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "scim.user_update": "人を直した",
   "scim.user_disable": "人を止めた",
   "scim.user_enable": "止めた人を戻した",
+  "audit.export": "監査ログを書き出した",
   "auth.switch_in": "ほかの組織からこの組織に切り替えた",
   "auth.switch_out": "この組織からほかの組織に切り替えた",
   "demo.reset": "デモのデータを戻した",
