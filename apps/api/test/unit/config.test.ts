@@ -154,3 +154,16 @@ describe("要配慮個人情報の接続と鍵(ADR 0029)", () => {
     );
   });
 });
+
+describe("SSO の入口の設定", () => {
+  it("API がコードを交換する先の差し替えは手元とテストだけ。本物の入口は https", () => {
+    const internal = { ...cognito, COGNITO_OAUTH_INTERNAL_URL: "http://fake-cognito:9231" };
+    expect(() => loadConfig({ ...base, ...internal, APP_ENV: "stg" })).toThrow(
+      /COGNITO_OAUTH_INTERNAL_URL/,
+    );
+    const plainOauth = { ...cognito, COGNITO_OAUTH_URL: "http://auth.example.com" };
+    expect(() => loadConfig({ ...base, ...plainOauth, APP_ENV: "stg" })).toThrow(
+      /COGNITO_OAUTH_URL は https/,
+    );
+  });
+});

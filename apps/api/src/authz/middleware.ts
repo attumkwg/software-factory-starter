@@ -13,6 +13,9 @@ import {
   findActiveSupportSession,
   ipAllowedFor,
   ipNotAllowed,
+  mfaNeeded,
+  ssoDemandOf,
+  ssoRequired,
 } from "../domains/organizations/index.ts";
 import type { AppEnv, Session } from "../env.ts";
 import { ApiError, forbidden, unauthorized } from "../errors.ts";
@@ -55,6 +58,8 @@ class SupportEnded extends Error {}
  *    外れていたら Cookie を社員の本来の組織に戻して 401。**読んだことも**お客さんの監査ログに残す。
  * 10. 組織が IP の範囲を決めていれば(プランの機能 ip-allowlist)、いまの IP が外なら 403 ip_not_allowed。
  *    代理の社員は対象外(docs/designs/0056-sso-scim-ip-audit-export.md の U-4)。
+ * 11. 組織が SSO を必須にしていれば(プランの機能 sso)、確かめたドメインの人は SSO で入ったセッションだけ
+ *    (ほかは 403 sso_required)。緊急用のアカウントは二段階認証が必須。SSO で入った人には組織の二段階認証の必須を当てない。
  */
 export function authorize(deps: Deps): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -246,14 +251,26 @@ async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Rol
   }
   const access = await findAccess(tx, session.tenantId, session.userId);
   if (!access || endedByChange(access, session)) throw unauthorized();
+  await refuseUntilReady(c, tx, gate, access);
+  return access.role;
+}
+
+/**
+ * ふつうの人を、いま止める理由があれば止める: 組織の IP の範囲の外・SSO が要るのに SSO で入っていない・
+ * 規約の同意待ち・二段階認証の設定待ち(緊急用のアカウントは必須。SSO で入った人の二段階認証は IdP の役目)
+ */
+async function refuseUntilReady(c: Context<AppEnv>, tx: TenantTx, gate: Gate, access: Access) {
+  const { session } = gate;
   const defs = { featureFlags: c.get("featureFlags"), plans: c.get("plans") };
   if (!(await ipAllowedFor(tx, session.tenantId, clientIp(c), defs))) throw ipNotAllowed();
+  const sso = await ssoDemandOf(tx, session.tenantId, access, defs);
+  if (sso === "sso" && session.via !== "sso") throw ssoRequired();
   const legal = await legalStatusOf(c, tx, session);
-  const waitingForMfa = c.get("mfaEnforced") && access.mfaRequired && !access.mfaEnabled;
+  const waitingForMfa =
+    c.get("mfaEnforced") && mfaNeeded(access, sso, session.via) && !access.mfaEnabled;
   // 止める理由は同意を先に(画面も同意 → 二段階認証の設定の順に回す)
   if (legal?.pending.length && !allowedWhileWaiting(gate)) throw termsAcceptanceRequired();
   if (waitingForMfa && !allowedWhileWaiting(gate)) throw mfaSetupRequired();
-  return access.role;
 }
 
 /** 失敗の後始末。取り消しだけなら静かに終え、それ以外は投げ直す */

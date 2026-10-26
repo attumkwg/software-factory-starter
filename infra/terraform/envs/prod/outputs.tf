@@ -30,6 +30,11 @@ output "url" {
   value = "https://${var.app_domain}"
 }
 
+output "cognito_oauth_url" {
+  description = "SSO の入口(sso_enabled のときだけ。API の COGNITO_OAUTH_URL。お客さんの IdP に渡す ACS の URL は <これ>/saml2/idpresponse)"
+  value       = var.sso_enabled ? "https://${local.sso_domain}" : null
+}
+
 output "ecs_mail_service" {
   value = module.mail.service_name
 }

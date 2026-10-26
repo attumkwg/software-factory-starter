@@ -10,6 +10,7 @@ import { addCognitoRoutes } from "./cognito-routes.ts";
 import { type LoginDeps, logIn } from "./login.ts";
 import { CognitoClient, type CognitoSettings } from "./providers.ts";
 import { clearSession } from "./session.ts";
+import { addSsoRoutes } from "./sso-routes.ts";
 
 // ログインとログアウトの入口。Cognito のときだけの入口(ログイン・登録・再設定)は cognito-routes.ts。
 
@@ -61,7 +62,7 @@ export function authRoutes(deps: Deps) {
     .openapi(optionsRoute, (c) =>
       c.json(
         cognito
-          ? { method: "cognito" as const, logoutUrl: cognito.logoutUrl }
+          ? { method: "cognito" as const, logoutUrl: cognito.logoutUrl, sso: cognito.ssoEnabled }
           : { method: "dev" as const },
         200,
       ),
@@ -77,6 +78,7 @@ export function authRoutes(deps: Deps) {
   }
 
   addCognitoRoutes(router, deps, cognito);
+  addSsoRoutes(router, deps, cognito);
   return router;
 }
 

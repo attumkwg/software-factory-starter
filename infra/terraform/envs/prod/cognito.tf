@@ -80,6 +80,16 @@ resource "aws_cognito_user_pool_client" "web" {
     "ALLOW_USER_PASSWORD_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH",
   ]
+  # SSO(sso_enabled・sso.tf)のときだけ OAuth の入口を使う(コードと PKCE・秘密は持たない)。
+  # お客さんの IdP は運営のコマンド sso-connect が一覧に足すので、Terraform は supported_identity_providers を見ない
+  allowed_oauth_flows_user_pool_client = var.sso_enabled
+  allowed_oauth_flows                  = var.sso_enabled ? ["code"] : []
+  allowed_oauth_scopes                 = var.sso_enabled ? ["openid", "email"] : []
+  callback_urls                        = var.sso_enabled ? ["https://${var.app_domain}/api/auth/sso/callback"] : []
+  supported_identity_providers         = ["COGNITO"]
+  lifecycle {
+    ignore_changes = [supported_identity_providers]
+  }
   # 「その人はいない」と答えない(パスワード違いと同じ答え。契約テストが確かめる)
   prevent_user_existence_errors = "ENABLED"
   # 二段階認証のコードを待つ札(Session)の期限

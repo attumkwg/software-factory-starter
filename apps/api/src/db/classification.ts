@@ -53,6 +53,9 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.users.last_used_at": internal(
     "その組織に最後に入った時刻(ログインで前回の組織を選ぶ)",
   ),
+  "organizations.users.sso_exempt": internal(
+    "SSO を必須にした組織の緊急用のアカウントか(パスワードで入れる管理者)",
+  ),
   "organizations.users.created_at": internal("作った時刻"),
 
   "organizations.invitations.id": internal("招待の ID(リンクの署名の元)"),
@@ -79,6 +82,14 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.domains.verified_at": internal("DNS で確かめた時刻(全体で1つの組織だけ)"),
   "organizations.domains.created_at": internal("登録した時刻"),
   "organizations.domains.created_by": internal("登録した管理者"),
+  "organizations.sso_connections.id": internal("つないだ IdP の行の ID"),
+  "organizations.sso_connections.tenant_id": internal("IdP をつないだ組織"),
+  "organizations.sso_connections.provider_name": internal(
+    "Cognito の IdP の名前(SSO で戻ってきた人の組織を決める)",
+  ),
+  "organizations.sso_connections.required": internal("SSO を必須にしているか"),
+  "organizations.sso_connections.created_at": internal("つないだ時刻"),
+  "organizations.sso_connections.updated_at": internal("必須を入れた・切った時刻"),
   "organizations.ip_allowlist.id": internal("範囲の行の ID"),
   "organizations.ip_allowlist.tenant_id": internal("範囲を決めた組織"),
   "organizations.ip_allowlist.cidr": internal("組織に入れる IP の範囲(会社のネットワーク)"),

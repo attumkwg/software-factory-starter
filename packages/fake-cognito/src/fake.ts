@@ -12,6 +12,13 @@ import {
   describeUserPool,
 } from "./actions/admin.ts";
 import {
+  createIdentityProvider,
+  deleteIdentityProvider,
+  describeIdentityProvider,
+  describeUserPoolClient,
+  updateUserPoolClient,
+} from "./actions/federation.ts";
+import {
   associateSoftwareToken,
   initiateAuth,
   respondToChallenge,
@@ -25,6 +32,7 @@ import {
   resendCode,
   signUp,
 } from "./actions/sign-up.ts";
+import { Federation } from "./federation.ts";
 import { type Body, CognitoFault, type FakeCognitoOptions, UserPool } from "./pool.ts";
 import { sendMailViaSmtp } from "./smtp.ts";
 
@@ -38,6 +46,9 @@ import { sendMailViaSmtp } from "./smtp.ts";
 //   二段階   … AssociateSoftwareToken・VerifySoftwareToken・SetUserMFAPreference
 //   本人     … GetUser・ChangePassword・UpdateUserAttributes・VerifyUserAttribute・GlobalSignOut
 //   管理     … AdminConfirmSignUp・AdminDeleteUser・AdminGetUser・DescribeUserPool(署名は確かめない)
+//   IdP      … CreateIdentityProvider・DescribeIdentityProvider・DeleteIdentityProvider・
+//              DescribeUserPoolClient・UpdateUserPoolClient(SupportedIdentityProviders だけ)
+//   SSO      … GET /oauth2/authorize・POST /oauth2/token と、テスト用の IdP の画面(federation.ts)
 //   公開鍵   … GET /<プール>/.well-known/jwks.json
 //
 // 本物と同じく断る(決まりを満たさないパスワード・違うコード・その人がいない・試しすぎ)。
@@ -69,6 +80,11 @@ const ACTIONS = new Map<string, (pool: UserPool, b: Body) => unknown>([
   ["AdminDeleteUser", adminDeleteUser],
   ["AdminGetUser", adminGetUser],
   ["DescribeUserPool", describeUserPool],
+  ["CreateIdentityProvider", createIdentityProvider],
+  ["DescribeIdentityProvider", describeIdentityProvider],
+  ["DeleteIdentityProvider", deleteIdentityProvider],
+  ["DescribeUserPoolClient", describeUserPoolClient],
+  ["UpdateUserPoolClient", updateUserPoolClient],
 ]);
 
 const TARGET_PREFIX = "AWSCognitoIdentityProviderService.";
@@ -77,10 +93,20 @@ const JSON_TYPE = "application/x-amz-json-1.1";
 export class FakeCognito {
   readonly issuer: string;
   readonly #pool: UserPool;
+  readonly #federation: Federation;
 
   constructor(opts: FakeCognitoOptions) {
     this.#pool = new UserPool(opts);
+    this.#federation = new Federation(this.#pool);
     this.issuer = this.#pool.issuer;
+  }
+
+  /**
+   * テスト用: IdP へ回す URL(/oauth2/authorize)に、IdP がこのメールの人を返したことにしてコードを出す
+   * (結合テストが、テスト用の IdP の画面の代わりに使う)
+   */
+  issueSsoCode(authorizeUrl: string, email: string): string {
+    return this.#federation.issueCode(new URL(authorizeUrl).searchParams, email.toLowerCase());
   }
 
   /** 公開鍵(テストでは createLocalJWKSet に渡す) */
@@ -100,6 +126,8 @@ export class FakeCognito {
       return Response.json(this.jwks);
     }
     if (req.method === "GET" && url.pathname === "/healthz") return new Response("ok");
+    const sso = await this.#federation.handle(req);
+    if (sso) return sso;
     const target = req.headers.get("x-amz-target") ?? "";
     if (req.method !== "POST" || !target.startsWith(TARGET_PREFIX)) {
       return new Response("not found", { status: 404 });
@@ -131,6 +159,7 @@ export class FakeCognito {
   }
 }
 
+export { federatedSub } from "./federation.ts";
 export type { FakeCognitoOptions } from "./pool.ts";
 export { fakeSub } from "./pool.ts";
 export { serve } from "./serve.ts";

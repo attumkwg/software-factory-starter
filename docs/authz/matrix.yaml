@@ -45,6 +45,19 @@ routes:
     body: { code: "123456" }
     expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
 
+  - route: POST /api/auth/sso/start
+    permission: public
+    only_in: cognito
+    note: 会社のアカウント(SSO)でのログインを始める。そのドメインが SSO かどうかだけを答える(人がいるかは言わない)。流れは sso-login.int.test.ts
+    body: { email: "nobody@example.test" }
+    expect: { admin: 200, member: 200, viewer: 200, anonymous: 200 }
+
+  - route: GET /api/auth/sso/callback
+    permission: public
+    only_in: cognito
+    note: IdP から戻ってくる所。入れたら画面へ、だめならログインの画面へ(どちらも 302。理由は言わない)。流れは sso-login.int.test.ts
+    expect: { admin: 302, member: 302, viewer: 302, anonymous: 302 }
+
   - route: POST /api/auth/sign-up
     permission: public
     only_in: cognito
@@ -299,7 +312,7 @@ routes:
     note: 必須を切る。運営の組織では切れない(409。account-security.int.test.ts)
     expect: { admin: 204, member: 403, viewer: 403, anonymous: 401 }
 
-  # ── 大きなお客さん向けの守りの段1a(docs/specs/0056-sso-scim-ip-audit-export.md) ───────────────
+  # ── 大きなお客さん向けの守りの段1a・1b(docs/specs/0056-sso-scim-ip-audit-export.md) ───────────
   # どれも管理者だけ。代理の社員(閲覧者に固定)も 403。
   # ドメインと IP の範囲はプランの機能(sso・ip-allowlist)。キットの既定のプランには入れない(設計書 0056 の U-6)ので、
   # この表の組織では管理者でも 404。機能を入れた組織での流れ・他社の物の 404 は organization-security.int.test.ts。
@@ -324,6 +337,17 @@ routes:
     permission: sso:manage
     note: 会社のドメインを消す
     expect: { admin: 404, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: GET /api/organization/sso
+    permission: sso:manage
+    note: SSO の設定(IdP がつながっているか・必須か・緊急用のアカウント)。プランの機能 sso が入っていなければ 404
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: PUT /api/organization/sso
+    permission: sso:manage
+    note: SSO の必須と緊急用(管理者だけ・2人まで)を入れ替える。IdP が無い・緊急用が0人で必須にすると 409。流れは sso-login.int.test.ts
+    body: { required: false, exemptUserIds: [] }
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
 
   - route: GET /api/organization/ip-allowlist
     permission: ip_allowlist:manage

@@ -73,6 +73,12 @@ variable "migration_secrets" {
   default     = {}
 }
 
+variable "sso_user_pool_arn" {
+  description = "運営のコマンド sso-connect・sso-disconnect が IdP を作る・消すユーザープール(docs/designs/0056-sso-scim-ip-audit-export.md の 5)。null なら移行のタスクに Cognito を許さない"
+  type        = string
+  default     = null
+}
+
 variable "applications_store" {
   description = "申し込みの置き場(運営のコマンド create-tenant が読む S3。docs/designs/0026-tenant-provisioning.md)。null なら移行のタスクに何も許さない"
   type = object({

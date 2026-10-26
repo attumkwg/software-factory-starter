@@ -351,6 +351,13 @@
           "type": "timestamp with time zone",
           "nullable": true,
           "comment": "その組織に最後に入った(ログイン・組織の切り替え)時刻。ログインで前回の組織を選ぶ"
+        },
+        {
+          "name": "sso_exempt",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "SSO を必須にした組織の緊急用のアカウント(パスワード+二段階認証で入れる管理者。1組織 2人まで。管理者のときだけ効く)"
         }
       ],
       "indexes": [
@@ -2488,6 +2495,98 @@
           ]
         }
       ]
+    },
+    {
+      "name": "organizations.sso_connections",
+      "type": "BASE TABLE",
+      "comment": "組織につないだ SAML の IdP(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067)。1組織に1つ・1つの IdP は1つの組織だけ。行を足す・消すのは運営のコマンド sso-connect(表の持ち主)。アプリは必須の入切だけ",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenant_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "provider_name",
+          "type": "text",
+          "nullable": false,
+          "comment": "Cognito の IdP の名前(org-\u003c組織の ID の後ろ 20 桁\u003e)。SSO で戻ってきた人の組織は、この名前で決まる"
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "SSO を必須にしているか(管理者が入切。緊急用の管理者が1人以上要る)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sso_connections_pkey",
+          "def": "CREATE UNIQUE INDEX sso_connections_pkey ON organizations.sso_connections USING btree (id)",
+          "table": "organizations.sso_connections",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sso_connections_tenant_key",
+          "def": "CREATE UNIQUE INDEX sso_connections_tenant_key ON organizations.sso_connections USING btree (tenant_id)",
+          "table": "organizations.sso_connections",
+          "columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "sso_connections_provider_key",
+          "def": "CREATE UNIQUE INDEX sso_connections_provider_key ON organizations.sso_connections USING btree (provider_name)",
+          "table": "organizations.sso_connections",
+          "columns": [
+            "provider_name"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "sso_connections_tenant_id_tenants_tenant_id_fk",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)",
+          "table": "organizations.sso_connections",
+          "referenced_table": "organizations.tenants",
+          "columns": [
+            "tenant_id"
+          ],
+          "referenced_columns": [
+            "tenant_id"
+          ]
+        },
+        {
+          "name": "sso_connections_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "organizations.sso_connections",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -2930,6 +3029,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (tenant_id, created_by) REFERENCES organizations.users(tenant_id, id)"
+    },
+    {
+      "table": "organizations.sso_connections",
+      "columns": [
+        "tenant_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "organizations.tenants",
+      "parent_columns": [
+        "tenant_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (tenant_id) REFERENCES organizations.tenants(tenant_id)"
     }
   ],
   "functions": [
@@ -3033,6 +3145,18 @@
       "name": "public.auth_count_memberships_by_email",
       "return_type": "int4",
       "arguments": "p_email text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_find_sso_by_domain",
+      "return_type": "text",
+      "arguments": "p_domain text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.auth_find_sso_member",
+      "return_type": "record",
+      "arguments": "p_provider_name text, p_email text",
       "type": "FUNCTION"
     }
   ],

@@ -290,7 +290,11 @@ describe("こちらの都合", () => {
       string,
       string
     >;
-    expect(body).toEqual({ method: "cognito", logoutUrl: "http://localhost:8080/login" });
+    expect(body).toEqual({
+      method: "cognito",
+      logoutUrl: "http://localhost:8080/login",
+      sso: false,
+    });
     expect((await post("dev-login", { email: acme.users.admin.email })).status).toBe(404);
   });
 

@@ -55,6 +55,11 @@ output "cognito_user_pool_id" {
   value       = aws_cognito_user_pool.this.id
 }
 
+output "cognito_oauth_url" {
+  description = "SSO の入口(sso_enabled のときだけ。API の COGNITO_OAUTH_URL。お客さんの IdP に渡す ACS の URL は <これ>/saml2/idpresponse)"
+  value       = var.sso_enabled ? "https://${local.sso_domain}" : null
+}
+
 output "cognito_client_id" {
   description = "GitHub の変数 COGNITO_CLIENT_ID に(契約テスト・ZAP のスキャン)"
   value       = aws_cognito_user_pool_client.web.id

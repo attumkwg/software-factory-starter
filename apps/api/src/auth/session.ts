@@ -5,6 +5,7 @@ import type { NewSession, Session } from "../env.ts";
 // セッションは署名つきの HttpOnly Cookie(トークンを localStorage に置かない)。
 // 中身は「誰が・どのテナントか・いつまでか・いつログインしたか」だけ。ロールは毎回 DB から引く(変更がすぐ効く)。
 //   ふつう   … 「人.組織.期限.ログインした時刻」
+//   SSO      … 「人.組織.期限.ログインした時刻.sso」(その組織の IdP で入った。docs/designs/0056-sso-scim-ip-audit-export.md の 6)
 //   代理の間 … 「社員.社員の本来の組織.期限.ログインした時刻.入室の ID.見ている組織」(docs/specs/0004-support-access.md)
 //              入室が生きているか(期限・取り消し)は、認可の関所が毎回 DB で確かめる。
 // 時刻は UNIX 秒。期限 = min(最後に出し直した時刻 + 無操作の上限, ログインした時刻 + 最長)(ADR 0017)。
@@ -42,10 +43,10 @@ export async function readSession(c: Context, cfg: SessionConfig): Promise<Sessi
   return raw ? parseSession(raw, cfg, nowSeconds()) : null;
 }
 
-/** Cookie の中身を読む。形が違う・切れている(無操作・最長)なら null。古い形(3つ・5つ)も null */
+/** Cookie の中身を読む。形が違う・切れている(無操作・最長)なら null。古い形(3つ)も null */
 export function parseSession(raw: string, cfg: SessionConfig, now: number): Session | null {
   const parts = raw.split(".");
-  if (parts.length !== 4 && parts.length !== 6) return null;
+  if (parts.length < 4 || parts.length > 6) return null;
   const [userId = "", tenantId = "", exp = "", loggedIn = "", supportSessionId, actingTenantId] =
     parts;
   if (!UUID.test(userId) || !UUID.test(tenantId)) return null;
@@ -55,14 +56,22 @@ export function parseSession(raw: string, cfg: SessionConfig, now: number): Sess
   if (expiresAt <= now) return null;
   if (loggedInAt > now + CLOCK_SKEW_SECONDS) return null;
   if (loggedInAt + cfg.maxSeconds <= now) return null;
-  if (supportSessionId === undefined) return { userId, tenantId, loggedInAt, expiresAt };
-  if (!UUID.test(supportSessionId) || !UUID.test(actingTenantId ?? "")) return null;
+  return withTail({ userId, tenantId, loggedInAt, expiresAt }, supportSessionId, actingTenantId);
+}
+
+/** 5つ目からの続き: 無し(ふつう)・"sso"(SSO で入った)・代理の入室の ID と見ている組織 */
+function withTail(
+  base: Session,
+  fifth: string | undefined,
+  sixth: string | undefined,
+): Session | null {
+  if (fifth === undefined) return base;
+  if (sixth === undefined) return fifth === "sso" ? { ...base, via: "sso" } : null;
+  if (!UUID.test(fifth) || !UUID.test(sixth)) return null;
   return {
-    userId,
-    tenantId: actingTenantId as string,
-    loggedInAt,
-    expiresAt,
-    support: { sessionId: supportSessionId, homeTenantId: tenantId },
+    ...base,
+    tenantId: sixth,
+    support: { sessionId: fifth, homeTenantId: base.tenantId },
   };
 }
 
@@ -76,7 +85,7 @@ export async function writeSession(c: Context, cfg: SessionConfig, s: NewSession
   const exp = Math.min(now + cfg.idleSeconds, loggedInAt + cfg.maxSeconds);
   const value = s.support
     ? `${s.userId}.${s.support.homeTenantId}.${exp}.${loggedInAt}.${s.support.sessionId}.${s.tenantId}`
-    : `${s.userId}.${s.tenantId}.${exp}.${loggedInAt}`;
+    : `${s.userId}.${s.tenantId}.${exp}.${loggedInAt}${s.via === "sso" ? ".sso" : ""}`;
   await setSignedCookie(c, sessionCookieName(cfg), value, cfg.secret, {
     httpOnly: true,
     secure: cfg.secureCookie,

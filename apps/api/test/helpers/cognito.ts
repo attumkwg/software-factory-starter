@@ -1,4 +1,5 @@
 import { FakeCognito, totp } from "@app/fake-cognito";
+import type { PlanDefinition } from "@app/shared";
 import { sql } from "drizzle-orm";
 import { createLocalJWKSet } from "jose";
 import { expect } from "vitest";
@@ -19,7 +20,11 @@ const POOL = "local_fakepool";
 const CLIENT = "local-web-client";
 const APP_URL = "http://localhost:8080";
 
-export function createCognitoApp(appUrl: string, env: Record<string, string> = {}) {
+export function createCognitoApp(
+  appUrl: string,
+  env: Record<string, string> = {},
+  opts: { plans?: readonly PlanDefinition[] } = {},
+) {
   const config = loadConfig({
     APP_ENV: "test",
     DATABASE_URL: appUrl,
@@ -40,7 +45,13 @@ export function createCognitoApp(appUrl: string, env: Record<string, string> = {
   const logs: string[] = [];
   const logger = createLogger({ level: "info", destination: { write: (l) => logs.push(l) } });
   const { db, pool } = createDb(appUrl);
-  const app = createApp({ config, db, logger, cognito });
+  const app = createApp({
+    config,
+    db,
+    logger,
+    cognito,
+    ...(opts.plans ? { plans: opts.plans } : {}),
+  });
   const sent: MailMessage[] = [];
   const handlers = outboxHandlers({
     db,

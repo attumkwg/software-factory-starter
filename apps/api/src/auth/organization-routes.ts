@@ -9,6 +9,8 @@ import {
   ipAllowedFor,
   ipNotAllowed,
   markMembershipUsed,
+  passwordAllowedIn,
+  ssoRequired,
 } from "../domains/organizations/index.ts";
 import { forbidden, notFound, unauthorized } from "../errors.ts";
 import { clientIp } from "../http/client-ip.ts";
@@ -87,6 +89,10 @@ export function organizationSwitchRoutes(deps: { db: RootDb; session: SessionCon
         await withTenant(deps.db, target.tenantId, async (tx) => {
           // 先の組織が IP の範囲を決めていれば、ログインと同じく外からは入れない(設計書 0056 の 6)
           if (!(await ipAllowedFor(tx, target.tenantId, clientIp(c), defs))) throw ipNotAllowed();
+          // SSO を必須にした組織へは切り替えで入らない(SSO で確かめたのは今の組織だけ。その組織の SSO で入り直す)
+          if (!(await passwordAllowedIn(tx, target.tenantId, target.userId, defs))) {
+            throw ssoRequired();
+          }
           await markMembershipUsed(tx, target.tenantId, target.userId);
           await recordAudit(tx, {
             tenantId: target.tenantId,
@@ -95,7 +101,7 @@ export function organizationSwitchRoutes(deps: { db: RootDb; session: SessionCon
             outcome: "allowed",
           });
         });
-        // ログインした時刻は引き継ぐ(最長12時間は延びない。設計書 0055 の U-2)
+        // ログインした時刻は引き継ぐ(最長12時間は延びない。設計書 0055 の U-2)。SSO の印は引き継がない
         await writeSession(c, deps.session, {
           userId: target.userId,
           tenantId: target.tenantId,

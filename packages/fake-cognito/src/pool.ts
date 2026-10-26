@@ -42,6 +42,13 @@ export type User = {
   lockedUntil: number;
 };
 
+/** つないだ IdP(SAML)。偽物は MetadataURL を読みに行かない */
+export type IdentityProvider = {
+  type: string;
+  details: Record<string, string>;
+  attributeMapping: Record<string, string>;
+};
+
 /** 確認コードの使い道(登録・再設定・メールの変更) */
 export type CodePurpose = "sign_up" | "reset" | "verify_email";
 
@@ -92,6 +99,10 @@ export class UserPool {
   /** アクセストークン → 誰の(メール)・いつまで。GlobalSignOut で消える */
   readonly accessTokens = new Map<string, { username: string; expiresAt: number }>();
   readonly sent: { to: string; subject: string; text: string; code: string }[] = [];
+  /** つないだ IdP(CreateIdentityProvider)。名前 → 種類と設定。SSO の偽物は federation.ts */
+  readonly identityProviders = new Map<string, IdentityProvider>();
+  /** アプリクライアントが使える IdP(UpdateUserPoolClient の SupportedIdentityProviders) */
+  supportedIdentityProviders: string[] = ["COGNITO"];
   readonly #opts: FakeCognitoOptions;
   readonly #privateKey: KeyObject;
   readonly #jwk: Record<string, unknown>;

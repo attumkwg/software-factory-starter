@@ -39,6 +39,11 @@ const EnvObject = z.object({
   APP_URL: z.url().optional(),
   // Cognito の API の入口を変える。手元の偽物の Cognito(packages/fake-cognito)だけ
   COGNITO_ENDPOINT: z.url().optional(),
+  // ユーザープールの OAuth の入口(https://auth.example.com。SSO でブラウザが回る先)。無ければ SSO は使わない
+  // (docs/designs/0056-sso-scim-ip-audit-export.md の 5。Terraform の出力 cognito_oauth_url)
+  COGNITO_OAUTH_URL: z.url().optional(),
+  // API がコードを交換する先(手元の偽物だけ。ブラウザは localhost、API はコンテナの名前で届くため)
+  COGNITO_OAUTH_INTERNAL_URL: z.url().optional(),
   // メールを渡す先(Postfix)。smtp://mail:25 など。無ければ送らずに記録だけ(local / test / preview だけ)
   MAIL_SMTP_URL: z.url().optional(),
   // 送り元。SES で確かめたドメインのアドレス(例: "Tasks <no-reply@example.com>")
@@ -183,13 +188,17 @@ function cognitoIssues(env: Env): Issue[] {
     });
   }
   const local = LOCAL_ONLY.has(env.APP_ENV);
-  if (env.COGNITO_ENDPOINT && !local) {
-    issues.push({
-      path: "COGNITO_ENDPOINT",
-      message: "COGNITO_ENDPOINT(偽物の Cognito)は local / test だけで使えます",
-    });
+  for (const key of ["COGNITO_ENDPOINT", "COGNITO_OAUTH_INTERNAL_URL"] as const) {
+    if (env[key] && !local) {
+      issues.push({ path: key, message: `${key}(偽物の Cognito)は local / test だけで使えます` });
+    }
   }
-  for (const key of ["COGNITO_ENDPOINT", "APP_URL"] as const) {
+  for (const key of [
+    "COGNITO_ENDPOINT",
+    "COGNITO_OAUTH_URL",
+    "COGNITO_OAUTH_INTERNAL_URL",
+    "APP_URL",
+  ] as const) {
     issues.push(...urlIssues(key, env[key], local));
   }
   return issues;
@@ -233,6 +242,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
             clientId: e.COGNITO_CLIENT_ID ?? "",
             appUrl: e.APP_URL ?? DEFAULT_APP_URL,
             endpoint: e.COGNITO_ENDPOINT,
+            oauthUrl: e.COGNITO_OAUTH_URL,
+            oauthInternalUrl: e.COGNITO_OAUTH_INTERNAL_URL,
           }
         : { mode: "dev" as const },
     session: {

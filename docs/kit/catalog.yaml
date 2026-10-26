@@ -623,7 +623,7 @@ parts:
     status: 作成中
     removable: true
     default: 残す
-    what: 組織が会社のドメインを DNS の TXT で確かめ(1ドメイン1組織)、運営がその組織の IdP を Cognito の SAML でつなぐ。プランの機能 sso(既定のプランには無い)。いまはドメインの確認まで(SSO のログインは段1b)
+    what: 組織が会社のドメインを DNS の TXT で確かめ(1ドメイン1組織)、運営がその組織の IdP を Cognito の SAML でつなぐ(sso-connect)。メールで IdP へ回り、IdP の組織の確かめたドメインの人だけが入る(人は作らない)。必須にでき、緊急用の管理者(2人まで・二段階認証が必須)だけパスワードで入れる。プランの機能 sso(既定のプランには無い)
     needed_by: 大きな会社向け(会社のアカウントでログインさせたい・退職で止めたい)
     not_needed_by: 個人向け・小さな会社だけが相手
     if_removed: 会社の IdP でログインさせられない(大きな会社の調達の質問票で落ちることがある)
@@ -634,16 +634,34 @@ parts:
     remove:
       delete:
         - apps/api/test/integration/organization-domains.int.test.ts
+        - apps/api/test/integration/sso-login.int.test.ts
+        - apps/api/src/auth/sso-routes.ts
+        - apps/api/src/auth/pending-sso.ts
+        - apps/api/src/domains/organizations/sso.ts
+        - apps/api/src/sso/connect.ts
+        - packages/fake-cognito/src/federation.ts
+        - packages/fake-cognito/src/actions/federation.ts
+        - infra/terraform/envs/stg/sso.tf
+        - infra/terraform/envs/prod/sso.tf
         - apps/web/src/pages/settings/DomainsCard.tsx
       edit:
-        - { path: apps/api/src/domains/organizations/security-routes.ts, what: domainRoutes を外す }
+        - { path: apps/api/src/domains/organizations/security-routes.ts, what: domainRoutes・ssoRoutes を外す }
+        - { path: apps/api/src/auth/routes.ts, what: addSsoRoutes を外す }
+        - { path: apps/api/src/authz/middleware.ts, what: refuseUntilReady の SSO の2行を外す }
+        - { path: apps/api/src/auth/login.ts, what: passwordAllowedIn と finishLogin の via を外す }
+        - { path: apps/api/src/cli.ts, what: sso-connect・sso-disconnect を外す }
+        - { path: infra/terraform/envs/stg/cognito.tf, what: OAuth の4行と lifecycle を外す(prod も) }
         - { path: apps/api/src/auth/domain-verify-routes.ts, what: DNS で確かめる API を外す(securityRoutes をつなぐだけにする) }
-        - { path: apps/api/src/authz/policy.ts, what: sso:manage・domain:verify と4行を外す }
-        - { path: apps/api/src/audit/actions.ts, what: domain.* の3つを外す }
+        - { path: apps/api/src/authz/policy.ts, what: sso:manage・domain:verify と8行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: domain.*・sso.* を外す }
         - { path: packages/shared/src/feature-flags.ts, what: sso を外す }
         - { path: apps/web/src/pages/SettingsPage.tsx, what: 会社のドメインの欄を外す }
-      migration: 表 organizations.domains を、使わなくしてから消す(拡張 → 縮小の縮小)
+      migration: 表 organizations.domains・sso_connections と列 users.sso_exempt・関数 auth_find_sso_*(移行 0021)を、使わなくしてから消す(拡張 → 縮小の縮小)
       matrix:
+        - POST /api/auth/sso/start
+        - GET /api/auth/sso/callback
+        - GET /api/organization/sso
+        - PUT /api/organization/sso
         - GET /api/organization/domains
         - POST /api/organization/domains
         - POST /api/organization/domains/{domainId}/verify

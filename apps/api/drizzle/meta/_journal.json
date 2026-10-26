@@ -148,6 +148,13 @@
       "when": 1792936966768,
       "tag": "0020_domains_ip_allowlist",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793007399735,
+      "tag": "0021_sso_connections",
+      "breakpoints": true
     }
   ]
 }

@@ -55,6 +55,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     "いまの場所(IP)が入っていないので保存できません。自分の IP を含めてください",
   invitation_email_in_use:
     "このメールアドレスは、ほかの組織で使われているので参加できません。招いた人に別のアドレスを伝えてください",
+  sso_required: "この組織は会社のアカウントでログインしてください",
+  sso_not_connected: "IdP がまだつながっていないので、必須にできません。運営に依頼してください",
+  sso_exempt_required: "必須にするには、緊急用の管理者を1人以上選んでください",
 };
 
 /** API まで届かなかったとき・それ以外の想定外。 */

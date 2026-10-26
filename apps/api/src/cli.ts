@@ -31,6 +31,9 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //                                      … 規約の変更のお知らせを全員に積む(試し → 本番。docs/runbooks/legal-notice.md)
 //   node dist/cli.js feature-flag <組織の ID> [<機能> on|off [--execute]]
 //                                      … 組織に機能を入れる・切る(一覧 → 試し → 本番。docs/runbooks/feature-flags.md)
+//   node dist/cli.js sso-connect <組織の ID> --metadata-url <URL> [--email-attribute <属性>] [--execute]
+//   node dist/cli.js sso-disconnect <組織の ID> [--execute]
+//                                      … 組織に SAML の IdP をつなぐ・外す(試し → 本番。docs/runbooks/sso.md の 4)
 //   node dist/cli.js plan <組織の ID> [--plan <プラン> [--seats <数>|none] [--price-list <版>]
 //                       [--locked-until <日>|none] [--effective-on <日>] [--execute]]
 //                                      … 組織の契約のプランを見る・変える(見る → 試し → 本番。docs/runbooks/plans.md)
@@ -124,6 +127,37 @@ async function featureFlagCommand(args: string[]) {
       process.stdout.write(
         "まだ変えていません。組織と機能を確かめて --execute を付けて流してください\n",
       );
+    }
+  } finally {
+    await pool.end();
+  }
+}
+
+/** 組織に IdP をつなぐ・外す。--execute が無ければ試し。結果は JSON 1行(組織の名前・ドメインは出さない) */
+async function ssoCommand(command: "sso-connect" | "sso-disconnect", args: string[]) {
+  const [tenantId, ...flags] = args;
+  const usage =
+    command === "sso-connect"
+      ? "使い方: sso-connect <組織の ID> --metadata-url <URL> [--email-attribute <属性>] [--execute]"
+      : "使い方: sso-disconnect <組織の ID> [--execute]";
+  if (!tenantId) throw new Error(usage);
+  const execute = flags.includes("--execute");
+  const { connectSso, disconnectSso, cognitoTargetFromEnv } = await import("./sso/connect.ts");
+  const cognito = cognitoTargetFromEnv();
+  const { db, pool } = createDb(migrationUrl);
+  try {
+    let result: { mode: string };
+    if (command === "sso-connect") {
+      const metadataUrl = flagValue(flags, "--metadata-url");
+      if (!metadataUrl) throw new Error(usage);
+      const emailAttribute = flagValue(flags, "--email-attribute");
+      result = await connectSso(db, cognito, { tenantId, metadataUrl, emailAttribute, execute });
+    } else {
+      result = await disconnectSso(db, cognito, { tenantId, execute });
+    }
+    process.stdout.write(`${JSON.stringify({ tenantId, ...result })}\n`);
+    if (result.mode === "plan") {
+      process.stdout.write("まだ変えていません。中身を確かめて --execute を付けて流してください\n");
     }
   } finally {
     await pool.end();
@@ -248,6 +282,10 @@ if (commands[0] === "plan") {
 }
 if (commands[0] === "plan-report") {
   await planReportCommand(commands.slice(1));
+  process.exit(0);
+}
+if (commands[0] === "sso-connect" || commands[0] === "sso-disconnect") {
+  await ssoCommand(commands[0], commands.slice(1));
   process.exit(0);
 }
 if (commands[0] === "feature-flag") {
