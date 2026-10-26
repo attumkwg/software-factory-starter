@@ -8,7 +8,7 @@ import { ApiError } from "../errors.ts";
 //   - 名前は displayName → name.formatted → name.familyName と givenName の順で1つの名前にする
 //   - メールの変更・ロール・グループは扱わない(メールの変更は 400、知らない項目は聞き流す)
 
-export const SCIM_USER = "urn:ietf:params:scim:schemas:core:2.0:User";
+export const SCIM_CORE_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User";
 export const SCIM_LIST = "urn:ietf:params:scim:api:messages:2.0:ListResponse";
 export const SCIM_PATCH = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
 export const SCIM_ERROR = "urn:ietf:params:scim:api:messages:2.0:Error";
@@ -245,7 +245,7 @@ function parseValue<T extends z.ZodType>(schema: T, value: unknown, path: string
 /** SCIM の User の形 */
 export function toScimUser(m: ScimMember, basePath: string) {
   return {
-    schemas: [SCIM_USER],
+    schemas: [SCIM_CORE_SCHEMA],
     id: m.id,
     ...(m.externalId !== null ? { externalId: m.externalId } : {}),
     userName: m.email,
