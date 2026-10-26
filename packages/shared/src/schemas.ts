@@ -211,12 +211,20 @@ export type SupportSession = z.infer<typeof SupportSessionSchema>;
 
 /** 誰が: 自社の人 / 代理ログインの社員(サポート) / 仕組み / 情シスの道具(SCIM の鍵。id は鍵の ID) */
 export const AUDIT_ACTOR_KINDS = ["user", "support", "system", "scim"] as const;
+export type AuditActorKind = (typeof AUDIT_ACTOR_KINDS)[number];
+
+// OpenAPI では「増えることがある一覧」(x-extensible-enum)として書く(ERROR_CODES と同じ。scim を足したときに、
+// enum のままだと互換の検査が「壊す変更」と判定した)。画面は知らない種類が来ても名前か「—」で出す
+const ExtensibleActorKind = z.string().meta({
+  description: "誰が(AUDIT_ACTOR_KINDS)。増えることがある",
+  "x-extensible-enum": [...AUDIT_ACTOR_KINDS],
+});
 
 export const AuditEventSchema = z.object({
   id: IdSchema,
   occurredAt: InstantSchema,
   actor: z.object({
-    kind: z.enum(AUDIT_ACTOR_KINDS),
+    kind: ExtensibleActorKind,
     id: IdSchema.nullable(),
     /** 自社の人なら名前。社員・仕組み・消された人は null(画面は kind で出し分ける) */
     name: z.string().nullable(),

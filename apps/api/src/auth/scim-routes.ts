@@ -48,11 +48,19 @@ const tags = ["scim"];
 
 class Rollback extends Error {}
 
+/** Authorization: Bearer <鍵> の鍵(正規表現を使わない。長い値でも1回なめるだけ) */
+function bearerOf(header: string): string | null {
+  const value = header.trim();
+  const space = value.indexOf(" ");
+  if (space < 0 || value.slice(0, space).toLowerCase() !== "bearer") return null;
+  const token = value.slice(space + 1).trim();
+  return token === "" || token.includes(" ") ? null : token;
+}
+
 /** SCIM の入口だけの関所: 鍵 → 組織 → 機能 → 組織の文脈のトランザクション。ハンドラーが失敗したら書いた物を取り消す */
 function scimGate(db: RootDb): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
-    const header = c.req.header("authorization") ?? "";
-    const token = /^Bearer\s+(\S+)$/i.exec(header)?.[1];
+    const token = bearerOf(c.req.header("authorization") ?? "");
     const found = token ? await findScimToken(db, token) : null;
     if (!found) throw unauthorized();
     const defs = { featureFlags: c.get("featureFlags"), plans: c.get("plans") };
