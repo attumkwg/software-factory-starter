@@ -57,12 +57,12 @@
     },
     {
       "customType": "regex",
-      "description": "結合テストの Postgres(Testcontainers の `new PostgreSqlContainer(\"postgres:17-alpine\")`)。docker-compose の postgres と同じ版・同じダイジェストにそろえる。config:recommended は test/ を読まないので、ignorePaths から test/ だけ外している",
+      "description": "結合テストの Postgres(global-setup.ts の `const POSTGRES_IMAGE =` の次の行)。docker-compose の postgres と同じ版・同じダイジェストにそろえる。ダイジェストつきは1行に収まらないので、Biome の整形と同じく「=」の後で改行した形で書き戻す(1行に戻すと Biome で落ちる)。config:recommended は test/ を読まないので、ignorePaths から test/ だけ外している",
       "managerFilePatterns": ["/^apps/api/test/integration/global-setup\\.ts$/"],
       "matchStrings": [
-        "new PostgreSqlContainer\\(\"(?<depName>postgres):(?<currentValue>[^\"@]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?\"\\)"
+        "const POSTGRES_IMAGE =\\s*\"(?<depName>postgres):(?<currentValue>[^\"@]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?\";"
       ],
-      "autoReplaceStringTemplate": "new PostgreSqlContainer(\"{{depName}}:{{newValue}}{{#if newDigest}}@{{newDigest}}{{/if}}\")",
+      "autoReplaceStringTemplate": "const POSTGRES_IMAGE =\n  \"{{depName}}:{{newValue}}{{#if newDigest}}@{{newDigest}}{{/if}}\";",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
     },
