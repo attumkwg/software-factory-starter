@@ -19,9 +19,14 @@ declare module "vitest" {
   }
 }
 
+// 結合テストの Postgres。docker-compose.yml の db と同じ版・同じダイジェスト(Renovate が一緒に上げる。renovate.json の
+// customManagers)。ダイジェストで1行に収まらないので「=」の後で改行する(Biome の整形と、Renovate の読み取りの両方に合う形)
+const POSTGRES_IMAGE =
+  "postgres:17-alpine@sha256:eee6c6e1b0894fa4fe0075eb054af9fd1cf39a35321c2d4110626cfe506411fb";
+
 // 本番と同じ形: superuser で接続ユーザーを作る → 持ち主で移行 → アプリは持ち主ではないユーザーでつなぐ
 export default async function setup(project: TestProject) {
-  const container: StartedPostgreSqlContainer = await new PostgreSqlContainer("postgres:17-alpine")
+  const container: StartedPostgreSqlContainer = await new PostgreSqlContainer(POSTGRES_IMAGE)
     .withDatabase("app")
     // 既定の待ち方(コンテナ内でポートを調べる)は古い Docker Desktop で止まることがあるので、
     // pg_isready のヘルスチェックだけで待つ
