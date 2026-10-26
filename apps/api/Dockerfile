@@ -3,7 +3,7 @@
 # 1つのイメージで API と移行(cli.js migrate)をまかなう。本番もプレビューも同じイメージ。
 # 画面は別のイメージ(apps/web/Dockerfile)。
 
-FROM node:24-trixie-slim AS build
+FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS build
 # 外への通信を絞った devcontainer の中で作るとき、corepack と pnpm(Node の fetch)にプロキシを使わせる。
 # 空のとき(CI・本番)は何も変わらない(docs/designs/0057-ai-egress.md の 5 ①)
 ARG NODE_USE_ENV_PROXY
