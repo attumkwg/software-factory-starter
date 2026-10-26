@@ -13,7 +13,12 @@ export function MembersPage({ me, members }: { me: Me; members: OrganizationMemb
   const columns: TableColumn<OrganizationMember>[] = [
     { id: "name", header: "名前", isRowHeader: true, cell: (m) => m.name },
     { id: "email", header: "メールアドレス", cell: (m) => m.email },
-    { id: "role", header: "ロール", cell: (m) => roleLabel(m.role) },
+    {
+      id: "role",
+      header: "ロール",
+      // SCIM(情シスの道具)で止めた人は入れない
+      cell: (m) => (m.disabledAt ? `${roleLabel(m.role)}(止めた)` : roleLabel(m.role)),
+    },
     { id: "createdAt", header: "参加", cell: (m) => formatDateTime(m.createdAt, me.timeZone) },
     {
       id: "actions",

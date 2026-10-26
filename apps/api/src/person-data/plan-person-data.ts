@@ -100,6 +100,20 @@ export const PERSON_REFERENCES: readonly PersonReference[] = [
     why: "誰が IP の範囲を足したか(人の ID だけ)",
   },
   {
+    table: "organizations.scim_tokens",
+    column: "created_by",
+    by: "user_id",
+    action: "keep",
+    why: "誰が SCIM の鍵を作ったか(人の ID だけ)",
+  },
+  {
+    table: "organizations.scim_tokens",
+    column: "revoked_by",
+    by: "user_id",
+    action: "keep",
+    why: "誰が SCIM の鍵を取り消したか(人の ID だけ)",
+  },
+  {
     table: "organizations.support_grants",
     column: "granted_by",
     by: "user_id",

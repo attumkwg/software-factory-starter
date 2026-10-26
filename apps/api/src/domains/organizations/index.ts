@@ -48,6 +48,16 @@ export {
 } from "./repository.ts";
 export { organizationRoutes } from "./routes.ts";
 export {
+  createScimMember,
+  findScimMember,
+  findScimToken,
+  listScimMembers,
+  type ScimFilter,
+  type ScimMember,
+  touchScimToken,
+  updateScimMember,
+} from "./scim.ts";
+export {
   findDomain,
   hasVerifyRecord,
   ipAllowedFor,

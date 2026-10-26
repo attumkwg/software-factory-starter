@@ -70,6 +70,13 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
     target: "organization",
     param: "none",
   },
+  // SCIM の鍵(段2)。鍵そのものもハッシュも details に入れない
+  "POST /api/organization/scim-tokens": { action: "scim_token.create", target: "scim_token" },
+  "DELETE /api/organization/scim-tokens/{tokenId}": {
+    action: "scim_token.revoke",
+    target: "scim_token",
+    param: "tokenId",
+  },
   "POST /api/organization/members/{memberId}/sign-out": {
     action: "member.sign_out",
     target: "member",
@@ -112,6 +119,12 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド sso-connect・sso-disconnect が、組織に IdP をつないだ・外した(docs/designs/0056-sso-scim-ip-audit-export.md の 5)
   ssoConnect: "sso.connect",
   ssoDisconnect: "sso.disconnect",
+  // 情シスの道具(SCIM)の操作(src/auth/scim-routes.ts。行為者は kind: scim・id は鍵の ID)。
+  // 対象は人。名前・メールは details に入れない(details.fields に直した項目の名前だけ)
+  scimUserCreate: "scim.user_create",
+  scimUserUpdate: "scim.user_update",
+  scimUserDisable: "scim.user_disable",
+  scimUserEnable: "scim.user_enable",
   // 運営のコマンド demo-reset が、デモ用の組織のデータを戻した(docs/specs/0053-sales-kit.md。stg だけ)
   demoReset: "demo.reset",
 } as const;

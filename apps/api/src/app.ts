@@ -6,6 +6,7 @@ import {
   type LegalVersion,
   PLANS,
   type PlanDefinition,
+  SCIM_BASE_PATH,
 } from "@app/shared";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
@@ -24,6 +25,8 @@ import { authenticate } from "./auth/middleware.ts";
 import { organizationSwitchRoutes } from "./auth/organization-routes.ts";
 import { CognitoClient } from "./auth/providers.ts";
 import { authRoutes } from "./auth/routes.ts";
+// 情シスの道具の入口(SCIM 2.0。段2。セッションではなく SCIM の鍵で組織が決まる)
+import { scimErrorBody, scimRoutes } from "./auth/scim-routes.ts";
 import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
@@ -182,7 +185,12 @@ export function createApp(deps: AppDeps) {
     }),
   );
   app.use("/api/public/*", ...publicEntranceGuards(config));
-  app.use("/api/*", csrf());
+  // SCIM の入口(情シスの道具)は Cookie を使わず鍵だけで決まるので、よそのサイトのフォームの心配が無い。
+  // 道具は Origin を付けず、本文の無い DELETE も送る(Hono の csrf は種類の無い本文をフォームとみなして断る)
+  const csrfGuard = csrf();
+  app.use("/api/*", (c, next) =>
+    c.req.path.startsWith(`${SCIM_BASE_PATH}/`) ? next() : csrfGuard(c, next),
+  );
   app.use("/api/*", authenticate(config.session));
   app.use("/api/*", appContext(deps));
   app.use("/api/*", authorize({ db, logger, session: config.session }));
@@ -217,6 +225,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", exportRoutes({ db, logger }));
   app.route("/api", planRoutes);
   app.route("/api", organizationSecurityRoutes({ db, resolveTxt: deps.resolveTxt ?? resolveTxt }));
+  app.route("/api", scimRoutes({ db }));
   app.route("/api", pmfSurveyRoutes);
 
   if (config.exposeOpenApi) {
@@ -253,6 +262,11 @@ export function createApp(deps: AppDeps) {
     else if (apiError.code === "conflict")
       logger.warn({ err, route }, "同時の変更とぶつかりました");
     if (apiError.code === "service_unavailable") c.header("retry-after", "5");
+    // 情シスの道具には SCIM の Error の形で(RFC 7644 の 3.12)
+    if (c.req.path.startsWith(`${SCIM_BASE_PATH}/`)) {
+      c.header("content-type", "application/scim+json");
+      return c.body(JSON.stringify(scimErrorBody(apiError)), apiError.status);
+    }
     return c.json(
       { error: { code: apiError.code, message: apiError.message, requestId } },
       apiError.status,

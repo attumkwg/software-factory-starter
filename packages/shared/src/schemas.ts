@@ -146,6 +146,7 @@ export const ERROR_CODES = [
   "sso_required", // この組織は SSO を必須にしている。パスワードでは入れない(403)。画面はログインの SSO の段へ
   "sso_not_connected", // IdP がまだつながっていないので、SSO を必須にできない(409)
   "sso_exempt_required", // 必須にするには緊急用の管理者が1人以上要る(409)
+  "too_many_scim_tokens", // 生きている SCIM の鍵が上限に届いた(409)。古い鍵を取り消してから
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -208,14 +209,22 @@ export type SupportSession = z.infer<typeof SupportSessionSchema>;
 
 // ── 監査ログ(docs/specs/0003-audit-log.md) ─────────────────────────────────
 
-/** 誰が: 自社の人 / 代理ログインの社員(サポート) / 仕組み */
-export const AUDIT_ACTOR_KINDS = ["user", "support", "system"] as const;
+/** 誰が: 自社の人 / 代理ログインの社員(サポート) / 仕組み / 情シスの道具(SCIM の鍵。id は鍵の ID) */
+export const AUDIT_ACTOR_KINDS = ["user", "support", "system", "scim"] as const;
+export type AuditActorKind = (typeof AUDIT_ACTOR_KINDS)[number];
+
+// OpenAPI では「増えることがある一覧」(x-extensible-enum)として書く(ERROR_CODES と同じ。scim を足したときに、
+// enum のままだと互換の検査が「壊す変更」と判定した)。画面は知らない種類が来ても名前か「—」で出す
+const ExtensibleActorKind = z.string().meta({
+  description: "誰が(AUDIT_ACTOR_KINDS)。増えることがある",
+  "x-extensible-enum": [...AUDIT_ACTOR_KINDS],
+});
 
 export const AuditEventSchema = z.object({
   id: IdSchema,
   occurredAt: InstantSchema,
   actor: z.object({
-    kind: z.enum(AUDIT_ACTOR_KINDS),
+    kind: ExtensibleActorKind,
     id: IdSchema.nullable(),
     /** 自社の人なら名前。社員・仕組み・消された人は null(画面は kind で出し分ける) */
     name: z.string().nullable(),

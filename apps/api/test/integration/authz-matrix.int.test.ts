@@ -42,6 +42,9 @@ function fill(template: string, self: TenantFixture): string {
       // 無いドメイン(この表の組織にはプランの機能 sso が無いので、どれも 404)
       .replaceAll("{domainId}", self.projectId)
       .replaceAll("{memberId}", self.users.member.id)
+      // 無い鍵・人(この表の組織にはプランの機能 scim が無いので、鍵の API はどれも 404・SCIM の入口は鍵が無いので 401)
+      .replaceAll("{tokenId}", self.projectId)
+      .replaceAll("{scimUserId}", self.users.member.id)
       // いまの利用規約の版(数のまま入れる。版を足しても表を直さずに済むように)
       .replaceAll('"{currentTermsVersion}"', String(currentVersion("terms", new Date())?.version))
   );

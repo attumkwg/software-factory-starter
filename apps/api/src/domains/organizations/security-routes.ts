@@ -1,5 +1,6 @@
 import {
   CreateDomainSchema,
+  CreatedScimTokenSchema,
   IdSchema,
   IpAllowlistSchema,
   OrganizationDomainListSchema,
@@ -7,6 +8,8 @@ import {
   OrganizationMemberPageSchema,
   PutIpAllowlistSchema,
   PutSsoSettingsSchema,
+  SCIM_BASE_PATH,
+  ScimTokenListSchema,
   SsoSettingsSchema,
 } from "@app/shared";
 import { createRoute, z } from "@hono/zod-openapi";
@@ -25,6 +28,7 @@ import {
   notFoundError,
   PageQuery,
 } from "../../http/common.ts";
+import { createScimToken, listScimTokens, revokeScimToken } from "./scim.ts";
 import {
   createDomain,
   deleteDomain,
@@ -36,14 +40,15 @@ import {
 } from "./security.ts";
 import { getSsoSettings, updateSsoSettings } from "./sso.ts";
 
-// 大きなお客さん向けの守りの段1a・1b(管理者。docs/specs/0056-sso-scim-ip-audit-export.md):
-// 会社のドメインの確認・SSO の必須と緊急用・組織に入れる IP の範囲・人の一覧と強制ログアウト。
+// 大きなお客さん向けの守りの段1a・1b・2(管理者。docs/specs/0056-sso-scim-ip-audit-export.md):
+// 会社のドメインの確認・SSO の必須と緊急用・組織に入れる IP の範囲・SCIM の鍵・人の一覧と強制ログアウト。
 // ドメインと IP の範囲はプランの機能(sso・ip-allowlist。入っていなければ 404。設計書 0056 の U-6)。
 // 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
 
 const tags = ["organization"];
 const DomainParams = z.object({ domainId: IdSchema });
 const MemberParams = z.object({ memberId: IdSchema });
+const ScimTokenParams = z.object({ tokenId: IdSchema });
 
 /**
  * 会社のドメイン(プランの機能 sso)。DNS で確かめる API は外を待つので、関所のトランザクションの外で
@@ -179,6 +184,60 @@ export const ipAllowlistRoutes = createRouter()
     },
   );
 
+/** SCIM の鍵(段2・プランの機能 scim)。鍵は作ったときに1回だけ返す。道具の入口は src/auth/scim-routes.ts */
+const scimTokenRoutes = createRouter()
+  .openapi(
+    createRoute({
+      method: "get",
+      path: "/organization/scim-tokens",
+      tags,
+      summary: "【管理者】生きている SCIM の鍵(鍵そのものは出さない)と、道具に渡す入口",
+      responses: { 200: json(ScimTokenListSchema, "一覧"), ...authErrors },
+    }),
+    async (c) => {
+      await requireFeature(c, "scim");
+      return c.json({ tokens: await listScimTokens(scopeOf(c)), basePath: SCIM_BASE_PATH }, 200);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "post",
+      path: "/organization/scim-tokens",
+      tags,
+      summary:
+        "【管理者】SCIM の鍵を作る(鍵はこの1回だけ返る。生きている鍵は2つまで。超えると 409)",
+      responses: {
+        201: json(CreatedScimTokenSchema, "作った"),
+        ...authErrors,
+        ...conflictError,
+      },
+    }),
+    async (c) => {
+      await requireFeature(c, "scim");
+      return c.json(await createScimToken(scopeOf(c)), 201);
+    },
+  )
+  .openapi(
+    createRoute({
+      method: "delete",
+      path: "/organization/scim-tokens/{tokenId}",
+      tags,
+      summary: "【管理者】SCIM の鍵を取り消す(戻らない。その鍵の道具は次のリクエストから 401)",
+      request: { params: ScimTokenParams },
+      responses: {
+        204: { description: "取り消した" },
+        ...badRequestError,
+        ...authErrors,
+        ...notFoundError,
+      },
+    }),
+    async (c) => {
+      await requireFeature(c, "scim");
+      if (!(await revokeScimToken(scopeOf(c), c.req.valid("param").tokenId))) throw notFound();
+      return c.body(null, 204);
+    },
+  );
+
 /** 組織の人の一覧と強制ログアウト(全部の組織) */
 export const memberRoutes = createRouter()
   .openapi(
@@ -217,9 +276,10 @@ export const memberRoutes = createRouter()
     },
   );
 
-/** 段1a・1b のルートをまとめて(app.ts は1行で足す。DNS で確かめる API だけは src/auth/domain-verify-routes.ts) */
+/** 段1a・1b・2 のルートをまとめて(app.ts は1行で足す。DNS で確かめる API だけは src/auth/domain-verify-routes.ts) */
 export const securityRoutes = createRouter()
   .route("/", domainRoutes)
   .route("/", ssoRoutes)
   .route("/", ipAllowlistRoutes)
+  .route("/", scimTokenRoutes)
   .route("/", memberRoutes);

@@ -18,9 +18,12 @@ export const auditEvents = platform.table(
       .notNull()
       .references(() => tenants.tenantId),
     occurredAt: instant("occurred_at").notNull().defaultNow(),
-    /** user = 自社の人 / support = 代理ログインの社員 / system = 仕組み(送り出し・解約の処理など) */
-    actorKind: text("actor_kind", { enum: ["user", "support", "system"] }).notNull(),
-    /** user なら users の ID。support なら運営の社員の ID(別の組織の人なので外部キーは張らない) */
+    /**
+     * user = 自社の人 / support = 代理ログインの社員 / system = 仕組み(送り出し・解約の処理など) /
+     * scim = 情シスの道具(SCIM の鍵)
+     */
+    actorKind: text("actor_kind", { enum: ["user", "support", "system", "scim"] }).notNull(),
+    /** user なら users の ID。support なら運営の社員の ID(別の組織の人なので外部キーは張らない)。scim なら鍵の ID */
     actorId: uuid("actor_id"),
     /** 何をしたか(「対象.動作」。src/audit/actions.ts) */
     action: text("action").notNull(),

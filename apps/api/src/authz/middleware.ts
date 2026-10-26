@@ -47,6 +47,7 @@ class SupportEnded extends Error {}
  *    権限が無くて断ったときも「拒否」として残す(書き込みは取り消すので、別のトランザクションで)。
  * 6. ハンドラーが答えたら、セッションの Cookie を出し直して期限を延ばす(1分に1回まで。auth/session.ts)。
  * 7. パスワードなどを変えた後は、それより前にログインしたセッションを 401 にする(users.sessions_valid_after)。
+ *    SCIM で止めた人(users.disabled_at)も 401。
  *    組織が二段階認証を必須にしていて本人が未設定なら、設定の API(policy.ts の ALLOWED_DURING_MFA_SETUP)以外は
  *    403 mfa_setup_required(docs/specs/0006-account-security.md)。
  *    同意し直しが要る規約の版に同意していなければ、同意の API(policy.ts の ALLOWED_DURING_TERMS_ACCEPTANCE)以外は
@@ -141,7 +142,9 @@ async function ensureStaffStillActive(deps: Deps, c: Context<AppEnv>, session: S
           findAccess(tx, support.homeTenantId, session.userId),
         )
       : null;
-  if (!staff || (staff.role !== "admin" && staff.role !== "member")) throw new SupportEnded();
+  if (!staff || staff.disabledAt || (staff.role !== "admin" && staff.role !== "member")) {
+    throw new SupportEnded();
+  }
   if (endedByChange(staff, session)) throw unauthorized();
 }
 
@@ -250,7 +253,8 @@ async function roleOf(c: Context<AppEnv>, tx: TenantTx, gate: Gate): Promise<Rol
     return "viewer";
   }
   const access = await findAccess(tx, session.tenantId, session.userId);
-  if (!access || endedByChange(access, session)) throw unauthorized();
+  // SCIM で止めた人は、止める前のセッションでも入れない(止めると sessions_valid_after も今になる)
+  if (!access || access.disabledAt || endedByChange(access, session)) throw unauthorized();
   await refuseUntilReady(c, tx, gate, access);
   return access.role;
 }

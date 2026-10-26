@@ -196,6 +196,7 @@ export async function listMembers(
       email: users.email,
       role: users.role,
       createdAt: users.createdAt,
+      disabledAt: users.disabledAt,
       cursorAt: cursorTime(users.createdAt),
     })
     .from(users)
@@ -212,6 +213,7 @@ export async function listMembers(
       email: u.email,
       role: u.role,
       createdAt: u.createdAt.toISOString(),
+      disabledAt: u.disabledAt?.toISOString() ?? null,
     })),
     nextCursor: page.nextCursor,
   };

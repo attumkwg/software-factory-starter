@@ -56,6 +56,10 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.users.sso_exempt": internal(
     "SSO を必須にした組織の緊急用のアカウントか(パスワードで入れる管理者)",
   ),
+  "organizations.users.disabled_at": internal("SCIM(情シスの道具)で止めた時刻(止めた人は入れない)"),
+  "organizations.users.scim_external_id": personal(
+    "情シスの道具の側の人の ID(道具が自分の人と結びつける)",
+  ),
   "organizations.users.created_at": internal("作った時刻"),
 
   "organizations.invitations.id": internal("招待の ID(リンクの署名の元)"),
@@ -95,6 +99,16 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.ip_allowlist.cidr": internal("組織に入れる IP の範囲(会社のネットワーク)"),
   "organizations.ip_allowlist.created_at": internal("足した時刻"),
   "organizations.ip_allowlist.created_by": internal("足した管理者"),
+  "organizations.scim_tokens.id": internal("SCIM の鍵の ID(監査ログの行為者)"),
+  "organizations.scim_tokens.tenant_id": internal("鍵を作った組織"),
+  "organizations.scim_tokens.token_hash": internal(
+    "鍵の SHA-256(鍵そのものは持たない。鍵から組織を引く)",
+  ),
+  "organizations.scim_tokens.created_at": internal("作った時刻"),
+  "organizations.scim_tokens.created_by": internal("作った管理者"),
+  "organizations.scim_tokens.last_used_at": internal("情シスの道具が最後に使った時刻"),
+  "organizations.scim_tokens.revoked_at": internal("取り消した時刻"),
+  "organizations.scim_tokens.revoked_by": internal("取り消した管理者"),
 
   "organizations.support_grants.id": internal("許可の ID"),
   "organizations.support_grants.tenant_id": internal("許可を出した組織"),
@@ -217,6 +231,8 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       invitationId: internal("パスの招待の ID"),
       domainId: internal("パスの会社のドメインの ID"),
       memberId: internal("パスの強制ログアウトした人の ID"),
+      tokenId: internal("パスの SCIM の鍵の ID"),
+      scimUserId: internal("パスの SCIM の人の ID(関所の外なので記録には入らない。形のため)"),
       fields: internal("直した項目の名前の一覧(値は入れない)"),
       route: internal("代理の社員が呼んだ API の形(メソッドとパスの型)"),
       counts: internal("解約で消した表ごとの行数"),

@@ -38,6 +38,12 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "domain.delete": "会社のドメインを消した",
   "ip_allowlist.update": "組織に入れる IP の範囲を変えた",
   "member.sign_out": "人を強制ログアウトした",
+  "scim_token.create": "SCIM の鍵を作った",
+  "scim_token.revoke": "SCIM の鍵を取り消した",
+  "scim.user_create": "人を作った",
+  "scim.user_update": "人を直した",
+  "scim.user_disable": "人を止めた",
+  "scim.user_enable": "止めた人を戻した",
   "auth.switch_in": "ほかの組織からこの組織に切り替えた",
   "auth.switch_out": "この組織からほかの組織に切り替えた",
   "demo.reset": "デモのデータを戻した",
@@ -55,8 +61,14 @@ const TARGET_LABELS: Record<string, string> = {
   invitation: "招待",
   domain: "ドメイン",
   member: "人",
+  scim_token: "SCIM の鍵",
 };
-const FIELD_LABELS: Record<string, string> = { title: "題名", done: "完了" };
+const FIELD_LABELS: Record<string, string> = {
+  title: "題名",
+  done: "完了",
+  name: "名前",
+  externalId: "道具の側の ID",
+};
 
 export function auditActionLabel(e: AuditEvent): string {
   const base = AUDIT_ACTION_LABELS[e.action] ?? e.action;
@@ -78,6 +90,8 @@ export function auditActorLabel(e: AuditEvent): string {
       return "サポート(運営)";
     case "system":
       return "仕組み(自動)";
+    case "scim":
+      return "SCIM(情シスの道具)";
     default:
       // 消された人は名前が引けない
       return e.actor.name ?? "(いまはいない人)";

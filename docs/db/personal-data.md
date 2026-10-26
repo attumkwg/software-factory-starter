@@ -20,6 +20,7 @@
 | `organizations.tenants` | `name` | **personal** | 組織の名前を画面に出す(個人事業主なら人の名前になる) |
 | `organizations.users` | `email` | **personal** | ログインとお知らせの宛先 |
 | `organizations.users` | `name` | **personal** | 画面に出す名前 |
+| `organizations.users` | `scim_external_id` | **personal** | 情シスの道具の側の人の ID(道具が自分の人と結びつける) |
 | `projects.projects` | `name` | **personal** | お客さんが入れた名前(自由な文なので個人情報が入りうる) |
 | `tasks.tasks` | `title` | **personal** | お客さんが入れた題名(自由な文なので個人情報が入りうる) |
 
@@ -137,6 +138,19 @@
 | `created_at` | internal | 足した時刻 |
 | `created_by` | internal | 足した管理者 |
 
+### `organizations.scim_tokens`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | SCIM の鍵の ID(監査ログの行為者) |
+| `tenant_id` | internal | 鍵を作った組織 |
+| `token_hash` | internal | 鍵の SHA-256(鍵そのものは持たない。鍵から組織を引く) |
+| `created_at` | internal | 作った時刻 |
+| `created_by` | internal | 作った管理者 |
+| `last_used_at` | internal | 情シスの道具が最後に使った時刻 |
+| `revoked_at` | internal | 取り消した時刻 |
+| `revoked_by` | internal | 取り消した管理者 |
+
 ### `organizations.sso_connections`
 
 | 列 | 区分 | 利用目的 |
@@ -199,6 +213,8 @@
 | `sessions_valid_after` | internal | これより前のセッションを切る |
 | `last_used_at` | internal | その組織に最後に入った時刻(ログインで前回の組織を選ぶ) |
 | `sso_exempt` | internal | SSO を必須にした組織の緊急用のアカウントか(パスワードで入れる管理者) |
+| `disabled_at` | internal | SCIM(情シスの道具)で止めた時刻(止めた人は入れない) |
+| `scim_external_id` | **personal** | 情シスの道具の側の人の ID(道具が自分の人と結びつける) |
 | `created_at` | internal | 作った時刻 |
 
 ### `platform.audit_events`
@@ -222,6 +238,8 @@
 | `details` の `invitationId` | internal | パスの招待の ID |
 | `details` の `domainId` | internal | パスの会社のドメインの ID |
 | `details` の `memberId` | internal | パスの強制ログアウトした人の ID |
+| `details` の `tokenId` | internal | パスの SCIM の鍵の ID |
+| `details` の `scimUserId` | internal | パスの SCIM の人の ID(関所の外なので記録には入らない。形のため) |
 | `details` の `fields` | internal | 直した項目の名前の一覧(値は入れない) |
 | `details` の `route` | internal | 代理の社員が呼んだ API の形(メソッドとパスの型) |
 | `details` の `counts` | internal | 解約で消した表ごとの行数 |

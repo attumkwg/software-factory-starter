@@ -42,14 +42,15 @@ export async function findPlanFeatures(
   return plans.find((p) => p.id === row?.plan)?.features ?? [];
 }
 
-/** いる人と、受けていない(期限内の)招待の数 */
+/** いる人(SCIM で止めた人は数えない)と、受けていない(期限内の)招待の数 */
 export async function seatUsage(
   tx: TenantTx,
   tenantId: string,
 ): Promise<{ members: number; pendingInvitations: number }> {
   const r = await tx.execute<{ members: number; pending: number }>(sql`
     select
-      (select count(*)::int from organizations.users where tenant_id = ${tenantId}) as members,
+      (select count(*)::int from organizations.users
+        where tenant_id = ${tenantId} and disabled_at is null) as members,
       (select count(*)::int from organizations.invitations
         where tenant_id = ${tenantId} and accepted_at is null and revoked_at is null and expires_at > now()) as pending`);
   return { members: r.rows[0]?.members ?? 0, pendingInvitations: r.rows[0]?.pending ?? 0 };

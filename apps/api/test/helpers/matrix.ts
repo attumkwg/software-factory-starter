@@ -11,6 +11,8 @@ const RowSchema = z
     permission: z.string(),
     note: z.string().optional(),
     only_in: z.enum(["dev", "cognito"]).optional(),
+    // セッションではなく SCIM の鍵で組織が決まる入口(鍵を持たずに叩くので、だれでも 401・他社の行は要らない)
+    auth: z.enum(["scim"]).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     expect: z.object({
       admin: z.number().int(),
@@ -23,7 +25,7 @@ const RowSchema = z
   .strict()
   .superRefine((row, ctx) => {
     // パスに ID がある API は、他社から叩いたときの答え(404)を必ず書く
-    if (row.route.includes("{") && row.expect.other_tenant === undefined) {
+    if (row.route.includes("{") && row.expect.other_tenant === undefined && row.auth !== "scim") {
       ctx.addIssue({ code: "custom", message: `${row.route}: other_tenant の行がありません` });
     }
     if (row.expect.other_tenant !== undefined && row.expect.other_tenant !== 404) {

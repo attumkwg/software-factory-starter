@@ -58,6 +58,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   sso_required: "この組織は会社のアカウントでログインしてください",
   sso_not_connected: "IdP がまだつながっていないので、必須にできません。運営に依頼してください",
   sso_exempt_required: "必須にするには、緊急用の管理者を1人以上選んでください",
+  too_many_scim_tokens: "鍵は2つまでです。使っていない鍵を取り消してから作ってください",
 };
 
 /** API まで届かなかったとき・それ以外の想定外。 */

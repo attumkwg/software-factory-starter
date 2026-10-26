@@ -5,6 +5,7 @@ import type {
   AuditEventPage,
   AuthNext,
   AuthOptions,
+  CreatedScimToken,
   CreatedSupportGrant,
   CreateInvitation,
   CreateProject,
@@ -28,6 +29,7 @@ import type {
   Project,
   ProjectPage,
   PutSsoSettings,
+  ScimTokenList,
   SsoSettings,
   SsoStartResult,
   StartSupport,
@@ -310,6 +312,10 @@ export const api = {
   // SSO の必須と緊急用(プランの機能 sso。IdP をつなぐのは運営)
   getSso: () => request<SsoSettings>("GET", "/organization/sso"),
   putSso: (body: PutSsoSettings) => request<SsoSettings>("PUT", "/organization/sso", body),
+  // SCIM の鍵(プランの機能 scim)。鍵は作ったときだけ返る
+  listScimTokens: () => request<ScimTokenList>("GET", "/organization/scim-tokens"),
+  createScimToken: () => request<CreatedScimToken>("POST", "/organization/scim-tokens"),
+  revokeScimToken: (id: string) => request<void>("DELETE", `/organization/scim-tokens/${id}`),
   acceptInvitation: (token: string, name: string) =>
     request<AcceptedInvitation>("POST", "/invitations/accept", { token, name }),
   startSupport: (input: StartSupport) =>

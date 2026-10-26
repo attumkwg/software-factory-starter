@@ -62,6 +62,8 @@ export const ALWAYS_REDACTED: readonly string[] = [
   "staffEmail",
   "previousEmail",
   "newEmail",
+  // 情シスの道具の側の人の ID(SCIM の externalId。社員番号やメールのこともある。…Id でも出さない)
+  "scimExternalId",
   // 公開の LP の事前登録の会社名(docs/specs/0025-public-landing-page.md)
   "organizationName",
 ];

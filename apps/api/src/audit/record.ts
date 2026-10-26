@@ -4,7 +4,7 @@ import { auditEvents } from "./schema.ts";
 
 export type AuditEntry = {
   tenantId: string;
-  actor: { kind: "user" | "support" | "system"; id: string | null };
+  actor: { kind: "user" | "support" | "system" | "scim"; id: string | null };
   action: string;
   target?: { type: string; id: string } | null;
   outcome: "allowed" | "denied";
