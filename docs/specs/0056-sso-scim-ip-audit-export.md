@@ -38,12 +38,12 @@
 
 段3 監査ログの書き出し:
 
-- [ ] 組織の管理者は、期間(最長 1年)を選んで、監査ログを1行1件の JSON(JSON Lines)で受け取れる。書き出したことも監査ログに残る
+- [x] 組織の管理者は、期間(最長 1年)を選んで、監査ログを1行1件の JSON(JSON Lines)で受け取れる。書き出したことも監査ログに残る
 
 共通:
 
-- [ ] どの設定も、組織の管理者だけ(代理の社員は見るだけ・変えられない)。他社の設定は見えない
-- [ ] キットの部品のカタログに、`sso`・`scim`・`ip-allowlist`・`audit-export` を足す(使わない会社は消せる)
+- [x] どの設定も、組織の管理者だけ(代理の社員は見るだけ・変えられない)。他社の設定は見えない
+- [x] キットの部品のカタログに、`sso`・`scim`・`ip-allowlist`・`audit-export` を足す(使わない会社は消せる)
 
 ## 権限の表に足す行(実装の PR で)
 
@@ -56,7 +56,7 @@
 | `GET/POST/DELETE /api/organization/scim-tokens` | 200/201/204 | 403 | 403 | 404 | 401 |
 | `POST /api/auth/sso/start`・`GET /api/auth/sso/callback` | 公開 | | | | |
 | `/scim/v2/Users`(SCIM の鍵) | 鍵の組織だけ | | | 404 | 401 |
-| `GET /api/audit-events/export` | 200 | 403 | 403 | — | 401 |
+| `POST /api/audit-events/export`(設計書 0056 の 13 で GET から変えた) | 200 | 403 | 403 | — | 401 |
 
 ## 要配慮個人情報
 

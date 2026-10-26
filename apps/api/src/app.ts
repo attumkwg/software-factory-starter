@@ -43,6 +43,7 @@ import { projectRoutes } from "./domains/projects/index.ts";
 import { taskRoutes } from "./domains/tasks/index.ts";
 import type { AppEnv } from "./env.ts";
 import { payloadTooLarge, toApiError } from "./errors.ts";
+import { auditExportRoutes } from "./export/audit-routes.ts";
 import { exportRoutes } from "./export/routes.ts";
 import { healthRoutes, type Lifecycle } from "./health.ts";
 import type { Logger } from "./logger.ts";
@@ -223,6 +224,8 @@ export function createApp(deps: AppDeps) {
   // 共通の仕組み(領域ではない)
   app.route("/api", auditRoutes);
   app.route("/api", exportRoutes({ db, logger }));
+  // 監査ログの書き出し(段3。プランの機能 audit-export)
+  app.route("/api", auditExportRoutes({ db, logger }));
   app.route("/api", planRoutes);
   app.route("/api", organizationSecurityRoutes({ db, resolveTxt: deps.resolveTxt ?? resolveTxt }));
   app.route("/api", scimRoutes({ db }));

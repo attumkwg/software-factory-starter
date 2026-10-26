@@ -9,6 +9,7 @@ import type {
 } from "@app/shared";
 import { Button, Card, Heading, Link, Muted, Stack } from "@app/ui";
 import { api } from "../api.ts";
+import { saveAsFile } from "../save-as-file.ts";
 import { useAction } from "../use-action.ts";
 import { DomainsCard } from "./settings/DomainsCard.tsx";
 import { IpAllowlistCard } from "./settings/IpAllowlistCard.tsx";
@@ -106,14 +107,4 @@ export function SettingsPage({
       </Card>
     </Stack>
   );
-}
-
-/** 受け取った JSON を、読み直さずにブラウザのダウンロードとして保存する(大きい組織でも JS の値にしない) */
-function saveAsFile({ blob, filename }: { blob: Blob; filename: string }) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }

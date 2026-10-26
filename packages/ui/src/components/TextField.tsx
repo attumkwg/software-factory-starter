@@ -13,8 +13,11 @@ export type TextFieldProps = Omit<AriaTextFieldProps, "className" | "style" | "c
   description?: string;
   errorMessage?: string;
   placeholder?: string;
-  /** password は伏せて表示する(autoComplete に current-password / new-password を付ける) */
-  type?: "text" | "email" | "search" | "password";
+  /**
+   * password は伏せて表示する(autoComplete に current-password / new-password を付ける)。
+   * date はブラウザの日付の入力(値は YYYY-MM-DD)
+   */
+  type?: "text" | "email" | "search" | "password" | "date";
 };
 
 /** 1行の入力。名前・説明・エラーを入力欄に結び付ける。 */

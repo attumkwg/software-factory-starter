@@ -716,6 +716,35 @@ parts:
         - DELETE /api/scim/v2/Users/{scimUserId}
       docs: [docs/specs/0056-sso-scim-ip-audit-export.md, docs/runbooks/sso.md]
 
+  - id: audit-export
+    name: 監査ログの書き出し
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 組織の管理者が期間(日付・366 日まで)を選び、監査ログを1行1件の JSON(JSON Lines)で古い順に受け取る(1ページずつ流す。項目は画面と同じ・値は入っていない)。書き出したことも監査ログに残る。プランの機能 audit-export(既定のプランには無い)
+    needed_by: 大きな会社向け(情シスが監査ログを自分たちの道具(SIEM)に取り込みたい・監査で証跡を出したい)
+    not_needed_by: 個人向け・小さな会社だけが相手(画面の監査ログで足りる)
+    if_removed: 監査ログを取り込みたいお客さんに、画面のスクショか運営の手作業で渡すことになる(データの書き出しには新しい順の監査ログが入る)
+    depends_on: [audit-log, offboarding, feature-flags]
+    law:
+      - ISMS 8.15(ログ取得)
+    remove:
+      delete:
+        - apps/api/src/export/audit-routes.ts
+        - apps/api/test/integration/audit-export.int.test.ts
+        - apps/web/src/pages/audit/AuditExportCard.tsx
+      edit:
+        - { path: apps/api/src/app.ts, what: auditExportRoutes を外す }
+        - { path: apps/api/src/audit/repository.ts, what: auditEventsInRangePage を外す }
+        - { path: apps/api/src/authz/policy.ts, what: POST /api/audit-events/export の1行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: audit.export を外す }
+        - { path: packages/shared/src/feature-flags.ts, what: audit-export を外す }
+        - { path: apps/web/src/pages/AuditPage.tsx, what: 書き出しの欄を外す }
+      matrix:
+        - POST /api/audit-events/export
+      docs: [docs/specs/0056-sso-scim-ip-audit-export.md]
+
   # ── ログイン ────────────────────────────────────────────────────────────
   - id: mfa
     name: 二段階認証(本人の設定)

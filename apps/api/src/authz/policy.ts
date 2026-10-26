@@ -95,6 +95,8 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "PATCH /api/tasks/{taskId}": "task:write",
   "DELETE /api/tasks/{taskId}": "task:write",
   "GET /api/audit-events": "audit:read",
+  // 監査ログの書き出し(docs/specs/0056-sso-scim-ip-audit-export.md の段3。プランの機能 audit-export)
+  "POST /api/audit-events/export": "audit:read",
   "GET /api/support-grants": "support_grant:manage",
   "POST /api/support-grants": "support_grant:manage",
   "DELETE /api/support-grants/{grantId}": "support_grant:manage",

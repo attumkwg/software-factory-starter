@@ -61,6 +61,12 @@ export const FEATURE_FLAGS = [
     description: "情シスの道具(SCIM 2.0)から人を作る・止める",
     state: "plan",
   },
+  {
+    name: "audit-export",
+    bet: "kit",
+    description: "監査ログを期間を選んで JSON Lines で書き出す",
+    state: "plan",
+  },
 ] as const satisfies readonly FeatureFlagDefinition[];
 
 /** 定義にある名前だけ(書き間違いは型の検査で落ちる)。一覧が空のうちは、どの名前も使えない */
