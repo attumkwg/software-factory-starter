@@ -18,6 +18,8 @@ export type Access = SsoStatus & {
   mfaEnabled: boolean;
   /** これより前にログインしたセッションは使えない */
   sessionsValidAfter: Date | null;
+  /** SCIM で止めた時刻。止めた人は入れない(docs/designs/0056-sso-scim-ip-audit-export.md の 6) */
+  disabledAt: Date | null;
   /** その組織は二段階認証を必須にしているか */
   mfaRequired: boolean;
 };
@@ -32,6 +34,7 @@ export async function findAccess(
       role: users.role,
       mfaEnabled: users.mfaEnabled,
       sessionsValidAfter: users.sessionsValidAfter,
+      disabledAt: users.disabledAt,
       mfaRequired: tenants.mfaRequired,
       ...ssoStatusColumns,
     })

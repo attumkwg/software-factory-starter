@@ -61,6 +61,8 @@ export const OrganizationMemberSchema = z.object({
   email: z.email(),
   role: RoleSchema,
   createdAt: InstantSchema,
+  /** SCIM(情シスの道具)で止めた時刻。止めた人は入れない(古い版の API には無い) */
+  disabledAt: InstantSchema.nullable().optional(),
 });
 export type OrganizationMember = z.infer<typeof OrganizationMemberSchema>;
 
@@ -89,3 +91,31 @@ export const PutSsoSettingsSchema = z.object({
   exemptUserIds: z.array(IdSchema).max(SSO_EXEMPT_MAX),
 });
 export type PutSsoSettings = z.infer<typeof PutSsoSettingsSchema>;
+
+// ── SCIM の鍵(段2。docs/designs/0056-sso-scim-ip-audit-export.md の 3) ──────────────────────
+
+/** 情シスの道具に渡す SCIM の入口のパス(ALB が /api/* だけを API に回すので /api の下) */
+export const SCIM_BASE_PATH = "/api/scim/v2";
+
+/** 生きている SCIM の鍵は1組織 2つまで(入れ替えのときに新旧を並べられる) */
+export const SCIM_TOKENS_MAX = 2;
+
+/** SCIM の鍵(鍵そのものは作ったときに1回だけ返す) */
+export const ScimTokenSchema = z.object({
+  id: IdSchema,
+  createdAt: InstantSchema,
+  /** 情シスの道具が最後に使った時刻(まだなら null) */
+  lastUsedAt: InstantSchema.nullable(),
+});
+export type ScimToken = z.infer<typeof ScimTokenSchema>;
+
+export const ScimTokenListSchema = z.object({
+  tokens: z.array(ScimTokenSchema).max(SCIM_TOKENS_MAX),
+  /** 情シスの道具に渡す SCIM の入口のパス(画面が自分の origin を前に付ける。https://<アプリ>/api/scim/v2) */
+  basePath: z.string(),
+});
+export type ScimTokenList = z.infer<typeof ScimTokenListSchema>;
+
+/** 作ったときだけ鍵が返る(ハッシュしか持たないので二度と出ない) */
+export const CreatedScimTokenSchema = ScimTokenSchema.extend({ token: z.string() });
+export type CreatedScimToken = z.infer<typeof CreatedScimTokenSchema>;

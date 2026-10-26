@@ -47,6 +47,8 @@ export const PERMISSIONS = {
   "domain:verify": ["admin"],
   // 組織に入れる IP の範囲(プランの機能 ip-allowlist)
   "ip_allowlist:manage": ["admin"],
+  // SCIM の鍵を作る・取り消す(プランの機能 scim)。情シスの道具の入口(/api/scim/v2)は鍵で組織が決まる公開の API
+  "scim:manage": ["admin"],
   // 組織の人の一覧と、強制ログアウト(全部の組織で使える)
   "member:manage": ["admin"],
   // 本人が所属しているほかの組織へ選び直す(docs/specs/0055-multi-org-membership.md)。所属しているかはハンドラーが
@@ -130,6 +132,17 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "PUT /api/organization/ip-allowlist": "ip_allowlist:manage",
   "GET /api/organization/members": "member:manage",
   "POST /api/organization/members/{memberId}/sign-out": "member:manage",
+  "GET /api/organization/scim-tokens": "scim:manage",
+  "POST /api/organization/scim-tokens": "scim:manage",
+  "DELETE /api/organization/scim-tokens/{tokenId}": "scim:manage",
+  // 情シスの道具(SCIM 2.0。docs/designs/0056-sso-scim-ip-audit-export.md の 3)。セッションではなく SCIM の鍵
+  // (Authorization: Bearer)で組織が決まる。鍵の確かめ・組織の文脈・監査ログは src/auth/scim-routes.ts が自分でやる
+  "GET /api/scim/v2/Users": PUBLIC,
+  "POST /api/scim/v2/Users": PUBLIC,
+  "GET /api/scim/v2/Users/{scimUserId}": PUBLIC,
+  "PUT /api/scim/v2/Users/{scimUserId}": PUBLIC,
+  "PATCH /api/scim/v2/Users/{scimUserId}": PUBLIC,
+  "DELETE /api/scim/v2/Users/{scimUserId}": PUBLIC,
   "GET /api/me/organizations": "me:read",
   "POST /api/session/organization": "session:switch",
 };

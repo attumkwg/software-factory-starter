@@ -146,6 +146,7 @@ export const ERROR_CODES = [
   "sso_required", // この組織は SSO を必須にしている。パスワードでは入れない(403)。画面はログインの SSO の段へ
   "sso_not_connected", // IdP がまだつながっていないので、SSO を必須にできない(409)
   "sso_exempt_required", // 必須にするには緊急用の管理者が1人以上要る(409)
+  "too_many_scim_tokens", // 生きている SCIM の鍵が上限に届いた(409)。古い鍵を取り消してから
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -208,8 +209,8 @@ export type SupportSession = z.infer<typeof SupportSessionSchema>;
 
 // ── 監査ログ(docs/specs/0003-audit-log.md) ─────────────────────────────────
 
-/** 誰が: 自社の人 / 代理ログインの社員(サポート) / 仕組み */
-export const AUDIT_ACTOR_KINDS = ["user", "support", "system"] as const;
+/** 誰が: 自社の人 / 代理ログインの社員(サポート) / 仕組み / 情シスの道具(SCIM の鍵。id は鍵の ID) */
+export const AUDIT_ACTOR_KINDS = ["user", "support", "system", "scim"] as const;
 
 export const AuditEventSchema = z.object({
   id: IdSchema,

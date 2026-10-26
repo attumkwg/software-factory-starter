@@ -68,5 +68,10 @@ export type AppEnv = {
     plans: readonly PlanDefinition[];
     /** 要配慮個人情報の入口(ADR 0029)。要配慮の接続が無い環境では null。ルートからは sensitiveOf(c) で */
     sensitive: SensitiveStore | null;
+    /**
+     * 情シスの道具(SCIM)の入口だけ: 鍵で決まった組織と鍵の ID(src/auth/scim-routes.ts が置く。セッションは使わない)。
+     * docs/designs/0056-sso-scim-ip-audit-export.md の 3
+     */
+    scim?: { tenantId: string; tokenId: string };
   };
 };

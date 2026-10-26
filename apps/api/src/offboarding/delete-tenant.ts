@@ -27,6 +27,7 @@ export const TENANT_TABLES = [
   "organizations.sso_connections",
   "organizations.domains",
   "organizations.ip_allowlist",
+  "organizations.scim_tokens",
   "organizations.email_changes",
   "organizations.support_sessions",
   "organizations.support_grants",

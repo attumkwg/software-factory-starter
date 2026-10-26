@@ -53,6 +53,10 @@ export const users = organizations.table(
     // SSO を必須にした組織の緊急用のアカウント(IdP が止まったときにパスワードで入れる)。1組織 2人まで・管理者だけ・
     // 二段階認証が必須(docs/designs/0056-sso-scim-ip-audit-export.md の U-3)。管理者が設定の画面で選ぶ
     ssoExempt: boolean("sso_exempt").notNull().default(false),
+    // SCIM(情シスの道具)で止めた時刻。止めた人は関所もログインも通らない(行と監査ログは残す。設計書 0056 の U-5)
+    disabledAt: instant("disabled_at"),
+    // 情シスの道具の側の人の ID(SCIM の externalId)。道具が自分の人と結びつけるのに使う
+    scimExternalId: text("scim_external_id"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -269,5 +273,41 @@ export const ssoConnections = organizations.table(
     // 1組織に1つ・1つの IdP は1つの組織だけ
     uniqueIndex("sso_connections_tenant_key").on(t.tenantId),
     uniqueIndex("sso_connections_provider_key").on(t.providerName),
+  ],
+);
+
+/**
+ * SCIM の鍵(情シスの道具が人を作る・止めるのに使う。docs/designs/0056-sso-scim-ip-audit-export.md の 2・段2)。
+ * 鍵そのものは持たない(SHA-256 のハッシュだけ。作ったときに画面に1回だけ出す)。鍵から組織を引くのは、
+ * 移行 0022 の関数(auth_find_scim_token)だけ(アプリは全社分を読めない)。取り消した鍵は戻らない。
+ */
+export const scimTokens = organizations.table(
+  "scim_tokens",
+  {
+    id: id("id"),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.tenantId),
+    tokenHash: text("token_hash").notNull(),
+    createdAt: createdAt(),
+    createdBy: uuid("created_by").notNull(),
+    lastUsedAt: instant("last_used_at"),
+    revokedAt: instant("revoked_at"),
+    revokedBy: uuid("revoked_by"),
+  },
+  (t) => [
+    unique("scim_tokens_tenant_id_id_key").on(t.tenantId, t.id),
+    uniqueIndex("scim_tokens_token_hash_key").on(t.tokenHash),
+    index("scim_tokens_tenant_idx").on(t.tenantId),
+    foreignKey({
+      name: "scim_tokens_created_by_fkey",
+      columns: [t.tenantId, t.createdBy],
+      foreignColumns: [users.tenantId, users.id],
+    }),
+    foreignKey({
+      name: "scim_tokens_revoked_by_fkey",
+      columns: [t.tenantId, t.revokedBy],
+      foreignColumns: [users.tenantId, users.id],
+    }),
   ],
 );

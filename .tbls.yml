@@ -25,6 +25,8 @@ comments:
       sessions_valid_after: これより前にログインしたセッションは使えない(パスワードなどを変えて、ほかの端末を切った時刻。全部の所属にそろえる)
       last_used_at: その組織に最後に入った(ログイン・組織の切り替え)時刻。ログインで前回の組織を選ぶ
       sso_exempt: SSO を必須にした組織の緊急用のアカウント(パスワード+二段階認証で入れる管理者。1組織 2人まで。管理者のときだけ効く)
+      disabled_at: SCIM(情シスの道具)で止めた時刻。止めた人は関所もログインも通らない(行と監査ログは残す)
+      scim_external_id: 情シスの道具の側の人の ID(SCIM の externalId)
   - table: projects.projects
     tableComment: プロジェクト。タスクのまとまり。docs/domain/projects
     columnComments:
@@ -103,6 +105,12 @@ comments:
     columnComments:
       provider_name: Cognito の IdP の名前(org-<組織の ID の後ろ 20 桁>)。SSO で戻ってきた人の組織は、この名前で決まる
       required: SSO を必須にしているか(管理者が入切。緊急用の管理者が1人以上要る)
+  - table: organizations.scim_tokens
+    tableComment: SCIM の鍵(docs/specs/0056-sso-scim-ip-audit-export.md の段2)。情シスの道具が人を作る・止めるのに使う。鍵そのものは持たない(SHA-256 だけ)。鍵から組織を引くのは auth_find_scim_token 関数だけ。生きている鍵は1組織 2つまで
+    columnComments:
+      token_hash: 鍵の SHA-256(16進)。全体で一意
+      last_used_at: 情シスの道具が最後に使った時刻
+      revoked_at: 取り消した時刻(戻らない。取り消した鍵は 401)
   - table: organizations.ip_allowlist
     tableComment: 組織に入れる IP の範囲(docs/specs/0056-sso-scim-ip-audit-export.md)。空なら制限しない。管理者が一覧ごと入れ替える(20 まで)。プランの機能 ip-allowlist が入っているときだけ効く
     columnComments:

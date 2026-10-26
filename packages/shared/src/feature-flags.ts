@@ -55,6 +55,12 @@ export const FEATURE_FLAGS = [
     description: "組織に入れる IP の範囲を決める",
     state: "plan",
   },
+  {
+    name: "scim",
+    bet: "kit",
+    description: "情シスの道具(SCIM 2.0)から人を作る・止める",
+    state: "plan",
+  },
 ] as const satisfies readonly FeatureFlagDefinition[];
 
 /** 定義にある名前だけ(書き間違いは型の検査で落ちる)。一覧が空のうちは、どの名前も使えない */

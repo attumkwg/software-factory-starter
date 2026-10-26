@@ -620,7 +620,7 @@ parts:
   - id: sso
     name: SSO(SAML)と会社のドメインの確認
     group: business
-    status: 作成中
+    status: あり
     removable: true
     default: 残す
     what: 組織が会社のドメインを DNS の TXT で確かめ(1ドメイン1組織)、運営がその組織の IdP を Cognito の SAML でつなぐ(sso-connect)。メールで IdP へ回り、IdP の組織の確かめたドメインの人だけが入る(人は作らない)。必須にでき、緊急用の管理者(2人まで・二段階認証が必須)だけパスワードで入れる。プランの機能 sso(既定のプランには無い)
@@ -673,6 +673,48 @@ parts:
         - POST /api/organization/domains/{domainId}/verify
         - DELETE /api/organization/domains/{domainId}
       docs: [docs/specs/0056-sso-scim-ip-audit-export.md, docs/adr/0067-sso-via-cognito-saml.md]
+
+  - id: scim
+    name: SCIM(情シスの道具から人を作る・止める)
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: 組織の管理者が SCIM の鍵(ハッシュだけ持つ・画面に1回だけ・2つまで)を作り、情シスの道具(Entra ID・Okta など)が SCIM 2.0 の Users で、確かめたドメインの人を作る・名前を直す・止める。止めた人は次のリクエストから入れない(消す = 止める・行は残す)。操作は監査ログに「SCIM が」。プランの機能 scim(既定のプランには無い)
+    needed_by: 大きな会社向け(辞めた人を情シスの道具からすぐ止めたい・入社の人を自動で作りたい)
+    not_needed_by: 個人向け・小さな会社だけが相手(人の出入りは招待と強制ログアウトで足りる)
+    if_removed: 退職者を止めるのが管理者の手作業になる(大きな会社の調達の質問票で「SCIM に対応しているか」を聞かれることがある)
+    depends_on: [organizations, sso, audit-log, feature-flags]
+    law:
+      - ISMS 5.18(アクセス権)
+      - ISMS 5.16(識別情報の管理)
+    remove:
+      delete:
+        - apps/api/src/auth/scim-routes.ts
+        - apps/api/src/auth/scim-protocol.ts
+        - apps/api/src/domains/organizations/scim.ts
+        - apps/api/test/integration/scim.int.test.ts
+        - apps/api/test/unit/scim-protocol.test.ts
+        - apps/web/src/pages/settings/ScimTokensCard.tsx
+      edit:
+        - { path: apps/api/src/app.ts, what: scimRoutes・SCIM の Error の形・csrf の SCIM の除外を外す }
+        - { path: apps/api/src/domains/organizations/security-routes.ts, what: scimTokenRoutes を外す }
+        - { path: apps/api/src/authz/policy.ts, what: scim:manage と9行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: scim_token.*・scim.* を外す }
+        - { path: packages/shared/src/feature-flags.ts, what: scim を外す }
+        - { path: apps/web/src/pages/SettingsPage.tsx, what: SCIM の欄を外す }
+      migration: 表 organizations.scim_tokens・関数 auth_find_scim_token・scim_create_user(移行 0022)を、使わなくしてから消す。列 users.disabled_at は止めた人がいれば残す(消すと止めた人が入れるようになる)
+      matrix:
+        - GET /api/organization/scim-tokens
+        - POST /api/organization/scim-tokens
+        - DELETE /api/organization/scim-tokens/{tokenId}
+        - GET /api/scim/v2/Users
+        - POST /api/scim/v2/Users
+        - GET /api/scim/v2/Users/{scimUserId}
+        - PUT /api/scim/v2/Users/{scimUserId}
+        - PATCH /api/scim/v2/Users/{scimUserId}
+        - DELETE /api/scim/v2/Users/{scimUserId}
+      docs: [docs/specs/0056-sso-scim-ip-audit-export.md, docs/runbooks/sso.md]
 
   # ── ログイン ────────────────────────────────────────────────────────────
   - id: mfa

@@ -2,7 +2,7 @@
 
 > **AI 用の設計書。省略せずに網羅的に書く(正はこちら)。** 人はこれを開かず、PR の本文の「人向けのまとめ」を見る([guides/human-review.md](../guides/human-review.md))。
 > 仕様: [docs/specs/0056-sso-scim-ip-audit-export.md](../specs/0056-sso-scim-ip-audit-export.md)
-> 状態: 承認済み(@attumkwg 2026-10-25。会話で「全部おすすめどおり」)。実装は段ごとに別の PR
+> 状態: 承認済み(@attumkwg 2026-10-25。会話で「全部おすすめどおり」)。実装は段ごとに別の PR(段1a・1b・2 は済み。残りは段3)
 > 観点の順は [review-viewpoints.md](../review-viewpoints.md)。当てはまらない節も消さずに「該当なし(理由)」と書く。
 
 ## 0. 全体像
@@ -77,8 +77,9 @@ sequenceDiagram
 - 組織が決まる前に引く関数(`app_auth` が持ち主・返す物を絞る):
   - `auth_find_sso_by_domain(p_domain)` → `provider_name` だけ(組織の ID は返さない)
   - `auth_find_sso_member(p_provider_name, p_email)` → その IdP の組織で、メールのドメインが確かめたドメインで、その組織にそのメールの行があるときだけ `user_id, tenant_id`。**sub では結びつけず、`external_id` も書かない**(下の 13。パスワードで先に結びついた人も同じ行に入る)
-  - `auth_find_scim_token(p_hash)` → 取り消されていない鍵の `tenant_id`(段2)
-  - `scim_create_user(p_tenant_id, p_email, p_name, p_external_id)` → 確かめたドメインのメールだけ・ロールは member(段2。`auth_accept_invitation` と同じ形)
+  - `auth_find_scim_token(p_hash)` → 取り消されていない鍵の ID と `tenant_id`(段2。鍵の ID は監査ログの行為者)
+  - `scim_create_user(p_tenant_id, p_user_id, p_email, p_name, p_external_id)` → いまの組織の文脈の中でだけ・確かめたドメインのメールだけ(関数の中で確かめる。下の 13)・ロールは member(段2。`auth_accept_invitation` と同じ形)
+  - 止めた人(`disabled_at`)は `auth_find_memberships`・`auth_find_sso_member` に出さない(段2。ログインの所属にならない)
 - 列の分類表: `domains.domain` は internal(会社のドメイン。個人ではない)・`ip_allowlist.cidr` は internal・`scim_tokens.token_hash` は internal・`users.scim_external_id` は personal(情シスの道具の人の ID)。
 - 書き出し(`POST /api/exports`)に、ドメインと IP の一覧は入れる(お客さんの設定)。鍵のハッシュと IdP の名前は入れない。
 - `person-data` の一覧: 新しい人の ID の列(`domains.created_by`・`ip_allowlist.created_by`・`scim_tokens.created_by`・`revoked_by`)を「残す」で足す(実装の PR で。足し忘れはテストが落とす)。
@@ -204,6 +205,14 @@ sequenceDiagram
 - **IP の取り方は「右から決まった数」** — 左端の値は呼ぶ側が好きに書ける。
 - **ドメインを DNS から消しても確かめは外さない** — 一時的な DNS の変更で SSO が止まるのを避ける。年1回の点検で見直す(点検の台帳に足す)。
 - **監査ログの書き出しはデータの書き出しと同じ流し方** — 大きな組織でもメモリが一定(ADR 0031)。
+- **SCIM が扱えるのは、その組織の確かめたドメインのメールの人だけ**(段2) — 取引先など SSO の外の人は、情シスの道具の管理の外。道具の一覧から消えても止めない(道具が「知らない人を全部止める」動きをしても巻き込まない)。ほかの人を指すと 404。
+- **SCIM には組織の IP の範囲を当てない**(段2) — 道具は自分の会社の外(Entra ID・Okta の雲)から呼ぶ。鍵(ハッシュだけ・2つまで・取り消せる)と WAF の IP ごとの上限で守る。
+- **SCIM の鍵は `sfs_scim_` + 32 バイトの乱数**(段2)。頭で漏れたときに検査の道具が見分けられる。生きている鍵は2つまで(入れ替えのときに新旧を並べる)。使った時刻を毎回書く(管理者が「使われているか」を見る)。
+- **SCIM の一覧は startIndex と count**(段2) — SCIM の決まりが位置で数える形なので、キットの「続きの印」のページングの例外。1ページ 100 人まで。絞り込みは道具が使う `userName eq`・`externalId eq` だけ(ほかは 400 invalidFilter)。
+- **SCIM で知らない項目は聞き流し、メールの変更は 400 mutability**(段2) — 道具は扱わない項目(title・住所など)もまとめて送るので、断ると連携が止まる。メールはログインの鍵(Cognito)と結びついているので、変えるのは本人の画面から。
+- **SCIM の DELETE の後も、その人は SCIM から見える**(止めた人として。段2) — U-5 で行を残すため。RFC は「消した後は 404」を勧めるが、Entra ID・Okta はふだん PATCH の active で止めるので困らない。
+- **監査ログの名前に `scim.user_enable` を足した**(段2) — 止めた人を戻すのは、止めると同じ重さの出来事なので、名前で分ける(details に値を入れない決まりのまま)。
+- **SCIM の入口は CSRF の守りの外**(段2) — Cookie を使わず鍵だけで決まるので、よそのサイトのフォームの心配が無い。道具は Origin を付けず、本文の無い DELETE も送る。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
 
@@ -220,6 +229,7 @@ sequenceDiagram
 | U-7 | 設計 | 利用者の挙動 | SSO 必須の組織の人がパスワードでログインしたら、「この組織は会社のアカウントでログインしてください」と**言う**(`sso_required`) | パスワードが合った後に言うので、人がいるかの手がかりにならない。言わないと問い合わせが増える | 言うか(「メールアドレスかパスワードが正しくありません」と同じ文にするか) | 承認(@attumkwg 2026-10-25。会話で回答) |
 | U-9 | 設計 | 他チームとの契約や制約 | **アプリの前に CloudFront を置くのをキットの既定にする**(Terraform は別の PR。設計書 0058・ADR 0070)。いまの人の IP は、**どのヘッダーを信じるか(`CLIENT_IP_HEADER`)と何段か(`TRUSTED_PROXY_HOPS`)を設定で変えられる**ようにする(既定は ALB の `X-Forwarded-For` を右から1つ目)。なりすましは、ALB を CloudFront からしか受けない形(送り元の一覧と、名前も値も秘密のヘッダー)で止める | 持ち主の言葉「CloudFront から送る必要はあり、IP はヘッダーに送られる。それだと攻撃者に丸見えなので、ヘッダーの名前などは変える必要がある」。名前を変えるだけでは足りないので、秘密のヘッダーと送り元の一覧と組にする | CloudFront を前に置く形でよいか・秘密のヘッダーで満たすか | 承認(@attumkwg 2026-10-25。会話で回答) |
 | U-8 | 設計 | 他チームとの契約や制約 | 本物の SAML は stg で、テスト用の IdP を使って人が確かめる(契約テストに入れない)。偽物の Cognito は OAuth と「つないだ IdP」を真似る | 本物の IdP を CI で立てると重い。Cognito の SAML の動きは AWS の契約 | stg に置くテスト用の IdP を何にするか(お客さんと同じ製品か) | 承認(@attumkwg 2026-10-25。会話で回答) |
+| U-10 | 設計 | 事業判断 | SCIM で**止めた人は、プランの人数(`seats` と比べる数)に数えない**(段2。`seatUsage` が `disabled_at` の人を外す) | 情シスの道具は辞めた人を消さずに止めることが多い。数えると、辞めた人の分まで上限に当たる(人数の上限は止めず、運営の `plan-report` の「超えた組織」に出るだけ) | 止めた人を人数に数えるか(数えない=辞めた人の分は払わない) | 仮決め |
 
 ## 13. 作り直しの記録
 
@@ -228,3 +238,5 @@ sequenceDiagram
 | 2026-10-26 | 段1b の実装で、Cognito は IdP から来た人を**別の人(別の sub)**として作ると確かめた。sub で結びつけると、パスワードで先に結びついた人が SSO で入れない | 設計(2・6) | `auth_find_sso_member` から sub を外し、その組織の確かめたドメインのメールの行に入れる(`external_id` は書かない)。組織を決めるのは IdP のまま | 移行 0021・`sso.ts`・結合テスト `sso-login.int.test.ts` |
 | 2026-10-26 | 段1b の実装で、UUID v7 の頭 8 桁は時刻なので、近い時刻に作った組織の IdP の名前が重なると分かった | 設計(5) | IdP の名前を `org-<組織の ID の後ろ 20 桁>` に | `src/sso/connect.ts` |
 | 2026-10-26 | 段1b の実装で、SSO で入った人と組織の切り替え・二段階認証の必須の扱いが設計に無かった | 設計(6) | セッションの SSO の印・関所の `sso_required`・切り替えで外れる・SSO の人に二段階認証の必須を当てない、を足した | `session.ts`・`middleware.ts`・`organization-routes.ts` |
+| 2026-10-26 | 段2 の実装で、`scim_create_user` のドメインの確かめを行の方針(INSERT の WITH CHECK)に置くと、組織の文脈の中では `tenant_isolation` の許しと「または」になって効かないとテストで分かった | 設計(2) | ドメインの確かめを関数の中に移した(確かめたドメインでなければ check_violation)。行の方針は足さない | 移行 0022・`scim.ts`・`scim.int.test.ts` |
+| 2026-10-26 | 段2 の実装で、監査ログの行為者の種類の制約を広げるとき、同じトランザクションで VALIDATE すると大きな表の読みが止まると分かった | 設計(2) | 制約は NOT VALID で足し直すだけにし、VALIDATE は次の移行で1文だけ流す(今ある行は全部 3つのどれか) | 移行 0022 |

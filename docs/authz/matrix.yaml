@@ -16,6 +16,8 @@
 #     anonymous               … ログインしていない
 #   body       … 送る本文(書き込みの API だけ)
 #   only_in    … その認証の方式のときだけある API(②では叩かない。単体テストで確かめる)
+#   auth       … scim = セッションではなく SCIM の鍵(Authorization: Bearer)で組織が決まる入口。②では鍵を持たずに
+#                叩くので、だれでも 401(他社の行も要らない)。鍵ごとの流れ・他社の人の 404 は scim.int.test.ts
 #
 # パスの {projectId} / {taskId} は、テストが毎回作る「自社のプロジェクトとタスク」に置き換わる。
 
@@ -312,9 +314,9 @@ routes:
     note: 必須を切る。運営の組織では切れない(409。account-security.int.test.ts)
     expect: { admin: 204, member: 403, viewer: 403, anonymous: 401 }
 
-  # ── 大きなお客さん向けの守りの段1a・1b(docs/specs/0056-sso-scim-ip-audit-export.md) ───────────
+  # ── 大きなお客さん向けの守りの段1a・1b・2(docs/specs/0056-sso-scim-ip-audit-export.md) ─────────
   # どれも管理者だけ。代理の社員(閲覧者に固定)も 403。
-  # ドメインと IP の範囲はプランの機能(sso・ip-allowlist)。キットの既定のプランには入れない(設計書 0056 の U-6)ので、
+  # ドメインと IP の範囲と SCIM の鍵はプランの機能(sso・ip-allowlist・scim)。キットの既定のプランには入れない(設計書 0056 の U-6)ので、
   # この表の組織では管理者でも 404。機能を入れた組織での流れ・他社の物の 404 は organization-security.int.test.ts。
 
   - route: GET /api/organization/domains
@@ -369,6 +371,62 @@ routes:
     permission: member:manage
     note: その人のこの組織のセッションを全部切る(sessions_valid_after を今に。次のリクエストから 401)。他社の人は 404
     expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: GET /api/organization/scim-tokens
+    permission: scim:manage
+    note: 生きている SCIM の鍵(鍵そのものは出さない)と、道具に渡す入口。プランの機能 scim が入っていなければ 404
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/organization/scim-tokens
+    permission: scim:manage
+    note: SCIM の鍵を作る(鍵はこの1回だけ返る)。生きている鍵は2つまで(409 too_many_scim_tokens)。流れは scim.int.test.ts
+    expect: { admin: 404, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: DELETE /api/organization/scim-tokens/{tokenId}
+    permission: scim:manage
+    note: SCIM の鍵を取り消す(戻らない)。他社の鍵は 404
+    expect: { admin: 404, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  # 情シスの道具(SCIM 2.0)の入口。セッションではなく SCIM の鍵で組織が決まる(鍵の無いリクエストは 401)。
+  # 扱えるのは鍵の組織の確かめたドメインの人だけ(ほかの組織・ドメインの外の人は 404)。流れは scim.int.test.ts
+  - route: GET /api/scim/v2/Users
+    permission: public
+    auth: scim
+    note: その組織の人の一覧(userName eq・externalId eq で絞れる)
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: POST /api/scim/v2/Users
+    permission: public
+    auth: scim
+    note: 人を作る(メールは確かめたドメインだけ・ロールは member。もういれば 409 uniqueness)。監査ログは scim.user_create
+    body: { userName: "new@example.test" }
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: GET /api/scim/v2/Users/{scimUserId}
+    permission: public
+    auth: scim
+    note: 1人
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: PUT /api/scim/v2/Users/{scimUserId}
+    permission: public
+    auth: scim
+    note: 置き換える(名前・externalId・active。メールは変えられない)
+    body: { userName: "new@example.test" }
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: PATCH /api/scim/v2/Users/{scimUserId}
+    permission: public
+    auth: scim
+    note: 一部を直す。active を false で止める(止めた人は次のリクエストから 401)。監査ログは scim.user_disable など
+    body: { Operations: [{ op: replace, path: active, value: false }] }
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
+
+  - route: DELETE /api/scim/v2/Users/{scimUserId}
+    permission: public
+    auth: scim
+    note: 消す = 止める(行・名前・メール・監査ログは残す。設計書 0056 の U-5)
+    expect: { admin: 401, member: 401, viewer: 401, anonymous: 401 }
 
   # ── 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md) ─────────────────
   # 対象はいつもセッションの本人だけ(パスに人の ID が無いので、他社の物を指す道が無い)。
