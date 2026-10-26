@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # リポジトリのルートを文脈にして作る: docker build -f apps/api/Dockerfile .
 # 1つのイメージで API と移行(cli.js migrate)をまかなう。本番もプレビューも同じイメージ。
 # 画面は別のイメージ(apps/web/Dockerfile)。
@@ -26,7 +26,7 @@ COPY apps/api apps/api
 RUN pnpm --filter @app/api build
 
 # 実行用: シェルもパッケージ管理も無い distroless(攻撃面と Trivy の指摘を減らす)。root では動かさない。
-FROM gcr.io/distroless/nodejs24-debian13:nonroot
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:cb606325b7ec4af55462cb0b424a53b452a5b4a894ffe841fcf1048d216fb9f8
 WORKDIR /app
 # Aurora へは TLS で、証明書も確かめる(sslmode=verify-full)。RDS の CA を Node に足す
 ADD --chmod=644 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /etc/ssl/certs/rds-global-bundle.pem

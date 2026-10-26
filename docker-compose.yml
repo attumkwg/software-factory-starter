@@ -97,7 +97,7 @@ services:
         condition: service_healthy
 
   alb:
-    image: caddy:2.11.7-alpine
+    image: caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
     volumes:
       - ./docker/alb.Caddyfile:/etc/caddy/Caddyfile:ro
     ports:
@@ -136,7 +136,7 @@ services:
 
   # 届いたメールを見る(SES の代わり): http://localhost:8025
   mailpit:
-    image: axllent/mailpit:v1.30.0
+    image: axllent/mailpit:v1.30.0@sha256:0059ef81e492a7192af3816281eed6859eb078bd7bdc58b76757c13e10e53a7d
     ports:
       - "8025:8025"
 
