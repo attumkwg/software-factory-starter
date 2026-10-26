@@ -4,13 +4,15 @@ CI(`ci.yml` の「Biome・型・単体」。API のカバレッジだけは「�
 
 | 見張るもの | 上限 | どこで決めている | 手元で |
 |---|---|---|---|
-| 画面の JS・CSS の大きさ | JS の合計 290KB・一番大きい JS 146KB・CSS の合計 4KB(どれも gzip) | `apps/web/scripts/check-bundle-size.mjs` | `pnpm --filter @app/web build && pnpm --filter @app/web size` |
+| 画面の JS・CSS の大きさ | JS の合計 640KB・一番大きい JS 146KB・CSS の合計 4KB(どれも gzip) | `apps/web/scripts/check-bundle-size.mjs` | `pnpm --filter @app/web build && pnpm --filter @app/web size` |
 | 関数の複雑さ・長さ、ファイルの長さ | 複雑さ 15・関数 80行・ファイル 300行(空行は数えない) | `biome.json` | `pnpm lint` |
 | テストのカバレッジ(単体。API は単体+結合) | パッケージごと(下の表) | 各パッケージの `vitest.config.ts`(画面は `vite.config.ts`) | `pnpm test:coverage` |
 
 ## 1. 画面の JS・CSS の大きさ
 
 **根拠**: 2026-10-20 の大きさ(JS の合計 263.6KB・一番大きい JS 132.6KB・CSS 1.8KB)に約10%を足した。画面を1つ足すのは 1〜3KB なので、ふつうの機能追加では超えない。日付・グラフ・UI の部品集のような重いライブラリ(gzip で 20KB〜)を足すと超える。CSS はもともと小さいので、10%ではなく KB で幅を取った。
+
+- **2026-10-26 に JS の合計だけ 290KB → 640KB に上げた**(@attumkwg の判断)。SSO の画面を足して 290.9KB になり、重いライブラリではなく画面が増えたことで上限に届いたため。合計には開くまで読まれない画面の分も入るので、画面が増えるほど自然に増える。利用者が待つ量に近い「一番大きい JS」(最初に必ず読むまとまり)の上限 146KB は変えていない。
 
 gzip の大きさで比べるのは、ブラウザに届く量に近いから(実際は brotli で届くので、もう少し小さい)。一番大きい JS は、React・ルーターなど最初に必ず読むまとまりで、初めて開いたときの速さに一番効く。
 
