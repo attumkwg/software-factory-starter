@@ -106,6 +106,13 @@ function actionsBlock(a) {
   return `<p class="muted">${a.private ? "非公開のリポジトリ(枠を超えた分が金額になる)" : "公開のリポジトリ(標準の実行環境は無料)"}・今月 ${a.minutes}分</p><table><thead><tr><th>ワークフロー</th><th class="n">実行</th><th class="n">分</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
 }
 
+/** AI の回数と時間(金額は「何にいくら」の AI の行。saas.yaml の手書き) */
+function aiBlock(a) {
+  if (!a) return `<p class="muted">読めなかった</p>`;
+  const n = (v, unit) => (v === null ? "—" : `${v}${unit}`);
+  return `<p class="muted">金額は saas.yaml に人が書き写す(請求の画面を見る)。上限と知らせは docs/guides/cost-dashboard.md の「AI の上限」</p><table><tbody><tr><td>背景の AI の実行</td><td class="n">${n(a.background_runs, "回")}</td><td class="n">${n(a.background_minutes, "分")}</td></tr><tr><td>AI が手伝った PR(今月作った PR のうち)</td><td class="n">${n(a.ai_prs, "本")}</td><td class="n">${a.prs === null ? "—" : `${a.prs}本中`}</td></tr></tbody></table>`;
+}
+
 const range = (lo, hi) => (lo === null ? "—" : lo === hi ? yen(lo) : `${yen(lo)}〜${yen(hi)}`);
 const VERDICT = { 赤字: "⚠ 赤字", 黒字: "黒字" };
 
@@ -210,6 +217,7 @@ ${card("AWS の日ごと(今月)", dailyChart(s.aws_daily))}
 ${card("AWS のサービスごと(上の10)", table(s.aws_services, "サービス"))}
 ${card("PR ごとの環境(AWS の dev)", table(s.pull_requests, "PR"))}
 </div>
+${card("AI の回数と時間", aiBlock(s.ai))}
 ${card("GitHub Actions", actionsBlock(s.actions))}
 ${notes.length > 0 ? card("読めなかった物・足りない物", `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`) : ""}
 </main></body></html>

@@ -45,6 +45,8 @@ on:
   #   types: [opened, assigned]
 
 env:
+  # 背景の AI が同時に開いてよい PR の数(超えたら新しく動かない。G-62・設計書 0063 の U-1)
+  AI_OPEN_PR_LIMIT: "5"
   # ci.yml と同じ版
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 
@@ -88,6 +90,13 @@ jobs:
           PROMPT: ${{ inputs.prompt }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: node .github/scripts/ai-input-authors.mjs
+      # 背景の AI が開いた PR が上限に達していたら動かない(人のレビューがあふれる前に。G-62・設計書 0063 の U-1)
+      - name: 背景の AI が開いた PR の数
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          AI_OPEN_PR_LIMIT: ${{ env.AI_OPEN_PR_LIMIT }}
+        run: node .github/scripts/ai-open-prs.mjs
 
   claude:
     needs: authors

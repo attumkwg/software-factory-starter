@@ -8,6 +8,25 @@ import { makePl } from "./pl.mjs";
 import { targetOf, tenantCost } from "./tenants.mjs";
 
 const AWS_ACCOUNTS = ["stg", "prod", "dev"];
+// 背景の AI のワークフローの名前(.github/workflows/claude.yml の name)
+export const AI_WORKFLOW = "Claude";
+
+/**
+ * AI の回数と時間(G-62・設計書 0063)。金額は出さない(AI の費用は saas.yaml に人が書き写す。管理用の鍵を置かない)。
+ * 背景の AI の実行の回数と分数(Actions)と、今月作った PR のうち AI が手伝った数(PR の本文の印・ラベル)
+ */
+export function aiUsageOf(entries) {
+  const actions = entries["github-actions"]?.ok ? entries["github-actions"].data : null;
+  const prs = entries["people-prs"]?.ok ? entries["people-prs"].data.prs : null;
+  if (!actions && !prs) return null;
+  const bg = actions?.workflows.find((w) => w.name === AI_WORKFLOW);
+  return {
+    background_runs: actions ? (bg?.runs ?? 0) : null,
+    background_minutes: actions ? (bg?.minutes ?? 0) : null,
+    ai_prs: prs ? prs.filter((p) => p.ai).length : null,
+    prs: prs ? prs.length : null,
+  };
+}
 const sorted = (counts) =>
   Object.entries(counts)
     .map(([name, jpy]) => ({ name, jpy }))
@@ -237,6 +256,7 @@ export function makeSummary(entries, { today, generatedAt, people }) {
           workflows: actions.workflows.slice(0, 10),
         }
       : null,
+    ai: aiUsageOf(entries),
     saas_without_amount: entries.saas?.ok ? (entries.saas.data.without_amount ?? []) : [],
     notes,
   };
