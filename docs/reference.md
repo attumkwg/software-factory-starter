@@ -46,7 +46,8 @@
 │  ├─ review-viewpoints.md      設計とレビューの観点(共通の8つ+このプロダクト特有。溜めていく)
 │  ├─ legal/                    お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い。文面は書かず、既定・根拠・使う人が決めること)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
-│  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
+│  ├─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
+│  └─ kit/                      キットの持ち物(部品のカタログ catalog.yaml・保守の方針 maintenance.md)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・backup(消せない保管庫)・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
@@ -60,6 +61,7 @@
 ├─ .semgrep/                    自社専用の検査ルールとそのテスト
 ├─ .devcontainer/               人も AI も同じ開発環境(外への通信は許可リストのプロキシだけ。egress/。docs/guides/unattended-ai.md)
 ├─ CLAUDE.md                    全体のルール(apps/api・apps/web にも短いものがある)
+├─ CHANGELOG.md / SECURITY.md   キットの版ごとの変更 / 穴の知らせ方(キットから作ったら自分の物に。docs/kit/maintenance.md)
 ├─ docker-compose.yml           手元で丸ごと動かす(docker/alb.Caddyfile が ALB の代わり)
 └─ renovate.json                依存の更新(危険度のラベルつき)
 ```

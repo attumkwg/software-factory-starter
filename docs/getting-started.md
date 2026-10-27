@@ -123,6 +123,11 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 - 🔁 **条件は1つ**: キットから持ってきた部分には、キットの著作権とライセンスの文を残す。ルートの `LICENSE` を `docs/kit/LICENSE-software-factory-starter` などへ移して残し、ルートには自分のプロダクトの `LICENSE`(非公開なら置かないか「All rights reserved」)を置く。
 - ⚠️ 迷ったら、売る前に専門家に確かめる(依存のライセンスも含めて)。
 
+### キットから来た `SECURITY.md`・`CHANGELOG.md`
+
+- 🔒 `SECURITY.md` は**キットの**穴の窓口。自分のプロダクトの穴を知らせてもらう連絡先(会社の窓口・GitHub の非公開の報告)に書き換える。キットに穴を見つけたら、キットの `SECURITY.md` の道で。
+- 📜 `CHANGELOG.md` は**キットの**変更の記録。消すか自分の物にしてよい。キットの記録は `git fetch kit` → `git show kit/main:CHANGELOG.md` で読める。どの版から作ったかは、キットの保守の方針 [kit/maintenance.md](kit/maintenance.md) の 4(版の付け方)。
+
 ## ③ GitHub の設定
 
 「はじめに」の `pnpm setup:github --apply` で、下の物はほぼそろっている(設定の正は `.github/setup.yml`・`.github/labels.yml`)。ここでは中身を確かめる。詳しくは [guides/manual-setup.md](guides/manual-setup.md)(手でやる設定)の 1。要点:

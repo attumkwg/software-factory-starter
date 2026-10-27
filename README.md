@@ -224,7 +224,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 
 ## 🧱 まだ無いもの
 
-- 想定の場面で見つけた「足りない物」と、いつまでに要るか: **[docs/scenarios/gaps.md](docs/scenarios/gaps.md)**(いまは「外の人に届ける前」の G-41〜G-57。例: 保守の約束・上流の更新の取り込み・写真やファイルの保存・既存のリポジトリに一部だけ入れる道)。
+- 想定の場面で見つけた「足りない物」と、いつまでに要るか: **[docs/scenarios/gaps.md](docs/scenarios/gaps.md)**(いまは「外の人に届ける前」の残り。例: 上流の更新の取り込み・写真やファイルの保存・既存のリポジトリに一部だけ入れる道)。
 - わざとやっていないこと(次の一歩)と注意: [docs/reference.md](docs/reference.md) の「📏 わざとやっていないこと」「⚠️ この雛形の注意」。
 
 ## 🙋 本人が手でやる設定
@@ -239,4 +239,5 @@ GitHub・AWS・OIDC の変数と秘密・Slack・バックアップの確かめ�
 | ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物 | [docs/reference.md](docs/reference.md) |
 | なぜこう作るか(7工程・ハーネス3層・段階と費用・人と AI の分担) | [docs/concepts/](docs/concepts/README.md) |
 | docs 全体の地図 | [docs/README.md](docs/README.md) |
+| 版・変更の記録・誰がいつまで直すか・穴の知らせ方 | [CHANGELOG.md](CHANGELOG.md)・[docs/kit/maintenance.md](docs/kit/maintenance.md)・[SECURITY.md](SECURITY.md) |
 | AI(Claude Code)が読むルール | [CLAUDE.md](CLAUDE.md) |
