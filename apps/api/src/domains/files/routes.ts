@@ -9,9 +9,7 @@ import {
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { canTouchFile } from "../../authz/policy.ts";
-import type { RootDb } from "../../db/client.ts";
 import { scopeOf, type TenantScope } from "../../db/scope.ts";
-import { withTenant } from "../../db/tenant.ts";
 import type { AppEnv } from "../../env.ts";
 import { ApiError, forbidden, notFound } from "../../errors.ts";
 import {
@@ -26,6 +24,7 @@ import {
 } from "../../http/common.ts";
 import type { ObjectStore } from "../../storage/index.ts";
 import { taskExists } from "../tasks/index.ts";
+import type { InTenantTx } from "./process.ts";
 import {
   createFile,
   deleteFile,
@@ -38,7 +37,7 @@ import {
 
 // 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
 // file:read・file:write は関所のトランザクションの外(署名に STS を待つことがある。ADR 0079):
-// DB は自分で withTenant を開き、閉じてから署名する。file:delete はいつもどおりトランザクションの中。
+// DB は外(app.ts)が渡す inTenant で短いトランザクションを開き、閉じてから署名する。file:delete はいつもどおりトランザクションの中。
 // 署名つき URL はログに出さない(応答にだけ入れる)。
 
 const TaskParams = z.object({ taskId: IdSchema });
@@ -114,7 +113,7 @@ const deleteRoute = createRoute({
   },
 });
 
-export type FileRouteDeps = { db: RootDb; store: ObjectStore | null };
+export type FileRouteDeps = { inTenant: InTenantTx; store: ObjectStore | null };
 
 const unavailable = () =>
   new ApiError(503, "file_storage_unavailable", "ファイルの置き場が設定されていません");
@@ -135,7 +134,7 @@ export function fileRoutes(deps: FileRouteDeps) {
   /** 関所の外で、セッションの組織の短いトランザクションを開く(組織はセッションからだけ。T-1) */
   const inTenant = <T>(c: Context<AppEnv>, fn: (s: TenantScope) => Promise<T>) => {
     const { tenantId, userId } = c.get("actor");
-    return withTenant(deps.db, tenantId, (tx) => fn({ tx, tenantId, userId }));
+    return deps.inTenant(tenantId, (tx) => fn({ tx, tenantId, userId }));
   };
 
   return createRouter()

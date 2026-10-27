@@ -1,6 +1,5 @@
 import { FILE_LIMITS, type FileContentType, safeFileName } from "@app/shared";
-import type { RootDb } from "../../db/client.ts";
-import { withTenant } from "../../db/tenant.ts";
+import type { TenantTx } from "../../db/client.ts";
 import type { Logger } from "../../logger.ts";
 import { OUTBOX_TOPICS, type OutboxEvent } from "../../outbox/index.ts";
 import {
@@ -15,7 +14,13 @@ import { type FileRow, findFileForProcessing, settleFile } from "./repository.ts
 // 組織は出来事の tenantId から作り直す(T-4・L-5)。同じ出来事が2回届いても大丈夫に書く。
 // 置き場を待つのは DB のトランザクションの外だけ。
 
-export type FileProcessDeps = { db: RootDb; logger: Logger; store: ObjectStore };
+/**
+ * 組織の文脈つきの短いトランザクションを開く関数。領域の中では接続を持たないので、外(送り出し・app.ts)が
+ * `withTenant(db, …)` を包んで渡す(Semgrep の tenant-scoped-db-only)
+ */
+export type InTenantTx = <T>(tenantId: string, fn: (tx: TenantTx) => Promise<T>) => Promise<T>;
+
+export type FileProcessDeps = { inTenant: InTenantTx; logger: Logger; store: ObjectStore };
 
 /** 保存の名前。写真はその場で見せ、PDF は保存させる(ファイル名は URL に入れず、ここに入れる) */
 function contentDisposition(type: FileContentType, name: string): string {
@@ -44,15 +49,13 @@ function prepare(
 
 /** files.file_uploaded: 上げた物を読み直し、種類を確かめて付いた情報を消し、見せる置き場へ書く */
 export function handleFileUploaded(deps: FileProcessDeps) {
-  const { db, logger, store } = deps;
+  const { inTenant, logger, store } = deps;
   return async (event: OutboxEvent) => {
     const { fileId } = OUTBOX_TOPICS["files.file_uploaded"].parse(event.payload);
     const { tenantId } = event;
     const settle = (result: Parameters<typeof settleFile>[3]) =>
-      withTenant(db, tenantId, (tx) => settleFile(tx, tenantId, fileId, result));
-    const file = await withTenant(db, tenantId, (tx) =>
-      findFileForProcessing(tx, tenantId, fileId),
-    );
+      inTenant(tenantId, (tx) => settleFile(tx, tenantId, fileId, result));
+    const file = await inTenant(tenantId, (tx) => findFileForProcessing(tx, tenantId, fileId));
     // 消された・もう決まった(2回目)物は何もしない
     if (file?.status !== "pending") return;
 
