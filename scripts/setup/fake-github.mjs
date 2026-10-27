@@ -215,6 +215,9 @@ export function fakeGitHub(change = () => {}) {
         return done(
           state.kitUpdatedAt ? [{ commit: { committer: { date: state.kitUpdatedAt } } }] : [],
         );
+      // キットの最新の版(state.kitLatest があればそのタグ。無ければリリースが無い = 404)
+      if (/^repos\/[^/]+\/[^/]+\/releases\/latest$/.test(path))
+        return state.kitLatest ? done({ tag_name: state.kitLatest }) : notFound;
       const m = path.match(/^users\/(.+)$/);
       if (!m) return notFound;
       const id = 100 + Object.keys(state.users).length;

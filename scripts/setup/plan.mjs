@@ -1,5 +1,7 @@
 // セットアップの全体: 区分ごとに差分を作り(plan)、--apply なら順に流し(apply)、結果を Markdown にする(render)。
 // GitHub は gh(github.mjs。テストでは偽物)で読む。決まり: docs/designs/0014-setup-before-use.md
+
+import { latestRelease } from "../checkup/upstream.mjs";
 import {
   planActions,
   planLabels,
@@ -44,12 +46,14 @@ export function plan({ gh, setup, labels, src, today }) {
   };
 }
 
-/** キットの最後のコミットの日と、このリポジトリを作った日(読めなければ updatedAt なし) */
+/** キットの最後のコミットの日・最新の版と、このリポジトリを作った日(読めなければ updatedAt・latest なし) */
 function kitDates(gh, setup, repoData) {
   const res = gh.getPath(`repos/${setup.template_repository}/commits?per_page=1`);
+  const release = latestRelease(gh.getPath, setup.template_repository);
   return {
     createdAt: repoData.created_at,
     updatedAt: res.ok ? res.data?.[0]?.commit?.committer?.date : undefined,
+    latest: release.ok ? release.tag : undefined,
   };
 }
 
