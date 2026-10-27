@@ -267,7 +267,7 @@ parts:
     law:
       - ISMS 8.32(変更管理)
       - SOC 2 CC8.1
-    where: [.claude/hooks/protected-paths.json, .claude/hooks/guard-edit.mjs, .claude/hooks/guard-bash.mjs, scripts/check-guards.mjs, docs/guides/local-guards.md]
+    where: [.claude/hooks/protected-paths.json, .claude/hooks/guard-edit.mjs, .claude/hooks/guard-bash.mjs, .claude/hooks/guard-secrets-out.mjs, scripts/check-guards.mjs, docs/guides/local-guards.md]
 
   - id: github-setup
     name: GitHub の一括のセットアップとラベルの一覧
@@ -1527,9 +1527,15 @@ parts:
     depends_on: [harness]
     law: []
     remove:
-      delete: [.github/workflows/claude.yml]
+      delete:
+        - .github/workflows/claude.yml
+        - .github/scripts/ai-input-authors.mjs
+        - .github/scripts/ai-input-authors-lib.mjs
+        - .github/scripts/ai-input-authors.test.mjs
       edit:
         - { path: docs/guides/automation.md, what: claude の行を外す }
+        - { path: package.json, what: test:scripts の ai-input-authors.test.mjs を外す }
+      docs: [docs/specs/0060-background-ai-inputs.md, docs/designs/0060-background-ai-inputs.md]
 
   - id: dynamic-scans
     name: 攻撃の形の検査(Schemathesis・ZAP)
@@ -2038,7 +2044,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: 作った機能を出す前の受け入れで、PdM には PdM にしか判断できない4つ(流れ・ルール・作り込み・仮決め)だけを聞き、網羅の確かめは AI と QA に回す。結果を点数にし、外れた理由を要求・設計・AI の仮決め・実装に分け、要求のせいの物を解決済みの論点に書き戻す。書き方の崩れは CI(test:scripts)が止める
+    what: 作った機能を出す前の受け入れで、おすすめの観点(流れ・ルール・作り込み・仮決め)を中心に PdM に聞き、網羅の確かめは AI と QA に回す。結果を点数にし、外れた理由を要求・設計・AI の仮決め・実装に分け、要求のせいの物を解決済みの論点に書き戻す。記録を取るかは使うときに決める。書き方の崩れは CI(test:scripts)が止め、観点のおすすめから外れた所は知らせるだけ
     needed_by: PdM が受け入れで詰まり所になっている・同じ種類の書き漏らしが仕様で繰り返される
     not_needed_by: 1人で作って1人で使っている間(受け入れる人と作る人が同じ)
     if_removed: 受け入れが人の記憶だけに残り、仕様の書き漏らしが次の仕様に持ち越される
