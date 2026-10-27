@@ -1,6 +1,6 @@
 # 仕様: 画面の CSP(Content-Security-Policy)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0045-web-csp.md](../designs/0045-web-csp.md)・ADR: [0056](../adr/0056-web-csp-with-nonce.md)
 > 穴 G-17(`docs/scenarios/gaps.md`)。想定の場面 6-7(外部の診断)。
 

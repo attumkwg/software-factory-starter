@@ -42,7 +42,7 @@
 | 使い方 | 答える。同じ質問が3回来たら、ヘルプの記事にする | 営業時間 |
 | 契約・請求・解約 | 責任者へ。解約は書面で受ける([runbooks/offboarding.md](../runbooks/offboarding.md) の 1) | 営業時間 |
 | サポートに中を見てほしい | お客さんの管理者に、画面「サポートへの許可」で期限つきの許可を出してもらう([runbooks/support-access.md](../runbooks/support-access.md)) | 営業時間 |
-| 本人の情報の開示・消して、の求め | 責任者へ(手順は穴 G-06。いまは手で) | 法の期限がある |
+| 本人の情報の開示・消して、の求め | 責任者へ(手順は [../runbooks/person-data.md](../runbooks/person-data.md)) | 法の期限がある |
 
 ### 不具合のとき(`/report-bug` へ)
 
