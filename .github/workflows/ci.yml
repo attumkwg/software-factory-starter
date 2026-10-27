@@ -199,45 +199,26 @@ jobs:
           cache: pnpm
       - if: steps.scope.outputs.heavy == 'true'
         run: pnpm install --frozen-lockfile
-      - name: 手元と同じ形で起動(DB・移行・種データ・API・画面の SSR・ALB の代わり)と、ブラウザを入れる(並べて)
+      # ブラウザは Playwright の公式イメージの Docker の中(VRT と同じ)。ホストに OS の部品もブラウザも入れない
+      # (取得が10分かかることがあった)。段ごとの時刻と秒数がログに出る
+      - name: 手元と同じ形で起動(DB・移行・種データ・API・画面の SSR・ALB の代わり)と、Docker の中のブラウザ(並べて)
         if: steps.scope.outputs.heavy == 'true'
-        run: |
-          # ブラウザと OS の部品を入れる(約20秒)のを、アプリの起動を待つ間に済ませる
-          pnpm --filter @app/web exec playwright install --with-deps chromium > "$RUNNER_TEMP/playwright-install.log" 2>&1 &
-          install=$!
-          # 後の Cognito の手順で使う偽物の Cognito も、ここで作っておく(下でコンテナの外への通信を止めると、作れない)
-          docker compose -f docker-compose.yml -f docker-compose.cognito.yml build fake-cognito
-          docker compose up --build -d
-          # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
-          # 1回の確かめは2秒で切る(起動の直後は ALB の代わりが受けたまま待ち続け、1回で1分ほど止まって全体が11分かかったことがある)
-          ready=false
-          for _ in $(seq 1 120); do
-            if curl -fsS --max-time 2 http://localhost:8080/readyz && [ "$(curl -s --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
-              ready=true
-              break
-            fi
-            sleep 1
-          done
-          if [ "$ready" != true ]; then
-            docker compose logs
-            exit 1
-          fi
-          if ! wait "$install"; then
-            cat "$RUNNER_TEMP/playwright-install.log"
-            exit 1
-          fi
+        run: bash .github/scripts/start-app.sh --with-fake-cognito
       # イメージを作り終えてから、アプリのコンテナを外へ出られなくする(画面・API が外へ送っていれば、ここで E2E が落ちる。
       # イメージの取得は通る。docs/designs/0057-ai-egress.md の U-2・段4)
       - name: Docker のコンテナから外への通信を止める
         if: steps.scope.outputs.heavy == 'true'
         run: bash .github/scripts/block-container-egress.sh
       - if: steps.scope.outputs.heavy == 'true'
+        env:
+          E2E_WS_ENDPOINT: ws://127.0.0.1:3100/
         run: pnpm test:e2e
       - name: Cognito でのログイン(偽物の Cognito に切り替えて、ログインの流れだけ流す)
         if: steps.scope.outputs.heavy == 'true'
         env:
           E2E_AUTH: cognito
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-cognito
+          E2E_WS_ENDPOINT: ws://127.0.0.1:3100/
         run: |
           # API を AUTH_MODE=cognito で起動し直し、偽物の Cognito を足す(DB と種データはそのまま)。
           # API と偽物の Cognito のイメージは、起動の手順で作ってある(コンテナの外への通信を止めた後は作れない)
@@ -255,7 +236,9 @@ jobs:
           retention-days: 7
       - name: 失敗したらログ
         if: failure() && steps.scope.outputs.heavy == 'true'
-        run: docker compose -f docker-compose.yml -f docker-compose.cognito.yml logs
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.cognito.yml logs
+          docker compose -f docker-compose.vrt.yml logs
 
   gitleaks:
     name: 秘密情報(gitleaks)
