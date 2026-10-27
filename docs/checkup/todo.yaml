@@ -624,7 +624,7 @@ items:
     evidence: [ github-collaborators, aws-iam-users ]
     status: open
     history: []
-    source: docs/designs/0034-joiner-leaver.md の 6.(穴 G-13)
+    source: docs/designs/0034-joiner-leaver.md の 6.(G-13 から)
     review_by: 2027-04-25
 
   - id: kit-upstream
@@ -640,7 +640,7 @@ items:
     controls: [ A.8.8, A.5.21 ]
     status: open
     history: []
-    source: docs/designs/0067-kit-upstream.md の 6.(穴 G-42)
+    source: docs/designs/0067-kit-upstream.md の 6.(G-42 から)
     review_by: 2027-04-27
 
   # ── 3か月(以後四半期ごと)────────────────────────────────────────
@@ -767,7 +767,7 @@ items:
     controls: [ A.5.24, A.5.26 ]
     status: open
     history: []
-    source: docs/designs/0031-on-call.md の 6.(穴 G-08)
+    source: docs/designs/0031-on-call.md の 6.(G-08 から)
     review_by: 2027-04-25
 
   - id: scs-review
@@ -790,7 +790,7 @@ items:
     controls: [ A.5.31, A.5.19 ]
     status: open
     history: []
-    source: docs/designs/0052-scs-mapping.md の 6.(穴 G-25)
+    source: docs/designs/0052-scs-mapping.md の 6.(G-25 から)
     review_by: 2027-04-25
 
   # ── 半年(以後半年ごと)────────────────────────────────────────────

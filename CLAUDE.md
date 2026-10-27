@@ -11,7 +11,7 @@
 - `pnpm lint`(Biome。複雑さ・長さの上限も)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:integration`(Docker が要る)/ `pnpm test:coverage`(カバレッジの下限。API は単体+結合で見るので Docker が要る。`docs/guides/ci-limits.md`)
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 - `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)/ `pnpm vrt`(見た目の回帰テスト。画面を変えたら `pnpm vrt:update`。`docs/guides/vrt.md`)
-- 守り: `pnpm guards`(危険度「高」の守りが一覧とそろっているか)/ `pnpm self-contained`(キットの外の資料を指していないか)/ `pnpm decisions --strict`(仮決めが残っていないか)/ `pnpm outbound`(PR の「🚪 外へ出した物」の表。`docs/designs/0057-ai-egress.md`)
+- 守り: `pnpm guards`(危険度「高」の守りが一覧とそろっているか)/ `pnpm self-contained`(キットの外の資料を指していないか)/ `pnpm decisions --strict`(仮決めが残っていないか)/ `pnpm gaps`(穴の一覧の今の数と、済んだ穴を「穴」と書いた文書。表は `--write`)/ `pnpm outbound`(PR の「🚪 外へ出した物」の表。`docs/designs/0057-ai-egress.md`)
 
 ## 地図(1行ずつ。詳しくはその場所の CLAUDE.md と資料)
 
@@ -38,7 +38,7 @@
 | 外のサービスの SDK・新しい種類の AWS の資源・Actions | `docs/compliance/vendors.yaml`(人の確認) | CI が落ちる |
 | ラベルを使う物・ジョブの名前 | `.github/labels.yml`・`.github/setup.yml` の `required_checks` | CI が落ちる |
 | キットの部品 | `docs/kit/catalog.yaml`(`pnpm kit:catalog`) | CI が落ちる |
-| 部品を足した・穴を埋めた PR | `docs/scenarios/gaps.md` の行と、当たる場面の判定(何を足すか迷ったら `gaps.md` の上から) | 場面の判定が古くなる |
+| 部品を足した・穴を埋めた PR | `docs/scenarios/gaps.md` の行と、当たる場面の判定(何を足すか迷ったら `gaps.md` の「🎯」の段の上から。`pnpm gaps --write`) | CI が落ちる・場面の判定が古くなる |
 
 ## 必ず守る
 

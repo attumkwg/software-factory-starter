@@ -34,7 +34,7 @@
 | ログの保存 | アプリ 90日・DB とメールと WAF 30日・Sentry 90日。名前・メールアドレス・本文は出さない(許可リスト) | [guides/data-retention.md](../guides/data-retention.md)・[ADR 0019](../adr/0019-log-allowlist.md) |
 | 見張り | 外から30秒ごと(東京・シンガポール・オレゴン)。ほとんどの地点から2分続けて開けないと Slack に鳴る | [guides/monitoring.md](../guides/monitoring.md)・`infra/terraform/modules/uptime` |
 | 障害の重さと連絡 | S1 は30分以内に1報・以後1時間ごと / S2 は1時間以内 / S3 は知らせない。S1・S2 は5営業日以内に振り返り | [runbooks/incident.md](../runbooks/incident.md) の 1・4・6 |
-| 個人データの事故 | お客さん(委託元)に、知ってから 3〜5日のうちに知らせる。報告と本人への通知はお客さんと一緒に | [runbooks/personal-data-breach.md](../runbooks/personal-data-breach.md) の 4 |
+| 個人データの事故 | お客さん(委託元)に、取り決めの期限(既定は知ってから3日以内。[data-processing.md](data-processing.md))が先。法の目安は3〜5日。報告と本人への通知はお客さんと一緒に | [runbooks/personal-data-breach.md](../runbooks/personal-data-breach.md) の 4 |
 | 止めずに出す | 出し直しは blue/green(止まらない)。DB の変更は止めずに段階で(拡張 → 縮小)。DB の入れ替え・大きな版上げは止まることがある | [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)・`.claude/skills/db-migration` |
 | 安全管理措置 | 附属書 A の管理策ごとの実施(適用宣言書)と、セキュリティの決まり | [compliance/soa.md](../compliance/soa.md)・[security.md](../security.md) |
 | AI に渡すデータ | 本番の個人データは渡さない。ID と集計まで。要配慮は一切 | [security.md](../security.md) の AI-6・[compliance/ai-data.md](../compliance/ai-data.md) |

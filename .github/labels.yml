@@ -32,12 +32,12 @@ labels:
     used_by: .github/labeler.yml
   - name: risk:low
     color: ededed
-    description: "危険度「低」: 文書・テストだけの PR。CI が緑なら人はほぼ見なくてよい(自動で付く)"
+    description: "危険度「低」: 文書・テストだけの PR。CI が緑なら、承認の数どおりにマージ(自動で付く)"
     group: 危険度(PR)
     meaning: 変えたファイルが全部、文書かテストの PR
     who: 自動(labeler)。不具合の Issue には /report-bug が見込みで付ける
     when: PR を開いた・push したとき
-    action: CI が緑ならマージしてよい(最初の1〜2か月は人も見て、AI の見逃しを数える)
+    action: CI が緑なら、ルールセットの承認の数どおりにマージ(1人の間は0人・人が増えて1にしたら1人。自動マージは無い。最初の1〜2か月は中身も見て、AI の見逃しを数える)
     used_by: .github/labeler.yml・/report-bug
 
   - name: tests:weakened
@@ -127,7 +127,7 @@ labels:
     meaning: 部品(ライブラリ・Action・イメージ)の版を上げる PR
     who: 自動(Renovate。renovate.json)
     when: 更新の PR が出たとき(毎週月曜の朝・最大5本)
-    action: CI が緑で危険度「低」ならまとめてマージ。大きい版は Dependency Dashboard の Issue で承認してから
+    action: CI が緑で危険度「低」なら、承認の数どおりに人がまとめてマージ(自動マージは入れていない)。大きい版は Dependency Dashboard の Issue で承認してから
     used_by: renovate.json
   - name: security
     color: b60205
