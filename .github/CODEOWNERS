@@ -42,6 +42,8 @@
 /CLAUDE.md                          @attumkwg
 /apps/api/CLAUDE.md                 @attumkwg
 /apps/web/CLAUDE.md                 @attumkwg
+/docs/CLAUDE.md                     @attumkwg
+/packages/CLAUDE.md                 @attumkwg
 /.claude/settings.json              @attumkwg
 /.claude/hooks/                     @attumkwg
 /.devcontainer/                     @attumkwg

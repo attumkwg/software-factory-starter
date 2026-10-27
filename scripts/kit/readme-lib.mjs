@@ -28,6 +28,14 @@ function partRows(catalog) {
   return rows;
 }
 
+/** 一括の型(presets)の行。「🪶 軽い型(…): a・b をまとめて後で足す」 */
+function presetLines(catalog) {
+  return (catalog.presets ?? []).map(
+    (p) =>
+      `- 🪶 **${p.title}**: ${p.later.map((x) => code(x.id)).join("・")} をまとめて「後で足す」にできる(足し直す合図は部品ごとにカタログの \`presets\`)。`,
+  );
+}
+
 /** 印の間に入れる中身(印は含まない) */
 export function renderSection(catalog) {
   const questions = catalog.questions.map((q) => q.text).join("/");
@@ -47,6 +55,7 @@ export function renderSection(catalog) {
     "- 🔒 は土台。どの答えでも消さない。",
     "- 既定は、迷ったときのおすすめ。**迷ったら残す**(消すのは後からでもできる。足し直すほうが高い)。",
     "- 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。",
+    ...presetLines(catalog),
     "",
     // README は使い始める人の入口なので、長い一覧は畳んでおく(GitHub では押すと開く)
     "<details>",

@@ -147,3 +147,35 @@ test("README は印の間だけを書き換える", () => {
   assert.equal(replaceSection(out, section), out);
   assert.throws(() => replaceSection("# 印なし", section), /印/);
 });
+
+test("一括の型: 答えの条件・部品・足し直す合図・残す部品からの頼られ方を確かめる", () => {
+  const size = {
+    id: "size",
+    text: "人数と段階",
+    kind: "事業判断",
+    options: ["1〜3人・PMF の前", "4人以上か PMF の後"],
+    recommended: "4人以上か PMF の後",
+    why: "軽い型",
+  };
+  const withPreset = (parts, later, when = "size=1〜3人・PMF の前") => {
+    const c = catalogOf(parts);
+    c.questions.push(size);
+    c.presets = [{ id: "light", title: "軽い型", when, why: "抱える量を減らす", later }];
+    return c;
+  };
+  const sso = part({ id: "sso", name: "SSO" });
+  const ok = withPreset([part(), sso], [{ id: "sso", add_back_when: "情シスが求めたとき" }]);
+  assert.deepEqual(validateCatalog(ok, fsx), []);
+  const problems = validateCatalog(
+    withPreset(
+      [part(), sso, part({ id: "scim", name: "SCIM", depends_on: ["sso"] })],
+      [{ id: "sso" }, { id: "nothing", add_back_when: "x" }],
+      "size=10人",
+    ),
+    fsx,
+  ).join("\n");
+  assert.match(problems, /when「size=10人」の答え 10人 が選択肢に無い/);
+  assert.match(problems, /部品 nothing がカタログに無い/);
+  assert.match(problems, /sso に add_back_when が無い/);
+  assert.match(problems, /一括の型 light: sso を消すと、残す scim が困る/);
+});

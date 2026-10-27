@@ -46,7 +46,8 @@
 │  ├─ review-viewpoints.md      設計とレビューの観点(共通の8つ+このプロダクト特有。溜めていく)
 │  ├─ legal/                    お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い。文面は書かず、既定・根拠・使う人が決めること)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
-│  └─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
+│  ├─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
+│  └─ kit/                      キットの持ち物(部品のカタログ catalog.yaml・保守の方針 maintenance.md・取り込んだ版 upstream.yaml・取り込みの手引き upgrade.md・最初の1週間 first-week.md・用語集 glossary.md・経営者と情シス向けの1枚 one-pager.md)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・backup(消せない保管庫)・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
@@ -59,7 +60,8 @@
 ├─ .claude/                     ハーネス(フック・スキル)。settings.json は下の注意を参照
 ├─ .semgrep/                    自社専用の検査ルールとそのテスト
 ├─ .devcontainer/               人も AI も同じ開発環境(外への通信は許可リストのプロキシだけ。egress/。docs/guides/unattended-ai.md)
-├─ CLAUDE.md                    全体のルール(apps/api・apps/web にも短いものがある)
+├─ CLAUDE.md                    どこを触っても守るルール(場所ごとのルールは apps/api・apps/web・packages・infra・.github・docs の CLAUDE.md)
+├─ CHANGELOG.md / SECURITY.md   キットの版ごとの変更 / 穴の知らせ方(キットから作ったら自分の物に。docs/kit/maintenance.md)
 ├─ docker-compose.yml           手元で丸ごと動かす(docker/alb.Caddyfile が ALB の代わり)
 └─ renovate.json                依存の更新(危険度のラベルつき)
 ```
@@ -131,6 +133,26 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ---
 
+## 🧰 コマンドの全部
+
+> ルートの `CLAUDE.md` から移した(AI が毎回読む量を減らすため。よく使う物だけルートに残した)。コマンドを足したらここに1行。
+
+- `pnpm install` / `pnpm dev`(API 3000 + 画面 5173。先に `docker compose up -d db && pnpm db:migrate && pnpm db:seed`)
+- `pnpm lint`(Biome。複雑さ・長さの上限も)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:coverage`(カバレッジの下限。API は単体+結合で見るので Docker が要る。`docs/guides/ci-limits.md`)/ `pnpm test:integration`(Docker が要る)
+- `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
+- `pnpm vrt`(見た目の回帰テスト。先に `docker compose -f docker-compose.vrt.yml up -d --wait` で Docker の中のブラウザも)/ `pnpm vrt:update`(画面を変えたときだけ。撮り直した画像を見てからコミット)。`docs/guides/vrt.md`
+- 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
+- `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)/ `pnpm outbound`(AI が外へ向けてした操作の記録を、PR の「🚪 外へ出した物」の表にする。`--clear` で空に。`docs/designs/0057-ai-egress.md`)
+- `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`
+- `pnpm vendors`(委託先の台帳 `docs/compliance/vendors.yaml` とコードの照らし合わせ。CI)/ `pnpm vendors --write`(人が読む一覧 `vendors.md` を作り直す)
+- `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
+- `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
+- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
+- `pnpm contrast`(色のトークンのコントラストの比。明るいテーマと暗いテーマ・WCAG 2.2 AA。案のファイルを並べて渡すと比べられる)
+- `pnpm sales:pack --out <ファイル>`(稟議の資料の束: 仕組みの事実・SLA・取り扱い・委託先を1つに。リポジトリの外に書く。デモの組織は stg でデモの前に手で戻す `demo-reset.yml`。`docs/guides/sales.md`)
+- `pnpm metrics`(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫。決裁用と改善用。`gh` で読むだけ。`metrics.yml` が毎週。`docs/guides/metrics.md`)
+- `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
+
 ## 🧭 考え方とこの雛形の対応
 
 考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)は [docs/concepts/](concepts/README.md)、セキュリティの決まり(AI ならではの守り・認可・テナント分離)は [docs/security.md](security.md)。ここでは、それがこの雛形のどのファイルに当たるかを並べる。
@@ -141,9 +163,9 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 |---|---|
 | ① 受付 | `.github/ISSUE_TEMPLATE/`(機能・不具合。不具合には requestId の欄) |
 | ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル(ラベルの意味は [docs/guides/labels.md](guides/labels.md)) |
-| ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
+| ③ 仕様 | `docs/specs/`(第1部 PdM: 業務の要求・ルール・受け入れ条件 / 第2部 AI: 状態 × 操作・境界値・権限・STRIDE。承認の基準は `docs/guides/human-review.md` の 6)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
 | ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
-| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
+| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP)・PR の動作確認(`/verify-pr`。本文の「🖱 動作確認」を E2E の部品で確かめ、手順を貼る。`pnpm verify:lint` と記録を疑って読む2層。`docs/guides/verify-pr.md`)・受け入れ(`/accept`。PdM はおすすめの観点を中心に・記録を取るかは使うときに決める・点数と外れた理由は `docs/acceptance/`・`pnpm acceptance`・要求のせいの外れは `docs/domain/resolved-questions.md`) |
 | ⑥ レビュー | `pull_request_template.md`(全体像と判断してほしい所を一番上。問いは「事実・理由・問い」)・`docs/review-viewpoints.md`(観点ごとの扱い)・`CODEOWNERS`・`labeler.yml`。直しは `/rework`(上流から作り直す)。考え方は `docs/guides/human-review.md` |
 | ⑦ 出荷と監視 | `deploy.yml`(stg 自動 → prod 承認 → ECS の blue/green)・`ecs-service` の 5xx アラームで自動で戻す・構造化ログ |
 

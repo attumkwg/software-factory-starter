@@ -15,6 +15,7 @@
 | 8 | Slack から頼めるようにする(⑤) | 半日〜 | 案による |
 | 9 | 毎週の運用(⑥) | 毎週30分 | — |
 
+- 👔 経営・情シスの方は、手順の前に [kit/one-pager.md](kit/one-pager.md)(1枚でわかる: 流れ・人と AI の分担・費用と効果の見込み)。
 - 🧭 **順番はルートの README の「始め方」と同じ**。1 と 2 は30分ほど。1 は自分のリポジトリを作らずに試せる。
 
 ---
@@ -73,7 +74,7 @@ cd my-product && git remote rename origin kit
 gh repo create <自分か組織>/my-product --private --source . --push
 ```
 
-- `kit` の名前でキットを残しておくと、後でキットの直しを見られる(`git fetch kit` → `git log HEAD..kit/main`)。
+- `kit` の名前でキットを残しておくと、後でキットの新しい版を取り込める(手順は [kit/upgrade.md](kit/upgrade.md)。どの版から作ったかは `docs/kit/upstream.yaml`。新しい版は月1回の `/checkup` が知らせる)。
 - 1 で試したフォルダをそのまま使ってよい(2つ目と3つ目のコマンドだけ流す)。
 
 作ったら、最初に1つだけ流す(`gh` でそのリポジトリの管理者としてログインしておく):
@@ -94,11 +95,11 @@ pnpm setup:github
 - 確かめた結果が出たら、もう一度 `/kickoff`。基準と比べて「進む・変える・やめる」を決める。
 - 考え方と段階ごとのキットの使い方は [guides/before-pmf.md](guides/before-pmf.md)。**話を聞く・画面だけで確かめる段階では、AWS は要らない。**
 - ①は並行して進めてよい(キットに慣れておく)。②で題材を差し替えるのは、作る物が決まってから。
-- 作る物が見えたら `/tailor`。会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を1問ずつ聞き、キットの部品(監査ログ・代理ログインなど)ごとに残す・消すを決めて `docs/product/tailoring.md` に残す。**迷ったら残す**。部品の一覧は [kit/catalog.yaml](kit/catalog.yaml)。
+- 作る物が見えたら `/tailor`。会社向けか・個人情報・お金・メール・検索・スマホ・認証の予定を1問ずつ聞き、キットの部品(監査ログ・代理ログインなど)ごとに残す・消すを決めて `docs/product/tailoring.md` に残す。**迷ったら残す**。ただし1〜3人で PMF の前なら、最初の問いで「軽い型」(SSO・SCIM・認証の準備・当番・費用と損益などを、足し直す合図つきでまとめて「後で足す」)を選べる。部品の一覧は [kit/catalog.yaml](kit/catalog.yaml)。
 
 ## ② 自分のプロダクトに置き換える
 
-TODO アプリは「ラインを見せるための題材」。**ラインは残し、題材を差し替える**。
+TODO アプリは「ラインを見せるための題材」。**ラインは残し、題材を差し替える**。どの順で・どのファイルをやるかの例(TODO → 工務店の現場と日報)は [guides/replace-subject.md](guides/replace-subject.md)。
 
 | 残す(ライン) | 差し替える(題材) |
 |---|---|
@@ -122,6 +123,11 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 - 📄 キットは MIT。自分のプロダクトは、非公開のまま売ってもよいし、別のライセンスにしてもよい。
 - 🔁 **条件は1つ**: キットから持ってきた部分には、キットの著作権とライセンスの文を残す。ルートの `LICENSE` を `docs/kit/LICENSE-software-factory-starter` などへ移して残し、ルートには自分のプロダクトの `LICENSE`(非公開なら置かないか「All rights reserved」)を置く。
 - ⚠️ 迷ったら、売る前に専門家に確かめる(依存のライセンスも含めて)。
+
+### キットから来た `SECURITY.md`・`CHANGELOG.md`
+
+- 🔒 `SECURITY.md` は**キットの**穴の窓口。自分のプロダクトの穴を知らせてもらう連絡先(会社の窓口・GitHub の非公開の報告)に書き換える。キットに穴を見つけたら、キットの `SECURITY.md` の道で。
+- 📜 `CHANGELOG.md` は**キットの**変更の記録。消すか自分の物にしてよい。キットの記録は `git fetch kit` → `git show kit/main:CHANGELOG.md` で読める。どの版から作ったかは `docs/kit/upstream.yaml`(取り込んだら直す。[kit/upgrade.md](kit/upgrade.md))。
 
 ## ③ GitHub の設定
 
