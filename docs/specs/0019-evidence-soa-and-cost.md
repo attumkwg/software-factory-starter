@@ -1,6 +1,6 @@
 # 仕様: 証跡の自動収集・適用宣言書(SoA)・規程のひな形・コストのダッシュボード
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0019-evidence-soa-and-cost.md](../designs/0019-evidence-soa-and-cost.md)・ADR: [0032](../adr/0032-evidence-and-cost-outside-the-repo.md)
 > PR は2つに分ける: ① 証跡・SoA・規程・`/compliance-check` ② コストのダッシュボード(① の上に積む)
 
