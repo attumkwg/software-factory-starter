@@ -1,6 +1,6 @@
 # 仕様: 契約のプランの表(人数の上限・機能とのつなぎ・価格表と据え置き)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0047-plans.md](../designs/0047-plans.md)・ADR: [0058](../adr/0058-plans-table.md)
 > 手順書: [docs/runbooks/plans.md](../runbooks/plans.md)。穴 G-03(`docs/scenarios/gaps.md`)。
 
