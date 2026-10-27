@@ -20,7 +20,7 @@
 ## 1. 設計方針
 
 - 一括の型は**カタログのデータ**にする(`presets`)。スキルに部品の名前を書かない(カタログが正。`pnpm kit:catalog` で確かめられる)。
-- 型に入れるのは、**後から足せる**物だけ: 大きな会社の情シス向け(`sso`・`scim`・`ip-allowlist`・`audit-export`)・認証の準備(`certification-prep`)・人が増えてからの運用(`on-call`)・お金の見える化(`cost-dashboard`・`ledger`)・営業の道具(`security-questionnaire`・`sales-kit`)・PR ごとの環境(`preview-env`)。**`stages.md` の「雑にしてはいけない」に当たる物と、監査ログ・二段階認証・WAF・バックアップは入れない**。
+- 型に入れるのは、**後から足せる**物だけ: 大きな会社の情シス向け(`sso`・`scim`・`ip-allowlist`・`audit-export`)・認証の準備(`certification-prep`)・人が増えてからの運用(`on-call`)・お金の見える化(`cost-dashboard`・`ledger`)・営業の道具(`security-questionnaire`・`sales-kit`)・PR ごとの環境(`preview-env`)と、それに頼る PR の動作確認(`verify-pr`。後から入った部品で、`pnpm kit:catalog` が頼り先の抜けを見つけた)。**`stages.md` の「雑にしてはいけない」に当たる物と、監査ログ・二段階認証・WAF・バックアップは入れない**。
 - 型の部品は、どれも足し直す合図(`add_back_when`)を持つ。記録の理由に写るので、半年・1年の `/tailor` で合図が来たかを聞ける。
 - 記録の決定の値は増やさない(`消す` と理由「軽い型: 後で足す(…)」)。`pnpm kit:catalog` の記録の読み方を変えずに済む。
 - 足し直しは、`docs/kit/upgrade.md` の B の形(キットのその版から、その部品のファイルを持ってくる)。

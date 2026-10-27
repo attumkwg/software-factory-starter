@@ -143,7 +143,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 🔒 は土台。どの答えでも消さない。
 - 既定は、迷ったときのおすすめ。**迷ったら残す**(消すのは後からでもできる。足し直すほうが高い)。
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
-- 🪶 **軽い型(1〜3人・PMF の前)**: `sso`・`scim`・`ip-allowlist`・`audit-export`・`certification-prep`・`on-call`・`ledger`・`cost-dashboard`・`security-questionnaire`・`sales-kit`・`preview-env` をまとめて「後で足す」にできる(足し直す合図は部品ごとにカタログの `presets`)。
+- 🪶 **軽い型(1〜3人・PMF の前)**: `sso`・`scim`・`ip-allowlist`・`audit-export`・`certification-prep`・`on-call`・`ledger`・`cost-dashboard`・`security-questionnaire`・`sales-kit`・`preview-env`・`verify-pr` をまとめて「後で足す」にできる(足し直す合図は部品ごとにカタログの `presets`)。
 
 <details>
 <summary>部品の一覧を開く(71件)</summary>

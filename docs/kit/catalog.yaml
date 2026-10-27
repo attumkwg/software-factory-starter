@@ -122,6 +122,7 @@ presets:
       - { id: security-questionnaire, add_back_when: 大きな会社からセキュリティの質問票が届いたとき }
       - { id: sales-kit, add_back_when: 営業がデモ・見積・稟議の資料を毎回作り始めたとき }
       - { id: preview-env, add_back_when: PR が週に10件を超え、stg を1つで回すと待ちが出るとき }
+      - { id: verify-pr, add_back_when: preview-env を足し直したとき(PR ごとの画面の確認を AI に回したくなったとき。preview-env に頼っている) }
 
 # ── 部品の区分 ────────────────────────────────────────────────────────────
 groups:
