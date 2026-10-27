@@ -7,11 +7,15 @@
 # 既定: 領域のオーナー1人(危険度「中」)
 *                                   @attumkwg
 
-# ── 危険度「高」: 認証・認可・テナント分離 ──
+# ── 危険度「高」: 認証・認可・テナント分離(それを確かめるテストも。弱めると守りが外れる。G-44) ──
 /apps/api/src/auth/                 @attumkwg
 /apps/api/src/authz/                @attumkwg
 /apps/api/src/db/                   @attumkwg
 /docs/authz/                        @attumkwg
+/apps/api/test/integration/rls.int.test.ts @attumkwg
+/apps/api/test/integration/tenant-isolation.int.test.ts @attumkwg
+/apps/api/test/integration/authz-matrix.int.test.ts @attumkwg
+/apps/api/test/unit/authz-coverage.test.ts @attumkwg
 
 # ── 危険度「高」: 個人情報(列の分類表は src/db/ の中)・ログの部品・委託先の台帳 ──
 /apps/api/test/unit/classification.test.ts @attumkwg
@@ -33,8 +37,11 @@
 /apps/web/Dockerfile                @attumkwg
 /docker/                            @attumkwg
 
-# ── 危険度「高」: CI・ハーネス・このファイル(AI に変えさせない所) ──
+# ── 危険度「高」: CI・ハーネス(「してはいけない」を書いた CLAUDE.md も)・このファイル(AI に変えさせない所) ──
 /.github/                           @attumkwg
+/CLAUDE.md                          @attumkwg
+/apps/api/CLAUDE.md                 @attumkwg
+/apps/web/CLAUDE.md                 @attumkwg
 /.claude/settings.json              @attumkwg
 /.claude/hooks/                     @attumkwg
 /.devcontainer/                     @attumkwg
