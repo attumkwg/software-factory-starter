@@ -47,7 +47,7 @@
 │  ├─ legal/                    お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い。文面は書かず、既定・根拠・使う人が決めること)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  ├─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
-│  └─ kit/                      キットの持ち物(部品のカタログ catalog.yaml・保守の方針 maintenance.md・取り込んだ版 upstream.yaml・取り込みの手引き upgrade.md・最初の1週間 first-week.md・用語集 glossary.md)
+│  └─ kit/                      キットの持ち物(部品のカタログ catalog.yaml・保守の方針 maintenance.md・取り込んだ版 upstream.yaml・取り込みの手引き upgrade.md・最初の1週間 first-week.md・用語集 glossary.md・経営者と情シス向けの1枚 one-pager.md)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・backup(消せない保管庫)・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
