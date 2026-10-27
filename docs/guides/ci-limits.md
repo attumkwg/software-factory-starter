@@ -53,6 +53,8 @@ gzip の大きさで比べるのは、ブラウザに届く量に近いから(�
 
 **上げ方**: テストを足して値が上がったら、下限も「新しい値の約2ポイント下」に上げてよい(下げるのは、理由を PR に書いて人が判断する)。
 
+**下限の設定(`vitest.config.ts`)・`biome.json`・`apps/api/.squawk.toml`・`apps/web/playwright*.config.ts` は危険度「高」**(G-60)。下限を下げた・外した、テストを消した・`skip` や `only` を足した・`expect` や `assert` が減った・`biome-ignore` などの注釈を足した PR には、ラベル `tests:weakened` が付く(`.github/workflows/test-weakening.yml`。止めずに印を付け、危険度「高」とみなす)。付いたら、理由を PR の本文に書く。設定のファイルを足したら、守る一覧(`.claude/hooks/protected-paths.json`)にも足す。
+
 ## 4. 画面の圧縮(ALB は圧縮しない)
 
 AWS の ALB は応答を圧縮しない。そのままだと、画面の JS(約850KB)や HTML が生のまま届く。そこで画面のサーバー(`apps/web/server`)が自分で圧縮する。

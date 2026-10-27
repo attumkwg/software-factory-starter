@@ -29,6 +29,8 @@ test("高かどうか: ファイル・名前を変えた元の名前・ラベル
   const moved = [{ filename: "docs/old-auth.ts", previous_filename: "apps/api/src/auth/x.ts" }];
   assert.equal(isHighRisk({ files: moved, labels: [], paths }), true);
   assert.equal(isHighRisk({ files: [], labels: ["risk:high"], paths }), true);
+  // テストか検査を弱めた印(G-60)
+  assert.equal(isHighRisk({ files: [], labels: ["tests:weakened"], paths }), true);
 });
 
 test("承認: 人ごとの最後の判断・出した人とボットと外の人は数えない・コメントは判断を変えない", () => {

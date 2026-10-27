@@ -54,6 +54,15 @@
 /scripts/review-count-lib.mjs       @attumkwg
 /scripts/decision-evidence.mjs      @attumkwg
 /scripts/decisions-lib.mjs          @attumkwg
+/apps/api/vitest.config.ts          @attumkwg
+/packages/fake-cognito/vitest.config.ts @attumkwg
+/packages/shared/vitest.config.ts   @attumkwg
+/biome.json                         @attumkwg
+/apps/api/.squawk.toml              @attumkwg
+/apps/web/playwright.config.ts      @attumkwg
+/apps/web/playwright.vrt.config.ts  @attumkwg
+/scripts/test-weakening.mjs         @attumkwg
+/scripts/test-weakening-lib.mjs     @attumkwg
 /.gitleaksignore                    @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg

@@ -43,6 +43,15 @@
           - scripts/review-count-lib.mjs
           - scripts/decision-evidence.mjs
           - scripts/decisions-lib.mjs
+          - apps/api/vitest.config.ts
+          - packages/fake-cognito/vitest.config.ts
+          - packages/shared/vitest.config.ts
+          - biome.json
+          - apps/api/.squawk.toml
+          - apps/web/playwright.config.ts
+          - apps/web/playwright.vrt.config.ts
+          - scripts/test-weakening.mjs
+          - scripts/test-weakening-lib.mjs
           - .gitleaksignore
           - .trivyignore.yaml
           - renovate.json
