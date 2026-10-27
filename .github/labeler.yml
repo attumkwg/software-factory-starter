@@ -15,6 +15,10 @@
           - packages/logging/**
           - apps/web/server/logger.ts
           - apps/api/test/integration/personal-data-logs.int.test.ts
+          - apps/api/test/integration/rls.int.test.ts
+          - apps/api/test/integration/tenant-isolation.int.test.ts
+          - apps/api/test/integration/authz-matrix.int.test.ts
+          - apps/api/test/unit/authz-coverage.test.ts
           - apps/api/drizzle/**
           - apps/api/db/**
           - apps/api/Dockerfile
@@ -24,6 +28,9 @@
           - docs/compliance/vendors.yaml
           - infra/**
           - .github/**
+          - CLAUDE.md
+          - apps/api/CLAUDE.md
+          - apps/web/CLAUDE.md
           - .claude/settings.json
           - .claude/hooks/**
           - .devcontainer/**
@@ -44,15 +51,16 @@
           - apps/**
           - packages/**
           - prototypes/**
+          - .claude/skills/**
           - pnpm-lock.yaml
           - package.json
 
-# 変えたファイルが「全部」ドキュメントかテストのときだけ
+# 変えたファイルが「全部」ドキュメントかテストのときだけ(スキルは AI の手順なので「中」。G-44)
 "risk:low":
   - changed-files:
       # 1つの glob(中かっこで束ねた)が、変えた全ファイルに当たる = 全部がドキュメントかテスト
       - any-glob-to-all-files:
-          - "{docs/**/*.md,.claude/skills/**,*.md,**/CLAUDE.md,**/test/**,**/e2e/**,**/*.test.ts}"
+          - "{docs/**/*.md,*.md,**/CLAUDE.md,**/test/**,**/e2e/**,**/*.test.ts}"
 
 "area:api":
   - changed-files:
