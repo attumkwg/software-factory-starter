@@ -141,9 +141,9 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 |---|---|
 | ① 受付 | `.github/ISSUE_TEMPLATE/`(機能・不具合。不具合には requestId の欄) |
 | ② 振り分け | Issue の危険度の見込み・`needs-triage` ラベル(ラベルの意味は [docs/guides/labels.md](guides/labels.md)) |
-| ③ 仕様 | `docs/specs/`(受け入れ条件・権限の表の行・STRIDE)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
+| ③ 仕様 | `docs/specs/`(第1部 PdM: 業務の要求・ルール・受け入れ条件 / 第2部 AI: 状態 × 操作・境界値・権限・STRIDE。承認の基準は `docs/guides/human-review.md` の 6)・`docs/designs/`(設計書と未確定事項。`/design`)・`docs/adr/` |
 | ④ 実装 | `CLAUDE.md`・`.claude/skills/`・`.github/workflows/claude.yml`(`@claude`) |
-| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP) |
+| ⑤ 検証 | `ci.yml`(型・lint・単体・結合・E2E・検査)・`vrt.yml`(見た目の比べ。結果と主な画面を PR のコメントに)・`preview.yml`(PR ごとの環境で E2E と ZAP)・受け入れ(`/accept`。PdM はおすすめの観点を中心に・記録を取るかは使うときに決める・点数と外れた理由は `docs/acceptance/`・`pnpm acceptance`・要求のせいの外れは `docs/domain/resolved-questions.md`) |
 | ⑥ レビュー | `pull_request_template.md`(全体像と判断してほしい所を一番上。問いは「事実・理由・問い」)・`docs/review-viewpoints.md`(観点ごとの扱い)・`CODEOWNERS`・`labeler.yml`。直しは `/rework`(上流から作り直す)。考え方は `docs/guides/human-review.md` |
 | ⑦ 出荷と監視 | `deploy.yml`(stg 自動 → prod 承認 → ECS の blue/green)・`ecs-service` の 5xx アラームで自動で戻す・構造化ログ |
 
