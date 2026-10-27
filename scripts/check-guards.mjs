@@ -36,6 +36,9 @@ const hooked = (script, tool) =>
   );
 if (!hooked("guard-bash.mjs", "Bash"))
   missing.push(".claude/settings.json の PreToolUse に guard-bash.mjs(Bash)が無い");
+// 外へ書く文章の秘密を止める(G-58)。背景の AI もこの settings.json を使う
+if (!hooked("guard-secrets-out.mjs", "Bash"))
+  missing.push(".claude/settings.json の PreToolUse に guard-secrets-out.mjs(Bash)が無い");
 for (const tool of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) {
   if (!hooked("guard-edit.mjs", tool))
     missing.push(`.claude/settings.json の PreToolUse に guard-edit.mjs(${tool})が無い`);
@@ -52,7 +55,7 @@ if (missing.length > 0) {
   process.exit(1);
 }
 process.stdout.write(
-  `守り(ラベル・CODEOWNERS・2つのフック)は一覧(${paths.length} 件)とそろっています\n`,
+  `守り(ラベル・CODEOWNERS・3つのフック)は一覧(${paths.length} 件)とそろっています\n`,
 );
 
 const t = spawnSync(
@@ -62,6 +65,7 @@ const t = spawnSync(
     ".claude/hooks/guard-bash.test.mjs",
     ".claude/hooks/guard-edit.test.mjs",
     ".claude/hooks/record-outbound.test.mjs",
+    ".claude/hooks/guard-secrets-out.test.mjs",
   ],
   { stdio: "inherit" },
 );
