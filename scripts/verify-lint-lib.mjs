@@ -47,10 +47,49 @@ const LINE_RULES = [
   ],
 ];
 
-const ACTION =
-  /\.(click|dblclick|fill|press|pressSequentially|check|uncheck|selectOption|setInputFiles|dragTo|tap)\(/;
-const EXPECT = /\bexpect(\.poll)?\(/;
-const MATCHER = /\.(?:not\.)?(to[A-Z]\w*)\(/g;
+// ここから下は正規表現を使わずに読む(手順の文に正規表現を当てる所を作らない。Semgrep の regex_dos)
+const ACTIONS = [
+  "click",
+  "dblclick",
+  "fill",
+  "press",
+  "pressSequentially",
+  "check",
+  "uncheck",
+  "selectOption",
+  "setInputFiles",
+  "dragTo",
+  "tap",
+].map((name) => `.${name}(`);
+const isWord = (c) =>
+  c !== undefined &&
+  ((c >= "a" && c <= "z") ||
+    (c >= "A" && c <= "Z") ||
+    (c >= "0" && c <= "9") ||
+    c === "_" ||
+    c === "$");
+// name( の呼び出しが、ほかの名前の一部(expectAccessible)や . の後(test.step)でなく出てくるか
+const calls = (line, name) => {
+  for (let at = line.indexOf(`${name}(`); at >= 0; at = line.indexOf(`${name}(`, at + 1)) {
+    const prev = line[at - 1];
+    if (prev !== "." && !isWord(prev)) return true;
+  }
+  return false;
+};
+const hasAction = (line) => ACTIONS.some((a) => line.includes(a));
+const hasExpect = (line) => calls(line, "expect") || line.includes("expect.poll(");
+// .toHaveText( などの判定の名前(.not. を挟んでもよい)
+const matchersOf = (text) => {
+  const names = [];
+  for (let at = text.indexOf(".to"); at >= 0; at = text.indexOf(".to", at + 1)) {
+    let end = at + 3;
+    while (isWord(text[end])) end += 1;
+    const name = text.slice(at + 1, end);
+    const upper = name[2];
+    if (text[end] === "(" && upper >= "A" && upper <= "Z") names.push(name);
+  }
+  return names;
+};
 // 有る・無い・押せるだけを見る(中身を見ない)物
 const PRESENCE = new Set([
   "toBeVisible",
@@ -64,13 +103,14 @@ const PRESENCE = new Set([
   "toBeEnabled",
   "toBeDisabled",
 ]);
-// test( の始まり(test.describe・test.step は数えない)
-const TEST_START = /(^|[^.\w])test\(/;
 
 // 行の注釈(// の後ろ)を外す。URL の // は残す
 const codeOf = (line) => {
-  const at = line.search(/(^|\s)\/\//);
-  return at < 0 ? line : line.slice(0, at);
+  for (let at = line.indexOf("//"); at >= 0; at = line.indexOf("//", at + 1)) {
+    const prev = line[at - 1];
+    if (prev === undefined || prev === " " || prev === "\t") return line.slice(0, at);
+  }
+  return line;
 };
 
 const lineProblems = (lines) => {
@@ -80,7 +120,7 @@ const lineProblems = (lines) => {
     const marked = raw.includes(SETUP_MARK) || (lines[i - 1] ?? "").includes(SETUP_MARK);
     for (const [rule, pattern, message] of LINE_RULES) {
       if (!pattern.test(code)) continue;
-      if (rule === "API の直叩き" && marked && !EXPECT.test(code)) continue;
+      if (rule === "API の直叩き" && marked && !hasExpect(code)) continue;
       out.push({ line: i + 1, rule, message });
     }
   });
@@ -90,21 +130,20 @@ const lineProblems = (lines) => {
 // 1本の確認(test の中)の決まり。start は test( の行(0から)
 const testProblems = (lines, start) => {
   const code = lines.map(codeOf);
-  const at = (re) => code.flatMap((l, i) => (re.test(l) ? [i] : []));
-  const expects = at(EXPECT);
+  const at = (found) => code.flatMap((l, i) => (found(l) ? [i] : []));
+  const expects = at(hasExpect);
   const line = start + 1;
   if (expects.length === 0)
     return [{ line, rule: "アサーション無し", message: "確かめ(expect)が1つも無いのに合格になる" }];
   const out = [];
-  const matchers = code.join("\n").matchAll(MATCHER);
-  const names = [...matchers].map((m) => m[1]);
+  const names = matchersOf(code.join("\n"));
   if (names.length > 0 && names.every((n) => PRESENCE.has(n)))
     out.push({
       line,
       rule: "うわべの確認",
       message: "有るか・見えるかだけを見ている。中身(文言・値・件数・URL)も確かめる",
     });
-  const actions = at(ACTION);
+  const actions = at(hasAction);
   if (actions.length > 0) {
     const last = actions.at(-1);
     if (!expects.some((i) => i < last))
@@ -129,7 +168,7 @@ export function lintVerify(text) {
       rule: "記録が取れない",
       message: "test と expect は ../verify-fixture から取る(画面のエラーと失敗した通信を記録する)",
     });
-  const starts = lines.flatMap((l, i) => (TEST_START.test(codeOf(l)) ? [i] : []));
+  const starts = lines.flatMap((l, i) => (calls(codeOf(l), "test") ? [i] : []));
   starts.forEach((s, k) => {
     out.push(...testProblems(lines.slice(s, starts[k + 1] ?? lines.length), s));
   });
