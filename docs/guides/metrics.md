@@ -1,6 +1,6 @@
-# 週の数字(DORA・AI が手伝った PR・人の介在率・仕様の在庫)
+# 週の数字(DORA・AI が手伝った PR・人の介在率・仕様の在庫・引き渡し)
 
-> 仕様: [specs/0035](../specs/0035-delivery-metrics.md)・設計: [designs/0035](../designs/0035-delivery-metrics.md)・ADR: [0046](../adr/0046-metrics-from-labels-and-repo-records.md)
+> 仕様: [specs/0035](../specs/0035-delivery-metrics.md)・設計: [designs/0035](../designs/0035-delivery-metrics.md)・ADR: [0046](../adr/0046-metrics-from-labels-and-repo-records.md)・引き渡しは [specs/0077](../specs/0077-handoff-metrics.md)・[designs/0077](../designs/0077-handoff-metrics.md)
 > 何を測るかの考え方は [concepts/line.md](../concepts/line.md) の 8。毎週の振り返りは [playbook.md](../playbook.md) の「毎週やること」。
 
 ## 1. 出し方
@@ -35,6 +35,9 @@
 | 人の手直し | AI が手伝った PR のコミットのうち、AI の印(`docs/cost/people.yaml` の `ai_markers`)が無く、ボットでもマージのコミットでもない物の数 |
 | 仕様の在庫: 作る待ち | 状態が「承認済み」で、仕様・設計書・ADR・場面・賭けの外(コード・手引き・手順書・スキル)から番号が指されていない仕様。日数は状態の行の最初の日付から |
 | 仕様の在庫: 承認待ち | 状態が「下書き」の仕様 |
+| 引き渡し: 実装の完了から受け入れまで | 受け入れの記録(`docs/acceptance/`)の第1回の日付 − 記録の頭の「実装の PR」のうち最後にマージした日(日本時間・日)。週の中央値。第2回からは数えない。PR が読めなければ数えず「読めなかった物」へ |
+| 引き渡し: 受け入れの点数 | その週の回を合わせた 合 ÷(合+否)。外れた理由(要求・設計・AI の仮決め・実装)の内訳も([acceptance.md](acceptance.md)) |
+| 引き渡し: 設計が原因の作り直し | 設計書の「作り直しの記録」の行のうち、入った工程が「設計」の割合(行の日付の週) |
 
 ## 4. 数を正しく保つために
 
@@ -49,4 +52,5 @@
 2. デプロイの数とリードタイム(「速くなったか」)。
 3. AI の PR で人の介入なしの割合。上がっていて失敗率が横ばいなら、任せる範囲を広げる候補([concepts/people-and-ai.md](../concepts/people-and-ai.md) の 5)。
 4. 改善用の「人が答えた問いの種類」で、同じ種類が続いていれば、観点・ルール・テストにする([guides/human-review.md](human-review.md) の 5)。
-5. 仕様の在庫が0に近い・保守の PR ばかりなら、企画が詰まっている。`/new-feature`・`/bet` で次の仕様を作る([concepts/line.md](../concepts/line.md) の「企画が詰まりになる」)。
+5. 引き渡しで、待ちが長い・設計が原因の作り直しが多い継ぎ目を**1つだけ**選び、入力・出力・人が判断する所を決めて1回回す(例: 実装が終わった日に受け入れを始める・設計に進む基準を見直す)。次の週の数で効いたかを見て、効いたら決まり(スキル・手引き)にする([concepts/line.md](../concepts/line.md) の 2)。
+6. 仕様の在庫が0に近い・保守の PR ばかりなら、企画が詰まっている。`/new-feature`・`/bet` で次の仕様を作る([concepts/line.md](../concepts/line.md) の「企画が詰まりになる」)。
