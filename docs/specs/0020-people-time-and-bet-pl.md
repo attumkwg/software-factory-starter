@@ -1,6 +1,6 @@
 # 仕様: 人の時間の見積もり・賭けごとの損益(PL)・`/ledger`
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0020-people-time-and-bet-pl.md](../designs/0020-people-time-and-bet-pl.md)・ADR: [0033](../adr/0033-people-time-and-bet-pl.md)
 > 仕様 0019 の費用のページ(`cost.yml`)の上に積む。
 
