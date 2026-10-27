@@ -74,7 +74,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | T-5 | **鍵を分ける(必要な顧客だけ)**。専用の顧客はテナントごとの KMS の鍵。契約が終わったら鍵を消せば、バックアップの中のデータも読めなくなる(暗号による消去) | 要配慮個人情報だけ一部あり: 組織ごとのデータ鍵を KMS の鍵1本で包み、列ごとに暗号化(`apps/api/src/sensitive/`・[ADR 0029](adr/0029-sensitive-data-tier1.md))。テナントごとの KMS の鍵は未(大きな顧客が付いたら。[runbooks/sensitive-data-tiers.md](runbooks/sensitive-data-tiers.md) の 4・[guides/data-retention.md](guides/data-retention.md)) |
 | T-6 | **1社の暴走を止める**: テナントごとの流量の上限・バッチの同時実行の上限・クエリの時間切れ(`statement_timeout`)。重すぎる会社は専用へ | `src/db/client.ts`(クエリ5秒・止まったトランザクション10秒)・WAF の IP ごとの上限。テナントごとの流量の上限は PMF の後 |
 | T-7 | **社員のアクセスは「代理ログイン」だけ**: お客さんの許可・時間制限つき・全部の操作を記録・お客さんからも見える監査ログ。全社を一覧できる管理画面を作らない | [ADR 0014](adr/0014-support-access.md)・[runbooks/support-access.md](runbooks/support-access.md) |
-| T-8 | **SSO はドメインを確かめてから**: 会社のドメインを DNS で確かめてから、その IdP を有効にする。招待はリンクの期限と1回きり | 招待: 済(期限7日・1回きり・取り消し・署名つきの札。`invitations.int.test.ts`・ADR 0040)/ SSO: 未(SSO を足すときに) |
+| T-8 | **SSO はドメインを確かめてから**: 会社のドメインを DNS で確かめてから、その IdP を有効にする。招待はリンクの期限と1回きり | 招待: 済(期限7日・1回きり・取り消し・署名つきの札。`invitations.int.test.ts`・ADR 0040)/ SSO: 済(DNS の TXT でドメインを確かめてから IdP をつなぐ・1ドメイン1組織。`organization-domains.int.test.ts`・`sso-login.int.test.ts`・`sso-required.int.test.ts`・ADR 0067・[runbooks/sso.md](runbooks/sso.md)) |
 | T-9 | **始まりと終わり**: テナントの作成は自動にして設定の漏れを無くす。解約のときのデータの書き出しと削除(バックアップの保存期間も含めて)を手順にし、契約と合わせる | [ADR 0015](adr/0015-offboarding.md)・[runbooks/offboarding.md](runbooks/offboarding.md)・`TENANT_TABLES` |
 
 ### 漏れていないことを確かめる(V-1〜V-5)
@@ -117,7 +117,8 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | プレビュー・stg・ログインの後ろの画面が検索に載る | 画面のサーバーが全部の応答に `X-Robots-Tag: noindex, nofollow`(本番も既定は全部。外すのは本番で一覧に書いたパスだけ)。`robots.txt` は本番以外 `Disallow: /`。拡張子のあるパスの探り(`/wp-login.php` など)は SSR に回さずに 404 | 単体(`apps/web/server/app.test.ts`)・E2E `not-found.spec.ts` |
 | 偽物が本物とずれる | 同じ契約テストを、偽物には PR ごと・stg の本物には手動で(有効にすると週1回)。落ちたら Issue | `cognito-contract.yml` |
 
-- 次の一歩: 管理者の二段階認証を必須に(グループで分ける)・二段階認証の設定の画面・こちら側の流量の上限(IP ごと)・Cognito の不正対策(Plus)・パスキー。
+- 済み: 二段階認証の設定の画面と、組織ごとに全員へ二段階認証を必須にする設定(仕様 0006・部品 `mfa-required`・`mfa-requirement.int.test.ts`)。
+- 次の一歩: こちら側の流量の上限(IP ごと)・Cognito の不正対策(Plus)・パスキー。
 
 ## 毎回の検査(PR ごと・自動)
 
