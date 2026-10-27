@@ -39,6 +39,8 @@
           - scripts/setup/**
           - scripts/evidence/**
           - scripts/cost/**
+          - scripts/review-count.mjs
+          - scripts/review-count-lib.mjs
           - .gitleaksignore
           - .trivyignore.yaml
           - renovate.json

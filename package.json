@@ -44,7 +44,7 @@
     "setup:github": "node scripts/setup/run.mjs",
     "setup:check": "node scripts/setup/check.mjs",
     "setup:labels": "node scripts/setup/labels-cli.mjs",
-    "test:scripts": "node --test scripts/bets.test.mjs scripts/bets-roadmap.test.mjs scripts/decisions.test.mjs scripts/vulns.test.mjs scripts/vendors.test.mjs scripts/adr.test.mjs scripts/contrast.test.mjs scripts/checkup/*.test.mjs scripts/setup/*.test.mjs scripts/compliance/*.test.mjs scripts/evidence/*.test.mjs scripts/cost/*.test.mjs scripts/metrics/*.test.mjs scripts/sales-pack.test.mjs scripts/self-contained.test.mjs .github/scripts/ci-scope.test.mjs",
+    "test:scripts": "node --test scripts/bets.test.mjs scripts/bets-roadmap.test.mjs scripts/decisions.test.mjs scripts/vulns.test.mjs scripts/vendors.test.mjs scripts/adr.test.mjs scripts/contrast.test.mjs scripts/checkup/*.test.mjs scripts/setup/*.test.mjs scripts/compliance/*.test.mjs scripts/evidence/*.test.mjs scripts/cost/*.test.mjs scripts/metrics/*.test.mjs scripts/sales-pack.test.mjs scripts/review-count.test.mjs scripts/self-contained.test.mjs .github/scripts/ci-scope.test.mjs",
     "security:fuzz": "node scripts/security-fuzz.mjs",
     "guards": "node scripts/check-guards.mjs",
     "outbound": "node scripts/outbound.mjs",
