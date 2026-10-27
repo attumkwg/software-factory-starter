@@ -152,3 +152,32 @@ export function referencedSpecs(files, read) {
   }
   return found;
 }
+
+const MERGED_AT = `query($owner: String!, $name: String!, $n: Int!) {
+  repository(owner: $owner, name: $name) { pullRequest(number: $n) { mergedAt } }
+}`;
+
+/** PR の番号ごとのマージの日時(ISO)。まだマージしていない・読めない物は入れない */
+export function collectMergedAt(gh, repo, numbers) {
+  const [owner, name] = repo.split("/");
+  const out = new Map();
+  for (const n of numbers) {
+    const res = gh(MERGED_AT, { owner, name, n });
+    const at = res.ok ? res.data?.repository?.pullRequest?.mergedAt : null;
+    if (at) out.set(n, at);
+  }
+  return out;
+}
+
+/** 受け入れの記録(docs/acceptance/NNNN-*.md)と設計書(docs/designs/NNNN-*.md) */
+export const acceptanceFiles = (ctx) =>
+  ctx
+    .files("docs/acceptance")
+    .filter((f) => /\/\d{4}-[^/]+\.md$/.test(f))
+    .map((file) => ({ path: file, text: ctx.read(file) ?? "" }));
+
+export const designFiles = (ctx) =>
+  ctx
+    .files("docs/designs")
+    .filter((f) => /\/\d{4}-[^/]+\.md$/.test(f))
+    .map((file) => ({ file, text: ctx.read(file) ?? "" }));
