@@ -4,7 +4,9 @@ import { expectAccessible, loginAs } from "./helpers.ts";
 
 // データの書き出し(docs/specs/0005-offboarding.md)。管理者が設定から JSON を受け取る。
 
-test("管理者は設定から自社のデータを JSON で書き出せる(他社の物は入らない)", async ({ page }, testInfo) => {
+test("管理者は設定から自社のデータを JSON で書き出せる(他社の物は入らない)", async ({
+  page,
+}, testInfo) => {
   await loginAs(page, "admin@acme.test");
   await page.getByRole("link", { name: "設定" }).click();
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
