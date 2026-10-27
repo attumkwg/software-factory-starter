@@ -19,6 +19,7 @@
 | [compliance/](compliance/README.md) | 認証の準備(P マーク・ISMS)の入口。委託先の台帳(`vendors.yaml`。コードと CI で照らす)・AI に渡すデータの決まり・管理操作の記録の場所・附属書 A の管理策の一覧(正)と適用宣言書(SoA)・規程と様式のひな形・毎月の証跡(消せない S3) | 外の会社・SDK・AWS のサービス・Actions を足すとき(`pnpm vendors` が落ちて気づく)。管理策の適用を変える・規程を制定し見直すとき(SoA は `pnpm compliance --write`。`/compliance-check` が期限を聞く) | 高(台帳) |
 | [legal/](legal/README.md) | お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱いの取り決め)。文面は書かず、項目ごとにキットの既定・根拠のファイル・使う人が決めること。条件を「変えない / 仕組みを変えれば変えられる / 契約だけで変えられる」に分ける | 根拠の仕組み(バックアップ・保存の期間・障害の連絡・見張り・委託先)を変えたとき | 低 |
 | [kit/catalog.yaml](kit/catalog.yaml) | キットの部品のカタログ(何をするか・要る/要らないプロダクト・消すと困ること・つながり・法令や認証・消し方)。README の「使い始めたらやること」はここから作る | 部品を足す・消す・ファイルを動かしたとき(`pnpm kit:catalog` が落ちて気づく)。README は `pnpm kit:readme` | 低 |
+| [kit/maintenance.md](kit/maintenance.md) | キットの保守の方針(誰が・どこまで・いつまで・版の付け方)。変更の記録はルートの `CHANGELOG.md`、穴の知らせ方は `SECURITY.md` | 約束の日数・版の付け方を変えたとき・版を切るとき(`CHANGELOG.md`) | 低 |
 | [product/tailoring.md](product/) | 部品の残す・消すの記録(答え・部品ごとの決定と理由)。足すだけ | `/tailor` が書く | 低 |
 | [product/plan.md](product/) | 始め方の計画(誰の困りごと・いちばん危ない思い込み・確かめ方・合格と撤退の線)。テンプレートあり | 確かめた結果が出たとき(`/kickoff` が書く) | 低 |
 | [product/legal.md](product/) | 法令と業界の決まりの洗い出し(作り・データ・相手から当てはまりそうな候補と、専門家に聞くこと)。ひな形 `product/_legal-template.md` | `/kickoff` が書き、`/bet` が機能を足すたびに見直す | 低 |
