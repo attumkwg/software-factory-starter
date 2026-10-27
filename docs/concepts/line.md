@@ -17,7 +17,7 @@
 |---|---|---|---|
 | ① 受付 | 要望・不具合・アラートを Issue にする | 誰でも+AI | GitHub Issues(Slack から起票してもよい) |
 | ② 振り分け | 大きさ・曖昧さ・危険度を付ける | AI が案 → PdM | Issue テンプレート+ラベル |
-| ③ 仕様 | 受け入れ条件・設計判断・悪用のされ方を書く | PdM+AI、大きい物はテックリード | `docs/specs/`・`docs/designs/`・`docs/adr/` |
+| ③ 仕様 | 業務の要求とルールは PdM が書き、システムの振る舞い(状態・境界値・権限の組み合わせ)と悪用のされ方は AI が網羅してエンジニアが見る([people-and-ai.md の 1.1](people-and-ai.md#11-段を決める問い説明の責任)) | PdM+AI、大きい物はテックリード | `docs/specs/`・`docs/designs/`・`docs/adr/` |
 | ④ 実装 | ブランチを切り、実装とテストを書く | AI(背景エージェント) | Claude Code(手元 / GitHub Actions) |
 | ⑤ 検証 | 型・lint・テスト・プレビューで動作確認 | 仕組み+AI | GitHub Actions・Playwright |
 | ⑥ レビュー | AI が一次、人は危険度に応じて | AI → 領域の持ち主 | AI のレビュー+CODEOWNERS |
