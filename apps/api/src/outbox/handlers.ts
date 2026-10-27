@@ -1,5 +1,6 @@
 import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import { handleFileDeleted, handleFileUploaded } from "../domains/files/index.ts";
 import { type PublicSiteLinks, preRegistrationConfirmMail } from "../domains/growth/index.ts";
 import { legalChangeMail } from "../domains/legal/index.ts";
 import {
@@ -12,6 +13,7 @@ import {
 import { taskCompletedMail } from "../domains/tasks/index.ts";
 import type { Logger } from "../logger.ts";
 import type { Mailer, MailMessage } from "../mail/index.ts";
+import type { ObjectStore } from "../storage/index.ts";
 import type { OutboxEvent, OutboxHandler } from "./relay.ts";
 import { OUTBOX_TOPICS, type OutboxTopic } from "./topics.ts";
 
@@ -25,6 +27,8 @@ export type HandlerDeps = {
   linkSecret: string;
   /** 公開の LP の URL とリンクの鍵(事前登録の確認のメール)。無ければ確認のメールは送らない */
   publicSite?: PublicSiteLinks | null;
+  /** 写真・ファイルの置き場(docs/designs/0072-file-storage.md)。無ければファイルの出来事の宛先は無い */
+  files?: ObjectStore | null;
 };
 
 /**
@@ -36,7 +40,7 @@ export type HandlerDeps = {
  * 2回送っても困らないように書く(メールは Message-ID を出来事ごとに固定している)。
  */
 export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, OutboxHandler>> {
-  const { db, logger, mailer, appUrl, linkSecret, publicSite = null } = deps;
+  const { db, logger, mailer, appUrl, linkSecret, publicSite = null, files = null } = deps;
 
   /** 宛先と本文をその会社の文脈(RLS)の中で作り、DB のトランザクションの外で送る */
   async function sendIn(
@@ -64,7 +68,16 @@ export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, O
     return sendIn(event, (tx) => accountNoticeMail(tx, { ...event, topic }, payload, appUrl));
   };
 
+  // 写真・ファイル: 書き直しと中身の削除(置き場を待つのはトランザクションの外。ADR 0080)
+  const fileHandlers = files
+    ? {
+        "files.file_uploaded": handleFileUploaded({ db, logger, store: files }),
+        "files.file_deleted": handleFileDeleted({ store: files }),
+      }
+    : {};
+
   return {
+    ...fileHandlers,
     "organizations.password_changed": accountNotice("organizations.password_changed"),
     "organizations.mfa_enabled": accountNotice("organizations.mfa_enabled"),
     "organizations.mfa_disabled": accountNotice("organizations.mfa_disabled"),

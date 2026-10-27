@@ -114,6 +114,7 @@ export const ERROR_CODES = [
   "payload_too_large", // 本文が大きすぎる(413)
   "unsupported_media_type", // 本文が JSON ではない(415)
   "service_unavailable", // DB などが一時的に使えない(503)。少し待てば通る
+  "file_storage_unavailable", // 写真・ファイルの置き場が設定されていない環境(503。docs/specs/0072-file-storage.md)
   "internal", // それ以外の想定外(500)
   "invalid_code", // 確認コード・二段階認証のコードが違う・切れた(400)
   "invalid_password", // パスワードが決まり(cognito-settings.json)を満たさない(400)

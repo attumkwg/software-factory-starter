@@ -33,7 +33,7 @@
 - 使うのをやめたとき: アカウントを閉じると、90日の猶予のあとに中身が消える。消せない保管庫(バックアップ・管理操作の記録)は期限まで残る
 - お客さんが解約したとき: 解約の削除のコマンドで DB と Cognito から消す。バックアップは保存の期限(最長1年)で消える(docs/runbooks/offboarding.md)
 - 公開の約款と認証を確かめた日: 2026-10-25
-- コードで使っている SDK: `@aws-sdk/client-cognito-identity-provider`・`@aws-sdk/client-kms`・`@aws-sdk/client-s3`
+- コードで使っている SDK: `@aws-sdk/client-cognito-identity-provider`・`@aws-sdk/client-kms`・`@aws-sdk/client-s3`・`@aws-sdk/client-sts`・`@aws-sdk/s3-request-presigner`
 - ワークフローで使っている Actions: `aws-actions/amazon-ecr-login`・`aws-actions/amazon-ecs-deploy-task-definition`・`aws-actions/amazon-ecs-render-task-definition`・`aws-actions/configure-aws-credentials`
 
 ### GitHub

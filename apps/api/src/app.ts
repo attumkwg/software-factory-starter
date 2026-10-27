@@ -31,6 +31,7 @@ import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
+import { fileRoutes } from "./domains/files/index.ts";
 import { linkKey } from "./domains/growth/index.ts";
 import { legalRoutes } from "./domains/legal/index.ts";
 import {
@@ -52,6 +53,7 @@ import { pmfSurveyRoutes } from "./pmf-survey/index.ts";
 import { publicGrowthRoutes } from "./pre-registrations/index.ts";
 import { contextFromHeaders, getRequestContext, runWithRequestContext } from "./request-context.ts";
 import type { SensitiveStore } from "./sensitive/index.ts";
+import type { ObjectStore } from "./storage/index.ts";
 
 export type AppDeps = {
   config: Config;
@@ -70,6 +72,8 @@ export type AppDeps = {
   plans?: readonly PlanDefinition[];
   /** 要配慮個人情報の入口(ADR 0029。index.ts が設定から作る)。無ければ null(段0) */
   sensitive?: SensitiveStore | null;
+  /** 写真・ファイルの置き場(docs/designs/0072-file-storage.md。index.ts が設定から作る)。無ければ null(ファイルの API は 503) */
+  files?: ObjectStore | null;
 };
 
 /**
@@ -218,6 +222,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", organizationSwitchRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
+  app.route("/api", fileRoutes({ db, store: deps.files ?? null }));
   app.route("/api", legalRoutes);
   // 公開の LP の事前登録と見た数(docs/specs/0025-public-landing-page.md)。運営の組織の持ち物
   app.route("/api", publicGrowthRoutes({ db, site: publicGrowthSite(config) }));

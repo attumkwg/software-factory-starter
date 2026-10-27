@@ -36,6 +36,9 @@ export const TENANT_TABLES = [
   "platform.pmf_survey_asked",
   "platform.feature_usage",
   "platform.feature_flags",
+  // 写真・ファイルの目録(中身の置き場は DB より先に消す。docs/designs/0072-file-storage.md の 2)。
+  // 行を消すと引き金が送信待ちに積むが、送信待ちも後ろで消える
+  "files.files",
   "tasks.tasks",
   "projects.projects",
   "platform.outbox",

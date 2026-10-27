@@ -35,6 +35,11 @@ comments:
     tableComment: タスク。プロジェクトの中のやること。docs/domain/tasks
     columnComments:
       done: 完了したか
+  - table: files.files
+    tableComment: 写真・ファイルの目録(中身は置き場の S3)。docs/domain/files
+    columnComments:
+      uploaded_by: 上げた人(同じ組織の users。外部キーは張らない)
+      status: pending(上げる準備)/ ready(確かめて書き直した)/ rejected(断った)
   - table: platform.outbox
     tableComment: 送信待ち(アウトボックス)。業務の変更と同じトランザクションで積み、送り出しが後で送る。アプリは書くだけ。docs/adr/0006-outbox.md
     columnComments:

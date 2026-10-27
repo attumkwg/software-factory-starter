@@ -156,6 +156,28 @@ rules:
       exclude: ["/apps/api/src/http/common.ts"]
     pattern-regex: '\bbody:\s*\{\s*content:'
 
+  - id: file-storage-only-in-module
+    message: >-
+      写真・ファイルの置き場(S3)には apps/api/src/storage/ の中からだけ触る。外からは apps/api/src/storage/index.ts を使う。
+      キーを作る関数(keys.ts)と、組織ごとに絞った権限(tenant-credentials.ts)を通らない署名つき URL・読み書きは、
+      他社のファイルに届く道になる(RLS は S3 を守らない)。ADR 0079・docs/specs/0072-file-storage.md
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include: ["/apps/", "/packages/"]
+      exclude:
+        - "/apps/api/src/storage/"
+        # 申し込みの置き場を読むだけ(組織を作る前の運営の道具。キーの形を正規表現で確かめる。docs/designs/0026-tenant-provisioning.md)
+        - "/apps/api/src/onboarding/application-source.ts"
+        # テストは、本物と同じ取り決めの置き場を用意するために、わざと外から触る
+        - "/apps/api/test/"
+        - "*.test.ts"
+    pattern-either:
+      # モジュールの中のファイル(index.ts 以外)を読み込む
+      - pattern-regex: (?m)^import\s+[^;]*?from\s+["'](\.\.?/)+storage/(?!index(\.ts)?["'])[^"']+["']
+      # S3 の部品・署名・STS を直接呼ぶ
+      - pattern-regex: from\s+["']@aws-sdk/(client-s3|s3-request-presigner|client-sts)["']
+
   - id: sensitive-data-only-in-module
     message: >-
       要配慮個人情報(スキーマ sensitive・その鍵・その接続)には、apps/api/src/sensitive/ の中からだけ触る。

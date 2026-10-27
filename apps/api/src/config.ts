@@ -75,6 +75,16 @@ const EnvObject = z.object({
   LOGS_INSIGHTS_REGION: z.string().optional(),
   // 探すロググループ(カンマ区切り。API と画面のサーバー)
   LOGS_INSIGHTS_GROUPS: z.string().optional(),
+  // 写真・ファイルの置き場(docs/designs/0072-file-storage.md)。無ければファイルの API は 503
+  FILES_BUCKET: z.string().min(3).optional(),
+  FILES_REGION: z.string().default("ap-northeast-1"),
+  // 組織ごとに絞った権限を STS で引き受ける役割(stg・prod は必須。Terraform の出力 files_access_role_arn)
+  FILES_ACCESS_ROLE_ARN: z.string().startsWith("arn:aws:iam::").optional(),
+  // 手元・テストの S3 互換の置き場(RustFS)だけ: API から届く入口・ブラウザから届く入口・固定の鍵(秘密ではない手元専用の値)
+  FILES_S3_ENDPOINT: z.url().optional(),
+  FILES_S3_PUBLIC_ENDPOINT: z.url().optional(),
+  FILES_S3_ACCESS_KEY: z.string().optional(),
+  FILES_S3_SECRET_KEY: z.string().optional(),
 });
 
 type Env = z.infer<typeof EnvObject>;
@@ -95,6 +105,7 @@ function envIssues(env: Env): Issue[] {
     ...cognitoIssues(env),
     ...sessionIssues(env),
     ...sensitiveIssues(env),
+    ...filesIssues(env),
     ...urlIssues("PUBLIC_SITE_URL", env.PUBLIC_SITE_URL, LOCAL_ONLY.has(env.APP_ENV)),
   ];
 }
@@ -204,6 +215,44 @@ function cognitoIssues(env: Env): Issue[] {
   return issues;
 }
 
+/** 写真・ファイルの置き場: 入口と固定の鍵は手元・テストだけ。本物の環境は STS の役割で(ADR 0079) */
+function filesIssues(env: Env): Issue[] {
+  const issues: Issue[] = [];
+  const local = LOCAL_ONLY.has(env.APP_ENV);
+  for (const key of [
+    "FILES_S3_ENDPOINT",
+    "FILES_S3_PUBLIC_ENDPOINT",
+    "FILES_S3_ACCESS_KEY",
+    "FILES_S3_SECRET_KEY",
+  ] as const) {
+    if (env[key] && !local) {
+      issues.push({
+        path: key,
+        message: `${key}(手元の S3 互換の置き場)は local / test だけで使えます`,
+      });
+    }
+  }
+  if (!env.FILES_BUCKET) return issues;
+  if (!local && !env.FILES_ACCESS_ROLE_ARN) {
+    issues.push({
+      path: "FILES_ACCESS_ROLE_ARN",
+      message: `${env.APP_ENV} では組織ごとに絞る役割(FILES_ACCESS_ROLE_ARN)が要ります`,
+    });
+  }
+  if (
+    local &&
+    !env.FILES_ACCESS_ROLE_ARN &&
+    !(env.FILES_S3_ACCESS_KEY && env.FILES_S3_SECRET_KEY)
+  ) {
+    issues.push({
+      path: "FILES_S3_ACCESS_KEY",
+      message:
+        "FILES_S3_ACCESS_KEY と FILES_S3_SECRET_KEY(手元の S3 互換の置き場)か FILES_ACCESS_ROLE_ARN が要ります",
+    });
+  }
+  return issues;
+}
+
 /** 外から届く URL の形(本物の環境では https・最後に / を付けない) */
 function urlIssues(key: Issue["path"], value: string | undefined, local: boolean): Issue[] {
   const issues: Issue[] = [];
@@ -217,6 +266,21 @@ function urlIssues(key: Issue["path"], value: string | undefined, local: boolean
 }
 
 export type Config = ReturnType<typeof loadConfig>;
+
+/** 写真・ファイルの置き場(docs/designs/0072-file-storage.md)。置き場の名前が無ければ null */
+function filesConfig(e: Env) {
+  if (!e.FILES_BUCKET) return null;
+  const key = e.FILES_S3_ACCESS_KEY;
+  const secret = e.FILES_S3_SECRET_KEY;
+  return {
+    bucket: e.FILES_BUCKET,
+    region: e.FILES_REGION,
+    accessRoleArn: e.FILES_ACCESS_ROLE_ARN ?? null,
+    endpoint: e.FILES_S3_ENDPOINT,
+    publicEndpoint: e.FILES_S3_PUBLIC_ENDPOINT,
+    staticCredentials: key && secret ? { accessKeyId: key, secretAccessKey: secret } : null,
+  };
+}
 
 export function loadConfig(env: Record<string, string | undefined> = process.env) {
   const parsed = EnvSchema.safeParse(env);
@@ -263,6 +327,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     publicSite: e.PUBLIC_SITE_URL
       ? { url: e.PUBLIC_SITE_URL, origin: new URL(e.PUBLIC_SITE_URL).origin }
       : null,
+    files: filesConfig(e),
     sentry: {
       dsn: e.SENTRY_DSN,
       release: e.SENTRY_RELEASE,

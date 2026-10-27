@@ -155,6 +155,21 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "tasks.tasks.created_at": internal("作った時刻(一覧の並び)"),
   "tasks.tasks.updated_at": internal("直した時刻"),
 
+  // ── 写真・ファイル(files。docs/specs/0072-file-storage.md)。中身(置き場の S3)は personal(人・表札が写りうる) ──
+  "files.files.id": internal("ファイルの ID(置き場のキーにも使う)"),
+  "files.files.tenant_id": internal("組織"),
+  "files.files.task_id": internal("付け先のタスク"),
+  "files.files.uploaded_by": internal("上げた人の ID"),
+  "files.files.name": personal(
+    "元のファイルの名前(施主の名前などが入りうる。キー・URL・ログに入れない)",
+  ),
+  "files.files.content_type": pub("種類(image/jpeg など決まった4つ)"),
+  "files.files.byte_size": internal("上げると言った大きさ"),
+  "files.files.stored_byte_size": internal("付いた情報を消した後の大きさ"),
+  "files.files.status": pub("状態(pending / ready / rejected)"),
+  "files.files.created_at": internal("作った時刻(一覧の並び)"),
+  "files.files.ready_at": internal("見られるようになった時刻"),
+
   // ── 規約と同意(legal。docs/specs/0009-legal-consent.md) ──
   "legal.consents.id": internal("同意の記録の ID"),
   "legal.consents.tenant_id": internal("組織"),
@@ -227,6 +242,9 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       // パスの ID(対象の ID 以外)。API のパスに ID を足したら、ここにも足す(テストが落ちる)
       projectId: internal("タスクを作ったプロジェクトなど"),
       taskId: internal("パスのタスクの ID"),
+      fileId: internal(
+        "パスのファイルの ID(上げ終える・消すの対象。docs/specs/0072-file-storage.md)",
+      ),
       grantId: internal("パスの許可の ID"),
       invitationId: internal("パスの招待の ID"),
       domainId: internal("パスの会社のドメインの ID"),
@@ -256,6 +274,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       taskId: internal("完了したタスク"),
       projectId: internal("そのプロジェクト"),
       completedBy: internal("完了にした人の ID"),
+      fileId: internal("上げ終えた・消したファイルの ID(名前・キー・URL は入れない)"),
       userId: internal("お知らせを送る相手の ID(宛先は送る直前に DB から読む)"),
       emailChangeId: internal("メールアドレスの変更の ID(古いアドレスは表から読む)"),
       noticeId: internal("規約の変更のお知らせの ID(宛先と版は表から読む)"),

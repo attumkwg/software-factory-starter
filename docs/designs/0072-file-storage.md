@@ -7,7 +7,7 @@
 
 ## 0. 全体像
 
-タスクに写真・PDF を付ける部品を足す。中身は非公開の S3(手元は MinIO)に、**キーの頭を `<段>/<組織の ID>/`** にして置く。上げる・見るは、認可の関所を通った API が作る**5分の署名つき URL**で、画面と S3 が直接やりとりする。署名には**その組織のキーの頭だけに絞った一時的な権限**(STS)を使う。上げた物は API が後で読み直し、種類を確かめて位置情報などを消してから、見られる状態にする。
+タスクに写真・PDF を付ける部品を足す。中身は非公開の S3(手元は S3 互換の RustFS)に、**キーの頭を `<段>/<組織の ID>/`** にして置く。上げる・見るは、認可の関所を通った API が作る**5分の署名つき URL**で、画面と S3 が直接やりとりする。署名には**その組織のキーの頭だけに絞った一時的な権限**(STS)を使う。上げた物は API が後で読み直し、種類を確かめて位置情報などを消してから、見られる状態にする。
 
 ```mermaid
 sequenceDiagram
@@ -15,7 +15,7 @@ sequenceDiagram
   participant A as API(関所の後)
   participant D as DB(files.files)
   participant O as 送り出し(アウトボックス)
-  participant S as S3(手元は MinIO)
+  participant S as S3(手元は S3 互換の RustFS)
   W->>A: POST /api/tasks/{taskId}/files(名前・種類・大きさ)
   A->>D: 行を作る(pending)
   A->>A: その組織だけの一時的な権限で、incoming/<組織>/<ファイル> への PUT に署名
@@ -40,7 +40,7 @@ sequenceDiagram
 - `apps/api/src/offboarding/delete-tenant.ts`(`TENANT_TABLES`・Cognito を DB より先に消す順)・`docs/runbooks/offboarding.md`・ADR 0015
 - `apps/api/src/export/stream.ts`(ADR 0031: 領域ごとのページの関数を並べる)・`apps/api/src/person-data`
 - `infra/terraform/modules/record-store`(非公開の S3 の型: 公開を止める・TLS だけ・KMS・版・ライフサイクル)・`modules/sensitive-data`
-- `docs/guides/local-environment.md`(「ファイルは S3 互換」「S3 の代わりは MinIO のコンテナ」と既に決めてある)・`packages/fake-cognito`(本番では入口を変えられないようにする型)
+- `docs/guides/local-environment.md`(「ファイルは S3 互換」と決めてある。表の「S3 の代わりは MinIO」は、MinIO が公式のイメージの配布をやめたので RustFS に置き換える。11)・`packages/fake-cognito`(本番では入口を変えられないようにする型)
 - `docs/guides/data-retention.md`(置き場所ごとの残る期間の表)・`docs/db/personal-data.md`
 
 ## 1. 設計方針
@@ -48,7 +48,7 @@ sequenceDiagram
 - **新しい領域 `files`**(Postgres のスキーマ `files`。`.claude/skills/add-domain`)。使ってよい向きは `files: ["organizations", "tasks"]`(タスクへの外部キー)。タスクの領域は `files` を知らない(消すときは DB の外部キーと引き金で済ませる。2.)。
 - **置き場の部品は `apps/api/src/storage/`**(領域の外の共通の部品。S3 を話すのはここだけ)。
   - `keys.ts`: **キーを作る関数は `objectKey(stage, tenantId, fileId)` の1つだけ**。`stage` は `incoming` か `files`、ID は UUID の形を確かめる(違えば投げる)。利用者の値(名前)はキーに入れない。
-  - `tenant-credentials.ts`: 組織ごとの一時的な権限。本番・stg は STS の AssumeRole に**セッションのポリシー**(`incoming/<組織>/*`・`files/<組織>/*` だけ)を付けて取り、組織ごとに期限の10分前まで覚えておく。手元・テストは固定の資格情報(MinIO)。
+  - `tenant-credentials.ts`: 組織ごとの一時的な権限。本番・stg は STS の AssumeRole に**セッションのポリシー**(`incoming/<組織>/*`・`files/<組織>/*` だけ)を付けて取り、組織ごとに期限の10分前まで覚えておく。手元・テストは固定の資格情報(RustFS)。
   - `object-store.ts`: `ObjectStore`(`presignPut`・`presignGet`・`get`・`put`・`delete`・`deletePrefixAllVersions`・`countPrefix`)。どれも `tenantId` を受け、その組織の権限で S3 を呼ぶ。キーは `keys.ts` からだけ。
   - `strip-metadata.ts`: 写真の付いた情報を消す(依存を足さない。ADR 0080)。
 - **API は S3 の SDK を直接呼ばない**(`@aws-sdk/client-s3` は既に入っている。署名に `@aws-sdk/s3-request-presigner` を足す。`@aws-sdk/client-sts` も足す)。
@@ -64,12 +64,12 @@ sequenceDiagram
 |---|---|---|---|
 | `id` | uuid | ファイルの ID(キーにも使う) | internal |
 | `tenant_id` | uuid not null → `organizations.tenants` | 組織 | internal |
-| `task_id` | uuid not null | 付け先のタスク。`(tenant_id, task_id)` → `tasks.tasks(tenant_id, id)` on delete cascade | internal |
+| `task_id` | uuid not null | 付け先のタスク。`task_id` → `tasks.tasks(id)` on delete cascade(tasks に `(tenant_id, id)` の一意が無い。11) | internal |
 | `uploaded_by` | uuid not null | 上げた人(`organizations.users` の ID。人が抜けても消さない・外部キーは張らない。タスクの作り手と同じ扱い) | internal |
 | `name` | text not null(1〜200字) | 元の名前(表示と保存の名前)。**キー・URL・ログには入れない** | personal(施主の名前などが入りうる) |
 | `content_type` | text not null | `image/jpeg`・`image/png`・`image/webp`・`application/pdf` のどれか(check) | internal |
-| `byte_size` | integer not null(1〜20MB。check) | 上げると言った大きさ(署名に入れる) | internal |
-| `stored_byte_size` | integer null | 書き直した後の大きさ | internal |
+| `byte_size` | bigint not null(1〜20MB。check) | 上げると言った大きさ(署名に入れる) | internal |
+| `stored_byte_size` | bigint null | 書き直した後の大きさ | internal |
 | `status` | text not null default `pending` | `pending`・`ready`・`rejected`(check) | internal |
 | `created_at` | timestamptz | 作った時刻(一覧の並び) | internal |
 | `ready_at` | timestamptz null | 見られるようになった時刻 | internal |
@@ -120,13 +120,13 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 
 ## 5. システム間連携
 
-- **S3**(本番・stg)/ **MinIO**(手元・CI の結合テスト): S3 の取り決め(SigV4)だけを使う。入口を変える `FILES_S3_ENDPOINT`(と画面から届く入口 `FILES_S3_PUBLIC_ENDPOINT`)は、API の設定が local / test 以外では起動時に止める(`COGNITO_ENDPOINT` と同じ)。stg・prod で `FILES_BUCKET` と `FILES_ACCESS_ROLE_ARN` が無ければ起動しない。
+- **S3**(本番・stg)/ **RustFS**(S3 互換。手元・CI の結合テスト): S3 の取り決め(SigV4)だけを使う。入口を変える `FILES_S3_ENDPOINT`(と画面から届く入口 `FILES_S3_PUBLIC_ENDPOINT`)は、API の設定が local / test 以外では起動時に止める(`COGNITO_ENDPOINT` と同じ)。stg・prod で `FILES_BUCKET` と `FILES_ACCESS_ROLE_ARN` が無ければ起動しない。
 - **STS**: `AssumeRole`(役割 `files-access`。中身の権限は置き場の `incoming/*`・`files/*` の読み書きと消すこと、前の版の一覧と消すこと)に、セッションのポリシーで `incoming/<組織>/*`・`files/<組織>/*`(一覧は `s3:prefix` の条件)だけに絞る。期限 1時間・残り10分で取り直す。セッションの名前は `files-<組織の ID>`(CloudTrail で組織ごとに追える)。
 - **アウトボックス**:
   - `files.file_uploaded { fileId }` → 受け手(`storage` の `processUpload`): その組織の権限で `incoming/<組織>/<ファイル>` を読む(大きさが行の `byte_size` と違えば rejected)→ 先頭の数バイトで種類を確かめる(行の `content_type` と違えば rejected)→ 写真なら付いた情報を消す → `files/<組織>/<ファイル>` に `Content-Type`・`Content-Disposition` つきで書く → incoming を消す → 行を ready に。行が無い・既に ready なら何もしない(2回届いても大丈夫)。
   - `files.file_deleted { fileId }` → 受け手: `files/` と `incoming/` の今の版を消す(前の版は 30日で消える)。無くても成功。
   - 受け手は `event.tenantId` で権限と `withTenant` を作り直す(T-4・L-5)。
-- **ブラウザ → S3**: 置き場の CORS で、画面の出どころ(`app_origin`)からの `PUT` だけを許す。画面の CSP(穴 G-17)を入れるときは `connect-src`・`img-src` に置き場の出どころを足す。
+- **ブラウザ → S3**: 置き場の CORS で、画面の出どころ(`app_origin`)からの `PUT` だけを許す。画面を作るときは、画面のサーバーの CSP(`apps/web/server/app.ts`)の `connect-src`・`img-src` に置き場の出どころを足す(E2E の `csp.spec.ts` が違反を見つける)。
 - 外のサービスは増えない(S3・STS・KMS は既存の AWS。委託先の台帳の AWS の行に S3 の使い道を足す)。
 
 ## 6. 業務ルール
@@ -149,19 +149,19 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
-| member・admin が上げると、組織の置き場の新しいキーへの5分の URL | 3. 上げる URL・1. `keys.ts` | `test/integration/files.int.test.ts`・`test/unit/storage-keys.test.ts` |
-| 決めた種類・大きさだけ | 3. 署名に種類と大きさ・6. | `test/unit/files-schema.test.ts`・`files-minio.int.test.ts`(違う大きさの PUT が断られる) |
-| 上げ終えたら読み直し・種類の確認・EXIF の削除・向きは残す | 5. `processUpload`・6. | `test/unit/strip-metadata.test.ts`・`files-minio.int.test.ts` |
+| member・admin が上げると、組織の置き場の新しいキーへの5分の URL | 3. 上げる URL・1. `keys.ts` | `test/integration/files.int.test.ts`・`test/unit/storage.test.ts` |
+| 決めた種類・大きさだけ | 3. 署名に種類と大きさ・6. | `packages/shared/src/files.test.ts`・`files-object-store.int.test.ts`(違う大きさの PUT が断られる) |
+| 上げ終えたら読み直し・種類の確認・EXIF の削除・向きは残す | 5. `handleFileUploaded`・6. | `test/unit/strip-metadata.test.ts`・`files-object-store.int.test.ts` |
 | viewer は上げられない | 3. 権限 | `authz-matrix.int.test.ts` |
 | 一覧と5分の URL | 3. 一覧 | `files.int.test.ts` |
 | 本人・admin は消せる・member は他人の物を消せない | 3. `canTouchFile` | `files.int.test.ts` |
-| タスク・プロジェクトを消すとファイルも消える | 2. 外部キーと引き金・5. `file_deleted` | `files.int.test.ts`(引き金が積む)・`files-minio.int.test.ts`(中身が消える) |
+| タスク・プロジェクトを消すとファイルも消える | 2. 外部キーと引き金・5. `file_deleted` | `files.int.test.ts`(引き金が積む)・`files-object-store.int.test.ts`(中身が消える) |
 | 消した物は前の版として 30日 | Terraform のライフサイクル | `terraform validate`・Trivy(stg で確かめる) |
 | 他社は 404 | 3. 失敗・RLS | `authz-matrix.int.test.ts`・`files.int.test.ts` |
-| URL はいつもセッションの組織の置き場の中 | 1. `keys.ts`・`tenant-credentials.ts` | `test/unit/storage-keys.test.ts`・`test/unit/tenant-credentials.test.ts`(セッションのポリシーの中身)・Semgrep の `tenant-from-request` |
-| 署名を書き換えて他社のキーを指すと断られる | ADR 0079 | **`files-minio.int.test.ts`**(MinIO に向けて、2社の URL のキーを入れ替えて 403) |
-| 解約の削除は置き場の中身を前の版も含めて消す | 2. `FILE_PREFIXES` | `files-minio.int.test.ts`・`offboarding.int.test.ts`(表の網羅) |
-| 書き出しにファイルの一覧 | 2. 書き出し | `export.int.test.ts` |
+| URL はいつもセッションの組織の置き場の中 | 1. `keys.ts`・`tenant-credentials.ts` | `test/unit/storage.test.ts`・`test/unit/storage.test.ts`(セッションのポリシーの中身・STS を組織ごとに覚える)・Semgrep の `tenant-from-request` |
+| 署名を書き換えて他社のキーを指すと断られる | ADR 0079 | **`files-object-store.int.test.ts`**(S3 互換の RustFS に向けて、URL のキーを他社の物に入れ替えて 403) |
+| 解約の削除は置き場の中身を前の版も含めて消す | 2. `FILE_PREFIXES` | `files-object-store.int.test.ts`(前の版も消える・他社は残る)・`offboarding.int.test.ts`(表の網羅) |
+| 書き出しにファイルの一覧 | 2. 書き出し | `export-stream.int.test.ts`(段3) |
 | 監査ログに残る | 3. 監査ログ | `test/unit/audit-coverage.test.ts`・`files.int.test.ts` |
 | ログ等に名前・中身・URL を出さない | 8. ログ | `personal-data-logs.int.test.ts` の型に合わせて `files.int.test.ts` で確かめる |
 
@@ -177,7 +177,7 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 
 | 観点 | この変更では |
 |---|---|
-| テナント分離 | DB は RLS+`tenant_id`。S3 は キーの頭+その組織だけの一時的な権限+関所。MinIO に向けた2社の結合テスト |
+| テナント分離 | DB は RLS+`tenant_id`。S3 は キーの頭+その組織だけの一時的な権限+関所。S3 互換の置き場(RustFS)に向けた2社の結合テスト |
 | 権限の表 | 5行足す。`{fileId}` の置き換えを足す |
 | 監査ログ | `file.create`・`file.complete`・`file.delete` |
 | 解約で消す一覧 | `files.files` を `TENANT_TABLES` に・置き場は `FILE_PREFIXES` を DB より先に |
@@ -194,7 +194,7 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 | データモデル | 採用 | 新しい表1つと引き金。拡張だけ |
 | API | 採用 | 5つ。権限の表で全ロールを機械で検証 |
 | 状態遷移 | 軽く確認 | 3つの状態。戻らない |
-| システム間連携 | 最重要 | S3・STS・アウトボックス。手元と本物の違い(MinIO は STS の絞りを確かめない) |
+| システム間連携 | 最重要 | S3・STS・アウトボックス。手元と本物の違い(RustFS は STS の絞りを確かめない) |
 | 業務ルール | 採用 | 種類・大きさ・EXIF。値は U-1・U-2・U-5 |
 | 要求との対応 | 機械で検証 | 上の表 |
 | 非機能 | 採用 | 費用は U-2 |
@@ -206,7 +206,7 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 
 - **S3 に画面から直接上げ下げする(署名つき URL)。API を通さない** — 20MB の写真を API(Fargate・ALB の 60秒)に通すと、遅い回線の現場で切れて、API のメモリと費用が増える。G-45 の案どおり。ADR 0079。
 - **キーは `<段>/<組織の ID>/<ファイルの ID>`。組織の ID は段の次** — ライフサイクル(上げ終えない物を1日で消す)が「キーの頭」でしか分けられないので、段を一番上にする。組織の ID はいつも2番目で、権限の絞り(`incoming/<組織>/*`)も解約の削除も同じ形で書ける。名前はキーに入れない(推測・個人情報)。
-- **署名には、その組織だけに絞った一時的な権限(STS のセッションのポリシー)を使う** — `docs/security.md` の T-4 の決まり。キーの関数に誤りがあっても、他社のキーへの署名は S3 が断る(層を重ねる)。手元・CI の MinIO では絞りを確かめず、ポリシーの中身を単体テストで、本物の効き目を stg で確かめる(10. の「最重要」)。
+- **署名には、その組織だけに絞った一時的な権限(STS のセッションのポリシー)を使う** — `docs/security.md` の T-4 の決まり。キーの関数に誤りがあっても、他社のキーへの署名は S3 が断る(層を重ねる)。手元・CI の RustFS では絞りを確かめず、ポリシーの中身を単体テストで、本物の効き目を stg で確かめる(10. の「最重要」)。
 - **`file:read`・`file:write` は関所のトランザクションの外** — STS を待つことがある(apps/api/CLAUDE.md の「トランザクションの中で外を待たない」)。`domain:verify` と同じ型。
 - **上げた物はそのまま見せず、送り出しが読み直して書き直した物だけを見せる** — 署名だけでは中身の種類を確かめられず、EXIF も消せない。ADR 0080。
 - **付いた情報の削除は依存を足さずに自分で書く(sharp などを入れない)** — 消すのは塊を外すだけで、画素を作り直さない(画質が落ちない・速い・ネイティブの依存が無い)。ADR 0080。
@@ -215,6 +215,9 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 - **画面の出どころからの PUT だけを CORS で許す** — GET は `<img>` で取るので CORS が要らない。
 - **ファイルの名前は `Content-Disposition` に入れ、URL に入れない** — URL は S3・CloudFront のアクセスの記録や、ブラウザの履歴に残る。
 - **新しい領域 `files` に置く(タスクの領域の中に置かない)** — 題材を差し替えるとき、付け先を変えるだけで部品を残せる(`/tailor` で消すのも1つの塊)。
+- **手元・CI の S3 の代わりは RustFS(MinIO ではない)** — `local-environment.md` の表は MinIO だったが、2026-10-27 に確かめると MinIO の公式のイメージは Docker Hub・quay.io のどちらからも取れない(配布をやめた)。RustFS は S3 互換・Apache-2.0 で、署名(SigV4)・版・前の版の一覧と削除が通る(`files-object-store.int.test.ts`)。版とダイジェストを固定し、公開から2週間以上たった版(1.0.1)を使う。
+- **タスクへの外部キーは `task_id` だけ** — 決まり(`src/db/schema.ts`)は `(tenant_id, id)` の組だが、`tasks.tasks` にその一意が無い。足すと既にある表への制約で、段を分けた移行(索引を `CONCURRENTLY` で作ってから)になる。作るときに `taskExists`(RLS と `tenant_id` で絞る)で同じ組織のタスクかを確かめ、RLS の `WITH CHECK` で行の組織はいまの組織だけなので、他社のタスクには付かない。組で張るのは、tasks に一意を足すときに一緒にする。
+- **段2では置き場の設定が無くても起動する(ファイルの API は 503)** — Terraform(段3)より先にこの段が入っても、stg・prod が止まらないように。段3で、stg・prod は置き場の設定を必須にする。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
 

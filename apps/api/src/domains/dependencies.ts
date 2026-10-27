@@ -9,4 +9,6 @@ export const DOMAIN_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = 
   legal: ["organizations"],
   // 集客(公開の LP の事前登録。docs/specs/0025-public-landing-page.md)。表は運営の組織の持ち物(外部キーだけ)
   growth: ["organizations"],
+  // 写真・ファイル(docs/specs/0072-file-storage.md)。付け先はタスク(題材を差し替えたら付け先を変える)
+  files: ["organizations", "tasks"],
 };

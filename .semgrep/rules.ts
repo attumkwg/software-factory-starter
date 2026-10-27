@@ -119,6 +119,17 @@ export function moneyAndTime() {
   return [withTax, shown, doubled, hour, day, label, utcDay, tokyo];
 }
 
+// ruleid: file-storage-only-in-module
+import { objectKey } from "../storage/keys.ts";
+// ruleid: file-storage-only-in-module
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+// ruleid: file-storage-only-in-module
+import { S3Client } from "@aws-sdk/client-s3";
+// ok: file-storage-only-in-module
+import type { ObjectStore } from "../storage/index.ts";
+
+export const fileStorage = [objectKey, getSignedUrl, S3Client] as unknown as ObjectStore;
+
 // ruleid: sensitive-data-only-in-module
 import { tenantKeys } from "../sensitive/schema.ts";
 // ruleid: sensitive-data-only-in-module

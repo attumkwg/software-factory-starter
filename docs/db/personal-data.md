@@ -10,6 +10,7 @@
 
 | 表 | 列 | 区分 | 利用目的 |
 |---|---|---|---|
+| `files.files` | `name` | **personal** | 元のファイルの名前(施主の名前などが入りうる。キー・URL・ログに入れない) |
 | `growth.pre_registrations` | `email` | **personal** | 確認のメール・提供開始の案内・試しの利用の招待・組織を作るときの最初の管理者 |
 | `growth.pre_registrations` | `organization_name` | **personal** | 組織を作るときの名前の案(個人事業なら人の名前になる) |
 | `organizations.email_changes` | `previous_email` | **personal** | 変わったお知らせを古いアドレスへ送る |
@@ -25,6 +26,22 @@
 | `tasks.tasks` | `title` | **personal** | お客さんが入れた題名(自由な文なので個人情報が入りうる) |
 
 ## 全部の列
+
+### `files.files`
+
+| 列 | 区分 | 利用目的 |
+|---|---|---|
+| `id` | internal | ファイルの ID(置き場のキーにも使う) |
+| `tenant_id` | internal | 組織 |
+| `task_id` | internal | 付け先のタスク |
+| `uploaded_by` | internal | 上げた人の ID |
+| `name` | **personal** | 元のファイルの名前(施主の名前などが入りうる。キー・URL・ログに入れない) |
+| `content_type` | public | 種類(image/jpeg など決まった4つ) |
+| `byte_size` | internal | 上げると言った大きさ |
+| `stored_byte_size` | internal | 付いた情報を消した後の大きさ |
+| `status` | public | 状態(pending / ready / rejected) |
+| `created_at` | internal | 作った時刻(一覧の並び) |
+| `ready_at` | internal | 見られるようになった時刻 |
 
 ### `growth.lp_daily_counts`
 
@@ -234,6 +251,7 @@
 | `details` | internal | ほかのパスの ID・直した項目の名前(値は入れない。ADR 0013) |
 | `details` の `projectId` | internal | タスクを作ったプロジェクトなど |
 | `details` の `taskId` | internal | パスのタスクの ID |
+| `details` の `fileId` | internal | パスのファイルの ID(上げ終える・消すの対象。docs/specs/0072-file-storage.md) |
 | `details` の `grantId` | internal | パスの許可の ID |
 | `details` の `invitationId` | internal | パスの招待の ID |
 | `details` の `domainId` | internal | パスの会社のドメインの ID |
@@ -281,6 +299,7 @@
 | `payload` の `taskId` | internal | 完了したタスク |
 | `payload` の `projectId` | internal | そのプロジェクト |
 | `payload` の `completedBy` | internal | 完了にした人の ID |
+| `payload` の `fileId` | internal | 上げ終えた・消したファイルの ID(名前・キー・URL は入れない) |
 | `payload` の `userId` | internal | お知らせを送る相手の ID(宛先は送る直前に DB から読む) |
 | `payload` の `emailChangeId` | internal | メールアドレスの変更の ID(古いアドレスは表から読む) |
 | `payload` の `noticeId` | internal | 規約の変更のお知らせの ID(宛先と版は表から読む) |
