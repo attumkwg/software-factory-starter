@@ -94,6 +94,34 @@ questions:
     recommended: 予定なし
     multi: true
     why: 取るなら、記録(監査ログ・アクセスの見直し・バックアップの訓練)を消さずに残す
+  - id: size
+    text: 作る人は何人で、PMF の前か(軽い型にするか)
+    kind: 事業判断
+    options: [1〜3人・PMF の前, 4人以上か PMF の後, まだ分からない]
+    recommended: 4人以上か PMF の後
+    why: 1〜3人で PMF の前なら、大きな会社向けの部品・運用の部品を「後で足す」にまとめて、抱える量を減らせる(下の presets の light)。迷ったら全部入りのまま
+
+# ── 一括の型(/tailor が最初に聞く。答えが when に当たれば、later の部品をまとめて「後で足す」にする案を出す)──
+#   later の部品は、どれも土台でなく、残す部品から頼られていない(pnpm kit:catalog が確かめる)。
+#   後で足すときは docs/kit/upgrade.md の B の形で、キットのその部品のファイル(remove の delete の一覧)を持ってくる。
+#   決まりは docs/designs/0068-light-preset.md
+presets:
+  - id: light
+    title: 軽い型(1〜3人・PMF の前)
+    when: size=1〜3人・PMF の前
+    why: 確かめる前に、大きな会社の情シス向けの部品・人が増えてからの運用の部品まで抱えると、読む量・CI の時間・点検の項目が増えるだけ。後から足せる物だけを外す(雑にしてはいけない所 = 土台は残す。docs/concepts/stages.md の 1)
+    later:
+      - { id: sso, add_back_when: お客さんの情シスが「会社のアカウントでログイン」を求めたとき }
+      - { id: scim, add_back_when: SSO を足し、お客さんが人の追加と停止を情シスの道具でしたいと言ったとき }
+      - { id: ip-allowlist, add_back_when: お客さんが「社内のネットワークからだけ」を求めたとき }
+      - { id: audit-export, add_back_when: お客さんが監査ログを自分の道具(SIEM)に取り込みたいと言ったとき }
+      - { id: certification-prep, add_back_when: P マーク・ISMS・SOC 2 を取ると決めたとき(/tailor の certification) }
+      - { id: on-call, add_back_when: お金をもらうお客さんが付き、夜中に止まると困るとき(当番を回せる人が2人になったとき) }
+      - { id: ledger, add_back_when: 税理士に資産と費用を分けた表を渡すとき }
+      - { id: cost-dashboard, add_back_when: AWS と SaaS の月の費用が見積もりから外れ始めたとき・賭けごとの損益を出したいとき }
+      - { id: security-questionnaire, add_back_when: 大きな会社からセキュリティの質問票が届いたとき }
+      - { id: sales-kit, add_back_when: 営業がデモ・見積・稟議の資料を毎回作り始めたとき }
+      - { id: preview-env, add_back_when: PR が週に10件を超え、stg を1つで回すと待ちが出るとき }
 
 # ── 部品の区分 ────────────────────────────────────────────────────────────
 groups:
