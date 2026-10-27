@@ -1,0 +1,75 @@
+# テストか検査を弱めた PR に、ラベル tests:weakened を付けて人の目に出す(G-60・仕様 0062)。
+# AI は「CI を緑にする」を目標にすると、テストの側を変えて通すことがある(skip・確かめを外す・下限を下げる・検査を黙らせる)。
+# 止めずに印を付ける(理由のある変更もある)。印の付いた PR は危険度「高」とみなす(review-count-lib.mjs)。
+# 見つける中身は PR の側ではなく土台のブランチ(base)の物を使う。書く権限のジョブは PR のコードを checkout しない。
+name: テストを弱めた印
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-weakening-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: テストか検査を弱めていないか
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      found: ${{ steps.find.outputs.found }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # 依存は要らない(node の標準と gh だけ)。土台にまだスクリプトが無い(この印を足す PR そのもの)ときは見ない
+      - id: find
+        name: 差分から弱めた所を探す
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -f scripts/test-weakening.mjs ]; then
+            echo "土台のブランチにまだ scripts/test-weakening.mjs が無いので見ない(この印を足す PR)"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node scripts/test-weakening.mjs
+
+  label:
+    name: tests:weakened を付け外しする
+    needs: detect
+    # フォークの PR はラベルを付けられないので飛ばす(ai-label.yml と同じ)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: 見つかれば付け、見つからなければ外す
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          FOUND: ${{ needs.detect.outputs.found }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'tests:weakened') }}
+        run: |
+          if [ "$FOUND" = "true" ] && [ "$HAS_LABEL" != "true" ]; then
+            gh pr edit "$PR" --repo "$REPO" --add-label tests:weakened ||
+              echo "::warning::ラベル tests:weakened を付けられなかった(ラベルが無いなら pnpm setup:github --apply。docs/guides/labels.md)"
+          elif [ "$FOUND" != "true" ] && [ "$HAS_LABEL" = "true" ]; then
+            gh pr edit "$PR" --repo "$REPO" --remove-label tests:weakened ||
+              echo "::warning::ラベル tests:weakened を外せなかった"
+          fi

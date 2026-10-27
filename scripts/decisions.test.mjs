@@ -3,8 +3,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   adoptLines,
+  approverOf,
   byDesign,
+  changedAnswers,
   dueDateOf,
+  evidenceOf,
+  evidenceProblems,
   groupRows,
   readDecisions,
   verdict,
@@ -149,4 +153,103 @@ test("承認・変更にした行は --adopt に出ない", () => {
 test("設計書のパスでまとめる(行番号の「:」で切る)", () => {
   const { rows } = read(row("U-1", ADOPTED), row("U-2", ADOPTED));
   assert.deepEqual([...byDesign(rows).keys()], ["docs/designs/0001-a.md"]);
+});
+
+// ── 人の答えの出どころ(G-61・仕様 0061)──
+const LINK = "https://github.com/acme/app/pull/12#issuecomment-345";
+const text = (...rows) => design("docs/designs/0061-x.md", rows).text;
+const human = (body, login = "suzuki", extra = {}) => ({
+  user: { login, type: extra.type ?? "User" },
+  author_association: extra.association ?? "OWNER",
+  body,
+});
+const check = (state, item, extra = {}) =>
+  evidenceProblems({
+    row: { id: "U-1", state },
+    evidence: evidenceOf(state),
+    item,
+    repo: "acme/app",
+    prNumber: extra.prNumber ?? 12,
+    designNumber: "0061",
+  });
+
+test("PR で人の答えに変わった行だけを拾う(仮決めのまま・同じ文・取り下げは拾わない)", () => {
+  const base = text(row("U-1", "仮決め"), row("U-2", "仮決め"), row("U-3", "承認(@a 2026-10-01)"));
+  const head = text(
+    row("U-1", `承認(@suzuki 2026-11-03 ${LINK})`),
+    row("U-2", "取り下げ(作り直しで問いが無くなった)"),
+    row("U-3", "承認(@a 2026-10-01)"),
+    row("U-4", "保留(@suzuki: 2026-12-01 までに)"),
+    row("U-5", "仮決め"),
+  );
+  assert.deepEqual(
+    changedAnswers(base, head).map((r) => r.id),
+    ["U-1", "U-4"],
+  );
+  // 新しい設計書に、いきなり承認で書いた行も拾う
+  assert.deepEqual(
+    changedAnswers("", text(row("U-1", ADOPTED))).map((r) => r.id),
+    ["U-1"],
+  );
+});
+
+test("リンクを読む(コメント・レビュー・行のコメント)。ほかの形は読まない", () => {
+  assert.deepEqual(evidenceOf(`承認(@s 2026-11-03 ${LINK})`), {
+    url: LINK,
+    repo: "acme/app",
+    number: 12,
+    type: "comment",
+    id: "345",
+  });
+  assert.equal(
+    evidenceOf("承認(https://github.com/acme/app/pull/3#pullrequestreview-9)").type,
+    "review",
+  );
+  assert.equal(
+    evidenceOf("https://github.com/acme/app/pull/3#discussion_r77。").type,
+    "review_comment",
+  );
+  assert.equal(evidenceOf("承認(@s 2026-11-03。会話で回答)"), undefined);
+  assert.equal(evidenceOf("https://github.com/acme/app/pull/3"), undefined);
+  assert.equal(evidenceOf("https://example.com/acme/app/pull/3#issuecomment-1"), undefined);
+  assert.equal(approverOf("承認(@suzuki-2 2026-11-03)"), "suzuki-2");
+  assert.equal(approverOf("保留(: 2026-12-01 までに)"), undefined);
+});
+
+test("人(書き込める人)が、この PR で番号を書いて答えていれば通る", () => {
+  assert.deepEqual(check(`承認(@suzuki 2026-11-03 ${LINK})`, human("U-1 承認します")), []);
+  // 名前の大文字小文字は問わない
+  assert.deepEqual(check(`承認(@Suzuki 2026-11-03 ${LINK})`, human("U-1 承認")), []);
+});
+
+test("リンクが無い・ボット・外の人・名前が違う・番号が無い、は落とす", () => {
+  const has = (problems, word) => problems.some((p) => p.includes(word));
+  assert.ok(has(check("承認(@suzuki 2026-11-03。会話で回答)", undefined), "リンクが無い"));
+  assert.ok(
+    has(
+      check(`承認(@suzuki 2026-11-03 ${LINK})`, human("U-1 承認", "claude[bot]", { type: "Bot" })),
+      "ボット",
+    ),
+  );
+  assert.ok(
+    has(
+      check(
+        `承認(@suzuki 2026-11-03 ${LINK})`,
+        human("U-1 承認", "suzuki", { association: "NONE" }),
+      ),
+      "書き込める人ではない",
+    ),
+  );
+  assert.ok(has(check(`承認(@suzuki 2026-11-03 ${LINK})`, human("U-1 承認", "tanaka")), "違う"));
+  assert.ok(has(check(`承認(2026-11-03 ${LINK})`, human("U-1 承認")), "@名前"));
+  assert.ok(has(check(`承認(@suzuki 2026-11-03 ${LINK})`, human("承認します")), "U-1 が無い"));
+  assert.ok(has(check(`承認(@suzuki 2026-11-03 ${LINK})`, undefined), "読めない"));
+  const other = "承認(@suzuki 2026-11-03 https://github.com/evil/app/pull/1#issuecomment-1)";
+  assert.ok(has(check(other, human("U-1")), "別のリポジトリ"));
+});
+
+test("別の PR・Issue の答えを指すなら、設計書の番号も要る(同じ U-1 の使い回しを防ぐ)", () => {
+  const state = `承認(@suzuki 2026-11-03 ${LINK})`;
+  assert.ok(check(state, human("U-1 承認"), { prNumber: 99 }).some((p) => p.includes("0061")));
+  assert.deepEqual(check(state, human("0061 の U-1 承認"), { prNumber: 99 }), []);
 });

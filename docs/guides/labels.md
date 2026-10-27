@@ -17,6 +17,7 @@
 | `risk:high` | 間違えると戻せない・守りが外れる場所(認証・認可・DB と移行・権限の表・infra・CI・AI のハーネス)を変えた PR | 自動(labeler。.github/labeler.yml のパス) | PR を開いた・push したとき。複数付いたら一番高いものがその PR の危険度 | 人が中身を読む(👥 人が増えたら2人。CODEOWNERS)。PR の「人に判断してほしい所」から読む |
 | `risk:medium` | API・画面・部品の中身を変えた PR(高の場所は含まない) | 自動(labeler) | PR を開いた・push したとき | 人は全体像と「人に判断してほしい所」を見る(細かい所は CI と AI のレビュー) |
 | `risk:low` | 変えたファイルが全部、文書かテストの PR | 自動(labeler)。不具合の Issue には /report-bug が見込みで付ける | PR を開いた・push したとき | CI が緑ならマージしてよい(最初の1〜2か月は人も見て、AI の見逃しを数える) |
+| `tests:weakened` | テストのファイルを消した・skip や only を足した・expect や assert が減った・カバレッジの下限を下げた・biome-ignore などの注釈を足した PR(G-60) | 自動(test-weakening.yml。差分の形から)。見つからなくなれば外れる | PR を開いた・push したとき | PR の本文に、なぜ弱めたか(古いテストを消した・不安定な E2E を一時的に飛ばす など)が書いてあるかを人が見る。無ければ /rework。危険度「高」とみなし、人の承認の人数を数える |
 
 ## 変えた場所(PR)
 

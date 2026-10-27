@@ -10,9 +10,10 @@
 
 | 向いている | 向いていない(いまは) |
 |---|---|
-| 会社向け(B2B)の SaaS を、1〜15人ほどで始める | 個人向けのアプリ・記事で人を集めるサイト(軽い型・SEO の型はまだ無い) |
+| 会社向け(B2B)の SaaS を、1〜15人ほどで始める | 個人向けのアプリ・記事で人を集めるサイト(個人向けの型・SEO の型はまだ無い) |
 | AI に実装を任せたいが、事故(他社のデータが見える・鍵が漏れる)は起こしたくない | スマホのネイティブアプリが最初から要る(スマホのブラウザなら動く) |
 | 詳しい人がいなくても、点検や更新を回したい | 1,000人規模の開発の組織(作る側の会社か部門が100人までを狙っている。大きな会社の中の小さなチームなら当てはまる) |
+| 1〜3人なら軽い型(`/tailor` の最初の問い)で部品を減らせる | **本番に出して月 約8万円**(AWS の本番 約5.3万円+AI の席 1人 3万円〜)を払えない。手元・試作・話を聞く段階は0円 |
 
 ## 🎁 使うと何が手に入るか
 
@@ -75,7 +76,7 @@ gh repo create <自分か組織>/my-product --private --source . --push
 pnpm setup:github
 ```
 
-`kit` の名前でキットを残すと、後でキットの直しを見られる。`pnpm setup:github` は試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
+`kit` の名前でキットを残すと、後でキットの新しい版を取り込める([docs/kit/upgrade.md](docs/kit/upgrade.md))。`pnpm setup:github` は試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
 
 **3. 何を作るかを決める(半日〜)**
 
@@ -83,7 +84,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 
 **4. 部品を選ぶ(30分〜)**
 
-`/tailor` と打つ。会社向けか・個人情報・お金・メールなどを聞かれ、要らない部品を消す。**迷ったら残す**。
+`/tailor` と打つ。会社向けか・個人情報・お金・メールなどを聞かれ、要らない部品を消す。**迷ったら残す**(1〜3人で PMF の前なら、最初の問いで「軽い型」を選ぶと、後から足せる部品をまとめて外せる)。
 
 この先(題材の差し替え・AWS・Slack・毎週の運用)は **[docs/getting-started.md](docs/getting-started.md)** に順番どおりに書いてある。
 
@@ -91,13 +92,14 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 
 | あなたが | まず読む | よく使う |
 |---|---|---|
-| 経営・事業の責任者 | [想定の場面](docs/scenarios/README.md)(自分の規模の会社で、どこが回りどこで詰まるか) | `/kickoff`・`/bet`・費用のページ |
+| 経営・事業の責任者 | [1枚でわかる](docs/kit/one-pager.md)(流れ・人と AI の分担・費用と効果の見込み。会議に映せる)・[想定の場面](docs/scenarios/README.md)(自分の規模の会社で、どこが回りどこで詰まるか) | `/kickoff`・`/bet`・費用のページ |
 | PdM | [PMF の前の進め方](docs/guides/before-pmf.md)・[機能ごとの賭け](docs/guides/bets-and-assets.md) | `/bet`・`/new-feature`・`pnpm bets` |
 | エンジニア・EM | [開発の進め方](docs/playbook.md)・[ラインの作り](docs/concepts/line.md) | `/new-feature`・`/review-pr`・`/rework` |
 | マーケ・広報・営業 | [売る場面](docs/scenarios/08-gtm.md)・[決めることの地図](docs/scenarios/fit-journey.md)(売り文句 → LP → ブランドの色の順) | `/positioning`・`/brand`・`/kickoff`・`/prototype`・`/release-notes` |
 | CS | [運用の場面](docs/scenarios/05-run.md)・[サポートの代理ログイン](docs/runbooks/support-access.md) | `/report-bug`・`/release-notes` |
 | 法務・管理部門 | [規約と同意](docs/guides/legal-documents.md)・[認証の準備](docs/compliance/README.md)・[費用のページ](docs/guides/cost-dashboard.md) | `/ledger`・`/compliance-check` |
-| セキュリティ・情シス | [セキュリティの決まり](docs/security.md)・[障害の手順書](docs/runbooks/incident.md) | `/cve`・`/checkup` |
+| セキュリティ・情シス | [1枚でわかる](docs/kit/one-pager.md) の「情シス・審査で聞かれること」・[セキュリティの決まり](docs/security.md)・[障害の手順書](docs/runbooks/incident.md) | `/cve`・`/checkup` |
+| 引き継ぐ人 | [最初の1週間で読む9つ](docs/kit/first-week.md)・[用語集](docs/kit/glossary.md)(キット独自の言葉 ↔ 標準の言葉) | `/checkup`・`pnpm decisions` |
 
 ## 🔁 1つの機能が出るまで(人が止まるのは3か所)
 
@@ -136,14 +138,15 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 
 ### 部品の一覧(`/tailor` で残す・消すを決める)
 
-`/tailor` が聞くこと: 会社向け(B2B)か、個人向け(B2C)か/個人情報・要配慮個人情報(病歴・信条など)を扱うか/お金を扱うか(請求・決済・金額の計算)/利用者にメールを送るか/検索(Google など)から人を呼ぶか/スマホのアプリを作るか/認証(P マーク・ISMS・SOC 2)を取る予定があるか。
+`/tailor` が聞くこと: 会社向け(B2B)か、個人向け(B2C)か/個人情報・要配慮個人情報(病歴・信条など)を扱うか/お金を扱うか(請求・決済・金額の計算)/利用者にメールを送るか/検索(Google など)から人を呼ぶか/スマホのアプリを作るか/認証(P マーク・ISMS・SOC 2)を取る予定があるか/作る人は何人で、PMF の前か(軽い型にするか)。
 
 - 🔒 は土台。どの答えでも消さない。
 - 既定は、迷ったときのおすすめ。**迷ったら残す**(消すのは後からでもできる。足し直すほうが高い)。
 - 消す部品は1つずつ PR で(消し方はカタログの `remove`)。決めたことは `docs/product/tailoring.md` に残す。
+- 🪶 **軽い型(1〜3人・PMF の前)**: `sso`・`scim`・`ip-allowlist`・`audit-export`・`certification-prep`・`on-call`・`ledger`・`cost-dashboard`・`security-questionnaire`・`sales-kit`・`preview-env`・`verify-pr` をまとめて「後で足す」にできる(足し直す合図は部品ごとにカタログの `presets`)。
 
 <details>
-<summary>部品の一覧を開く(70件)</summary>
+<summary>部品の一覧を開く(72件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -153,7 +156,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 土台(消さない) | 🔒 自前のログイン画面と Cognito `login` | 自前の画面 → API → Cognito でログイン・登録・パスワードの再設定。トークンはサーバーの中だけ。手元とテストは偽物の Cognito | 残す | あり |
 | 土台(消さない) | 🔒 秘密の扱い `secrets` | 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る。漏れたときの手順書 | 残す | あり |
 | 土台(消さない) | 🔒 バックアップと戻す訓練 `backup` | 消せない保管庫に毎日と毎月。毎月 stg で戻す訓練 | 残す | あり |
-| 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)・ADR の番号の重なり | 残す | あり |
+| 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)と人の答えの出どころ(decision-evidence)・ADR の番号の重なり | 残す | あり |
 | 土台(消さない) | 🔒 ログの決まり `logging` | 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない) | 残す | あり |
 | 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | あり |
 | 土台(消さない) | 🔒 AI のハーネス(守りの一覧とフック) `harness` | 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる | 残す | あり |
@@ -215,7 +218,9 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 進め方 | 利用の記録 `usage-records` | どの組織の・誰が・どの機能を・どの日に使ったかを1日1人1行で残し、運営が週ごとの数と継続率(初めて使った週ごとの組の N 週後。組織と人の ID は出さない)を出す。賭けの rollout の線を測る。中身・時刻・URL・IP は残さず、400日で消す | 残す | あり |
 | 進め方 | 「無くなったら困るか」を聞く `pmf-survey` | 運営が機能フラグ pmf-survey を入れた組織の、使い始めて14日たった人に「このサービスが使えなくなったら、どう感じますか」を四半期に1回まで画面の中で聞く。答えは組織・回・答えごとの数だけ(だれが何と答えたかは残さない)。運営のコマンドが全部の組織を足した割合を出す(PMF の兆し。とても困るが40%) | 残す | あり |
 | 進め方 | 資産と費用の台帳(/ledger) `ledger` | 月1回、賭けごとの人の時間とインフラ・SaaS を「資産の候補・費用・除却の候補」に分けた案(費用のページの ledger.csv)を1つずつ確かめ、賭けのファイルの「会計区分の判定」に足す。会計・税の当てはめは専門家が確かめる | 残す | あり |
-| 進め方 | 週の数字(pnpm metrics) `metrics` | DORA の4つ(デプロイの頻度・リードタイム・変更の失敗率・復旧の時間)・AI が手伝った PR の割合(Actions がラベル ai:assisted を付けて数える)・人の介在率(人が答えた問い・人の手直し)・仕様の在庫を、決裁用(週ごとの並び)と改善用(先週の PR ごと)に分けて、毎週 Actions の要約に出す。人の名前と PR の中身・人ごとの数は出さない | 残す | あり |
+| 進め方 | 週の数字(pnpm metrics) `metrics` | DORA の4つ(デプロイの頻度・リードタイム・変更の失敗率・復旧の時間)・AI が手伝った PR の割合(Actions がラベル ai:assisted を付けて数える)・人の介在率(人が答えた問い・人の手直し)・仕様の在庫・引き渡し(実装の完了から受け入れまでの日数・受け入れの点数・設計が原因の作り直し)を、決裁用(週ごとの並び)と改善用(先週の PR ごと)に分けて、毎週 Actions の要約に出す。人の名前と PR の中身・人ごとの数は出さない | 残す | あり |
+| 進め方 | 受け入れの点数と書き戻し(/accept) `acceptance` | 作った機能を出す前の受け入れで、おすすめの観点(流れ・ルール・作り込み・仮決め)を中心に PdM に聞き、網羅の確かめは AI と QA に回す。結果を点数にし、外れた理由を要求・設計・AI の仮決め・実装に分け、要求のせいの物を解決済みの論点に書き戻す。記録を取るかは使うときに決める。書き方の崩れは CI(test:scripts)が止め、観点のおすすめから外れた所は知らせるだけ | 残す | あり |
+| 進め方 | PR の動作確認(/verify-pr) `verify-pr` | PR の本文の「🖱 動作確認」を AI が読み、E2E の部品で画面を確かめ、手順を PR のコメントに貼る(手順はコミットしない)。「通った ≠ 確かめた」として、流す前に pnpm verify:lint で危ない書き方を止め、通った後も画面のエラー・失敗した通信の記録とトレースを疑って読む | 残す | あり |
 | 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする | 残す | あり |
 
 </details>
@@ -225,7 +230,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 
 ## 🧱 まだ無いもの
 
-- 想定の場面で見つけた「足りない物」と、いつまでに要るか: **[docs/scenarios/gaps.md](docs/scenarios/gaps.md)**(いまは「外の人に届ける前」の G-41〜G-57。例: 保守の約束・上流の更新の取り込み・写真やファイルの保存・既存のリポジトリに一部だけ入れる道)。
+- 想定の場面で見つけた「足りない物」と、いつまでに要るか: **[docs/scenarios/gaps.md](docs/scenarios/gaps.md)**(いまは「外の人に届ける前」の残り。例: 上流の更新の取り込み・写真やファイルの保存・既存のリポジトリに一部だけ入れる道)。
 - わざとやっていないこと(次の一歩)と注意: [docs/reference.md](docs/reference.md) の「📏 わざとやっていないこと」「⚠️ この雛形の注意」。
 
 ## 🙋 本人が手でやる設定
@@ -240,4 +245,5 @@ GitHub・AWS・OIDC の変数と秘密・Slack・バックアップの確かめ�
 | ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物 | [docs/reference.md](docs/reference.md) |
 | なぜこう作るか(7工程・ハーネス3層・段階と費用・人と AI の分担) | [docs/concepts/](docs/concepts/README.md) |
 | docs 全体の地図 | [docs/README.md](docs/README.md) |
+| 版・変更の記録・誰がいつまで直すか・穴の知らせ方・新しい版の取り込み方 | [CHANGELOG.md](CHANGELOG.md)・[docs/kit/maintenance.md](docs/kit/maintenance.md)・[SECURITY.md](SECURITY.md)・[docs/kit/upgrade.md](docs/kit/upgrade.md) |
 | AI(Claude Code)が読むルール | [CLAUDE.md](CLAUDE.md) |

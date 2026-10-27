@@ -62,28 +62,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: ブラウザ(Docker の中の Chromium)と、手元と同じ形のアプリを起動(並べて)
-        run: |
-          # ブラウザのイメージ(約1.5GB)を取ってくる間に、アプリを作って起動する
-          docker compose -f docker-compose.vrt.yml up -d --wait > "$RUNNER_TEMP/browser.log" 2>&1 &
-          browser=$!
-          docker compose up --build -d
-          # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
-          ready=false
-          for _ in $(seq 1 120); do
-            if curl -fsS http://localhost:8080/readyz && [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
-              ready=true
-              break
-            fi
-            sleep 1
-          done
-          if [ "$ready" != true ]; then
-            docker compose logs
-            exit 1
-          fi
-          if ! wait "$browser"; then
-            cat "$RUNNER_TEMP/browser.log"
-            exit 1
-          fi
+        # 段ごとの時刻と秒数がログに出る。E2E と同じスクリプト
+        run: bash .github/scripts/start-app.sh
       - name: 比べる(ラベル vrt:update があれば撮り直す)
         id: run
         run: |

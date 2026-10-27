@@ -1,0 +1,6 @@
+# キットのどの版まで取り込んだか。pnpm setup:github の「人がやること」と点検の kit-upstream が、キットの最新の版と比べる。
+#   キットの中: 版を切る PR で version を新しいタグにする(docs/kit/maintenance.md の 4)
+#   キットから作ったリポジトリ: 取り込んだら version を取り込んだタグにする(docs/kit/upgrade.md。merge で取り込めば自動で変わる)
+# 決まり: docs/designs/0067-kit-upstream.md
+repository: attumkwg/software-factory-starter
+version: null # まだ版が無い(最初の版 v0.1.0 の前)

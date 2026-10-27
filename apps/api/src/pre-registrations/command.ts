@@ -6,6 +6,7 @@ import {
   type PublicScope,
   purgeExpired,
   type SourceCounts,
+  tokyoDay,
 } from "../domains/growth/index.ts";
 
 // 運営のコマンド pre-registrations-report・pre-registrations-purge・pre-registrations-delete(cli.ts)の中身
@@ -69,7 +70,9 @@ export function parseReportArgs(args: string[], now = new Date()): { from: strin
     const at = args.indexOf(flag);
     return at >= 0 ? args[at + 1] : undefined;
   };
-  const to = value("--to") ?? isoDate(now);
+  // 日ごとの数は日本時間の日付で数えている(tokyoDay)。既定の終わりも日本時間の今日にする
+  // (UTC の日付にすると、日本時間の 0〜9時は「今日」の数が入らない)
+  const to = value("--to") ?? tokyoDay(now);
   const from = value("--from") ?? isoDate(new Date(Date.parse(to) - 27 * DAY));
   if (!DATE.test(from) || !DATE.test(to) || from > to) {
     throw new Error("使い方: pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD]");
