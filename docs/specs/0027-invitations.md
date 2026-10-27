@@ -1,6 +1,6 @@
 # 仕様: 招待(管理者が画面から人を招く)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0027-invitations.md](../designs/0027-invitations.md)・ADR: [0040](../adr/0040-invitations-signed-link.md)
 > 穴 G-02(`docs/scenarios/gaps.md`)。開通(仕様 0026)の上に積む。決まり `docs/security.md` の T-8。
 
