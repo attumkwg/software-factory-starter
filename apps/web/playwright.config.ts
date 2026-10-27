@@ -26,9 +26,10 @@ const WAITING_SPECS = ["session.spec.ts"];
 export default defineConfig({
   testDir: "./e2e",
   // 見た目の回帰テスト(e2e/vrt)は別の設定(playwright.vrt.config.ts・pnpm vrt)。ブラウザを Docker の中で動かす
+  // PR の動作確認(e2e/verify。コミットしない)も別の設定(playwright.verify.config.ts・/verify-pr)
   ...(cognito
     ? { testMatch: "cognito-*.spec.ts" }
-    : { testIgnore: ["cognito-*.spec.ts", "vrt/**"] }),
+    : { testIgnore: ["cognito-*.spec.ts", "vrt/**", "verify/**"] }),
   fullyParallel: true,
   // CI は 3(1つは上の待つテスト、残りの2つでほかを流す)。4 コアの機械にアプリも同居するので、4 にしても速くならなかった
   workers: process.env.CI ? 3 : undefined,
@@ -37,6 +38,10 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:8080",
+    // CI は Docker の中のブラウザ(Playwright の公式イメージ。VRT と同じ)につなぐ。手元は入れたブラウザのまま
+    ...(process.env.E2E_WS_ENDPOINT
+      ? { connectOptions: { wsEndpoint: process.env.E2E_WS_ENDPOINT, exposeNetwork: "<loopback>" } }
+      : {}),
     // PR に貼る証拠(スクショ・動画・トレース)
     screenshot: "on",
     video: "retain-on-failure",
@@ -54,7 +59,7 @@ export default defineConfig({
           {
             name: "chromium",
             use: { ...devices["Desktop Chrome"] },
-            testIgnore: ["cognito-*.spec.ts", "vrt/**", ...WAITING_SPECS],
+            testIgnore: ["cognito-*.spec.ts", "vrt/**", "verify/**", ...WAITING_SPECS],
           },
           {
             name: "mobile",
