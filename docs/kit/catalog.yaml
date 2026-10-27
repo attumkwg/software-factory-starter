@@ -2061,6 +2061,33 @@ parts:
         - { path: docs/reference.md, what: ⑤ 検証の受け入れを外す }
       docs: [docs/specs/0075-acceptance-record.md, docs/designs/0075-acceptance-record.md]
 
+  - id: verify-pr
+    name: PR の動作確認(/verify-pr)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: PR の本文の「🖱 動作確認」を AI が読み、E2E の部品で画面を確かめ、手順を PR のコメントに貼る(手順はコミットしない)。「通った ≠ 確かめた」として、流す前に pnpm verify:lint で危ない書き方を止め、通った後も画面のエラー・失敗した通信の記録とトレースを疑って読む
+    needed_by: PR ごとの画面の確認を人が手でしていて、詰まり所になっている
+    not_needed_by: 画面が無い・画面の変更がまれ
+    if_removed: 画面の確認が人の手だけになる。AI に確かめさせたときに「通った」を信じすぎる
+    depends_on: [preview-env]
+    law: []
+    where: [.claude/skills/verify-pr/SKILL.md, scripts/verify-lint.mjs, apps/web/e2e/verify-fixture.ts, apps/web/playwright.verify.config.ts, docs/guides/verify-pr.md]
+    remove:
+      delete: [.claude/skills/verify-pr, scripts/verify-lint.mjs, scripts/verify-lint-lib.mjs, scripts/verify-lint.test.mjs, apps/web/e2e/verify-fixture.ts, apps/web/e2e/verify, apps/web/playwright.verify.config.ts, docs/guides/verify-pr.md]
+      edit:
+        - { path: package.json, what: verify:lint と、test:scripts の scripts/verify-lint.test.mjs を外す }
+        - { path: apps/web/package.json, what: verify を外す }
+        - { path: apps/web/playwright.config.ts, what: testIgnore の verify/** を外す }
+        - { path: .gitignore, what: e2e/verify と test-results-verify を外す }
+        - { path: .github/pull_request_template.md, what: 「🖱 動作確認」の欄を外す }
+        - { path: docs/concepts/line.md, what: 2 の動作確認の行は残してよい }
+        - { path: docs/reference.md, what: ⑤ 検証の PR の動作確認を外す }
+        - { path: .claude/skills/accept/SKILL.md, what: /verify-pr を指す所を外す }
+        - { path: docs/guides/acceptance.md, what: /verify-pr を指す所を外す }
+      docs: [docs/specs/0076-verify-pr.md, docs/designs/0076-verify-pr.md, docs/adr/0081-verify-scripts-not-tests.md]
+
   - id: checkup
     name: 点検(/checkup)
     group: process

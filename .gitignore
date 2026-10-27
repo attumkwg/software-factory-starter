@@ -15,6 +15,9 @@ test-results/
 playwright-report-vrt/
 test-results-vrt/
 vrt-report/
+# PR の動作確認(/verify-pr)。手順は PR のコメントに貼り、コミットしない
+apps/web/e2e/verify/*.spec.ts
+test-results-verify/
 blob-report/
 
 # Terraform
