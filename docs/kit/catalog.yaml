@@ -2027,7 +2027,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: DORA の4つ(デプロイの頻度・リードタイム・変更の失敗率・復旧の時間)・AI が手伝った PR の割合(Actions がラベル ai:assisted を付けて数える)・人の介在率(人が答えた問い・人の手直し)・仕様の在庫を、決裁用(週ごとの並び)と改善用(先週の PR ごと)に分けて、毎週 Actions の要約に出す。人の名前と PR の中身・人ごとの数は出さない
+    what: DORA の4つ(デプロイの頻度・リードタイム・変更の失敗率・復旧の時間)・AI が手伝った PR の割合(Actions がラベル ai:assisted を付けて数える)・人の介在率(人が答えた問い・人の手直し)・仕様の在庫・引き渡し(実装の完了から受け入れまでの日数・受け入れの点数・設計が原因の作り直し)を、決裁用(週ごとの並び)と改善用(先週の PR ごと)に分けて、毎週 Actions の要約に出す。人の名前と PR の中身・人ごとの数は出さない
     needed_by: AI に任せる範囲を広げるか(自動マージ・本番の承認)を数で決める・AI に払う額を説明する・毎週の振り返りで何を機械に回すかを決める
     not_needed_by: 1人で試している間(PR が少なく、数より中身を見たほうが早い)
     if_removed: 任せる範囲を広げる判断と、仕様の詰まりを、感覚でしか見られない
@@ -2045,6 +2045,56 @@ parts:
         - { path: docs/reference.md, what: ai-label.yml・metrics.yml の行と pnpm metrics を外す }
         - { path: docs/reference.md, what: 「コマンドの全部」の pnpm metrics の行を外す }
       docs: [docs/specs/0035-delivery-metrics.md, docs/designs/0035-delivery-metrics.md, docs/adr/0046-metrics-from-labels-and-repo-records.md]
+
+  - id: acceptance
+    name: 受け入れの点数と書き戻し(/accept)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 作った機能を出す前の受け入れで、おすすめの観点(流れ・ルール・作り込み・仮決め)を中心に PdM に聞き、網羅の確かめは AI と QA に回す。結果を点数にし、外れた理由を要求・設計・AI の仮決め・実装に分け、要求のせいの物を解決済みの論点に書き戻す。記録を取るかは使うときに決める。書き方の崩れは CI(test:scripts)が止め、観点のおすすめから外れた所は知らせるだけ
+    needed_by: PdM が受け入れで詰まり所になっている・同じ種類の書き漏らしが仕様で繰り返される
+    not_needed_by: 1人で作って1人で使っている間(受け入れる人と作る人が同じ)
+    if_removed: 受け入れが人の記憶だけに残り、仕様の書き漏らしが次の仕様に持ち越される
+    depends_on: [harness]
+    law: []
+    where: [.claude/skills/accept/SKILL.md, scripts/acceptance.mjs, docs/guides/acceptance.md, docs/acceptance/_template.md, docs/domain/resolved-questions.md]
+    remove:
+      delete: [.claude/skills/accept, scripts/acceptance.mjs, scripts/acceptance-lib.mjs, scripts/acceptance.test.mjs, docs/guides/acceptance.md, docs/acceptance, docs/domain/resolved-questions.md]
+      edit:
+        - { path: package.json, what: acceptance と、test:scripts の scripts/acceptance.test.mjs を外す }
+        - { path: .claude/skills/new-feature/SKILL.md, what: 解決済みの論点を読む所を外す }
+        - { path: .claude/skills/design/SKILL.md, what: 解決済みの論点を読む所を外す }
+        - { path: docs/concepts/line.md, what: 2 の受け入れの行は残してよい }
+        - { path: docs/reference.md, what: ⑤ 検証の受け入れを外す }
+      docs: [docs/specs/0075-acceptance-record.md, docs/designs/0075-acceptance-record.md]
+
+  - id: verify-pr
+    name: PR の動作確認(/verify-pr)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: PR の本文の「🖱 動作確認」を AI が読み、E2E の部品で画面を確かめ、手順を PR のコメントに貼る(手順はコミットしない)。「通った ≠ 確かめた」として、流す前に pnpm verify:lint で危ない書き方を止め、通った後も画面のエラー・失敗した通信の記録とトレースを疑って読む
+    needed_by: PR ごとの画面の確認を人が手でしていて、詰まり所になっている
+    not_needed_by: 画面が無い・画面の変更がまれ
+    if_removed: 画面の確認が人の手だけになる。AI に確かめさせたときに「通った」を信じすぎる
+    depends_on: [preview-env]
+    law: []
+    where: [.claude/skills/verify-pr/SKILL.md, scripts/verify-lint.mjs, apps/web/e2e/verify-fixture.ts, apps/web/playwright.verify.config.ts, docs/guides/verify-pr.md]
+    remove:
+      delete: [.claude/skills/verify-pr, scripts/verify-lint.mjs, scripts/verify-lint-lib.mjs, scripts/verify-lint.test.mjs, apps/web/e2e/verify-fixture.ts, apps/web/e2e/verify, apps/web/playwright.verify.config.ts, docs/guides/verify-pr.md]
+      edit:
+        - { path: package.json, what: verify:lint と、test:scripts の scripts/verify-lint.test.mjs を外す }
+        - { path: apps/web/package.json, what: verify を外す }
+        - { path: apps/web/playwright.config.ts, what: testIgnore の verify/** を外す }
+        - { path: .gitignore, what: e2e/verify と test-results-verify を外す }
+        - { path: .github/pull_request_template.md, what: 「🖱 動作確認」の欄を外す }
+        - { path: docs/concepts/line.md, what: 2 の動作確認の行は残してよい }
+        - { path: docs/reference.md, what: ⑤ 検証の PR の動作確認を外す }
+        - { path: .claude/skills/accept/SKILL.md, what: /verify-pr を指す所を外す }
+        - { path: docs/guides/acceptance.md, what: /verify-pr を指す所を外す }
+      docs: [docs/specs/0076-verify-pr.md, docs/designs/0076-verify-pr.md, docs/adr/0081-verify-scripts-not-tests.md]
 
   - id: checkup
     name: 点検(/checkup)
