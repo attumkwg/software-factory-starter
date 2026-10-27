@@ -209,9 +209,10 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.cognito.yml build fake-cognito
           docker compose up --build -d
           # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
+          # 1回の確かめは2秒で切る(起動の直後は ALB の代わりが受けたまま待ち続け、1回で1分ほど止まって全体が11分かかったことがある)
           ready=false
           for _ in $(seq 1 120); do
-            if curl -fsS http://localhost:8080/readyz && [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
+            if curl -fsS --max-time 2 http://localhost:8080/readyz && [ "$(curl -s --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
               ready=true
               break
             fi
