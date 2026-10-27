@@ -1,6 +1,6 @@
 # docs の地図
 
-> はじめての人は **[getting-started.md](getting-started.md)**(使い始めの手引き)から。ルートの README は短い入口で、詳しい中身(ファイルの地図・コマンド・考え方とファイルの対応・CI の一覧)は **[reference.md](reference.md)** にある。
+> はじめての人は **[getting-started.md](getting-started.md)**(使い始めの手引き)から。引き継ぐ人は **[kit/first-week.md](kit/first-week.md)**(最初の1週間で読む9つ)から。ルートの README は短い入口で、詳しい中身(ファイルの地図・コマンド・考え方とファイルの対応・CI の一覧)は **[reference.md](reference.md)** にある。
 
 > docs には2種類ある。**「いまの正」は常に今の姿に直す。「記録」は書いた時のまま残す**(直さずに、新しいものを足す)。
 
@@ -19,6 +19,9 @@
 | [compliance/](compliance/README.md) | 認証の準備(P マーク・ISMS)の入口。委託先の台帳(`vendors.yaml`。コードと CI で照らす)・AI に渡すデータの決まり・管理操作の記録の場所・附属書 A の管理策の一覧(正)と適用宣言書(SoA)・規程と様式のひな形・毎月の証跡(消せない S3) | 外の会社・SDK・AWS のサービス・Actions を足すとき(`pnpm vendors` が落ちて気づく)。管理策の適用を変える・規程を制定し見直すとき(SoA は `pnpm compliance --write`。`/compliance-check` が期限を聞く) | 高(台帳) |
 | [legal/](legal/README.md) | お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱いの取り決め)。文面は書かず、項目ごとにキットの既定・根拠のファイル・使う人が決めること。条件を「変えない / 仕組みを変えれば変えられる / 契約だけで変えられる」に分ける | 根拠の仕組み(バックアップ・保存の期間・障害の連絡・見張り・委託先)を変えたとき | 低 |
 | [kit/catalog.yaml](kit/catalog.yaml) | キットの部品のカタログ(何をするか・要る/要らないプロダクト・消すと困ること・つながり・法令や認証・消し方)。README の「使い始めたらやること」はここから作る | 部品を足す・消す・ファイルを動かしたとき(`pnpm kit:catalog` が落ちて気づく)。README は `pnpm kit:readme` | 低 |
+| [kit/one-pager.md](kit/one-pager.md) | 経営者・情シス向けの1枚(流れの図・人と AI の分担・費用・効果の見込みを【実測】と【仮定】に分けて・審査で聞かれること) | 費用の数字・人が止まる所・効果の実測が変わったとき | 低 |
+| [kit/first-week.md](kit/first-week.md)・[kit/glossary.md](kit/glossary.md) | 引き継ぐ人が最初の1週間で読む9つと、キット独自の言葉 ↔ 標準の言葉の対応(プロダクトの言葉は `domain/glossary.md`) | 入口の文書を足す・動かしたとき・新しい言葉を作ったとき | 低 |
+| [kit/maintenance.md](kit/maintenance.md)・[kit/upgrade.md](kit/upgrade.md) | キットの保守の方針(誰が・どこまで・いつまで・版の付け方)と、キットから作ったリポジトリへの新しい版の取り込み方(取り込んだ版は `kit/upstream.yaml`)。変更の記録はルートの `CHANGELOG.md`、穴の知らせ方は `SECURITY.md` | 約束の日数・版の付け方を変えたとき・版を切るとき(`CHANGELOG.md`) | 低 |
 | [product/tailoring.md](product/) | 部品の残す・消すの記録(答え・部品ごとの決定と理由)。足すだけ | `/tailor` が書く | 低 |
 | [product/plan.md](product/) | 始め方の計画(誰の困りごと・いちばん危ない思い込み・確かめ方・合格と撤退の線)。テンプレートあり | 確かめた結果が出たとき(`/kickoff` が書く) | 低 |
 | [product/legal.md](product/) | 法令と業界の決まりの洗い出し(作り・データ・相手から当てはまりそうな候補と、専門家に聞くこと)。ひな形 `product/_legal-template.md` | `/kickoff` が書き、`/bet` が機能を足すたびに見直す | 低 |
@@ -29,7 +32,7 @@
 | [reference.md](reference.md) | キットの中身の早見表(ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物・わざとやっていないこと・注意)。AI が「どこに何があるか」を探す入口 | ファイル・コマンド・ワークフローを足す・動かしたとき | 低 |
 | [scenarios/](scenarios/README.md) | 想定の場面(架空の A 社 10人・B 社 100人が企画 → 法令 → 開発 → お金 → 運用 → セキュリティ → 規模拡大を回す台本)と、足りない物の一覧([scenarios/gaps.md](scenarios/gaps.md)) | 部品を足した・穴を埋めたとき(場面の判定と gaps.md の行を同じ PR で) | 低 |
 | [getting-started.md](getting-started.md) | 使い始めの手引き(手元 → 置き換え → GitHub → AWS → Slack → 運用) | 手順や費用が変わったとき | 低 |
-| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか・[PMF の前の進め方](guides/before-pmf.md)(何を作るかを安く確かめる)・[試作を出す](guides/prototypes.md)(押せる画面だけ・合言葉つきの URL)・[公開の LP を出す](guides/landing-page.md)(事前登録の同意・どこから来たかの計測)・[人が見る所を絞る](guides/human-review.md)(未確定事項・人向けのまとめ・上流からの作り直し)・[守りの3層](guides/local-guards.md)(AI に勝手に変えさせない所と、GitHub のプランで変わる所)・[人が見ていない所で AI を回す](guides/unattended-ai.md)(絞った devcontainer か背景の AI でだけ・外へ出した物を見る)・[GitHub を一括で整える](guides/github-setup.md)(pnpm setup:github・ひな形と使う側)・[ラベルの手引き](guides/labels.md)(何のラベルか・誰が付けるか・付いたらどうするか)・[費用のページ](guides/cost-dashboard.md)(何にいくら・見積もりとの比べ)・[当番の決まり](guides/on-call.md)(夜中に誰が見るか・どのアラームで起こすか)・[手でやる設定](guides/manual-setup.md)(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織) など、仕組みの使い方 | 仕組みを変えたとき | 低 |
+| [guides/](guides/) | 自動で動くもの・Slack・見張りと知らせ・データの保存と削除・例外処理・API の変え方・手元で AWS をどこまで再現するか・[PMF の前の進め方](guides/before-pmf.md)(何を作るかを安く確かめる)・[試作を出す](guides/prototypes.md)(押せる画面だけ・合言葉つきの URL)・[公開の LP を出す](guides/landing-page.md)(事前登録の同意・どこから来たかの計測)・[人が見る所を絞る](guides/human-review.md)(未確定事項・人向けのまとめ・上流からの作り直し)・[守りの3層](guides/local-guards.md)(AI に勝手に変えさせない所と、GitHub のプランで変わる所)・[人が見ていない所で AI を回す](guides/unattended-ai.md)(絞った devcontainer か背景の AI でだけ・外へ出した物を見る)・[GitHub を一括で整える](guides/github-setup.md)(pnpm setup:github・ひな形と使う側)・[ラベルの手引き](guides/labels.md)(何のラベルか・誰が付けるか・付いたらどうするか)・[費用のページ](guides/cost-dashboard.md)(何にいくら・見積もりとの比べ)・[当番の決まり](guides/on-call.md)(夜中に誰が見るか・どのアラームで起こすか)・[手でやる設定](guides/manual-setup.md)(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織)・[題材を差し替える](guides/replace-subject.md)(TODO → 自分のプロダクトの順と量の例) など、仕組みの使い方 | 仕組みを変えたとき | 低 |
 
 ## 記録(書いた時のまま。古くなっても直さない)
 

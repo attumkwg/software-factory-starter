@@ -85,13 +85,53 @@ function checkFoundation(part, problems) {
 function checkConditions(part, questions, problems) {
   for (const key of ["suggest_remove_when", "keep_when"]) {
     for (const cond of part[key] ?? []) {
-      const { question, option } = splitCondition(cond);
-      const q = questions.get(question);
-      if (!q) problems.push(`部品 ${part.id} の ${key}「${cond}」の質問 ${question} が無い`);
-      else if (!q.options.includes(option))
-        problems.push(`部品 ${part.id} の ${key}「${cond}」の答え ${option} が選択肢に無い`);
+      const bad = conditionProblem(cond, questions);
+      if (bad) problems.push(`部品 ${part.id} の ${key}「${cond}」の${bad}`);
     }
   }
+}
+
+/** 答えの条件(「size=1〜3人・PMF の前」)が、質問と選択肢にあるか */
+function conditionProblem(cond, questions) {
+  const { question, option } = splitCondition(cond);
+  const q = questions.get(question);
+  if (!q) return `質問 ${question} が無い`;
+  if (!q.options.includes(option)) return `答え ${option} が選択肢に無い`;
+  return undefined;
+}
+
+/**
+ * 一括の型(presets): 答えの条件・まとめて「後で足す」にする部品(later)が、
+ * どれも土台でなく・まだ無い部品でなく・足し直す合図(add_back_when)を持ち・残す部品から頼られていないか。設計書 0068
+ */
+export function checkPresets(catalog, questions, problems) {
+  const parts = catalog?.parts ?? [];
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  for (const preset of catalog?.presets ?? []) {
+    const name = `一括の型 ${preset?.id}`;
+    checkPresetHead(preset, name, questions, problems);
+    const later = Array.isArray(preset?.later) ? preset.later : [];
+    if (later.length === 0) problems.push(`${name} の later が空`);
+    for (const item of later) checkLaterItem(item, byId, name, problems);
+    const removed = new Set(later.map((i) => i?.id));
+    for (const p of checkRemovedSet(parts, removed)) problems.push(`${name}: ${p}`);
+  }
+}
+
+/** 型の欄と、答えの条件 */
+function checkPresetHead(preset, name, questions, problems) {
+  for (const f of ["id", "title", "when", "why"])
+    if (!preset?.[f]) problems.push(`${name} に ${f} が無い`);
+  const bad = preset?.when && conditionProblem(preset.when, questions);
+  if (bad) problems.push(`${name} の when「${preset.when}」の${bad}`);
+}
+
+/** 「後で足す」にする部品1つ: カタログにある・まだ無い部品でない・足し直す合図がある */
+function checkLaterItem(item, byId, name, problems) {
+  const part = byId.get(item?.id);
+  if (!part) problems.push(`${name} の部品 ${item?.id} がカタログに無い`);
+  else if (part.status === "未") problems.push(`${name} の ${item.id} はまだ無い部品(status: 未)`);
+  if (!item?.add_back_when) problems.push(`${name} の ${item?.id} に add_back_when が無い`);
 }
 
 /** 消し方に書いたファイル・フォルダが実在するか */
@@ -182,6 +222,7 @@ export function validateCatalog(catalog, fsx) {
     checkRemoval(part, fsx, problems);
     checkWhere(part, fsx, problems);
   }
+  checkPresets(catalog, questions, problems);
   const removed = new Set(parts.filter((p) => p.status === "消した").map((p) => p.id));
   problems.push(...checkRemovedSet(parts, removed));
   return problems;

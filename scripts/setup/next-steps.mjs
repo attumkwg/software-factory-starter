@@ -5,20 +5,51 @@
 import { parse } from "yaml";
 import { todayInTokyo } from "../checkup/phase.mjs";
 import { REFRESH_DAYS, refreshDue, reviewDue } from "../checkup/todo.mjs";
+import {
+  compareUpstream,
+  readUpstream,
+  UPGRADE_GUIDE,
+  UPSTREAM_FILE,
+  upstreamMessage,
+} from "../checkup/upstream.mjs";
 import { templateOwner } from "./config.mjs";
 import { todo } from "./entries.mjs";
 
 const day = (iso) => String(iso ?? "").slice(0, 10);
 
-/** キットの古くなった所(使う側で、作り始めるときだけ) */
-function kitFreshness({ setup, ledger, kit, today }) {
-  const steps = [];
-  if (kit?.updatedAt && kit?.createdAt && day(kit.updatedAt) > day(kit.createdAt))
-    steps.push(
+// キットから来た SECURITY.md の目印(キットの窓口のまま、を見分ける)
+const KIT_SECURITY_MARK = "キット(software-factory-starter)そのもの";
+
+/** キットの新しい版(版があれば版と CHANGELOG で、まだ無ければ日付で。設計書 0067) */
+function kitUpdates({ setup, src, kit }) {
+  const upstream = readUpstream(src.read(UPSTREAM_FILE));
+  const repository = upstream?.repository ?? setup.template_repository;
+  if (kit?.latest) {
+    const cmp = compareUpstream(upstream?.version, kit.latest);
+    if (cmp.state !== "behind") return [];
+    return [
       todo(
-        `このリポジトリを作った後(${day(kit.createdAt)})にキットが更新されている(最後 ${day(kit.updatedAt)})。取り込みたい直しが無いか https://github.com/${setup.template_repository}/commits を見る`,
+        upstreamMessage({
+          repository,
+          current: upstream?.version,
+          latest: kit.latest,
+          hands: cmp.hands,
+        }),
       ),
-    );
+    ];
+  }
+  if (kit?.updatedAt && kit?.createdAt && day(kit.updatedAt) > day(kit.createdAt))
+    return [
+      todo(
+        `このリポジトリを作った後(${day(kit.createdAt)})にキットが更新されている(最後 ${day(kit.updatedAt)})。キットにまだ版が無いので、https://github.com/${repository}/blob/main/CHANGELOG.md の「未リリース」を見て、取り込みたい直しは ${UPGRADE_GUIDE} の手順で`,
+      ),
+    ];
+  return [];
+}
+
+/** キットの古くなった所(使う側で、作り始めるときだけ) */
+function kitFreshness({ setup, src, ledger, kit, today }) {
+  const steps = kitUpdates({ setup, src, kit });
   if (!ledger) return steps;
   const refresh = refreshDue(ledger, today);
   if (refresh.due)
@@ -40,7 +71,8 @@ function kitFreshness({ setup, ledger, kit, today }) {
 /**
  * src … { read(path) → 中身 | undefined }(手元のリポジトリ)
  * me  … 打った人({ login })。分からなければ undefined
- * kit … { createdAt: このリポジトリを作った日, updatedAt: キットの最後のコミットの日 }(分からなければ undefined)
+ * kit … { createdAt: このリポジトリを作った日, updatedAt: キットの最後のコミットの日,
+ *         latest: キットの最新の版のタグ(まだ版が無ければ undefined) }(分からなければ undefined)
  */
 export function nextSteps({ setup, role, src, me, kit, today = todayInTokyo() }) {
   if (role !== "product")
@@ -65,7 +97,13 @@ export function nextSteps({ setup, role, src, me, kit, today = todayInTokyo() })
   const ledger = ledgerText ? (parse(ledgerText) ?? {}) : undefined;
   if (String(ledger?.owners?.responder ?? "").toLowerCase() === owner.toLowerCase())
     steps.push(todo(`点検の台帳を自分の物にする: pnpm checkup:adopt --by ${by}`));
-  steps.push(...kitFreshness({ setup, ledger, kit, today }));
+  if (src.read("SECURITY.md")?.includes(KIT_SECURITY_MARK))
+    steps.push(
+      todo(
+        "SECURITY.md がキットの窓口のまま。自分のプロダクトの穴の連絡先に書き換える(docs/getting-started.md の ②)",
+      ),
+    );
+  steps.push(...kitFreshness({ setup, src, ledger, kit, today }));
   steps.push(
     todo(
       "ファイルを直したら1つの PR にする。設定ファイル(.github/setup.yml)を直したら、マージの後に pnpm setup:github --apply",
