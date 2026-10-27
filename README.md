@@ -37,9 +37,15 @@
 
 ## 🚀 始め方
 
+> 🧭 **最初の30分は、1 と 2 の一本道**(動かす → 2社のデータが分かれているのを見る → 自分のリポジトリにする)。経営・事業の方は、手順の前に下の「👥 立場ごとの入口」へ。
+
 要るもの: **Node.js 24**・**Docker**・**GitHub のアカウント**(公開のリポジトリか Pro / Team / Enterprise Cloud。非公開の Free ではブランチ保護が使えない)・**Claude Code**。
 
-**1. 手元で動かす(30分)**
+**1. 手元で動かす(30分。自分のリポジトリはまだ要らない)**
+
+```bash
+git clone https://github.com/attumkwg/software-factory-starter my-product && cd my-product
+```
 
 ```bash
 corepack enable
@@ -58,10 +64,18 @@ http://localhost:8080 を開き、`admin@acme.test` でログイン(開発用。
 **2. 自分のリポジトリにして、GitHub を一括で整える(10分)**
 
 ```bash
+git remote rename origin kit
+```
+
+```bash
+gh repo create <自分か組織>/my-product --private --source . --push
+```
+
+```bash
 pnpm setup:github
 ```
 
-試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
+`kit` の名前でキットを残すと、後でキットの直しを見られる。`pnpm setup:github` は試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
 
 **3. 何を作るかを決める(半日〜)**
 
