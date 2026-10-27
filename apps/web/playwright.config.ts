@@ -38,6 +38,10 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:8080",
+    // CI は Docker の中のブラウザ(Playwright の公式イメージ。VRT と同じ)につなぐ。手元は入れたブラウザのまま
+    ...(process.env.E2E_WS_ENDPOINT
+      ? { connectOptions: { wsEndpoint: process.env.E2E_WS_ENDPOINT, exposeNetwork: "<loopback>" } }
+      : {}),
     // PR に貼る証拠(スクショ・動画・トレース)
     screenshot: "on",
     video: "retain-on-failure",
