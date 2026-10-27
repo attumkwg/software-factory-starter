@@ -56,6 +56,21 @@ worktree を使う(並べたセッション)なら `~/.claude/settings.json` の
 - `deploy.yml` の prod の承認と、`claude.yml` の「API キーは main だけ」は働かない。AWS と Claude の鍵を入れる前に、公開にするか Pro / Team にする。
 - 並べて出した PR は、それぞれが古い main で緑でも、合わせると main が赤くなることがある(2026-10-20 に2回)。マージの前に main を取り込んで CI を回し直す。
 
+## 手元の資格情報(AWS)
+
+Claude Code の `deny` が止めるのは `aws` の CLI(と `terraform apply` など)だけ。**AI が書いた Node・Python のスクリプトは、SDK で手元の資格情報(SSO のセッションのキャッシュ・`~/.aws/credentials`)を読んで、そのまま AWS に届く**。確認は出るが、人が中身を読まずに「はい」を押せば止まらない(台本 10-2・10-8・G-59)。だから、**AI を動かす端末に本番に届く資格情報を置かない**(docs/security.md の AI-1)。
+
+| 決まり | やり方 |
+|---|---|
+| 手元に置くのは dev まで(stg は読むだけの役割まで) | IAM Identity Center のプロファイルは dev(と stg の読み取り)だけを `~/.aws/config` に書く |
+| 本番(prod)は別の端末か、要るときだけ短く | AI を動かさない端末(か OS の別の利用者)で使う。同じ端末で使うなら、本番の許可セットのセッションを1時間にし、使い終わったら `aws sso logout`。使っている間は AI に作業を頼まない |
+| 既定のプロファイルを本番にしない | `AWS_PROFILE` を本番にしたまま置かない(シェルの設定ファイルに書かない)。`~/.aws/config` の `[default]` は dev か無し。本番のプロファイルの名前に `prod` を入れる(打つときに見て分かる) |
+| 長く使える鍵を置かない | `~/.aws/credentials` にアクセスキーを書かない(人のアクセスキーは作らない。[runbooks/joiner-leaver.md](../runbooks/joiner-leaver.md) の 1) |
+
+- 確かめ方(人が打つ。四半期ごとに点検の `local-aws-credentials` が聞く): `aws configure list-profiles` に本番のプロファイルが既定で無いこと・`aws sts get-caller-identity`(プロファイルを付けずに)が dev のアカウントか「資格情報が無い」になること・`~/.aws/credentials` が無いか空であること。
+- devcontainer(`.devcontainer/`)は `~/.aws` をマウントしない。中に資格情報を持ち込まない。
+- 背景の AI(Actions)は AWS の役割を持たない(OIDC の信頼に `environment:claude` が無い)。
+
 ## 手元の設定を全社に配る(人が増えたら)
 
 - リポジトリの `.claude/settings.json` は、このフォルダで動く Claude Code にだけ効く。社員の端末全体で確認を飛ばすモードを止める・外への通信を絞るには、Claude Code の**管理者の設定(managed settings)**を、端末の管理の仕組み(MDM)で配る。管理者の設定は、使う人が上書きできない。
