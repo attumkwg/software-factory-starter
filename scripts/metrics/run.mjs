@@ -1,4 +1,4 @@
-// 週の数字(DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫)。metrics.yml が毎週(KIT_ROLE=product)流す。
+// 週の数字(DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫・引き渡し)。metrics.yml が毎週(KIT_ROLE=product)流す。
 //   pnpm metrics                        先週までの8週を Markdown で出す(gh のログインで読む)
 //   pnpm metrics --weeks 12             週の数(1〜26)
 //   pnpm metrics --environment prod     本番の Environment の名前(既定 prod。deploy.yml の environment)
@@ -8,19 +8,24 @@
 // 決まり: docs/designs/0035-delivery-metrics.md・手引き: docs/guides/metrics.md
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { readAcceptance } from "../acceptance-lib.mjs";
 import { makeContext } from "../checkup/context.mjs";
 import { resolveRepo } from "../checkup/gh.mjs";
 import { addDays, isDate, todayInTokyo } from "../checkup/phase.mjs";
 import { aiMarkersOf, PEOPLE_FILE } from "./ai-assisted.mjs";
 import {
+  acceptanceFiles,
   collectDeploys,
+  collectMergedAt,
   collectPrs,
+  designFiles,
   ghGraphql,
   incidentFiles,
   referencedSpecs,
   specFiles,
   trackedFiles,
 } from "./collect.mjs";
+import { acceptanceFact, buildHandoff, implementationPrs, reworkFacts } from "./handoff.mjs";
 import {
   buildReport,
   deployFact,
@@ -44,6 +49,22 @@ const fail = (message) => {
   console.error(message);
   process.exit(1);
 };
+
+/** 引き渡し(実装の完了 → 受け入れ・設計が原因の作り直し)。設計書 0077 */
+export function collectHandoff({ ctx, gh, weeks }) {
+  const files = acceptanceFiles(ctx);
+  const prsOf = new Map(files.map((f) => [f.path, implementationPrs(f.text)]));
+  const rounds = readAcceptance(files).rounds.filter((r) => r.date >= weeks[0]);
+  const wanted = [...new Set(rounds.filter((r) => r.no === 1).flatMap((r) => prsOf.get(r.path)))];
+  const mergedAt =
+    ctx.repo && wanted.length > 0 ? collectMergedAt(gh, ctx.repo, wanted) : new Map();
+  const facts = rounds.map((r) => acceptanceFact(r, prsOf.get(r.path), mergedAt));
+  return buildHandoff(weeks, {
+    rounds: facts,
+    rework: reworkFacts(designFiles(ctx)),
+    unreadPrs: wanted.filter((n) => !mergedAt.has(n)),
+  });
+}
 
 /** GitHub とファイルから集めて、週の数字にする(gh は ghGraphql。テストでは偽物) */
 export function collectReport({ ctx, gh, files, weeksCount, environment }) {
@@ -79,7 +100,17 @@ export function collectReport({ ctx, gh, files, weeksCount, environment }) {
     referencedSpecs(files, ctx.read),
     ctx.today,
   );
-  return buildReport({ prs, deploys, incidents, inventory, weeks, today: ctx.today, notes });
+  const { notes: handoffNotes, ...handoff } = collectHandoff({ ctx, gh, weeks });
+  const report = buildReport({
+    prs,
+    deploys,
+    incidents,
+    inventory,
+    weeks,
+    today: ctx.today,
+    notes,
+  });
+  return { ...report, handoff, notes: [...report.notes, ...handoffNotes] };
 }
 
 if (import.meta.main) {

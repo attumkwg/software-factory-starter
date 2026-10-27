@@ -206,3 +206,42 @@ test("作り始めるときに、キットの古くなった所を知らせる(�
     /キットが更新|取り込んだのは/,
   );
 });
+
+test("キットに版があれば、取り込んだ版(docs/kit/upstream.yaml)と比べて CHANGELOG と手引きへ案内する", () => {
+  const upstream = (v) => ({
+    "docs/kit/upstream.yaml": `repository: ${setup.template_repository}\nversion: ${v}\n`,
+  });
+  const gh = fakeGitHub((s) => {
+    s.kitUpdatedAt = "2026-12-10T09:00:00Z";
+    s.kitLatest = "v0.3.0";
+  });
+  const behind = run(gh, upstream("v0.2.4"))
+    .steps.map((s) => s.text)
+    .join("\n");
+  assert.match(behind, /新しい版 v0\.3\.0.*取り込んだのは v0\.2\.4.*手が要る/);
+  assert.match(behind, /CHANGELOG\.md.*docs\/kit\/upgrade\.md/);
+  assert.doesNotMatch(behind, /作った後/);
+  const latest = run(gh, upstream("v0.3.0"))
+    .steps.map((s) => s.text)
+    .join("\n");
+  assert.doesNotMatch(latest, /新しい版|作った後/);
+  // 版がまだ無いあいだは日付で、CHANGELOG の「未リリース」へ
+  const noRelease = fakeGitHub((s) => {
+    s.kitUpdatedAt = "2026-12-10T09:00:00Z";
+  });
+  assert.match(
+    run(noRelease, upstream("null"))
+      .steps.map((s) => s.text)
+      .join("\n"),
+    /キットが更新されている.*未リリース.*docs\/kit\/upgrade\.md/,
+  );
+});
+
+test("人がやること: SECURITY.md がキットの窓口のままなら書き換えを知らせる", () => {
+  const text = (body) =>
+    run(fakeGitHub(), { "SECURITY.md": body })
+      .steps.map((s) => s.text)
+      .join("\n");
+  assert.match(text(readFileSync("SECURITY.md", "utf8")), /SECURITY\.md がキットの窓口のまま/);
+  assert.doesNotMatch(text("# 穴の知らせ方\n窓口は security@example.com"), /SECURITY\.md/);
+});
