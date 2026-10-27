@@ -98,6 +98,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | CS | [運用の場面](docs/scenarios/05-run.md)・[サポートの代理ログイン](docs/runbooks/support-access.md) | `/report-bug`・`/release-notes` |
 | 法務・管理部門 | [規約と同意](docs/guides/legal-documents.md)・[認証の準備](docs/compliance/README.md)・[費用のページ](docs/guides/cost-dashboard.md) | `/ledger`・`/compliance-check` |
 | セキュリティ・情シス | [セキュリティの決まり](docs/security.md)・[障害の手順書](docs/runbooks/incident.md) | `/cve`・`/checkup` |
+| 引き継ぐ人 | [最初の1週間で読む9つ](docs/kit/first-week.md)・[用語集](docs/kit/glossary.md)(キット独自の言葉 ↔ 標準の言葉) | `/checkup`・`pnpm decisions` |
 
 ## 🔁 1つの機能が出るまで(人が止まるのは3か所)
 

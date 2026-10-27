@@ -27,6 +27,8 @@
     "CLAUDE.md",
     "apps/api/CLAUDE.md",
     "apps/web/CLAUDE.md",
+    "docs/CLAUDE.md",
+    "packages/CLAUDE.md",
     ".claude/settings.json",
     ".claude/hooks/**",
     ".devcontainer/**",
