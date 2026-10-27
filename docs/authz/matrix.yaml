@@ -165,6 +165,34 @@ routes:
     permission: task:write
     expect: { admin: 204, member: 204, viewer: 403, other_tenant: 404, anonymous: 401 }
 
+  # 写真・ファイル(docs/specs/0072-file-storage.md)。{fileId} は、叩く人が上げたことにした自社のファイル。
+  # 「自分の物 / 同じ会社の他人の物 / 他社の物」の答え(member は他人の物を上げ終えられない・消せない・admin は消せる)と、
+  # 置き場の URL が自社の置き場だけを指すことは files.int.test.ts。署名の書き換えは files-object-store.int.test.ts
+  - route: GET /api/tasks/{taskId}/files
+    permission: file:read
+    note: 見られる物には5分の URL が付く(関所のトランザクションの外。ADR 0079)
+    expect: { admin: 200, member: 200, viewer: 200, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/tasks/{taskId}/files
+    permission: file:write
+    note: 5分の PUT の URL を返す(種類と大きさを署名に入れる)
+    body: { name: "表から上げた写真.jpg", contentType: "image/jpeg", byteSize: 1024 }
+    expect: { admin: 201, member: 201, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: GET /api/files/{fileId}
+    permission: file:read
+    expect: { admin: 200, member: 200, viewer: 200, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/files/{fileId}/complete
+    permission: file:write
+    note: 上げた本人だけ(他人の物は 403。canTouchFile)
+    expect: { admin: 202, member: 202, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: DELETE /api/files/{fileId}
+    permission: file:delete
+    note: 上げた本人か管理者(member は他人の物を 403。canTouchFile)
+    expect: { admin: 204, member: 204, viewer: 403, other_tenant: 404, anonymous: 401 }
+
   - route: GET /api/audit-events
     permission: audit:read
     note: 自社の監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので管理者だけ。他社の分は RLS で見えない

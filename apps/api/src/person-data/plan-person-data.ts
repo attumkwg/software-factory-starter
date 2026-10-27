@@ -86,6 +86,13 @@ export const PERSON_REFERENCES: readonly PersonReference[] = [
     why: "誰が取り消したか(人の ID だけ)",
   },
   {
+    table: "files.files",
+    column: "uploaded_by",
+    by: "user_id",
+    action: "keep",
+    why: "誰が写真・ファイルを上げたか(人の ID だけ。写真は組織の業務の記録。docs/specs/0072-file-storage.md)",
+  },
+  {
     table: "organizations.domains",
     column: "created_by",
     by: "user_id",

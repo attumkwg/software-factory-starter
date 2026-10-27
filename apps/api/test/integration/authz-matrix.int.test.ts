@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { createDb } from "../../src/db/client.ts";
 import {
   call,
+  createFileFixture,
   createTenantFixture,
   createTestApp,
   login,
@@ -53,6 +54,9 @@ function fill(template: string, self: TenantFixture): string {
 const fillBody = (body: unknown, self: TenantFixture): unknown =>
   body === undefined ? undefined : JSON.parse(fill(JSON.stringify(body), self));
 
+const uploaderFor = (actor: MatrixActor, self: TenantFixture): string =>
+  actor === "other_tenant" || actor === "anonymous" ? self.users.admin.id : self.users[actor].id;
+
 async function cookieFor(actor: MatrixActor, self: TenantFixture): Promise<string | undefined> {
   if (actor === "anonymous") return undefined;
   if (actor === "other_tenant") return otherAdmin;
@@ -67,7 +71,14 @@ describe.each(rows)("$route", (row) => {
 
   it.each(cases)("$actor → $status", async ({ actor, status }) => {
     const self = await createTenantFixture(owner.db, "self");
-    const [method = "", path = ""] = row.route.split(" ");
+    const [method = "", template = ""] = row.route.split(" ");
+    // {fileId} は叩く人が上げたことにした自社のファイル(他社・未ログインは自社の管理者の物)
+    const path = template.includes("{fileId}")
+      ? template.replaceAll(
+          "{fileId}",
+          await createFileFixture(owner.db, self, uploaderFor(actor, self)),
+        )
+      : template;
     const res = await call(app, method, fill(path, self), {
       cookie: await cookieFor(actor, self),
       body: fillBody(row.body, self),
