@@ -1,6 +1,6 @@
 # 仕様: 組織の開通(運営のコマンド `create-tenant`)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0026-tenant-provisioning.md](../designs/0026-tenant-provisioning.md)・ADR: [0039](../adr/0039-tenant-provisioning-command.md)
 > 手順書: [docs/runbooks/tenant-provisioning.md](../runbooks/tenant-provisioning.md)。穴 G-01(`docs/scenarios/gaps.md`)。
 

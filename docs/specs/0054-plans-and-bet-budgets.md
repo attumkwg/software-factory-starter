@@ -1,6 +1,6 @@
 # 仕様: 2つ目の客層の計画の置き場と、賭けの予算の枠
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0054-plans-and-bet-budgets.md](../designs/0054-plans-and-bet-budgets.md)・ADR: [0065](../adr/0065-bet-budgets-from-private-inputs.md)
 > 穴 G-19(場面 1-7・4-7)。始め方の計画(`/kickoff`・`docs/product/plan.md`)と、費用のページの賭けごとの PL(仕様 0020)の上に積む。
 
