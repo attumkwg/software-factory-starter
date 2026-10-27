@@ -25,6 +25,10 @@ export const OUTBOX_TOPICS = {
   "legal.change_notified": z.object({ noticeId: IdSchema }),
   // 公開の LP の事前登録の確認のメール(docs/specs/0025-public-landing-page.md)。宛先・リンクは登録の行から読む
   "growth.pre_registration_received": z.object({ preRegistrationId: IdSchema }),
+  // 写真・ファイル(docs/specs/0072-file-storage.md)。上げ終えた: 中身を読み直して確かめ、付いた情報を消して見せる
+  "files.file_uploaded": z.object({ fileId: IdSchema }),
+  // 行が消えた(本人・タスクやプロジェクトの cascade・解約)。積むのは DB の引き金(移行 0023)。中身を消す
+  "files.file_deleted": z.object({ fileId: IdSchema }),
 } as const;
 
 export type OutboxTopic = keyof typeof OUTBOX_TOPICS;

@@ -8,6 +8,7 @@ import { createLogger } from "./logger.ts";
 import { createMailer } from "./mail/index.ts";
 import { outboxHandlers, startOutboxRelay } from "./outbox/index.ts";
 import { sensitiveStoreFromConfig } from "./sensitive/index.ts";
+import { objectStoreFromConfig } from "./storage/index.ts";
 
 const config = loadConfig();
 // error 以上のログを Sentry にも送る(SENTRY_DSN が無ければ null。docs/guides/monitoring.md)
@@ -23,8 +24,10 @@ const logger = createLogger({ level: config.logLevel, reporter });
 const { db, pool } = createDb(config.databaseUrl, dbLogging(logger));
 // 要配慮個人情報の接続(別のロール。ADR 0029)。設定が無ければ null
 const sensitive = sensitiveStoreFromConfig(config.sensitive, dbLogging(logger));
+// 写真・ファイルの置き場(docs/designs/0072-file-storage.md)。設定が無ければ null
+const files = objectStoreFromConfig(config.files);
 const lifecycle = { shuttingDown: false };
-const app = createApp({ config, db, logger, lifecycle, sensitive });
+const app = createApp({ config, db, logger, lifecycle, sensitive, files });
 
 // 送信待ち(アウトボックス)の送り出し。止めるときは、DB を閉じる前に止める
 const mailer = createMailer(config.mail, logger);
@@ -38,6 +41,7 @@ const relay = config.outboxRelay
         mailer,
         appUrl: config.appUrl,
         linkSecret: config.session.secret,
+        files,
         publicSite: config.publicSite
           ? {
               url: config.publicSite.url,

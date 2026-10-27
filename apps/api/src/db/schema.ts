@@ -6,6 +6,7 @@
 // - 領域ごとに Postgres のスキーマを分ける。ほかの領域の表を読むときは、その領域の index.ts の関数を通す。
 
 export * from "../audit/schema.ts";
+export * from "../domains/files/schema.ts";
 export * from "../domains/growth/schema.ts";
 export * from "../domains/legal/schema.ts";
 export * from "../domains/organizations/schema.ts";

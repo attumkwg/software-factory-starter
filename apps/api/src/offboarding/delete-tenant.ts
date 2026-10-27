@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { recordAudit } from "../audit/record.ts";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
+import type { ObjectStore } from "../storage/index.ts";
 
 // 解約した組織のデータを消す(運営が、契約を確かめてから。docs/specs/0005-offboarding.md・ADR 0015)。
 // 手順は docs/runbooks/offboarding.md。API は作らない(戻せない操作を、画面や API の鍵1本でできないようにする)。
@@ -36,6 +37,9 @@ export const TENANT_TABLES = [
   "platform.pmf_survey_asked",
   "platform.feature_usage",
   "platform.feature_flags",
+  // 写真・ファイルの目録(中身の置き場は DB より先に消す。docs/designs/0072-file-storage.md の 2)。
+  // 行を消すと引き金が送信待ちに積むが、送信待ちも後ろで消える
+  "files.files",
   "tasks.tasks",
   "projects.projects",
   "platform.outbox",
@@ -100,7 +104,12 @@ export async function planTenantDeletion(
 export async function deleteTenant(
   db: RootDb,
   tenantId: string,
-  opts: { confirmName: string; supportTenantId: string | null },
+  opts: {
+    confirmName: string;
+    supportTenantId: string | null;
+    /** 写真・ファイルの置き場(docs/designs/0072-file-storage.md)。無い環境でファイルの行があれば、何も消さずに止める */
+    files?: ObjectStore | null;
+  },
 ): Promise<DeletionPlan> {
   if (opts.supportTenantId && tenantId === opts.supportTenantId) {
     throw new Error("運営の組織は消せません");
@@ -109,6 +118,12 @@ export async function deleteTenant(
   if (!plan) throw new Error(`組織がありません: ${tenantId}`);
   if (plan.tenantName !== opts.confirmName) {
     throw new Error("--confirm-name が組織の名前と違うので、何も消していません");
+  }
+  // 置き場の中身を、DB より先に前の版まで消す(Cognito と同じ「外を先に」。DB の行が残っていればやり直せる)
+  if (opts.files) {
+    await opts.files.purgeTenant(tenantId, { dryRun: false });
+  } else if ((plan.counts["files.files"] ?? 0) > 0) {
+    throw new Error("写真・ファイルの置き場の設定(FILES_*)が無いので、何も消していません");
   }
   await withTenant(db, tenantId, async (tx) => {
     // 監査ログを消してよい手順(移行 0006 のトリガーが、これの無い DELETE を止める)

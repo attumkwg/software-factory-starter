@@ -72,11 +72,21 @@ services:
       # メールは Postfix に渡す(本番は ECS の Service Connect の smtp://mail:25)
       MAIL_SMTP_URL: smtp://postfix:25
       MAIL_FROM: Tasks <no-reply@example.test>
+      # 写真・ファイルの置き場(本番は S3。手元は S3 互換の RustFS。docs/guides/local-environment.md)。
+      # API からは files:9000、ブラウザからは localhost:9000(署名に入るので、URL はブラウザから届く方で作る)
+      FILES_BUCKET: files-local
+      FILES_REGION: us-east-1
+      FILES_S3_ENDPOINT: http://files:9000
+      FILES_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      FILES_S3_ACCESS_KEY: rustfs-local
+      FILES_S3_SECRET_KEY: rustfs-local-not-a-secret
     depends_on:
       seed:
         condition: service_completed_successfully
       postfix:
         condition: service_healthy
+      files-init:
+        condition: service_completed_successfully
     healthcheck: *fast-start
 
   web:
@@ -91,6 +101,8 @@ services:
       LOG_LEVEL: info
       # 画面の URL(OGP の og:url に使う。apps/web/src/head.ts)。API の APP_URL と同じ値
       APP_URL: http://localhost:8080
+      # 写真・ファイルの置き場(手元の RustFS)。CSP の connect-src・img-src に足す(docs/specs/0072-file-storage.md)
+      FILES_ORIGIN: http://localhost:9000
     healthcheck: *fast-start
     depends_on:
       api:
@@ -134,6 +146,35 @@ services:
       mailpit:
         condition: service_healthy
 
+  # 写真・ファイルの置き場(S3 の代わり。S3 互換の RustFS。MinIO は公式のイメージの配布をやめた。設計書 0072 の 11)。
+  # 版とダイジェストは結合テスト(apps/api/test/integration/files-object-store.int.test.ts)と同じ
+  files:
+    image: rustfs/rustfs:1.0.1@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c
+    environment:
+      RUSTFS_ACCESS_KEY: rustfs-local
+      RUSTFS_SECRET_KEY: rustfs-local-not-a-secret
+    ports:
+      - "9000:9000"
+    volumes:
+      - files-data:/data
+
+  # 置き場を作る(版を残す・画面の出どころから PUT と GET を許す)。何度流しても同じ
+  files-init:
+    <<: *app
+    command: ["dist/cli.js", "files-local-bucket"]
+    restart: on-failure:20
+    environment:
+      APP_ENV: local
+      APP_URL: http://localhost:8080
+      FILES_BUCKET: files-local
+      FILES_REGION: us-east-1
+      FILES_S3_ENDPOINT: http://files:9000
+      FILES_S3_ACCESS_KEY: rustfs-local
+      FILES_S3_SECRET_KEY: rustfs-local-not-a-secret
+    depends_on:
+      files:
+        condition: service_started
+
   # 届いたメールを見る(SES の代わり): http://localhost:8025
   mailpit:
     image: axllent/mailpit:v1.30.0@sha256:0059ef81e492a7192af3816281eed6859eb078bd7bdc58b76757c13e10e53a7d
@@ -144,3 +185,5 @@ volumes:
   db-data:
   # Postfix の送り待ち(本番は EFS)
   postfix-spool:
+  # 写真・ファイルの中身(本番は S3)
+  files-data:

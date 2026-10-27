@@ -32,9 +32,15 @@ export const CSP_NONCE_HEADER = "x-csp-nonce";
 
 /** Sentry の DSN(https://<key>@o1.ingest.sentry.io/<id>)から、ブラウザが送る先の origin。読めなければ undefined。 */
 export function reportOriginOf(dsn: string | undefined): string | undefined {
-  if (!dsn) return undefined;
+  return originOf(dsn);
+}
+
+/** URL の origin だけ(道すじ・鍵は落とす)。http(s) でなければ・読めなければ undefined(CSP に変な値を入れない) */
+export function originOf(url: string | undefined): string | undefined {
+  if (!url) return undefined;
   try {
-    return new URL(dsn).origin;
+    const u = new URL(url);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.origin : undefined;
   } catch {
     return undefined;
   }
@@ -47,8 +53,11 @@ export function reportOriginOf(dsn: string | undefined): string | undefined {
 //   CSP           … 読み込むのは自分の origin の物と、1リクエストごとの nonce の付いた埋め込みだけ
 //                    (SSR が埋め込むスクリプトには TanStack が nonce を付ける)。外のサイトに枠で埋め込ませない。
 //                    部品(React Aria)が style 属性を描くので、属性の style だけは許す(<style> の要素は nonce が要る)。
-//                    外へ送るのは失敗の知らせ(Sentry)だけ。外の物を読むようにしたら、ここに足す(設計書 0045)
-function secureHeadersFor(reportOrigin: string | undefined) {
+//                    外へ送るのは失敗の知らせ(Sentry)と、写真・ファイルの置き場(S3)だけ。
+//                    置き場へは署名つき URL で PUT し(connect-src)、写真を表示する(img-src)。docs/specs/0072-file-storage.md。
+//                    外の物を読むようにしたら、ここに足す(設計書 0045)
+function secureHeadersFor(reportOrigin: string | undefined, filesOrigin: string | undefined) {
+  const files = filesOrigin ? [filesOrigin] : [];
   return secureHeaders({
     strictTransportSecurity: "max-age=31536000; includeSubDomains",
     contentSecurityPolicy: {
@@ -56,9 +65,9 @@ function secureHeadersFor(reportOrigin: string | undefined) {
       scriptSrc: ["'self'", NONCE],
       styleSrc: ["'self'", NONCE],
       styleSrcAttr: ["'unsafe-inline'"],
-      imgSrc: ["'self'", "data:"],
+      imgSrc: ["'self'", "data:", ...files],
       fontSrc: ["'self'"],
-      connectSrc: reportOrigin ? ["'self'", reportOrigin] : ["'self'"],
+      connectSrc: ["'self'", ...(reportOrigin ? [reportOrigin] : []), ...files],
       objectSrc: ["'none'"],
       baseUri: ["'none'"],
       formAction: ["'self'"],
@@ -126,6 +135,11 @@ export function createWebApp(deps: {
   indexablePaths?: readonly string[];
   /** SENTRY_DSN(ブラウザから失敗を送る先。CSP の connect-src に足す)。無ければ自分の origin だけ */
   sentryDsn?: string;
+  /**
+   * FILES_ORIGIN(写真・ファイルの置き場の origin。CSP の connect-src・img-src に足す。docs/specs/0072-file-storage.md)。
+   * 本番・stg は S3 の置き場の地域の入口(Terraform の module.files.origin)・手元は RustFS(http://localhost:9000)
+   */
+  filesOrigin?: string;
 }) {
   const { ssr, clientDir, logger, lifecycle } = deps;
   const isProd = deps.appEnv === "prod";
@@ -156,7 +170,7 @@ export function createWebApp(deps: {
       "request",
     );
   });
-  app.use("*", secureHeadersFor(reportOriginOf(deps.sentryDsn)));
+  app.use("*", secureHeadersFor(reportOriginOf(deps.sentryDsn), originOf(deps.filesOrigin)));
   app.use("*", async (c, next) => {
     await next();
     if (!indexable.has(c.req.path)) c.header("x-robots-tag", NOINDEX);

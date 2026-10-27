@@ -8,8 +8,15 @@ import { withTenant } from "../../src/db/tenant.ts";
 import { createLogger } from "../../src/logger.ts";
 import { outboxHandlers, relayOnce } from "../../src/outbox/index.ts";
 import { both, createCognitoApp, logIn, reauth, signUp } from "../helpers/cognito.ts";
-import { call, createTenantFixture, login, type TenantFixture } from "../helpers/fixtures.ts";
+import {
+  call,
+  createFileFixture,
+  createTenantFixture,
+  login,
+  type TenantFixture,
+} from "../helpers/fixtures.ts";
 import { ACTORS, loadMatrix, type MatrixActor } from "../helpers/matrix.ts";
+import { memoryObjectStore } from "../helpers/memory-store.ts";
 
 // ログに個人情報が出ないことを、全部の API で確かめる(docs/specs/0008-personal-data.md の B)。
 // 目印つきの値(名前・電話番号・病名に見立てた文・メールアドレス)を DB と本文とパスに入れ、
@@ -36,6 +43,8 @@ const app = createApp({
   db: appDb.db,
   logger,
   lifecycle: { shuttingDown: false },
+  // 写真・ファイルの API も通す(ファイルの名前は目印。docs/specs/0072-file-storage.md)
+  files: memoryObjectStore(),
 });
 const cognito = createCognitoApp(appUrl);
 /** 目印の一覧(名前・電話・病名と、作った人たちのメールアドレス) */
@@ -82,6 +91,15 @@ const fill = (template: string, self: TenantFixture) =>
     .replaceAll("{grantId}", self.supportGrantId)
     .replaceAll("{adminEmail}", self.users.admin.email);
 
+/** {fileId} を、名前が目印のファイル(自社の管理者が上げた)にする(docs/specs/0072-file-storage.md) */
+const withFile = async (template: string, self: TenantFixture) =>
+  template.includes("{fileId}")
+    ? template.replaceAll(
+        "{fileId}",
+        await createFileFixture(owner.db, self, self.users.admin.id, "ready", MARKED),
+      )
+    : template;
+
 beforeAll(() => {
   markers.add(markedEmail("body"));
   markers.add(markedEmail("new"));
@@ -103,8 +121,9 @@ describe("ログに個人情報が出ない", () => {
         const self = await markedTenant("self");
         const body = row.body && JSON.parse(fill(JSON.stringify(row.body), self));
         const cookie = await cookieFor(actor, self);
-        await call(app, method, fill(path, self), { cookie, body });
-        if (row.body) await call(app, method, fill(path, self), { cookie, body: markBody(body) });
+        const filled = fill(await withFile(path, self), self);
+        await call(app, method, filled, { cookie, body });
+        if (row.body) await call(app, method, filled, { cookie, body: markBody(body) });
       }
     }
     expect(lines.length).toBeGreaterThan(100);

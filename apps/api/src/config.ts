@@ -1,5 +1,8 @@
 import { logsLinkFrom } from "@app/error-reporting";
 import { z } from "zod";
+import { FILES_ENV_SHAPE, filesConfig, filesIssues } from "./config-files.ts";
+
+export { loadFilesConfig } from "./config-files.ts";
 
 // 環境の名前。開発用ログインを使ってよいのは local / test / preview だけ(本物の利用者がいない所)。
 export const APP_ENVS = ["local", "test", "preview", "stg", "prod"] as const;
@@ -75,6 +78,8 @@ const EnvObject = z.object({
   LOGS_INSIGHTS_REGION: z.string().optional(),
   // 探すロググループ(カンマ区切り。API と画面のサーバー)
   LOGS_INSIGHTS_GROUPS: z.string().optional(),
+  // 写真・ファイルの置き場(src/config-files.ts。docs/designs/0072-file-storage.md)
+  ...FILES_ENV_SHAPE,
 });
 
 type Env = z.infer<typeof EnvObject>;
@@ -95,6 +100,7 @@ function envIssues(env: Env): Issue[] {
     ...cognitoIssues(env),
     ...sessionIssues(env),
     ...sensitiveIssues(env),
+    ...filesIssues(env),
     ...urlIssues("PUBLIC_SITE_URL", env.PUBLIC_SITE_URL, LOCAL_ONLY.has(env.APP_ENV)),
   ];
 }
@@ -263,6 +269,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     publicSite: e.PUBLIC_SITE_URL
       ? { url: e.PUBLIC_SITE_URL, origin: new URL(e.PUBLIC_SITE_URL).origin }
       : null,
+    files: filesConfig(e),
     sentry: {
       dsn: e.SENTRY_DSN,
       release: e.SENTRY_RELEASE,

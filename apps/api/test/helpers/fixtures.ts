@@ -12,6 +12,7 @@ import { loadConfig } from "../../src/config.ts";
 import { createDb, type RootDb } from "../../src/db/client.ts";
 import {
   consents,
+  files,
   invitations,
   projects,
   supportGrants,
@@ -22,6 +23,8 @@ import {
 import { withTenant } from "../../src/db/tenant.ts";
 import { capacityOf } from "../../src/domains/legal/index.ts";
 import { createLogger } from "../../src/logger.ts";
+import type { ObjectStore } from "../../src/storage/index.ts";
+import { memoryObjectStore } from "./memory-store.ts";
 
 /** 1社ぶんのテスト用データ。テストは必ず2社以上で書く(自社と他社)。 */
 export type TenantFixture = {
@@ -109,6 +112,33 @@ export async function createTenantFixture(
   };
 }
 
+/**
+ * タスクに付いたファイルの行を1つ作る(中身は置き場に置かない。docs/specs/0072-file-storage.md)。
+ * uploadedBy は誰が上げたことにするか(閲覧者でもよい。権限の表で「自分の物」を作るため)
+ */
+export async function createFileFixture(
+  ownerDb: RootDb,
+  self: TenantFixture,
+  uploadedBy: string,
+  status: "pending" | "ready" | "rejected" = "ready",
+  name = "現場の写真.jpg",
+): Promise<string> {
+  const id = uuidv7();
+  await withTenant(ownerDb, self.tenantId, (tx) =>
+    tx.insert(files).values({
+      id,
+      tenantId: self.tenantId,
+      taskId: self.taskId,
+      uploadedBy,
+      name,
+      contentType: "image/jpeg",
+      byteSize: 1024,
+      status,
+    }),
+  );
+  return id;
+}
+
 /** アプリの接続ユーザー(RLS がかかる)で組み立てた、本物と同じアプリ。env で設定を足せる */
 export function createTestApp(
   appUrl: string,
@@ -118,6 +148,8 @@ export function createTestApp(
     featureFlags?: readonly FeatureFlagDefinition[];
     plans?: readonly PlanDefinition[];
     resolveTxt?: (name: string) => Promise<string[][]>;
+    /** 写真・ファイルの置き場。既定はメモリの中の偽物(本物と同じ取り決めは files-object-store.int.test.ts) */
+    files?: ObjectStore;
   } = {},
 ) {
   const { db, pool } = createDb(appUrl);
@@ -137,6 +169,7 @@ export function createTestApp(
     ...(opts.featureFlags ? { featureFlags: opts.featureFlags } : {}),
     ...(opts.plans ? { plans: opts.plans } : {}),
     ...(opts.resolveTxt ? { resolveTxt: opts.resolveTxt } : {}),
+    files: opts.files ?? memoryObjectStore(),
   });
   return { app, pool, lifecycle };
 }

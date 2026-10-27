@@ -24,6 +24,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   unsupported_media_type: "うまくいきませんでした。時間をおいて、もう一度試してください",
   service_unavailable:
     "いま混み合っているか、止まっています。少し待ってから、もう一度試してください",
+  file_storage_unavailable: "いまはファイルを扱えません。管理者に問い合わせてください",
   internal: "うまくいきませんでした。時間をおいて、もう一度試してください",
   invalid_code: "コードが違うか、期限が切れています。もう一度確かめてください",
   invalid_password: "パスワードが決まりを満たしていません",

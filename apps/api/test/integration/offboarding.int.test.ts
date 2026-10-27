@@ -12,11 +12,13 @@ import {
 } from "../../src/offboarding/delete-tenant.ts";
 import {
   call,
+  createFileFixture,
   createTenantFixture,
   createTestApp,
   login,
   type TenantFixture,
 } from "../helpers/fixtures.ts";
+import { memoryObjectStore } from "../helpers/memory-store.ts";
 
 // 解約(docs/specs/0005-offboarding.md)の受け入れ条件。必ず2社(+運営)で。
 
@@ -165,5 +167,40 @@ describe("削除(運営のコマンド)", () => {
     expect(JSON.stringify(events)).not.toContain(plan?.tenantName ?? "x");
     // 消した組織の人はもうログインできない
     await expect(login(app, a.users.admin.email)).rejects.toThrow();
+  });
+});
+
+describe("削除: 写真・ファイルの置き場(docs/specs/0072-file-storage.md)", () => {
+  it("置き場の中身を DB より先に消し、他社の中身は残す", async () => {
+    const c = await createTenantFixture(owner.db, "files-del");
+    const d = await createTenantFixture(owner.db, "files-keep");
+    const store = memoryObjectStore();
+    const mine = await createFileFixture(owner.db, c, c.users.admin.id);
+    const theirs = await createFileFixture(owner.db, d, d.users.admin.id);
+    store.objects.set(`files/${c.tenantId}/${mine}`, { body: Uint8Array.from([1]) });
+    store.upload(c.tenantId, mine, Uint8Array.from([2]));
+    store.objects.set(`files/${d.tenantId}/${theirs}`, { body: Uint8Array.from([3]) });
+    const plan = await planTenantDeletion(owner.db, c.tenantId);
+    await deleteTenant(owner.db, c.tenantId, {
+      confirmName: plan?.tenantName ?? "",
+      supportTenantId: ops.tenantId,
+      files: store,
+    });
+    expect([...store.objects.keys()]).toEqual([`files/${d.tenantId}/${theirs}`]);
+    expect(await countRows(c.tenantId, "files.files")).toBe(0);
+    expect(await countRows(d.tenantId, "files.files")).toBe(1);
+  });
+
+  it("ファイルがあるのに置き場の設定が無ければ、何も消さない", async () => {
+    const e = await createTenantFixture(owner.db, "files-nostore");
+    await createFileFixture(owner.db, e, e.users.admin.id);
+    const plan = await planTenantDeletion(owner.db, e.tenantId);
+    await expect(
+      deleteTenant(owner.db, e.tenantId, {
+        confirmName: plan?.tenantName ?? "",
+        supportTenantId: ops.tenantId,
+      }),
+    ).rejects.toThrow(/置き場の設定/);
+    expect(await countRows(e.tenantId, "files.files")).toBe(1);
   });
 });

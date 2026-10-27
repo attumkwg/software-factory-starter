@@ -14,6 +14,10 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
   "POST /api/projects/{projectId}/tasks": { action: "task.create", target: "task" },
   "PATCH /api/tasks/{taskId}": { action: "task.update", target: "task" },
   "DELETE /api/tasks/{taskId}": { action: "task.delete", target: "task" },
+  // 写真・ファイル(docs/specs/0072-file-storage.md)。名前・中身・URL は残さない(details は付け先のタスクの ID だけ)
+  "POST /api/tasks/{taskId}/files": { action: "file.create", target: "file" },
+  "POST /api/files/{fileId}/complete": { action: "file.complete", target: "file" },
+  "DELETE /api/files/{fileId}": { action: "file.delete", target: "file" },
   "POST /api/support-grants": { action: "support_grant.create", target: "support_grant" },
   "DELETE /api/support-grants/{grantId}": {
     action: "support_grant.revoke",

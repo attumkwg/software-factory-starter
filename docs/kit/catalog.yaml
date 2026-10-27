@@ -241,7 +241,7 @@ parts:
     status: あり
     removable: false
     default: 残す
-    what: 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)と人の答えの出どころ(decision-evidence)・ADR の番号の重なり
+    what: 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)と人の答えの出どころ(decision-evidence)・ADR の番号の重なり・穴の一覧と文書の古さ(gaps)
     needed_by: すべて(AI の PR を人が全部は読まない前提の守り)
     not_needed_by: なし
     if_removed: AI の間違いが、そのまま main に入る
@@ -249,7 +249,7 @@ parts:
     law:
       - ISMS 8.25(セキュアな開発のライフサイクル)・8.28・8.29・8.8(技術的脆弱性の管理)
       - SOC 2 CC8.1・CC7.1
-    where: [.github/workflows/ci.yml, .semgrep/rules.yml, docs/guides/ci-limits.md, scripts/decisions.mjs, scripts/decision-evidence.mjs, .github/workflows/decision-evidence.yml, scripts/test-weakening.mjs, .github/workflows/test-weakening.yml, scripts/adr.mjs, scripts/self-contained.mjs]
+    where: [.github/workflows/ci.yml, .semgrep/rules.yml, docs/guides/ci-limits.md, scripts/decisions.mjs, scripts/decision-evidence.mjs, .github/workflows/decision-evidence.yml, scripts/test-weakening.mjs, .github/workflows/test-weakening.yml, scripts/adr.mjs, scripts/self-contained.mjs, scripts/gaps.mjs]
 
   - id: logging
     name: ログの決まり
@@ -486,6 +486,76 @@ parts:
         - { path: CLAUDE.md, what: 「足したら1行」の表の tenant_id の行を消す }
       matrix: [POST /api/exports]
       docs: [docs/specs/0005-offboarding.md, docs/adr/0015-offboarding.md]
+
+  - id: file-storage
+    name: 写真・ファイルの保存
+    group: business
+    status: あり
+    removable: true
+    default: 残す
+    what: タスク(題材を差し替えたら自分の付け先)に写真・PDF を付ける。中身は非公開の S3 に、組織の ID を頭にしたキーで置き、関所を通った後でだけ作る5分の署名つき URL で画面と S3 が直接やりとりする。署名は役割を STS で組織の頭だけに絞って引き受けて行う。上げた物は読み直して種類を確かめ、位置情報などを消してから見せる。解約で前の版まで消す。手元は S3 互換の RustFS
+    needed_by: 写真・書類を扱う(現場の写真・図面・領収書など)
+    not_needed_by: ファイルを扱わない(文字と数だけ)
+    if_removed: 写真を扱うことになったとき、キーの付け方・URL の出し方・位置情報・解約の削除を一から作ることになる(RLS は S3 を守らないので、他社の写真が見える事故が起きやすい)
+    depends_on: [tenant-isolation, authz, outbox, offboarding, column-classification, audit-log]
+    law:
+      - 個人情報保護法 23条(安全管理措置。写真に人・表札が写りうる)・22条(不要になったら消す)
+      - ISMS 8.10(情報の削除)・8.24(暗号の利用)
+    where:
+      - apps/api/src/storage/index.ts
+      - apps/api/src/domains/files/index.ts
+      - apps/api/drizzle/0023_file_storage.sql
+      - infra/terraform/modules/file-storage/main.tf
+      - docs/runbooks/file-storage.md
+    remove:
+      delete:
+        - apps/api/src/domains/files
+        - apps/api/src/storage
+        - apps/api/test/unit/storage.test.ts
+        - apps/api/test/unit/strip-metadata.test.ts
+        - apps/api/test/integration/files.int.test.ts
+        - apps/api/test/integration/files-object-store.int.test.ts
+        - apps/api/test/helpers/memory-store.ts
+        - packages/shared/src/files.test.ts
+        - infra/terraform/modules/file-storage
+        - docs/domain/files
+        - docs/runbooks/file-storage.md
+      edit:
+        - { path: packages/shared/src/files.ts, what: 契約は足すだけなので残してよい(使わなくなるだけ) }
+        - { path: apps/api/src/app.ts, what: fileRoutes と置き場(files)を外す }
+        - { path: apps/api/src/index.ts, what: objectStoreFromConfig を外す }
+        - { path: apps/api/src/config.ts, what: FILES_* の設定と、stg・prod で置き場を必須にする決まりを外す }
+        - { path: apps/api/src/outbox/handlers.ts, what: files.file_uploaded・files.file_deleted の受け手を外す(出来事の名前は topics.ts に残す) }
+        - { path: apps/api/src/domains/dependencies.ts, what: files の行を外す }
+        - { path: apps/api/src/domains/tasks/index.ts, what: taskExists を外す(ほかに使っていなければ) }
+        - { path: apps/api/src/db/schema.ts, what: files の表の読み込みを外す }
+        - { path: apps/api/src/db/classification.ts, what: files.files の行と fileId を外す }
+        - { path: apps/api/src/offboarding/delete-tenant.ts, what: TENANT_TABLES の files.files と、置き場を先に消す所を外す }
+        - { path: apps/api/src/tenant-commands.ts, what: delete-tenant が置き場を読む所を外す }
+        - { path: apps/api/src/cli.ts, what: files-local-bucket のコマンドを外す }
+        - { path: apps/api/src/export/stream.ts, what: files の書き出しを外す(ExportSchema の files は足すだけなので空の配列を出す) }
+        - { path: apps/api/src/person-data/plan-person-data.ts, what: files.files.uploaded_by を外す }
+        - { path: apps/api/src/authz/policy.ts, what: file:read・file:write・file:delete と5つの API・canTouchFile を外す }
+        - { path: apps/api/src/audit/actions.ts, what: 3つの API を外す(画面の文 file.* は古い記録を読むため残す) }
+        - { path: apps/api/test/integration/authz-matrix.int.test.ts, what: "{fileId} の置き換えを外す" }
+        - { path: apps/api/test/integration/personal-data-logs.int.test.ts, what: 置き場とファイルの目印を外す }
+        - { path: apps/api/test/helpers/fixtures.ts, what: createFileFixture と既定の置き場を外す }
+        - { path: docs/authz/matrix.yaml, what: ファイルの5行を外す }
+        - { path: .semgrep/rules.yml, what: file-storage-only-in-module を外す(rules.ts の見本も) }
+        - { path: infra/terraform/envs/stg/main.tf, what: module.files と files_environment を外す }
+        - { path: infra/terraform/envs/prod/main.tf, what: module.files と files_environment を外す }
+        - { path: docker-compose.yml, what: files・files-init と API の FILES_* を外す }
+        - { path: .tbls.yml, what: files.files の説明を外す }
+        - { path: docs/guides/local-environment.md, what: S3 の行を外す }
+        - { path: docs/guides/data-retention.md, what: S3 の写真・ファイルの行を外す }
+      matrix:
+        - GET /api/tasks/{taskId}/files
+        - POST /api/tasks/{taskId}/files
+        - GET /api/files/{fileId}
+        - POST /api/files/{fileId}/complete
+        - DELETE /api/files/{fileId}
+      migration: スキーマ files を消す移行を足す(.claude/skills/db-migration。0023 は書き換えない。置き場の中身は先に手順書で消す)
+      docs: [docs/specs/0072-file-storage.md, docs/adr/0079-files-via-signed-urls-under-tenant-prefix.md, docs/adr/0080-uploaded-files-checked-before-shown.md]
 
   - id: mfa-required
     name: 組織ごとの二段階認証の必須化

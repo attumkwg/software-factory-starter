@@ -9,6 +9,9 @@ const cognito = {
   COGNITO_CLIENT_ID: "c",
   APP_URL: "https://app.example.com",
   MAIL_SMTP_URL: "smtp://mail:25",
+  // 写真・ファイルの置き場(stg・prod は必須。docs/designs/0072-file-storage.md)
+  FILES_BUCKET: "app-prod-files-123456789012",
+  FILES_ACCESS_ROLE_ARN: "arn:aws:iam::123456789012:role/app-prod-files-access",
 };
 
 describe("設定", () => {

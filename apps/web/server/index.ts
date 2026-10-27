@@ -42,6 +42,8 @@ const app = createWebApp({
   appEnv: process.env.APP_ENV,
   // ブラウザから失敗を送る先(CSP の connect-src に足す)
   sentryDsn: process.env.SENTRY_DSN,
+  // 写真・ファイルの置き場(署名つき URL で PUT・写真を表示。CSP の connect-src・img-src に足す)
+  filesOrigin: process.env.FILES_ORIGIN,
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

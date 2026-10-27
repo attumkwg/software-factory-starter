@@ -101,7 +101,7 @@ Aurora の接続の数が多い(prod は 1,000本・stg は 250本を超えた�
 **RDS のイベント(failover / failure / maintenance)**
 
 - **failover**: もう1台に切り替わった(prod は2台)。30秒〜1分ほど API が 503 を返し、その後は戻る(アプリは 503 で「少し待ってから」と出す)。戻っていれば何もしなくてよい。理由はイベントの文。
-- **failure**: DB に障害。AWS の Health Dashboard を見る。戻らなければ、バックアップから戻す手順(次の PR で書く)。
+- **failure**: DB に障害。AWS の Health Dashboard を見る。戻らなければ、バックアップから戻す([db-restore.md](db-restore.md))。
 - **maintenance**: 保守の予定。日時を確かめ、利用者への告知が要るか決める。
 
 ## ses-reputation

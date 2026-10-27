@@ -14,6 +14,11 @@ export const PERMISSIONS = {
   "project:delete": ["admin"],
   "task:read": ["admin", "member", "viewer"],
   "task:write": ["admin", "member"],
+  // 写真・ファイル(docs/specs/0072-file-storage.md)。見るのはみんな・上げるのは閲覧者以外。
+  // 上げ終える・消すは、データを読んだ後に canTouchFile で「自分の物か」も聞く
+  "file:read": ["admin", "member", "viewer"],
+  "file:write": ["admin", "member"],
+  "file:delete": ["admin", "member"],
   // 監査ログ(docs/specs/0003-audit-log.md)。誰が何をしたかが分かるので、管理者だけ
   "audit:read": ["admin"],
   // サポートへの許可(docs/specs/0004-support-access.md)。組織の管理者だけ
@@ -94,6 +99,11 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "POST /api/projects/{projectId}/tasks": "task:write",
   "PATCH /api/tasks/{taskId}": "task:write",
   "DELETE /api/tasks/{taskId}": "task:write",
+  "GET /api/tasks/{taskId}/files": "file:read",
+  "POST /api/tasks/{taskId}/files": "file:write",
+  "GET /api/files/{fileId}": "file:read",
+  "POST /api/files/{fileId}/complete": "file:write",
+  "DELETE /api/files/{fileId}": "file:delete",
   "GET /api/audit-events": "audit:read",
   // 監査ログの書き出し(docs/specs/0056-sso-scim-ip-audit-export.md の段3。プランの機能 audit-export)
   "POST /api/audit-events/export": "audit:read",
@@ -172,6 +182,9 @@ export const OUTSIDE_TRANSACTION: ReadonlySet<Permission> = new Set([
   "account:manage",
   // ドメインの確認は DNS を待つ(docs/specs/0056-sso-scim-ip-audit-export.md)
   "domain:verify",
+  // 署名つき URL は組織ごとに絞った権限(STS)で作る。STS を待つことがある(ADR 0079)
+  "file:read",
+  "file:write",
 ]);
 
 /**
@@ -204,6 +217,19 @@ export const ALLOWED_DURING_TERMS_ACCEPTANCE: ReadonlySet<string> = new Set([
 
 export function can(role: Role, permission: Permission): boolean {
   return (PERMISSIONS[permission] as readonly Role[]).includes(role);
+}
+
+/**
+ * そのファイルに触ってよいか(docs/specs/0072-file-storage.md)。権限(file:write・file:delete)を通った後、
+ * 行を読んでから聞く。上げ終えるのは上げた本人だけ。消すのは上げた本人か管理者。
+ */
+export function canTouchFile(
+  actor: { userId: string; role: Role },
+  operation: "complete" | "delete",
+  file: { uploadedBy: string },
+): boolean {
+  if (file.uploadedBy === actor.userId) return true;
+  return operation === "delete" && actor.role === "admin";
 }
 
 /** Hono のパス(`/api/projects/:projectId`)を OpenAPI の形(`/api/projects/{projectId}`)にそろえる。 */

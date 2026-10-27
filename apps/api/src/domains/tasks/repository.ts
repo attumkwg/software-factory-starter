@@ -80,6 +80,15 @@ export async function deleteTask(s: TenantScope, id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/** ほかの領域(files)が「このタスクはあるか」を確かめる(docs/designs/0072-file-storage.md) */
+export async function taskExists(s: TenantScope, id: string): Promise<boolean> {
+  const [row] = await s.tx
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(eq(tasks.tenantId, s.tenantId), eq(tasks.id, id)));
+  return row !== undefined;
+}
+
 /** 書き出しの続きの印(プロジェクト → 古い順。索引 tasks_tenant_id_project_id_created_at_id_idx の順) */
 export type TaskExportCursor = Cursor & { projectId: string };
 
