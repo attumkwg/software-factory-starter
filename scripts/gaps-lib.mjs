@@ -156,9 +156,7 @@ const specProblems = (r, at, specStates) =>
     const state = specStates.get(spec);
     if (state === undefined) return [`${at} は済みだが、仕様 ${spec} が docs/specs に無い`];
     if (state.startsWith("下書き"))
-      return [
-        `${at} は済みだが、仕様 ${spec} の状態が「下書き」のまま(作り終えたなら「完了待ち」か「完了」に)`,
-      ];
+      return [`${at} は済みだが、仕様 ${spec} の状態が「下書き」のまま(作り終えたなら「完了」に)`];
     return [];
   });
 
