@@ -14,16 +14,16 @@ stages:
   - id: pre-pmf
     name: ① PMF の前(2人)
     lines:
-      - { id: infra, name: 本番+stg, min: 40000, max: 40000 }
+      - { id: infra, name: 本番+stg, min: 75000, max: 100000 }
       - { id: preview_ci, name: PR ごとの環境・CI, min: 0, max: 10000 }
-      - { id: ai, name: AI(席+背景エージェント), min: 30000, max: 60000 }
+      - { id: ai, name: AI(席+背景エージェント), min: 60000, max: 120000 }
       - { id: scan, name: 有料の検査, min: 0, max: 0 }
   - id: post-pmf-5
     name: ② PMF の後(5人)
     lines:
       - { id: infra, name: 本番+stg, min: 100000, max: 100000 }
       - { id: preview_ci, name: PR ごとの環境・CI, min: 30000, max: 30000 }
-      - { id: ai, name: AI(席+背景エージェント), min: 140000, max: 220000 }
+      - { id: ai, name: AI(席+背景エージェント), min: 150000, max: 300000 }
       - { id: scan, name: 有料の検査, min: 0, max: 40000 }
   - id: post-pmf-15
     name: ② PMF の後(15人)
