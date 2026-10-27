@@ -3,11 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pino } from "pino";
 import { describe, expect, it } from "vitest";
-import { createWebApp, reportOriginOf, type SsrHandler } from "./app.ts";
+import { createWebApp, originOf, reportOriginOf, type SsrHandler } from "./app.ts";
 
 function setup(
   ssr: SsrHandler = () => new Response("<html></html>"),
-  env: { appEnv?: string; indexablePaths?: string[]; sentryDsn?: string } = {},
+  env: {
+    appEnv?: string;
+    indexablePaths?: string[];
+    sentryDsn?: string;
+    filesOrigin?: string;
+  } = {},
 ) {
   const clientDir = mkdtempSync(join(tmpdir(), "web-client-"));
   mkdirSync(join(clientDir, "assets"));
@@ -172,6 +177,21 @@ describe("CSP(Content-Security-Policy)", () => {
     );
     expect(reportOriginOf(undefined)).toBeUndefined();
     expect(reportOriginOf("not a url")).toBeUndefined();
+  });
+
+  it("写真・ファイルの置き場の origin を connect-src(PUT)と img-src(表示)に足す(docs/specs/0072-file-storage.md)", async () => {
+    const { app } = setup(undefined, {
+      sentryDsn: "https://key@o1.ingest.sentry.io/123",
+      filesOrigin: "https://app-prod-files-123.s3.ap-northeast-1.amazonaws.com/some/path?x=1",
+    });
+    const csp = cspOf(await app.request("/"));
+    const files = "https://app-prod-files-123.s3.ap-northeast-1.amazonaws.com";
+    expect(csp).toContain(`connect-src 'self' https://o1.ingest.sentry.io ${files};`);
+    expect(csp).toContain(`img-src 'self' data: ${files};`);
+    // 置き場が無ければ足さない・http(s) 以外は入れない
+    expect(cspOf(await setup().app.request("/"))).toContain("img-src 'self' data:;");
+    expect(originOf("javascript:alert(1)")).toBeUndefined();
+    expect(originOf("http://localhost:9000")).toBe("http://localhost:9000");
   });
 
   it("転送(302)・失敗(500)・ビルド済みの JS にも付く", async () => {

@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { IdSchema } from "./schemas.ts";
 import { InstantSchema } from "./time.ts";
 
 // 写真・ファイルの保存(docs/specs/0072-file-storage.md・docs/designs/0072-file-storage.md)。
 // 種類と上限は画面と API が同じ値を読む(設計書の U-1・U-2)。
+
+// schemas.ts(書き出しの形)がここを読むので、ここから schemas.ts は読まない(IdSchema と同じ形)
+const IdSchema = z.uuid();
 
 export const FILE_LIMITS = {
   /** 受ける種類(SVG・HTML は置き場の出どころでスクリプトが動くので受けない。HEIC はブラウザで見られない) */
@@ -69,3 +71,15 @@ export function safeFileName(name: string): string {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字を落とすための正規表現
   return name.replace(/[\u0000-\u001f\u007f/\\]/g, "_");
 }
+
+/** 書き出し(ExportSchema の files)の1行。中身・キー・URL は入れない(設計書 0072 の U-4) */
+export const ExportedFileSchema = z.object({
+  id: IdSchema,
+  taskId: IdSchema,
+  name: z.string(),
+  contentType: z.string(),
+  byteSize: z.number().int(),
+  status: z.string(),
+  uploadedBy: IdSchema,
+  createdAt: InstantSchema,
+});

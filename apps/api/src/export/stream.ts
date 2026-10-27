@@ -2,6 +2,7 @@ import { AsyncResource } from "node:async_hooks";
 import { EXPORT_FORMAT, type ExportData } from "@app/shared";
 import { exportAuditEventsPage } from "../audit/index.ts";
 import type { TenantScope } from "../db/scope.ts";
+import { exportFilesPage } from "../domains/files/index.ts";
 import { exportLegalConsentsPage } from "../domains/legal/index.ts";
 import {
   exportEmailChangesPage,
@@ -40,6 +41,7 @@ const SECTIONS: { [K in Section]: Pager<K> } = {
   users: exportUsersPage,
   projects: exportProjectsPage,
   tasks: exportTasksPage,
+  files: exportFilesPage,
   auditEvents: exportAuditEventsPage,
   supportGrants: exportSupportGrantsPage,
   emailChanges: exportEmailChangesPage,

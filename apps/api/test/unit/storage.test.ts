@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { loadConfig } from "../../src/config.ts";
+import { loadConfig, loadFilesConfig } from "../../src/config.ts";
 import { objectKey, tenantPrefixes } from "../../src/storage/keys.ts";
 import { s3ObjectStore } from "../../src/storage/object-store.ts";
 import {
@@ -182,6 +182,15 @@ describe("置き場の設定", () => {
         FILES_ACCESS_ROLE_ARN: role,
       }).files,
     ).toMatchObject({ accessRoleArn: role, staticCredentials: null });
+  });
+
+  it("stg・prod は置き場が要る(運営のコマンドが読む置き場だけの設定も同じ決まり)", () => {
+    for (const APP_ENV of ["stg", "prod"]) {
+      expect(() => loadFilesConfig({ APP_ENV })).toThrow(/FILES_BUCKET/);
+      expect(() => loadFilesConfig({ APP_ENV, ...minio })).toThrow(/FILES_S3_ENDPOINT/);
+    }
+    expect(loadFilesConfig({ APP_ENV: "local" })).toBeNull();
+    expect(loadFilesConfig({ APP_ENV: "test", ...minio })).toMatchObject({ bucket: "files-local" });
   });
 
   it("手元でも鍵か役割のどちらかが要る", () => {

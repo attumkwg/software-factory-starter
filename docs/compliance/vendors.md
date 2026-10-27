@@ -152,7 +152,7 @@
 | WAF | internal・personal | `aws_wafv2_*` | ログは IP・URL(検索の値が入る)・ヘッダー(Cookie と Authorization は伏せる)。30日 |
 | CloudWatch(ログ・メトリクス・アラーム)・EventBridge | internal・personal | `aws_cloudwatch_*` | アプリのログは許可リストの項目だけ(ADR 0019)。personal が入るのは WAF のログ(URL の検索の値)だけ |
 | CloudTrail(管理操作の記録) | internal | `aws_cloudtrail` | 誰が・いつ・どの API を呼んだか(社員の IAM の名前と IP を含む)。ロックした S3 に置く(docs/runbooks/audit-trail.md) |
-| S3 | public・internal・personal | `aws_s3_*` | 管理操作の記録・毎月の証跡(設定の写し。社員の GitHub と IAM の名前を含む)・費用のページ・試作の画面(偽のデータだけ)。personal は申し込みの置き場だけ(開通のとき、申込書の JSON = 組織の名前・最初の管理者の名前とメールを置き、create-tenant が読む。読み終えたら人が消す・今の版は7日・古い版は1日で消える。docs/runbooks/tenant-provisioning.md)。それ以外にお客さんのデータは置かない |
+| S3 | public・internal・personal | `aws_s3_*` | 管理操作の記録・毎月の証跡(設定の写し。社員の GitHub と IAM の名前を含む)・費用のページ・試作の画面(偽のデータだけ)。personal は申し込みの置き場だけ(開通のとき、申込書の JSON = 組織の名前・最初の管理者の名前とメールを置き、create-tenant が読む。読み終えたら人が消す・今の版は7日・古い版は1日で消える。docs/runbooks/tenant-provisioning.md)と、写真・ファイルの置き場(お客さんが上げた写真・PDF。人・表札が写りうる。組織の ID を頭にしたキー・組織ごとに絞った権限・位置情報を消してから見せる・消した物の前の版は30日・解約で前の版まで消す。modules/file-storage・docs/runbooks/file-storage.md)。それ以外にお客さんのデータは置かない |
 | CloudFront(試作の画面の配信) | public | `aws_cloudfront_*` |  |
 | VPC(ネットワーク) | internal | `aws_vpc`・`aws_vpc_*`・`aws_subnet`・`aws_subnets`・`aws_route`・`aws_route_table`・`aws_route_table_association`・`aws_internet_gateway`・`aws_nat_gateway`・`aws_eip`・`aws_security_group`・`aws_default_security_group`・`aws_ec2_managed_prefix_list`・`aws_flow_log`・`aws_availability_zones` | フローログ(IP と通信の量。中身は無い) |
 | IAM・KMS・Secrets Manager・ACM(鍵と権限) | internal | `aws_iam_*`・`aws_kms_*`・`aws_secretsmanager_*`・`aws_acm_*`・`aws_caller_identity`・`aws_region`・`aws_partition` | KMS は要配慮の組織ごとのデータ鍵も包む(modules/sensitive-data。SDK @aws-sdk/client-kms)。渡すのは組織の ID(文脈)とデータ鍵だけで、要配慮の値は渡さない |

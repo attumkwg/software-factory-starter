@@ -1,3 +1,4 @@
+import { loadFilesConfig } from "./config.ts";
 import { createDb, type RootDb } from "./db/client.ts";
 import { withTenant } from "./db/tenant.ts";
 import {
@@ -9,6 +10,7 @@ import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { withPreRegistration } from "./onboarding/from-pre-registration.ts";
 import { planPersonData } from "./person-data/plan-person-data.ts";
+import { objectStoreFromConfig } from "./storage/index.ts";
 
 // 組織を作る・1人分を数える・組織を消す、の運営のコマンド(cli.ts から呼ぶ。手順は docs/runbooks/)。
 // 本番の DB に書く(読む)ので人が打つ。接続は移行と同じ表の持ち主。
@@ -147,6 +149,8 @@ export async function deleteTenantCommand(args: string[]) {
   const nameAt = flags.indexOf("--confirm-name");
   const confirmName = nameAt >= 0 ? flags[nameAt + 1] : undefined;
   const { db, pool } = createDb(migrationUrl);
+  // 写真・ファイルの置き場(移行のタスクに FILES_* がある。docs/designs/0072-file-storage.md)
+  const files = objectStoreFromConfig(loadFilesConfig());
   try {
     if (!execute) {
       const plan = await planTenantDeletion(db, tenantId);
@@ -155,6 +159,8 @@ export async function deleteTenantCommand(args: string[]) {
         mode: "plan",
         tenantId,
         counts: plan.counts,
+        // 置き場の中身の数(前の版と消した印を含む)。置き場の設定が無ければ null
+        objects: files ? await files.purgeTenant(tenantId, { dryRun: true }) : null,
         cognitoSubs: plan.cognitoSubs,
         cognitoSubsInOtherOrgs: plan.cognitoSubsInOtherOrgs,
       };
@@ -168,6 +174,7 @@ export async function deleteTenantCommand(args: string[]) {
     const done = await deleteTenant(db, tenantId, {
       confirmName,
       supportTenantId: process.env.SUPPORT_TENANT_ID ?? null,
+      files,
     });
     process.stdout.write(`${JSON.stringify({ mode: "deleted", tenantId, counts: done.counts })}\n`);
   } finally {

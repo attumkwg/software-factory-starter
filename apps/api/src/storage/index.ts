@@ -5,6 +5,7 @@ import { staticTenantCredentials, stsTenantCredentials } from "./tenant-credenti
 
 // 写真・ファイルの置き場(docs/designs/0072-file-storage.md)。ほかからはここだけを使う。
 export { objectKey, tenantPrefixes } from "./keys.ts";
+export { ensureLocalBucket } from "./local-bucket.ts";
 export type { ObjectStore, SignedUrl } from "./object-store.ts";
 export { BrokenFileError, detectContentType, stripMetadata } from "./strip-metadata.ts";
 

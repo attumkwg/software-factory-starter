@@ -38,6 +38,7 @@
 
 - 🎧 CS: 「別の会社の現場の写真が見えた」という問い合わせ。
 - 🏭 鈴木: [../runbooks/tenant-data-leak.md](../runbooks/tenant-data-leak.md) で止血と範囲の確定。個人データが絡むなら [../runbooks/personal-data-breach.md](../runbooks/personal-data-breach.md): 個人情報保護委員会への速報(知ってから3〜5日)・確報(30日。不正の目的なら60日)・本人への通知・B2B のお客さんへの知らせ。
+- 🏭 鈴木: 写真なら、置き場(S3)のキーは `<段>/<組織の ID>/<ファイルの ID>` で、署名つき URL は関所の後でだけ・組織ごとに絞った権限で作る(ADR 0079)。CloudTrail の `AssumeRole` のセッションの名前(`files-<組織の ID>`)と、監査ログの読み(代理の社員なら記録が残る)で、どの組織の権限で誰が見たかを追う。写真そのものは AI に渡さない([../runbooks/file-storage.md](../runbooks/file-storage.md))。
 - 🔐 B 社: 要配慮の中身は、事故の調べでも AI に渡さない。受け取るのは組織・利用者の ID と鍵の利用の記録の形まで。
 - 判定: ✅ 回る。
 

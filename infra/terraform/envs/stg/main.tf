@@ -255,6 +255,8 @@ module "web" {
   # 画面のサーバーとブラウザの失敗も同じ Sentry へ(DSN は秘密ではない。ブラウザに渡る)
   environment = merge({
     APP_ENV = local.env
+    # 写真・ファイルの置き場(署名つき URL で PUT・写真を表示。CSP の connect-src・img-src に足す。docs/specs/0072-file-storage.md)
+    FILES_ORIGIN = module.files.origin
   }, local.sentry_environment, local.client_ip_environment)
 }
 

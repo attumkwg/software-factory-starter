@@ -126,7 +126,7 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
   - `files.file_uploaded { fileId }` → 受け手(`storage` の `processUpload`): その組織の権限で `incoming/<組織>/<ファイル>` を読む(大きさが行の `byte_size` と違えば rejected)→ 先頭の数バイトで種類を確かめる(行の `content_type` と違えば rejected)→ 写真なら付いた情報を消す → `files/<組織>/<ファイル>` に `Content-Type`・`Content-Disposition` つきで書く → incoming を消す → 行を ready に。行が無い・既に ready なら何もしない(2回届いても大丈夫)。
   - `files.file_deleted { fileId }` → 受け手: `files/` と `incoming/` の今の版を消す(前の版は 30日で消える)。無くても成功。
   - 受け手は `event.tenantId` で権限と `withTenant` を作り直す(T-4・L-5)。
-- **ブラウザ → S3**: 置き場の CORS で、画面の出どころ(`app_origin`)からの `PUT` だけを許す。画面を作るときは、画面のサーバーの CSP(`apps/web/server/app.ts`)の `connect-src`・`img-src` に置き場の出どころを足す(E2E の `csp.spec.ts` が違反を見つける)。
+- **ブラウザ → S3**: 置き場の CORS で、画面の出どころ(`app_origin`)からの `PUT` だけを許す。画面のサーバーの CSP(`apps/web/server/app.ts`)は、設定 `FILES_ORIGIN`(本番・stg は Terraform の `module.files.origin` = 置き場の地域の入口・手元は `http://localhost:9000`)を `connect-src`(PUT)と `img-src`(表示)に足す(`server/app.test.ts`)。上げる・見る画面を作ったら、E2E の `csp.spec.ts` にその流れを足して違反が無いことを確かめる(いまは画面が無いので E2E は無い)。
 - 外のサービスは増えない(S3・STS・KMS は既存の AWS。委託先の台帳の AWS の行に S3 の使い道を足す)。
 
 ## 6. 業務ルール
@@ -169,7 +169,7 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 
 - 性能: 一覧は1ページ最大 100 行。署名は1つ数十マイクロ秒(手元の計算)。STS は組織ごとに1時間に1回。書き直しは送り出しの中で1つずつ(20MB を1つ読んで1つ書く。メモリは最大 40MB ほど)。重くなったら送り出しを別のサービスにする(relay.ts の注記どおり)。
 - セキュリティ: 仕様の STRIDE のとおり。加えて、置き場は公開を止める・TLS だけ・KMS の自前の鍵(バケットの鍵で KMS の呼び出しを減らす)・版を残す・ACL を使わない(持ち主を強制)。API の役割は置き場を直接触らず、`files-access` を引き受けるだけ。
-- 運用: 書き直しに失敗したら送り出しのやり直しと dead(既存のアラーム)。置き場の大きさは費用のページ(`Component` のタグ `file-storage`)。手順書 `docs/runbooks/file-storage.md`(消した物を戻す・解約の削除の確かめ・中身の書き出しの頼み)。
+- 運用: 書き直しに失敗したら送り出しのやり直しと dead(既存のアラーム)。置き場の大きさは費用のページ(`Component` のタグ `api`。API と同じ provider で作る)。手順書 `docs/runbooks/file-storage.md`(消した物を戻す・解約の削除の確かめ・中身の書き出しの頼み)。
 - 費用(東京・2026年の目安): 保存 1GB 月 約3.8円・PUT 1,000 回 約0.7円・GET 1,000 回 約0.06円・KMS の鍵 月 約150円。A 社の10社 × 月 1,000枚 × 3MB = 月 30GB 増えると、1年で 360GB・月 約1,400円(転送は別。U-2)。
 - ログ: `fileId`・`taskId`・状態・大きさだけ(許可リストに足す物は無い: `…Id`・状態・件数は既に許される)。名前・URL・キーは出さない(キーには組織の ID しか入らないが、URL には署名が入る)。
 
@@ -217,7 +217,9 @@ ready / rejected / pending ──(消す・タスクを消す・解約)──▶
 - **新しい領域 `files` に置く(タスクの領域の中に置かない)** — 題材を差し替えるとき、付け先を変えるだけで部品を残せる(`/tailor` で消すのも1つの塊)。
 - **手元・CI の S3 の代わりは RustFS(MinIO ではない)** — `local-environment.md` の表は MinIO だったが、2026-10-27 に確かめると MinIO の公式のイメージは Docker Hub・quay.io のどちらからも取れない(配布をやめた)。RustFS は S3 互換・Apache-2.0 で、署名(SigV4)・版・前の版の一覧と削除が通る(`files-object-store.int.test.ts`)。版とダイジェストを固定し、公開から2週間以上たった版(1.0.1)を使う。
 - **タスクへの外部キーは `task_id` だけ** — 決まり(`src/db/schema.ts`)は `(tenant_id, id)` の組だが、`tasks.tasks` にその一意が無い。足すと既にある表への制約で、段を分けた移行(索引を `CONCURRENTLY` で作ってから)になる。作るときに `taskExists`(RLS と `tenant_id` で絞る)で同じ組織のタスクかを確かめ、RLS の `WITH CHECK` で行の組織はいまの組織だけなので、他社のタスクには付かない。組で張るのは、tasks に一意を足すときに一緒にする。
-- **段2では置き場の設定が無くても起動する(ファイルの API は 503)** — Terraform(段3)より先にこの段が入っても、stg・prod が止まらないように。段3で、stg・prod は置き場の設定を必須にする。
+- **stg・prod は置き場の設定(`FILES_BUCKET`・`FILES_ACCESS_ROLE_ARN`)が無ければ起動しない。手元・テスト・プレビューは無くても起動する(ファイルの API は 503)** — 段2では無くても起動にし、Terraform(段3。`module.files`)と一緒に必須にした。プレビューは置き場を作らない(費用と片付けのため)。
+- **解約の削除は、置き場の中身を DB より先に前の版まで消す。置き場の設定が無いのにファイルの行があれば、何も消さずに止める** — Cognito と同じ「外を先に」。DB の行が残っていればやり直せる。消し漏れ(DB だけ消えて写真が残る)を起こさない。
+- **手元の置き場は API のイメージのコマンド `files-local-bucket` が作る(compose の `files-init`)** — 別の道具(AWS CLI のイメージ)を足さない。何度流しても同じ(us-east-1 では作り直しても成功が返るので、先に有るかを見る)。
 
 ## 12. 未確定事項(AI の仮決め。人の承認と分けて追う)
 
