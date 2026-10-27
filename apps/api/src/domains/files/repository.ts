@@ -1,5 +1,6 @@
 import {
   type CreateFile,
+  type ExportData,
   FILE_LIMITS,
   type FileContentType,
   type FileStatus,
@@ -7,7 +8,7 @@ import {
 } from "@app/shared";
 import { and, asc, eq, getTableColumns, gt, ne, or, sql } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
-import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
+import { beyondCursor, type Cursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { enqueue } from "../../outbox/index.ts";
 import { files } from "./schema.ts";
@@ -96,6 +97,43 @@ export async function deleteFile(s: TenantScope, id: string): Promise<boolean> {
     .where(and(eq(files.tenantId, s.tenantId), eq(files.id, id)))
     .returning({ id: files.id });
   return rows.length > 0;
+}
+
+/** 書き出しの続きの印(タスク → 古い順。索引 files_tenant_id_task_id_created_at_id_idx の順) */
+export type FileExportCursor = Cursor & { taskId: string };
+
+/**
+ * データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。自社のファイルの一覧を1ページずつ。
+ * 中身・キー・URL は入れない(設計書 0072 の 2・U-4)
+ */
+export async function exportFilesPage(
+  s: TenantScope,
+  after: FileExportCursor | null,
+  limit: number,
+): Promise<{ rows: ExportData["files"]; nextCursor: FileExportCursor | null }> {
+  const rows = await s.tx
+    .select({ ...getTableColumns(files), cursorAt: cursorTime(files.createdAt) })
+    .from(files)
+    .where(
+      and(
+        eq(files.tenantId, s.tenantId),
+        after
+          ? sql`(${files.taskId}, ${files.createdAt}, ${files.id}) > (${after.taskId}::uuid, ${after.at}::timestamptz, ${after.id}::uuid)`
+          : undefined,
+      ),
+    )
+    .orderBy(asc(files.taskId), asc(files.createdAt), asc(files.id))
+    .limit(limit + 1);
+  const page = rows.slice(0, limit);
+  const last = page.at(-1);
+  return {
+    rows: page.map((r) => {
+      const { downloadUrl: _u, downloadExpiresAt: _e, ...view } = toFileView(r);
+      return view;
+    }),
+    nextCursor:
+      rows.length > limit && last ? { taskId: last.taskId, at: last.cursorAt, id: last.id } : null,
+  };
 }
 
 // ── 送り出し(アウトボックスの受け手)が使う ──

@@ -51,6 +51,8 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //                                      … 「無くなったら困るか」の答えを数と割合にする(読むだけ。docs/runbooks/pmf-survey.md)
 //   node dist/cli.js pmf-survey-purge [--execute]
 //                                      … 保存期間を過ぎた「聞き終えた印」を消す(試し → 本番。docs/runbooks/pmf-survey.md)
+//   node dist/cli.js files-local-bucket  … 手元(docker compose)の S3 互換の置き場に置き場を作る(local / test だけ。
+//                                        docs/guides/local-environment.md。本番・stg は Terraform)
 //   node dist/cli.js pre-registrations-report | -purge | -delete  … 公開の LP の事前登録の数・消す
 //                                      (src/pre-registrations/cli.ts・docs/runbooks/pre-registrations.md)
 
@@ -262,6 +264,17 @@ const COUNT_COMMANDS: Record<string, (db: RootDb, args: string[]) => Promise<str
 const countCommand = COUNT_COMMANDS[commands[0] ?? ""];
 if (countCommand) {
   await usageCommand((db) => countCommand(db, commands.slice(1)));
+  process.exit(0);
+}
+if (commands[0] === "files-local-bucket") {
+  if (appEnv !== "local" && appEnv !== "test")
+    throw new Error("files-local-bucket は local / test だけ");
+  const { loadFilesConfig } = await import("./config.ts");
+  const { ensureLocalBucket } = await import("./storage/index.ts");
+  const files = loadFilesConfig();
+  if (!files) throw new Error("FILES_BUCKET がありません");
+  const result = await ensureLocalBucket(files, process.env.APP_URL ?? "http://localhost:8080");
+  process.stdout.write(`${JSON.stringify({ mode: "files-local-bucket", result })}\n`);
   process.exit(0);
 }
 if (commands[0] === "create-tenant") {

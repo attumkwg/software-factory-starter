@@ -16,7 +16,8 @@
 | Cognito | ふだんは**開発用ログイン**(メールだけ)。登録・ログイン・二段階認証・再設定を確かめるときは**偽物の Cognito**(`packages/fake-cognito`)。確認コードのメールは Postfix → Mailpit | `docker compose -f docker-compose.yml -f docker-compose.cognito.yml up --build -d` | SES から届くか・迷惑メールの判定。偽物とのずれは**契約テスト**を stg の本物に流して確かめる(いまは手動。有効にすると週1回) |
 | SES(メール) | 本番と同じ Postfix が、SES の代わりに Mailpit へ渡す(http://localhost:8025) | `docker compose up` | 迷惑メールの判定・DKIM / SPF・サンドボックス・送信の上限 |
 | KMS(要配慮個人情報のデータ鍵を包む。ADR 0029) | コードに書いた包み鍵(`apps/api/src/sensitive/key-wrapper.ts` の `localKeyWrapper`。秘密ではない)。`SENSITIVE_KMS_KEY_ID` を入れない | `docker compose up`(`SENSITIVE_DATABASE_URL` は compose にある) | 鍵のポリシー・文脈の条件・CloudTrail の記録・鍵の利用のアラーム。stg・prod では手元の包み鍵で起動しない(`config.ts`)。KMS への渡し方は単体テストが偽物の KMS で確かめる |
-| S3・SQS・ElastiCache(入れるとき) | MinIO・ElasticMQ・Valkey のコンテナ | 入れるときに足す | 権限(IAM)・暗号化(KMS) |
+| S3(写真・ファイルの置き場。docs/specs/0072-file-storage.md) | **RustFS**(S3 互換・Apache-2.0)のコンテナ `files`。置き場は `files-init`(`dist/cli.js files-local-bucket`)が版を残す設定で作る。API は `files:9000`、ブラウザは `localhost:9000` で届く(署名に入るので、URL はブラウザから届く方で作る)。結合テスト `files-object-store.int.test.ts` も同じ版を Testcontainers で動かす | `docker compose up` | **組織ごとに絞る権限(STS のセッションのポリシー)**は効かない(固定の鍵)。中身はポリシーの単体テスト・効き目は stg(docs/runbooks/file-storage.md の 1)。KMS・ライフサイクル(1日・30日で消える)・CloudTrail も無い。MinIO は公式のイメージの配布をやめたので使わない(設計書 0072 の 11) |
+| SQS・ElastiCache(入れるとき) | ElasticMQ・Valkey のコンテナ | 入れるときに足す | 権限(IAM)・暗号化(KMS) |
 
 ## 手元では再現できないもの
 

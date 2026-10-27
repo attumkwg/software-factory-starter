@@ -35,10 +35,12 @@ aws ecs run-task --cluster $CLUSTER --task-definition $CLUSTER-migrate --launch-
 ロググループ `/ecs/<名前>-prod` の `migrate/…` に1行出る:
 
 ```json
-{"mode":"plan","tenantId":"…","counts":{"tasks.tasks":120,"projects.projects":8,…},"cognitoSubs":["…","…"]}
+{"mode":"plan","tenantId":"…","counts":{"tasks.tasks":120,"projects.projects":8,"files.files":340,…},"objects":702,"cognitoSubs":["…","…"]}
 ```
 
 - 件数が思ったとおりか(0 ばかりなら、ID を取り違えている)。
+- `objects` は写真・ファイルの置き場の中身の数(前の版と消した印を含む。docs/runbooks/file-storage.md)。`null` なら移行のタスクに置き場の設定(`FILES_*`)が無い。その組織に `files.files` があれば、4 は何も消さずに止まる(Terraform の `module.files` を入れてから)。
+- お客さんが写真の中身を全部欲しいと言っていれば、4 の前に docs/runbooks/file-storage.md の 3 で渡す(書き出しの JSON には一覧しか入らない。設計書 0072 の U-4)。
 - `cognitoSubs` を控える(次の 3 で使う)。
 
 ## 3. Cognito の利用者を消す(DB より先に)
@@ -67,7 +69,7 @@ aws ecs run-task --cluster $CLUSTER --task-definition $CLUSTER-migrate --launch-
 ```
 
 - 名前が1文字でも違えば、何も消さずに止まる(ログに「--confirm-name が組織の名前と違う」)。
-- 1つのトランザクションで消すので、途中で失敗したら何も消えていない。失敗の理由を見て、もう一度。
+- 先に写真・ファイルの置き場の中身を前の版まで消し(DB より先。docs/specs/0072-file-storage.md)、それから DB を1つのトランザクションで消す。DB で失敗したら DB は何も消えていない(置き場はもう消えている)。失敗の理由を見て、もう一度(置き場は空なので 0 件を消すだけ)。
 - 成功するとログに `{"mode":"deleted",…}`。運営の組織の監査ログに `tenant.delete`(組織 ID と件数。名前は残らない)。
 
 ## 5. 終わったら

@@ -271,6 +271,21 @@ describe("消す", () => {
   });
 });
 
+describe("書き出し", () => {
+  it("自社のファイルの一覧が入り、他社の物・キー・URL は入らない", async () => {
+    const mine = await createFileFixture(owner.db, a, a.users.member.id);
+    const theirs = await createFileFixture(owner.db, b, b.users.member.id);
+    const res = await call(app, "POST", "/api/exports", { cookie: cookies.aAdmin });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    const data = JSON.parse(text) as { files: { id: string; name: string }[] };
+    expect(data.files.map((f) => f.id)).toContain(mine);
+    expect(data.files.map((f) => f.id)).not.toContain(theirs);
+    expect(text).not.toContain(`files/${a.tenantId}/`);
+    expect(text).not.toContain("X-Amz-Signature");
+  });
+});
+
 describe("記録とログ", () => {
   it("監査ログに上げる・上げ終える・消すが残り、名前は残らない", async () => {
     const r = await withTenant(owner.db, a.tenantId, (tx) =>

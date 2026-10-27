@@ -5,4 +5,5 @@ export {
   handleFileUploaded,
   type InTenantTx,
 } from "./process.ts";
+export { exportFilesPage, type FileExportCursor } from "./repository.ts";
 export { type FileRouteDeps, fileRoutes } from "./routes.ts";

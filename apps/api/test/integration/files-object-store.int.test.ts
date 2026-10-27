@@ -8,6 +8,7 @@ import {
 import { GenericContainer, type StartedTestContainer, Wait } from "testcontainers";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { objectKey } from "../../src/storage/keys.ts";
+import { ensureLocalBucket } from "../../src/storage/local-bucket.ts";
 import { type ObjectStore, s3ObjectStore } from "../../src/storage/object-store.ts";
 import { staticTenantCredentials } from "../../src/storage/tenant-credentials.ts";
 
@@ -186,5 +187,20 @@ describe("消す", () => {
     expect(await versionsOf(`files/${tenant}/`)).toEqual([]);
     expect(await versionsOf(`incoming/${tenant}/`)).toEqual([]);
     expect((await versionsOf(`files/${other}/`)).length).toBe(1);
+  });
+});
+
+describe("手元の置き場を作る(docker compose の files-init)", () => {
+  it("無ければ作って版を残す設定にし、2回目は何もしない", async () => {
+    const files = {
+      bucket: "files-local-init",
+      region: "us-east-1",
+      accessRoleArn: null,
+      endpoint,
+      publicEndpoint: undefined,
+      staticCredentials: KEYS,
+    };
+    expect(await ensureLocalBucket(files, "http://localhost:8080")).toBe("created");
+    expect(await ensureLocalBucket(files, "http://localhost:8080")).toBe("exists");
   });
 });
