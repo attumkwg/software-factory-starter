@@ -39,6 +39,31 @@
    - 自分たちだけ通すなら、その前に「社内の IP なら Allow」のルールを置く。
    - 解くときはルールを消す。Terraform の外で足したルールは、次の `terraform apply` でも消える(足している間は apply しない)。
 4. **負荷で落ちているなら、増やす**: ECS の台数・Aurora の `max_acu`(Terraform。急ぐならコンソールで変えて、あとで Terraform をそろえる)。
+5. **AI が関わっている(かもしれない)なら、AI を止める**(G-63)。原因が AI の PR でも、戻すのが先(1)。そのうえで、**走っている AI が「直そう」として次の変更を出さない**ようにする。どれも人が打つ(AI に頼まない):
+   - **背景の AI のワークフローを止める**: 走っている物を止め、ワークフローを無効にする。
+     ```bash
+     gh run list --workflow claude.yml --status in_progress
+     ```
+     ```bash
+     gh run cancel <run の番号>
+     ```
+     ```bash
+     gh workflow disable claude.yml
+     ```
+     戻すときは `gh workflow enable claude.yml`(振り返りの後)。
+   - **鍵を外す**(AI がおかしな動きをした・鍵が漏れたかもしれないとき): Claude の管理画面(Console)で API キーを無効にし、GitHub の Environment `claude` の `ANTHROPIC_API_KEY` を消す。漏れた疑いがあれば [secret-leak.md](secret-leak.md)。Claude の GitHub App を止めるなら、Settings → Integrations → GitHub Apps → Claude → Suspend。
+   - **手元・devcontainer の作業を止める**: 夜に任せた作業(`.devcontainer` の中の Claude Code・手元のセッション)を止める。コンテナごと止めるなら `docker ps` で devcontainer を探して `docker stop <名前>`。止めた作業の名前と、途中のブランチを控える(後で振り返りに使う。消さない)。
+   - **AI が開いた PR を下書きに戻す**: 新しい PR がマージに回らないようにする。自動マージが付いていれば外す。
+     ```bash
+     gh pr list --label ai:assisted --state open
+     ```
+     ```bash
+     gh pr ready --undo <PR の番号>
+     ```
+     ```bash
+     gh pr merge --disable-auto <PR の番号>
+     ```
+   - スレッドに「AI を止めた(何を・何時)」と書く。再開は振り返りで原因の入口が分かってから。
 
 ## 4. お客さんへの知らせ(型)
 
@@ -96,6 +121,14 @@
 - 確報: 期限 YYYY-MM-DD(30日。不正の目的は60日)/ 出した日時・受付の番号:
 - 本人への通知: 出した日時・方法 / 通知が難しい場合の代わり(公表・窓口):
 
+## AI が関わったか(関わっていなければ「いいえ」の1行だけ)
+- AI が関わった: はい / いいえ
+- どの手段で: 背景の AI(claude.yml の run の番号)/ 手元の Claude Code / devcontainer / AI のレビュー
+- どの指示から入ったか: 頼んだ文(依頼・Issue の番号)/ AI が読んだ文章(Issue・コメント・Web・依存の README)/ AI が自分で決めた(設計書の「決めたこと」・仮決め)
+- 外へ出した物: PR の「🚪 外へ出した物」・`.claude/outbound.log` に、頼まれていない操作があったか
+- どの守りを通ったか: フック(確認に「はい」を押したか)・CI(どのチェックが緑だったか・tests:weakened の印)・人のレビュー(誰が・何を見たか)
+- AI を止めた: 何を・何時(止血の 5)/ 再開した日
+
 ## 何が起きたか
 <仕組みとして。人の名前を主語にしない>
 
@@ -109,7 +142,9 @@
 | アラーム・見張り | | |
 | ルール(CLAUDE.md・Semgrep・スキル) | | |
 | 手順書 | | |
+| AI の守り(道具の一覧・フック・守る一覧・外への許可リスト・読ませる文章の書き手) | | |
 ```
 
 - 再発防止は「気をつける」で終わらせない。**テスト・アラーム・ルール・手順書のどれか**に変える(AI が同じ失敗をしない形に)。
 - 手順書の通りに動けなかった所は、その手順書を直す。
+- **AI が関わった事故は、「どの指示・どの手段から入ったか」まで書く**。AI の誤りは「AI に気をつけさせる」では直らない。入口(読ませた文章・持たせた道具・通した守り)のどれかを狭めるか、守り(フック・CI・守る一覧)を足す。AI の「消えた」「戻せない」は信じず、人がバックアップと記録で確かめる([guides/unattended-ai.md](../guides/unattended-ai.md))。

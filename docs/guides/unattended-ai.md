@@ -35,6 +35,7 @@
 
 - **PR の「🚪 外へ出した物」**(`pnpm outbound` が記録 `.claude/outbound.log` から表にする)。**「頼まれていたか」が「いいえ」の行**を1つずつ見る。要らない手段なら、次から持たせない(道具の一覧・許可リストを直す)。
 - 止まった宛先(①の `blocked.sh`)。止まったこと自体は守りが効いた印。AI がそれを避ける道を探していないかを見る。
+- 事故のとき(本番が壊れた・AI がおかしな動きをした)は、手順書 [runbooks/incident.md](../runbooks/incident.md) の止血の 5 で AI を止める(背景の AI のワークフロー・鍵・devcontainer の作業・AI の開いた PR)。
 - AI が「消えた」「戻せない」と言っても信じない。データはバックアップや記録で人が確かめる([runbooks/db-restore.md](../runbooks/db-restore.md) など)。AI は本番に入れない(AI-1)。
 
 ## わざと残る穴(知っておくこと)
