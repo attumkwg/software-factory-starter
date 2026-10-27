@@ -41,7 +41,7 @@ pnpm setup:github
 
 ## ① 手元で動かす
 
-要るもの: **Node.js 24**(版の切り替えは mise などで。`.node-version` に `24` とある)・**Docker**。
+要るもの: **Node.js 24**(版の切り替えは mise などで。使う版は `.node-version` に書いてある)・**Docker**。
 
 ```bash
 corepack enable
