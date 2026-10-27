@@ -267,7 +267,7 @@ parts:
     law:
       - ISMS 8.32(変更管理)
       - SOC 2 CC8.1
-    where: [.claude/hooks/protected-paths.json, .claude/hooks/guard-edit.mjs, .claude/hooks/guard-bash.mjs, scripts/check-guards.mjs, docs/guides/local-guards.md]
+    where: [.claude/hooks/protected-paths.json, .claude/hooks/guard-edit.mjs, .claude/hooks/guard-bash.mjs, .claude/hooks/guard-secrets-out.mjs, scripts/check-guards.mjs, docs/guides/local-guards.md]
 
   - id: github-setup
     name: GitHub の一括のセットアップとラベルの一覧
@@ -1530,9 +1530,15 @@ parts:
     depends_on: [harness]
     law: []
     remove:
-      delete: [.github/workflows/claude.yml]
+      delete:
+        - .github/workflows/claude.yml
+        - .github/scripts/ai-input-authors.mjs
+        - .github/scripts/ai-input-authors-lib.mjs
+        - .github/scripts/ai-input-authors.test.mjs
       edit:
         - { path: docs/guides/automation.md, what: claude の行を外す }
+        - { path: package.json, what: test:scripts の ai-input-authors.test.mjs を外す }
+      docs: [docs/specs/0060-background-ai-inputs.md, docs/designs/0060-background-ai-inputs.md]
 
   - id: dynamic-scans
     name: 攻撃の形の検査(Schemathesis・ZAP)
