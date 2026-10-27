@@ -94,6 +94,12 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 3. 新しい API は `.claude/skills/add-api-endpoint` の手順で(権限の表に1行)。
 4. TODO の部品を消すたびに `pnpm test:all` が通ることを確かめる。権限の表のテストが、消し忘れ・書き忘れを落としてくれる。
 
+### 自分のプロダクトのライセンス
+
+- 📄 キットは MIT。自分のプロダクトは、非公開のまま売ってもよいし、別のライセンスにしてもよい。
+- 🔁 **条件は1つ**: キットから持ってきた部分には、キットの著作権とライセンスの文を残す。ルートの `LICENSE` を `docs/kit/LICENSE-software-factory-starter` などへ移して残し、ルートには自分のプロダクトの `LICENSE`(非公開なら置かないか「All rights reserved」)を置く。
+- ⚠️ 迷ったら、売る前に専門家に確かめる(依存のライセンスも含めて)。
+
 ## ③ GitHub の設定
 
 「はじめに」の `pnpm setup:github --apply` で、下の物はほぼそろっている(設定の正は `.github/setup.yml`・`.github/labels.yml`)。ここでは中身を確かめる。詳しくは [guides/manual-setup.md](guides/manual-setup.md)(手でやる設定)の 1。要点:
