@@ -2032,6 +2032,29 @@ parts:
         - { path: CLAUDE.md, what: pnpm metrics の行を外す }
       docs: [docs/specs/0035-delivery-metrics.md, docs/designs/0035-delivery-metrics.md, docs/adr/0046-metrics-from-labels-and-repo-records.md]
 
+  - id: acceptance
+    name: 受け入れの点数と書き戻し(/accept)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 作った機能を出す前の受け入れで、PdM には PdM にしか判断できない4つ(流れ・ルール・作り込み・仮決め)だけを聞き、網羅の確かめは AI と QA に回す。結果を点数にし、外れた理由を要求・設計・AI の仮決め・実装に分け、要求のせいの物を解決済みの論点に書き戻す。書き方の崩れは CI(test:scripts)が止める
+    needed_by: PdM が受け入れで詰まり所になっている・同じ種類の書き漏らしが仕様で繰り返される
+    not_needed_by: 1人で作って1人で使っている間(受け入れる人と作る人が同じ)
+    if_removed: 受け入れが人の記憶だけに残り、仕様の書き漏らしが次の仕様に持ち越される
+    depends_on: [harness]
+    law: []
+    where: [.claude/skills/accept/SKILL.md, scripts/acceptance.mjs, docs/guides/acceptance.md, docs/acceptance/_template.md, docs/domain/resolved-questions.md]
+    remove:
+      delete: [.claude/skills/accept, scripts/acceptance.mjs, scripts/acceptance-lib.mjs, scripts/acceptance.test.mjs, docs/guides/acceptance.md, docs/acceptance, docs/domain/resolved-questions.md]
+      edit:
+        - { path: package.json, what: acceptance と、test:scripts の scripts/acceptance.test.mjs を外す }
+        - { path: .claude/skills/new-feature/SKILL.md, what: 解決済みの論点を読む所を外す }
+        - { path: .claude/skills/design/SKILL.md, what: 解決済みの論点を読む所を外す }
+        - { path: docs/concepts/line.md, what: 2 の受け入れの行は残してよい }
+        - { path: docs/reference.md, what: ⑤ 検証の受け入れを外す }
+      docs: [docs/specs/0075-acceptance-record.md, docs/designs/0075-acceptance-record.md]
+
   - id: checkup
     name: 点検(/checkup)
     group: process
