@@ -65,6 +65,17 @@ function environmentProblems(envs) {
   return problems;
 }
 
+/** 危険度「高」の承認の人数(仕様 0059)。書かなければ 0 */
+function highRiskApprovalsProblems(ruleset) {
+  const high = ruleset?.high_risk_approvals;
+  if (high === undefined) return [];
+  if (!(Number.isInteger(high) && high >= 0 && high <= 6))
+    return ["ruleset.high_risk_approvals は 0〜6 の整数"];
+  if (high > 0 && high < (ruleset?.required_approvals ?? 0))
+    return ["ruleset.high_risk_approvals は required_approvals 以上(高のほうが多く要る)"];
+  return [];
+}
+
 /** 設定の書き方の問題 */
 export function validateSetup(setup) {
   const problems = [];
@@ -76,6 +87,7 @@ export function validateSetup(setup) {
   if (!listed || checks.some((c) => typeof c !== "string"))
     problems.push("ruleset.required_checks は名前の並び(1つ以上)");
   if (!setup?.ruleset?.name) problems.push("ruleset.name が無い");
+  problems.push(...highRiskApprovalsProblems(setup?.ruleset));
   problems.push(...environmentProblems(setup?.environments));
   for (const s of setup?.template_schedules ?? [])
     if (!s?.file || !s?.why) problems.push("template_schedules は file と why を書く");

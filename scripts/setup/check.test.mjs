@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { checkAll, checkGuide } from "./check-lib.mjs";
-import { validateLabels } from "./config.mjs";
+import { validateLabels, validateSetup } from "./config.mjs";
 import { LABELS_GUIDE, renderLabelsGuide } from "./labels-doc.mjs";
 import { labelsInText, readWorkflow } from "./usage.mjs";
 
@@ -172,4 +172,16 @@ test("設定の書き方が違えば、ほかを見ずにそれを返す", () =>
   const r = checkAll({ setup: { version: 2 }, labels: [], src: srcOf({}) });
   assert.ok(r.problems.some((p) => p.includes("version")));
   assert.ok(r.problems.some((p) => p.includes("required_checks")));
+});
+
+test("危険度「高」の承認の人数は 0〜6 の整数で、ふつうの承認数より少なくしない(仕様 0059)", () => {
+  const problems = (ruleset) =>
+    validateSetup(setupWith({ ruleset: { name: "main", required_checks: ["lint"], ...ruleset } }));
+  assert.deepEqual(problems({}), []);
+  assert.deepEqual(problems({ high_risk_approvals: 2, required_approvals: 1 }), []);
+  assert.ok(problems({ high_risk_approvals: -1 }).some((p) => p.includes("0〜6")));
+  assert.ok(problems({ high_risk_approvals: "2" }).some((p) => p.includes("0〜6")));
+  assert.ok(
+    problems({ high_risk_approvals: 1, required_approvals: 2 }).some((p) => p.includes("以上")),
+  );
 });

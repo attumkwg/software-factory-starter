@@ -39,7 +39,7 @@
 
 > 🧭 **最初の30分は、1 と 2 の一本道**(動かす → 2社のデータが分かれているのを見る → 自分のリポジトリにする)。経営・事業の方は、手順の前に下の「👥 立場ごとの入口」へ。
 
-要るもの: **Node.js 24**・**Docker**・**GitHub のアカウント**(公開のリポジトリか Pro / Team / Enterprise Cloud。非公開の Free ではブランチ保護が使えない)・**Claude Code**。
+要るもの: **Node.js 24**・**Docker**・**GitHub のアカウント**(公開のリポジトリか Pro / Team / Enterprise Cloud。非公開の Free ではブランチ保護が使えない。非公開の Pro / Team では本番の承認者が働かない → [docs/guides/local-guards.md](docs/guides/local-guards.md) の表)・**Claude Code**。
 
 **1. 手元で動かす(30分。自分のリポジトリはまだ要らない)**
 

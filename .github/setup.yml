@@ -44,9 +44,12 @@ actions:
 ruleset:
   name: main
   # 🧍 1人の間は 0(自分の PR は自分で承認できず、AI の PR も自分のアカウントで出る)。
-  # 👥 人が増えたら 1・require_code_owner_review: true にして流し直す(危険度「高」を2人にするなら 2)
+  # 👥 人が増えたら 1・require_code_owner_review: true にして流し直す
   required_approvals: 0
   require_code_owner_review: false
+  # 危険度「高」の PR だけに要る承認の人数(必須のチェック「危険度「高」の承認の人数」が数える。仕様 0059)。
+  # ルールセットの承認数は全部の PR に同じ値がかかるので、「高だけ2人」はこちらで。1人の間は 0、人が増えたら 2
+  high_risk_approvals: 0
   dismiss_stale_reviews: true
   allowed_merge_methods: [squash, rebase]
   linear_history: true
@@ -68,6 +71,7 @@ ruleset:
     - イメージのビルドと検査(Trivy image・mail)
     - ワークフローの検査(actionlint・zizmor)
     - 取り組みと作業の種類(PR の本文) # マージキューを使うなら外す(キューの中では流れない)
+    - 危険度「高」の承認の人数 # 1人の間(high_risk_approvals: 0)は数えずに通る。マージキューを使うなら外す
     - 見た目の比べ(VRT) # 見た目を変える PR は、基準を撮り直すまで止まる(docs/guides/vrt.md)
 
 # Environments(Settings → Environments)。どれも main からだけ使える(ブランチのワークフローは書き換えられるので GitHub の側で止める)

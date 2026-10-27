@@ -1,8 +1,8 @@
-# レビューする人を「変えたパス」で決める。危険度「高」の所は2人(ブランチ保護で「CODEOWNERS の承認」と
-# 「承認2人」を必須にする。README の「本人がやる設定」)。後に書いた行が勝つ。
+# レビューする人を「変えたパス」で決める。後に書いた行が勝つ。危険度「高」の所の「2人」は、ここではなく
+# 必須のチェック「危険度「高」の承認の人数」(.github/setup.yml の ruleset.high_risk_approvals。仕様 0059)が数える。
 #
 # チームができたら @attumkwg を @<org>/platform・@<org>/security などのチームに置き換え、
-# 高危険度の行には2つのチームを並べる(例: @<org>/security @<org>/platform)。
+# 高危険度の行には2つのチームを並べてよい(例: @<org>/security @<org>/platform。誰か1人で通るので、2人目はチェックが数える)。
 
 # 既定: 領域のオーナー1人(危険度「中」)
 *                                   @attumkwg
@@ -50,6 +50,8 @@
 /scripts/setup/                     @attumkwg
 /scripts/evidence/                  @attumkwg
 /scripts/cost/                      @attumkwg
+/scripts/review-count.mjs           @attumkwg
+/scripts/review-count-lib.mjs       @attumkwg
 /.gitleaksignore                    @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg

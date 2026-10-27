@@ -91,7 +91,7 @@ pnpm setup:github --apply
 
 `.github/setup.yml` の値を変えて流し直す:
 
-- `ruleset.required_approvals: 1`・`require_code_owner_review: true`(危険度「高」を2人にするなら 2 と、CODEOWNERS の「高」の行に2つのチーム)
+- `ruleset.required_approvals: 1`・`require_code_owner_review: true`・危険度「高」を2人にするなら `ruleset.high_risk_approvals: 2`(必須のチェック「危険度「高」の承認の人数」が数える。ルールセットの承認数は全部の PR に同じ値がかかり、CODEOWNERS は並べた誰か1人で通るので、それだけでは「高だけ2人」にならない。仕様 0059)
 - `environments` の prod の `reviewers` を2人以上・`prevent_self_review: true`
 
 ## うまくいかないとき
