@@ -70,7 +70,7 @@ flowchart LR
 | AI が危ない操作をしないと言えるか | 手元のフック・CI・GitHub の設定の3層。危ない場所の一覧は1つ → [guides/local-guards.md](../guides/local-guards.md) |
 | 他社のデータが混ざらないか | DB の層(RLS)+アプリ+全表のテストの重ね方 → [security.md](../security.md) |
 | ISMS・P マークに使えるか | 管理策の一覧と適用宣言書・規程のひな形・毎月の証跡 → [compliance/README.md](../compliance/README.md) |
-| 誰が・いつまで直すか(キット) | [maintenance.md](maintenance.md)・[SECURITY.md](../../SECURITY.md) |
+| 誰が・いつまで直すか(キット) | キットは作成中で、保守の日数も期限も約束しない(要る会社は自社か支援する会社で持つ)→ [maintenance.md](maintenance.md)・穴の知らせ方 [SECURITY.md](../../SECURITY.md) |
 | セキュリティの質問票 | 根拠のリンクつきで下書きを作る `/security-questionnaire`(「はい」は本番で確かめた物だけ) |
 
 ## 向かない所(先に言う)

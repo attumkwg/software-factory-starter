@@ -1,6 +1,6 @@
 # 仕様: ブランド(名前・トーン・色)を決める段取り(`/brand`・`pnpm contrast`)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0024-brand.md](../designs/0024-brand.md)・ADR: [0037](../adr/0037-promise-before-lp-and-brand.md)
 > 穴 G-32(`docs/scenarios/gaps.md`)。仕様 0023(約束と売り文句 `/positioning`)の上に積む。
 

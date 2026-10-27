@@ -1,6 +1,6 @@
 # 仕様: 継続率(同じ組織が使い続けたか)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0022-usage-retention.md](../designs/0022-usage-retention.md)
 > 仕様 0012 の「利用の記録」(`platform.feature_usage`・運営のコマンド `usage-report`)の上に積む。表は変えない。
 

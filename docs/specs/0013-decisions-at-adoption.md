@@ -1,6 +1,6 @@
 # 仕様: 未確定事項の「導入時に決める」(キットの既定値でマージし、使う側の決めることリストに載せる)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0013-decisions-at-adoption.md](../designs/0013-decisions-at-adoption.md)
 
 ## なぜ作るか
