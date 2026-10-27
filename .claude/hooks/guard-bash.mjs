@@ -86,6 +86,15 @@ function checkMerge(segment) {
   return null;
 }
 
+// 未確定事項への人の答え(「U-1 承認」など)を、AI が人のアカウントで GitHub に書かない(G-61・仕様 0061)。
+// 手元の gh は人のアカウントなので、CI(decision-evidence.mjs)は人の答えと見分けられない。だから書く前に聞く
+const ANSWER_POST = /\bgh\s+(?:(?:pr|issue)\s+(?:comment|review)|api)\b/;
+const ANSWER_WORDS = /\bU-\d+\s*[::]?\s*(?:承認|変更|保留|導入時に決める)/;
+function checkAnswerPost(command) {
+  if (!ANSWER_POST.test(command) || !ANSWER_WORDS.test(command)) return null;
+  return "未確定事項への人の答え(U-n 承認 など)を書こうとしています。答えは人が自分で GitHub に書く(AI は写さない)。人が確かめてください";
+}
+
 // 2>&1・>/dev/null のような害の無いものを除いて、まだ > が残れば「書く」
 const writesByRedirect = (segment) =>
   />/.test(segment.replace(/\d?>&\d|&?\d?>+\s*\/dev\/null/g, ""));
@@ -123,6 +132,9 @@ export function decide(command, currentBranch = () => "", env = process.env) {
     const reason = checkPush(segment, currentBranch) ?? checkMerge(segment);
     if (reason) return { decision: "deny", reason };
   }
+  // KIT_EDIT_GUARD に関係なく聞く(人の答えは、人が書いたことが値打ち)
+  const answer = checkAnswerPost(command);
+  if (answer) return { decision: "ask", reason: answer };
   const touched = touchedProtected(command);
   if (touched.length > 0 && !segments(command).every(isReadOnly)) {
     if (guardOff(env)) return { decision: "pass", reason: GUARD_OFF_REASON };

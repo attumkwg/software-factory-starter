@@ -37,6 +37,8 @@
     "scripts/cost/**",
     "scripts/review-count.mjs",
     "scripts/review-count-lib.mjs",
+    "scripts/decision-evidence.mjs",
+    "scripts/decisions-lib.mjs",
     ".gitleaksignore",
     ".trivyignore.yaml",
     "renovate.json",

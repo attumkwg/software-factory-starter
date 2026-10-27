@@ -72,6 +72,7 @@ ruleset:
     - ワークフローの検査(actionlint・zizmor)
     - 取り組みと作業の種類(PR の本文) # マージキューを使うなら外す(キューの中では流れない)
     - 危険度「高」の承認の人数 # 1人の間(high_risk_approvals: 0)は数えずに通る。マージキューを使うなら外す
+    - 未確定事項の答えの出どころ # 人の答えは人の GitHub のコメント・レビューを指す(G-61)
     - 見た目の比べ(VRT) # 見た目を変える PR は、基準を撮り直すまで止まる(docs/guides/vrt.md)
 
 # Environments(Settings → Environments)。どれも main からだけ使える(ブランチのワークフローは書き換えられるので GitHub の側で止める)

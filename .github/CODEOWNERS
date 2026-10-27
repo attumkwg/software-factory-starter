@@ -52,6 +52,8 @@
 /scripts/cost/                      @attumkwg
 /scripts/review-count.mjs           @attumkwg
 /scripts/review-count-lib.mjs       @attumkwg
+/scripts/decision-evidence.mjs      @attumkwg
+/scripts/decisions-lib.mjs          @attumkwg
 /.gitleaksignore                    @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg

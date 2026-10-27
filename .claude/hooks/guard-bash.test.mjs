@@ -109,3 +109,17 @@ test("関係の無い場所は聞かない", () => {
   assert.equal(decision("pnpm test"), "allow");
   assert.equal(decision("docker compose up -d db"), "allow");
 });
+
+test("未確定事項への人の答えを GitHub に書くコマンドは、KIT_EDIT_GUARD=pr でも聞く(G-61)", () => {
+  for (const c of [
+    'gh pr comment 12 --body "U-1 承認"',
+    'gh issue comment 3 --body "U-2: 変更 こうする"',
+    'gh pr review 12 --comment -b "U-3 保留"',
+    "gh api repos/a/b/issues/12/comments -f body='U-1 承認'",
+  ]) {
+    assert.equal(decision(c, onFeature, optedOut), "ask", c);
+  }
+  // 仮決めの行を PR の本文に写す・答えと関係の無いコメントは聞かない
+  assert.equal(decision('gh pr create --body "| U-1 | 設計 | 仮決め |"'), "allow");
+  assert.equal(decision('gh pr comment 12 --body "CI を直しました"'), "allow");
+});
