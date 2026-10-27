@@ -314,6 +314,28 @@ items:
     source: 2026-10-20 の点検
     review_by: 2027-04-20
 
+  - id: local-aws-credentials
+    title: AI を動かす端末に、本番の AWS に届く資格情報を置かない
+    why: Claude Code が止めているのは aws の CLI だけ。AI が書いたスクリプトは、手元の SSO のセッションやアクセスキーで本番に届く(docs/guides/local-guards.md の「手元の資格情報」)
+    if_ignored: 手元の AI が調べ物や仕込まれた指示で書いたスクリプトが、本番のデータを読む・消す。確認に「はい」を押した人は、中で本番に届くと気づかない
+    who: human
+    phase: setup
+    every: quarterly
+    verify: ask
+    question:
+      text: AI(Claude Code)を動かす端末で、既定のプロファイル(AWS_PROFILE と ~/.aws/config の default)が本番(prod)でなく、本番のアクセスキーが ~/.aws/credentials に無く、本番の SSO のセッションを使い終わったら切っていますか
+      options:
+        - { label: 全部そうなっている, means: 次の四半期にもう一度聞きます }
+        - { label: まだの所がある, means: 手引きの「手元の資格情報」の直し方(既定を dev に・鍵を消す・本番の許可セットを1時間に)を出します。来週また聞きます, after: open }
+      recommended: 全部そうなっている
+      irreversible: false
+    severity: high
+    controls: [ A.8.2, A.8.5, A.5.15 ]
+    status: open
+    history: []
+    source: docs/scenarios/10-ai-incidents.md の 10-2・10-8(G-59)
+    review_by: 2027-10-27
+
   - id: acct-two-admins
     title: 管理者を2人にする
     why: 1人が倒れたり辞めたりしても、GitHub や AWS の設定を直せるようにする
@@ -604,6 +626,22 @@ items:
     history: []
     source: docs/designs/0034-joiner-leaver.md の 6.(穴 G-13)
     review_by: 2027-04-25
+
+  - id: kit-upstream
+    title: キットの新しい版を取り込んだか
+    why: キットが直した穴・足した守りは、取り込まないとこのリポジトリに届かない(docs/kit/upgrade.md)
+    if_ignored: 作った日のキットのまま離れていき、キットでは直った穴を抱え続ける
+    who: human
+    phase: 1m
+    every: monthly
+    verify: auto
+    check: kit-upstream
+    severity: normal
+    controls: [ A.8.8, A.5.21 ]
+    status: open
+    history: []
+    source: docs/designs/0067-kit-upstream.md の 6.(穴 G-42)
+    review_by: 2027-04-27
 
   # ── 3か月(以後四半期ごと)────────────────────────────────────────
   - id: access-review

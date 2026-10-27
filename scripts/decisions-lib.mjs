@@ -135,3 +135,101 @@ export const adoptLines = (rows) => {
   );
   return lines;
 };
+
+// ── 人の答えの出どころ(G-61・仕様 0061)──────────────────────────────
+// AI は「承認(@名前)」の形を自分で書ける。だから PR で状態を人の答えに変えた行は、人が GitHub に書いた
+// コメントかレビューを指させ、CI(decision-evidence.mjs)がリンク先の書き手を確かめる。
+
+// 人の答えとみなす状態(リンクが要る)。仮決めは AI が書く。取り下げは作り直しで問いが無くなったときに AI が書く
+export const ANSWERS = ["承認", "変更", "保留", ADOPT];
+// 書き込める人(公開のリポジトリでは誰でもコメントを書ける)
+const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+const GITHUB = "https://github.com/";
+// リンクの終わり(空白・括弧・句読点・表の区切り)
+const URL_END = new Set([" ", "\t", ")", "）", "、", "。", "」", "|"]);
+const LOGIN_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
+
+/** 設計書の文章から、番号ごとの状態(U-1 → 状態の文)。列の数が違う行は数えない(書き方の問題は readDecisions が出す) */
+export const statesOf = (text) => {
+  const map = new Map();
+  for (const raw of String(text ?? "").split("\n")) {
+    const cells = cellsOf(raw);
+    if (cells?.length === 7) map.set(cells[0], cells[6]);
+  }
+  return map;
+};
+
+/** PR で人の答えの状態になった行(前の版に無い・状態の文が変わった)。{ id, state } の並び */
+export const changedAnswers = (baseText, headText) => {
+  const before = statesOf(baseText);
+  return [...statesOf(headText)]
+    .filter(([id, state]) => before.get(id) !== state && ANSWERS.some((s) => state.startsWith(s)))
+    .map(([id, state]) => ({ id, state }));
+};
+
+/** 状態の文の中の、GitHub のコメント・レビューへのリンク。無ければ undefined */
+export const evidenceOf = (state) => {
+  const at = state.indexOf(GITHUB);
+  if (at < 0) return undefined;
+  let end = at;
+  while (end < state.length && !URL_END.has(state[end])) end += 1;
+  const url = state.slice(at, end);
+  const [path, hash = ""] = url.slice(GITHUB.length).split("#");
+  const [owner, repo, kind, num] = path.split("/");
+  if (!owner || !repo || !["pull", "issues"].includes(kind) || !isDigits(num ?? "")) {
+    return undefined;
+  }
+  const types = [
+    ["issuecomment-", "comment"],
+    ["pullrequestreview-", "review"],
+    ["discussion_r", "review_comment"],
+  ];
+  for (const [prefix, type] of types) {
+    const id = hash.startsWith(prefix) ? hash.slice(prefix.length) : "";
+    if (isDigits(id)) return { url, repo: `${owner}/${repo}`, number: Number(num), type, id };
+  }
+  return undefined;
+};
+
+/** 状態の文の最初の @名前(無ければ undefined) */
+export const approverOf = (state) => {
+  const at = state.indexOf("@");
+  if (at < 0) return undefined;
+  let end = at + 1;
+  while (end < state.length && LOGIN_CHARS.includes(state[end])) end += 1;
+  return end > at + 1 ? state.slice(at + 1, end) : undefined;
+};
+
+/**
+ * 1行の答えの出どころを確かめる。問題の文の並び(空なら良い)。
+ * row: { id, state }・evidence: evidenceOf の結果・item: リンク先(GitHub の API の形。読めなければ undefined)
+ * repo: このリポジトリ・prNumber: この PR・designNumber: 設計書の番号(0061 など)
+ */
+export const evidenceProblems = ({ row, evidence, item, repo, prNumber, designNumber }) => {
+  if (!evidence)
+    return [
+      `${row.id}: 人の答え(PR か Issue のコメント・レビュー)へのリンクが無い。人が GitHub に「${row.id} 承認」のように書き、その URL を状態に添える`,
+    ];
+  if (evidence.repo.toLowerCase() !== repo.toLowerCase())
+    return [`${row.id}: リンクが別のリポジトリ(${evidence.repo})を指している`];
+  if (!item) return [`${row.id}: リンク先(${evidence.url})が読めない`];
+  const problems = [];
+  const login = item.user?.login;
+  if (!item.user || item.user.type === "Bot")
+    problems.push(`${row.id}: リンク先はボット(@${login ?? "?"})が書いた。人の答えではない`);
+  else if (!TRUSTED.has(item.author_association))
+    problems.push(
+      `${row.id}: リンク先の書き手 @${login} は書き込める人ではない(${item.author_association})`,
+    );
+  const named = approverOf(row.state);
+  if (!named) problems.push(`${row.id}: 状態に答えた人(@名前)が無い`);
+  else if (login && named.toLowerCase() !== login.toLowerCase())
+    problems.push(`${row.id}: 状態の @${named} と、リンク先の書き手 @${login} が違う`);
+  const body = String(item.body ?? "");
+  if (!body.includes(row.id)) problems.push(`${row.id}: リンク先の本文に ${row.id} が無い`);
+  if (evidence.number !== prNumber && !body.includes(designNumber))
+    problems.push(
+      `${row.id}: 別の PR・Issue の答えなら、本文に設計書の番号(${designNumber})も書く`,
+    );
+  return problems;
+};

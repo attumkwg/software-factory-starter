@@ -68,6 +68,7 @@ description: 点検の台帳(docs/checkup/todo.yaml)から、いま担当者が�
 - 急ぎ(`severity: high` の `fail`)は、問いではなく**知らせ**。何が・なぜ急ぎか・誰が何をするかを先に話す。
 - 重い脆弱性(`w-vuln`)→ 「`/cve` で精査します」と伝え、担当者の OK で `/cve`(引数なし)へ。中身は書かない。
 - 秘密の漏れ(`w-secrets`)→ `docs/runbooks/secret-leak.md` の手順へ。鍵を替えるのは人。
+- キットの新しい版(`kit-upstream`)→ 問いではなく知らせ。`pnpm checkup` の行(どの版か・手が要る版か)と、キットの `CHANGELOG.md` のその版の「取り込むときにすること」を見せ、`docs/kit/upgrade.md` の手順で取り込む PR を出すかを担当者に聞く(取り込む PR はこの点検の PR と分ける)。
 - 守りが外れた(`w-protection`・`w-guards`・`【守りが外れた】`)→ 何が外れたかを `pnpm checkup` の行で示し、直す手順を出す(設定を直すのは人。`.claude/hooks/` などの守りは Claude が直す PR を出すが、マージは人)。
 
 ### 手順の出し方

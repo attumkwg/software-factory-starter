@@ -1,0 +1,44 @@
+# 設計書の未確定事項を、PR で人の答え(承認・変更・保留・導入時に決める)に変えた行が、人の書いたコメントか
+# レビューを指しているか(G-61・仕様 0061)。AI は「承認(@名前)」の形を自分で書けるので、答えは AI が書けない
+# 場所(人のアカウントの GitHub のコメント・レビュー)に置き、ファイルの側はそれを指すだけにする。
+# 確かめる中身(スクリプト)は PR の側ではなく土台のブランチ(base)の物を使う(PR の中で緩めて通すのを防ぐ)。読むだけ。
+name: 未確定事項の答え
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+concurrency:
+  group: decision-evidence-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  evidence:
+    name: 未確定事項の答えの出どころ
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # 依存は要らない(node の標準と gh だけ)。土台にまだスクリプトが無い(このチェックを足す PR そのもの)ときは通す
+      - name: 人の答えのリンク先の書き手を確かめる
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -f scripts/decision-evidence.mjs ]; then
+            echo "土台のブランチにまだ scripts/decision-evidence.mjs が無いので確かめない(このチェックを足す PR)"
+            exit 0
+          fi
+          node scripts/decision-evidence.mjs

@@ -34,6 +34,7 @@
 ## 2. AWS アカウントと状態の置き場
 
 1. AWS Organizations で **dev(プレビュー)・stg・prod** のアカウントを分ける(本番だけ別の鍵。AI が触れるのは dev まで)
+   - 人の入り口は IAM Identity Center。**prod の許可セットはセッションの長さを1時間に**し、人のアクセスキーは作らない。AI を動かす端末には prod のプロファイルを既定で置かない([local-guards.md](local-guards.md) の「手元の資格情報」。点検の `local-aws-credentials`)
 2. 状態の S3 バケットを作る(バージョニング・暗号化・公開ブロックを有効に)。名前を GitHub の変数 `TF_STATE_BUCKET` に
 3. 各 env で `*.example.tfvars` を `*.auto.tfvars` に写して値を入れ(コミットしない)、**人が** apply する:
 

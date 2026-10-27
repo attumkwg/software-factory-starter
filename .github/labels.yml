@@ -40,6 +40,16 @@ labels:
     action: CI が緑ならマージしてよい(最初の1〜2か月は人も見て、AI の見逃しを数える)
     used_by: .github/labeler.yml・/report-bug
 
+  - name: tests:weakened
+    color: d93f0b
+    description: テストか検査を弱めたかもしれない PR(skip・テストを消した・確かめが減った・下限を下げた・黙らせる注釈)。危険度「高」とみなす
+    group: 危険度(PR)
+    meaning: テストのファイルを消した・skip や only を足した・expect や assert が減った・カバレッジの下限を下げた・biome-ignore などの注釈を足した PR(G-60)
+    who: 自動(test-weakening.yml。差分の形から)。見つからなくなれば外れる
+    when: PR を開いた・push したとき
+    action: PR の本文に、なぜ弱めたか(古いテストを消した・不安定な E2E を一時的に飛ばす など)が書いてあるかを人が見る。無ければ /rework。危険度「高」とみなし、人の承認の人数を数える
+    used_by: .github/workflows/test-weakening.yml・scripts/review-count-lib.mjs
+
   # ── 変えた場所(PR。自動で付く)──
   - name: area:api
     color: ededed

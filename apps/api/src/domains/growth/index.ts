@@ -16,5 +16,6 @@ export {
   countView,
   type PublicScope,
   registerPreRegistration,
+  tokyoDay,
   withdrawPreRegistration,
 } from "./repository.ts";
