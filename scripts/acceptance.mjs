@@ -3,7 +3,7 @@
 //                     書き方の問題があれば 1 で終わる。中身は acceptance-lib.mjs、書き方は docs/guides/acceptance.md
 import { percent, REASONS, readRepoAcceptance, scoreOf } from "./acceptance-lib.mjs";
 
-const { rounds, problems } = readRepoAcceptance();
+const { rounds, problems, notices } = readRepoAcceptance();
 if (rounds.length === 0)
   console.log("受け入れの記録はまだありません(docs/acceptance/。/accept が書く)");
 else {
@@ -18,6 +18,12 @@ else {
       `| ${r.path} | ${r.no} | ${r.date} | ${percent(s.pdm)} | ${percent(s.sweep)} | ${percent(s.all)} | ${s.items}(${s.pdmItems}) | ${reasons} |`,
     );
   }
+}
+if (notices.length > 0) {
+  console.log(
+    `\n💡 観点のおすすめから外れた所: ${notices.length}件(落とさない。docs/guides/acceptance.md の 1)`,
+  );
+  for (const n of notices) console.log(`- ${n}`);
 }
 if (problems.length > 0) {
   console.log(`\n❌ 書き方の問題: ${problems.length}件(docs/guides/acceptance.md)`);

@@ -47,14 +47,26 @@ test("全部が 未 なら点数は —(0% にしない)", () => {
   assert.equal(percent(2 / 3), "67%");
 });
 
-test("網羅の観点を PdM に回すと書き方の問題(PdM が見るのは4つだけ)", () => {
-  const { problems } = read([file("## 第1回 2026-10-28", HEAD, row(1, "権限", "PdM", "合"))]);
-  assert.match(problems[0], /:4 観点「権限」は網羅の確かめなので PdM に回さない/);
+test("網羅の観点を PdM に回すと知らせる(観点はおすすめ。落とさない)", () => {
+  const { problems, notices } = read([
+    file("## 第1回 2026-10-28", HEAD, row(1, "権限", "PdM", "合")),
+  ]);
+  assert.deepEqual(problems, []);
+  assert.match(notices[0], /:4 観点「権限」は網羅の確かめ。PdM に回すと/);
 });
 
-test("PdM の観点を AI に回すと書き方の問題(仮決めの製品判断を AI が合にしない)", () => {
-  const { problems } = read([file("## 第1回 2026-10-28", HEAD, row(1, "仮決め", "AI", "合"))]);
-  assert.match(problems[0], /PdM にしか判断できない/);
+test("PdM のおすすめの観点を AI に回すと知らせる・おすすめに無い言葉も知らせる", () => {
+  const { problems, notices } = read([
+    file(
+      "## 第1回 2026-10-28",
+      HEAD,
+      row(1, "仮決め", "AI", "合"),
+      row(2, "大事なお客さんの画面", "PdM", "合"),
+    ),
+  ]);
+  assert.deepEqual(problems, []);
+  assert.match(notices[0], /観点「仮決め」は PdM に回すのがおすすめ/);
+  assert.match(notices[1], /観点「大事なお客さんの画面」はおすすめの言葉にない/);
 });
 
 test("否 の理由は4つのどれか・要求なら論点の番号が要る", () => {
@@ -85,7 +97,7 @@ test("知らない言葉・空の回・日付の崩れ・前に戻る日付", ()
       "## 第3回 きのう",
     ),
   ]);
-  assert.ok(problems.some((p) => p.includes("観点「なにか」は決まった言葉でない")));
+  assert.ok(!problems.some((p) => p.includes("観点「なにか」")));
   assert.ok(problems.some((p) => p.includes("見る人「PM」")));
   assert.ok(problems.some((p) => p.includes("結果「まる」")));
   assert.ok(problems.some((p) => p.includes(":5 前の回より前の日付")));

@@ -1,6 +1,6 @@
 # 仕様: 約束と売り文句を決める段(`/positioning`)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0023-positioning.md](../designs/0023-positioning.md)・ADR: [0037](../adr/0037-promise-before-lp-and-brand.md)
 > 穴 G-31(`docs/scenarios/gaps.md`)。決める順番は [scenarios/fit-journey.md](../scenarios/fit-journey.md) の 2(言葉 → LP → 色)。
 
