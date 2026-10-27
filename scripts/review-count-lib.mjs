@@ -6,9 +6,12 @@
 export const isProtected = (file, paths) =>
   paths.some((p) => (p.endsWith("/**") ? file.startsWith(p.slice(0, -2)) : file === p));
 
-/** 変えたファイル(名前を変えた物は元の名前も)か、ラベル risk:high で「高」か */
+/**
+ * 変えたファイル(名前を変えた物は元の名前も)か、ラベル risk:high・tests:weakened で「高」か。
+ * tests:weakened はテストか検査を弱めた印(test-weakening.yml。G-60)
+ */
 export function isHighRisk({ files, labels, paths }) {
-  if (labels.includes("risk:high")) return true;
+  if (labels.includes("risk:high") || labels.includes("tests:weakened")) return true;
   return files.some((f) =>
     [f.filename, f.previous_filename].filter(Boolean).some((name) => isProtected(name, paths)),
   );
