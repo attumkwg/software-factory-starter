@@ -33,7 +33,8 @@ export function bodyFiles(command) {
     if (w === "--body-file" || w === "--input") files.push(next);
     else if ((w === "-F" || w === "--field") && next.includes("=@"))
       files.push(next.split("=@")[1]);
-    else if (/^--(?:body-file|input)=/.test(w)) files.push(unquote(w.split("=")[1]));
+    else if (w.startsWith("--body-file=") || w.startsWith("--input="))
+      files.push(unquote(w.split("=")[1]));
   });
   return files.filter((f) => f && f !== "-");
 }
@@ -44,6 +45,7 @@ export const liveTokens = (env) =>
 
 /** 文章の中の秘密の名前(重複なし)。値そのものは返さない */
 export function secretsIn(text, tokens = []) {
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- 形は固定(上の SECRET_SHAPES)。入れ子の繰り返しが無く、後戻りが増えない
   const hits = SECRET_SHAPES.filter(([, re]) => re.test(text)).map(([name]) => name);
   for (const t of tokens) {
     if (text.includes(t) || text.includes(Buffer.from(t).toString("base64")))

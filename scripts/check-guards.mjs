@@ -37,6 +37,7 @@ const hooked = (script, tool) =>
 if (!hooked("guard-bash.mjs", "Bash"))
   missing.push(".claude/settings.json の PreToolUse に guard-bash.mjs(Bash)が無い");
 // 外へ書く文章の秘密を止める(G-58)。背景の AI もこの settings.json を使う
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- フックのファイル名で、秘密ではない
 if (!hooked("guard-secrets-out.mjs", "Bash"))
   missing.push(".claude/settings.json の PreToolUse に guard-secrets-out.mjs(Bash)が無い");
 for (const tool of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) {
