@@ -34,6 +34,16 @@
         ]
       },
       {
+        "matcher": "Bash|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-secrets-out.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
           {

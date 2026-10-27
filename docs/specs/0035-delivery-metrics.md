@@ -1,6 +1,6 @@
 # 仕様: 週の数字(DORA の4つ・AI が手伝った PR・人の介在率・仕様の在庫)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0035-delivery-metrics.md](../designs/0035-delivery-metrics.md)・ADR: [0046](../adr/0046-metrics-from-labels-and-repo-records.md)
 > 穴 G-12(場面 3-7・3-9・7-2)。
 

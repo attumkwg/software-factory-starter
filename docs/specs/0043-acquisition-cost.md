@@ -1,6 +1,6 @@
 # 仕様: 獲得のコストと、届け方の賭け
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0043-acquisition-cost.md](../designs/0043-acquisition-cost.md)・ADR: [0054](../adr/0054-acquisition-cost-from-manual-inputs.md)
 > 穴 G-36(場面 8-7)。費用のページ(仕様 0019・0020)と賭け(`docs/guides/bets-and-assets.md`)の上に積む。
 
