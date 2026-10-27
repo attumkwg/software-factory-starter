@@ -199,21 +199,35 @@ jobs:
           cache: pnpm
       - if: steps.scope.outputs.heavy == 'true'
         run: pnpm install --frozen-lockfile
+      # Playwright のブラウザは版(lockfile)ごとに取っておく。毎回の取り直しで、ここが10分ほどかかったことがある
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.scope.outputs.heavy == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: 手元と同じ形で起動(DB・移行・種データ・API・画面の SSR・ALB の代わり)と、ブラウザを入れる(並べて)
         if: steps.scope.outputs.heavy == 'true'
         run: |
-          # ブラウザと OS の部品を入れる(約20秒)のを、アプリの起動を待つ間に済ませる
-          pnpm --filter @app/web exec playwright install --with-deps chromium > "$RUNNER_TEMP/playwright-install.log" 2>&1 &
+          # ブラウザと OS の部品を入れる(ふだん約20秒)のを、アプリの起動を待つ間に済ませる。
+          # apt が遅い鏡で止まり続けないよう、1回の待ちを15秒・やり直しを3回にする。かかった秒数をログに残す
+          echo 'Acquire::http::Timeout "15"; Acquire::https::Timeout "15"; Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/99ci-timeout > /dev/null
+          (
+            start=$(date +%s)
+            pnpm --filter @app/web exec playwright install --with-deps chromium
+            echo "ブラウザを入れるのにかかった秒数: $(( $(date +%s) - start ))"
+          ) > "$RUNNER_TEMP/playwright-install.log" 2>&1 &
           install=$!
           # 後の Cognito の手順で使う偽物の Cognito も、ここで作っておく(下でコンテナの外への通信を止めると、作れない)
           docker compose -f docker-compose.yml -f docker-compose.cognito.yml build fake-cognito
           docker compose up --build -d
           # alb(ALB の代わり)の向こうで、画面(/readyz)と API(/api/me がログイン前なので 401)の両方が答えるまで
-          # 1回の確かめは2秒で切る(起動の直後は ALB の代わりが受けたまま待ち続け、1回で1分ほど止まって全体が11分かかったことがある)
+          # 1回の確かめは2秒で切る(返らない確かめで待ち続けないように)
           ready=false
           for _ in $(seq 1 120); do
             if curl -fsS --max-time 2 http://localhost:8080/readyz && [ "$(curl -s --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8080/api/me)" = "401" ]; then
               ready=true
+              echo
+              echo "アプリが答えた($(date -u +%H:%M:%S))。ブラウザを入れ終わるのを待つ"
               break
             fi
             sleep 1
@@ -226,6 +240,7 @@ jobs:
             cat "$RUNNER_TEMP/playwright-install.log"
             exit 1
           fi
+          tail -n 1 "$RUNNER_TEMP/playwright-install.log"
       # イメージを作り終えてから、アプリのコンテナを外へ出られなくする(画面・API が外へ送っていれば、ここで E2E が落ちる。
       # イメージの取得は通る。docs/designs/0057-ai-egress.md の U-2・段4)
       - name: Docker のコンテナから外への通信を止める
