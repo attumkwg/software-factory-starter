@@ -16,6 +16,8 @@ description: 仕様(docs/specs)から、AI 用の網羅的な設計書(docs/desi
 - ナレッジ: `docs/domain/glossary.md`・`docs/domain/<領域>/README.md`・関係する `docs/adr/`・`docs/authz/matrix.yaml`
 - 既存のコード: その領域の `apps/api/src/domains/<領域>/`・`packages/shared/src/schemas.ts`・画面なら `apps/web/src/`
 
+**仕様が「設計に進む基準(ブロッカーがゼロ)」を満たしているかを先に見る**(`docs/guides/human-review.md` の 6)。5つのどれかに当たれば、設計を始めずに仕様を直す(工程は「要求」)。中・小の指摘では止まらない。
+
 ナレッジが古い・無いせいで判断できない所は、推測で埋めずに「未確定事項」(工程: ナレッジ)にする。
 
 ## 2. 設計書を書く
