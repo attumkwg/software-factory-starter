@@ -1,6 +1,6 @@
 # 仕様: 使い始める前の一括のセットアップ(pnpm setup:github)とラベルの一覧
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0014-setup-before-use.md](../designs/0014-setup-before-use.md)・ADR: [0027](../adr/0027-setup-before-use-and-kit-role.md)
 
 ## なぜ作るか

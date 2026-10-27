@@ -155,6 +155,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
 | PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
 | 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
+| AI に外へ秘密を書かせない | フック `.claude/hooks/guard-secrets-out.mjs`(外へ書く文章の鍵の形を止める)・背景の AI の前の段(読ませる Issue・PR の書き手)と後ろの段(書いた文章の gitleaks)。[設計書 0060](designs/0060-background-ai-inputs.md) |
 | AI に変えさせない所 | 編集と Bash のフック `.claude/hooks/guard-edit.mjs`・`guard-bash.mjs`(CI・権限・移行・infra を編集するときは人の確認。手元だけで外せる。[docs/guides/local-guards.md](guides/local-guards.md)) |
 
 ### ハーネス3層
