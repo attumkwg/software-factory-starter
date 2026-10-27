@@ -23,6 +23,13 @@ locals {
     LOGS_INSIGHTS_REGION = var.region
     LOGS_INSIGHTS_GROUPS = "/ecs/${local.name},/ecs/${local.name}-web"
   }
+  # 写真・ファイルの置き場(docs/specs/0072-file-storage.md)。API は役割を組織ごとに絞って引き受ける(ADR 0079)。
+  # 移行のタスクにも渡す(解約の削除 delete-tenant が、その組織の中身を前の版まで消す)
+  files_environment = {
+    FILES_BUCKET          = module.files.bucket
+    FILES_REGION          = var.region
+    FILES_ACCESS_ROLE_ARN = module.files.access_role_arn
+  }
 }
 
 module "network" {
@@ -116,12 +123,12 @@ module "app" {
     # メールは Postfix に渡す(Service Connect)。送り元は SES で確かめたドメイン
     MAIL_SMTP_URL = module.mail.smtp_url
     MAIL_FROM     = "Tasks <no-reply@${var.app_domain}>"
-  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment, local.client_ip_environment, local.sso_environment)
+  }, local.sentry_environment, local.support_environment, local.sensitive_environment, local.public_site_environment, local.client_ip_environment, local.sso_environment, local.files_environment)
   secrets = merge({
     DATABASE_URL   = module.aurora.database_url_secret_arn
     SESSION_SECRET = aws_secretsmanager_secret.session.arn
   }, local.sensitive_secrets)
-  migration_environment = {
+  migration_environment = merge(local.files_environment, {
     PGHOST     = module.aurora.endpoint
     PGDATABASE = module.aurora.database_name
     PGUSER     = "app_owner"
@@ -130,7 +137,7 @@ module "app" {
     COGNITO_REGION       = var.region
     COGNITO_USER_POOL_ID = aws_cognito_user_pool.this.id
     COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.web.id
-  }
+  })
   migration_secrets = {
     PGPASSWORD = "${module.aurora.master_user_secret_arn}:password::"
   }
@@ -143,6 +150,16 @@ module "app" {
     bucket_arn  = module.applications.bucket_arn
     kms_key_arn = module.applications.kms_key_arn
   }
+}
+
+# 写真・ファイルの置き場(非公開の S3。docs/specs/0072-file-storage.md・ADR 0079)。API と移行のタスクは
+# 役割 files-access を組織ごとに絞って引き受ける。消した物の前の版は30日で消える(設計書 0072 の U-3。導入時に決める)
+module "files" {
+  source            = "../../modules/file-storage"
+  providers         = { aws = aws.api }
+  name              = local.name
+  assumer_role_arns = [module.app.task_role_arn, module.app.migrate_task_role_arn]
+  allowed_origins   = ["https://${var.app_domain}"]
 }
 
 # 申し込みの置き場(非公開の S3)。開通のとき、開発が申込書の JSON を applications/<申込番号>.json に置き、
