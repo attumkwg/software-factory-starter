@@ -38,6 +38,37 @@ const specLines = (rows, empty) =>
     ? [`- ${empty}`]
     : rows.map((s) => `- ${s.number} ${s.title}${s.days === null ? "" : `(${s.days}日)`}`);
 
+const REASON_NAMES = ["要求", "設計", "AI の仮決め", "実装"];
+const reasonText = (reasons) => REASON_NAMES.map((k) => `${k} ${reasons[k] ?? 0}`).join("・");
+const percentOf = (v) => (v === undefined || v === null ? "—" : `${Math.round(v * 100)}%`);
+
+/** 引き渡し(作る → 確かめる)の節。設計書 0077。report.handoff が無ければ出さない */
+function handoffSection(handoff) {
+  if (!handoff) return [];
+  const rows = handoff.weeks.map(
+    (w) =>
+      `| ${w.week} | ${w.rounds} | ${show(w.waitDays, "日")} | ${show(w.acceptPct, "%")} | ${reasonText(w.reasons)} | ${w.rework} | ${show(w.designReworkPct, "%")} |`,
+  );
+  const last =
+    handoff.last.length === 0
+      ? ["- なし"]
+      : handoff.last.map(
+          (r) =>
+            `- ${r.path} 第${r.no}回(待ち ${show(r.waitDays, "日")}・PdM ${percentOf(r.pdm)}・全体 ${percentOf(r.all)}・外れ ${reasonText(r.reasons)})`,
+        );
+  return [
+    "## 引き渡し(作る → 確かめる。詰まっている継ぎ目を探す)",
+    "",
+    "| 週(月曜) | 受け入れの回 | 実装の完了から受け入れまで(中央値) | 受け入れの点数 | 外れた理由 | 作り直し | うち設計が原因 |",
+    "|---|---|---|---|---|---|---|",
+    ...rows,
+    "",
+    "先週の受け入れ(docs/acceptance。外れが「要求」なら解決済みの論点に書き戻したか):",
+    ...last,
+    "",
+  ];
+}
+
 export function renderMarkdown(report) {
   const imp = report.improvement;
   return [
@@ -51,6 +82,7 @@ export function renderMarkdown(report) {
     "- ボットの PR(依存の更新など)は「マージした PR」に入れない。人の介入は AI が手伝った PR だけで数える",
     "- 数字は決める材料の1つ。人の評価には使わない(docs/guides/metrics.md)",
     "",
+    ...handoffSection(report.handoff),
     `## 改善用(${imp.week} の週。何を機械に回すかを決める)`,
     "",
     ...prTable(imp.prs),

@@ -2,54 +2,43 @@
 
 マルチテナントの TODO アプリ(組織 → プロジェクト → タスク)。AI エージェントが PR を出す前提の雛形。
 
-## コマンド
+> このファイルは**どこを触っても守ること**だけ。場所ごとの決まりは、その場所の `CLAUDE.md`(その下のファイルを読むと読み込まれる): `apps/api/`(領域ごとに `src/domains/<領域>/` も)・`apps/web/`・`packages/`・`infra/`・`.github/`・`docs/`。
+> どこに何があるか・コマンドの全部は **`docs/reference.md`**(「🧰 コマンドの全部」)。キット独自の言葉(賭け・小石・関所・ライン・危険度…)は `docs/kit/glossary.md`。
+
+## コマンド(よく使う物)
 
 - `pnpm install` / `pnpm dev`(API 3000 + 画面 5173。先に `docker compose up -d db && pnpm db:migrate && pnpm db:seed`)
-- `pnpm lint`(Biome。複雑さ・長さの上限も)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:coverage`(カバレッジの下限。API は単体+結合で見るので Docker が要る。`docs/guides/ci-limits.md`)/ `pnpm test:integration`(Docker が要る)
-- `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
-- `pnpm vrt`(見た目の回帰テスト。先に `docker compose -f docker-compose.vrt.yml up -d --wait` で Docker の中のブラウザも)/ `pnpm vrt:update`(画面を変えたときだけ。撮り直した画像を見てからコミット)。`docs/guides/vrt.md`
+- `pnpm lint`(Biome。複雑さ・長さの上限も)/ `pnpm typecheck` / `pnpm test`(単体)/ `pnpm test:integration`(Docker が要る)/ `pnpm test:coverage`(カバレッジの下限。API は単体+結合で見るので Docker が要る。`docs/guides/ci-limits.md`)
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
-- `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)/ `pnpm outbound`(AI が外へ向けてした操作の記録を、PR の「🚪 外へ出した物」の表にする。`--clear` で空に。`docs/designs/0057-ai-egress.md`)
-- `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`
-- `pnpm vendors`(委託先の台帳 `docs/compliance/vendors.yaml` とコードの照らし合わせ。CI)/ `pnpm vendors --write`(人が読む一覧 `vendors.md` を作り直す)
-- `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
-- `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
-- `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
-- `pnpm contrast`(色のトークンのコントラストの比。明るいテーマと暗いテーマ・WCAG 2.2 AA。案のファイルを並べて渡すと比べられる)
-- `pnpm sales:pack --out <ファイル>`(稟議の資料の束: 仕組みの事実・SLA・取り扱い・委託先を1つに。リポジトリの外に書く。デモの組織は stg でデモの前に手で戻す `demo-reset.yml`。`docs/guides/sales.md`)
-- `pnpm metrics`(週の数字: DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫。決裁用と改善用。`gh` で読むだけ。`metrics.yml` が毎週。`docs/guides/metrics.md`)
-- `pnpm prototypes`(試作が本物と混ざっていないか)/ `pnpm prototype:dev <賭けの ID>`(試作を手元で開く)
+- `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)/ `pnpm vrt`(見た目の回帰テスト。画面を変えたら `pnpm vrt:update`。`docs/guides/vrt.md`)
+- 守り: `pnpm guards`(危険度「高」の守りが一覧とそろっているか)/ `pnpm self-contained`(キットの外の資料を指していないか)/ `pnpm decisions --strict`(仮決めが残っていないか)/ `pnpm outbound`(PR の「🚪 外へ出した物」の表。`docs/designs/0057-ai-egress.md`)
 
-## 地図
+## 地図(1行ずつ。詳しくはその場所の CLAUDE.md と資料)
 
-- **入口の分け方**: ルートの `README.md` は使い始める人向けの短い入口(手で直してよいが、詳しい中身は足さない。`<!-- kit:readme -->` の間は `pnpm kit:readme` が作る)。**どこに何があるかを探すときは `docs/reference.md`**(ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物・わざとやっていないこと・注意)と `docs/README.md`(docs の地図)から。手でやる設定(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織)は `docs/guides/manual-setup.md`
-- `docs/scenarios/` … 想定の場面(架空の A 社 10人・B 社 100人が企画から運用まで回す台本)と、足りない物の一覧 `gaps.md`(G-01 など)。**部品を足した・穴を埋めた PR では、当たる場面の判定と `gaps.md` の行も直す**。何を足すか迷ったら `gaps.md` の上から
-- `apps/api` … Hono の API。領域ごとに `src/domains/<領域>/`。ルールは `apps/api/CLAUDE.md`
-- `apps/web` … TanStack Start の画面(SSR。API とは別のサービス)。ルールは `apps/web/CLAUDE.md`
-- `apps/site` … 公開の LP(記事・広告から人を呼ぶ静的なページ。本番だけ検索に載る)。事前登録は API の `/api/public/*` へ(運営の組織の持ち物・`apps/api/src/domains/growth`)。言葉は `src/content.ts`(`docs/product/positioning.md` から写す)。決まりは `docs/guides/landing-page.md`
+- **入口の分け方**: ルートの `README.md` は使い始める人向けの短い入口(手で直してよいが、詳しい中身は足さない。`<!-- kit:readme -->` の間は `pnpm kit:readme` が作る)。docs の地図は `docs/README.md`。手でやる設定(GitHub・AWS・OIDC の変数・Slack・バックアップ・運営の組織)は `docs/guides/manual-setup.md`
+- `apps/api` … Hono の API。領域ごとに `src/domains/<領域>/`。監査ログ・機能フラグ・解約の削除・列の分類・要配慮個人情報もここ(`apps/api/CLAUDE.md`)
+- `apps/web` … TanStack Start の画面(SSR。API とは別のサービス。`apps/web/CLAUDE.md`)
+- `apps/site` … 公開の LP(静的。本番だけ検索に載る)。言葉は `src/content.ts`(`docs/product/positioning.md` から写す)。決まりは `docs/guides/landing-page.md`
+- `packages/` … 画面と API の契約(shared)・ログ(logging)・Sentry(error-reporting)・偽物の Cognito・UI の部品(`packages/CLAUDE.md`)
 - `docker/postfix` … メールの中継(本番は ECS で SES へ・手元は Mailpit へ。http://localhost:8025)。`docs/guides/mail.md`
-- `packages/fake-cognito` … 開発とテスト専用の偽物の Cognito と、本物と比べる契約テスト(`contract/`)。偽物の振る舞いを変えたら契約テストも直す。手元の AWS の代わりの一覧は `docs/guides/local-environment.md`
-- `apps/api/src/audit` … 監査ログ(誰が・いつ・何を)。書き込みの API は認可の関所が自動で記録する。**書き込みの API を足したら `actions.ts` に名前を1行**(無ければ CI が落ちる)。記録は足すだけ
-- `apps/api/src/feature-flags` … 組織ごとの機能フラグ(定義は `packages/shared` の `FEATURE_FLAGS`・賭けに結びつける)。機能の API は `requireFeature`、画面は `hasFeature(me, …)`。切り替えは運営のコマンドだけ。使われたかは `apps/api/src/usage` の `recordUsage`(1日1人1機能1行。中身・時刻は記録しない・400日で消す)で測る。`docs/guides/feature-flags.md`。PMF の兆し(「無くなったら困るか」)は `apps/api/src/pmf-survey`(キットのフラグ `pmf-survey` を入れた組織に四半期に1回聞き、答えは数だけ。`docs/runbooks/pmf-survey.md`)
-- `apps/api/src/offboarding` … 解約の削除のコマンド(`delete-tenant`。試し → `--execute --confirm-name`)。`tenant_id` の表を足したら `TENANT_TABLES` にも。手順は `docs/runbooks/offboarding.md`
-- `apps/api/src/db/classification.ts` … 列の分類表(全部の列に `public` / `internal` / `personal` / `sensitive` と目的)。**列を足したら1行**(無ければ CI が落ちる)。要配慮(`sensitive`)はスキーマ `sensitive` にだけ(ADR 0018)。台帳は `docs/db/personal-data.md`
-- `apps/api/src/sensitive` … 要配慮個人情報の入口(段1。ADR 0029)。別の接続(ロール `app_sensitive`)と、組織ごとのデータ鍵(KMS で包む)で列ごとに暗号化。**要配慮の表の読み書きはこのフォルダの中だけ**(外からは `index.ts`。触ると Semgrep が落ちる)。段を上げる手順は `docs/runbooks/sensitive-data-tiers.md`
-- `packages/logging` … API と画面のサーバーのログの部品。**出してよい項目だけ出す**(許可リスト。知らない名前は `[REDACTED]`)。ログに新しい名前を出すなら `ALLOWED_KEYS` に足す(人の確認)。ADR 0019
-- `packages/error-reporting` … error 以上のログを Sentry に送る(値を落としてから)。Sentry を直接呼ばず、`logger.error({ err }, "…")` で残す。`docs/guides/monitoring.md`
-- `packages/shared` … 画面と API の契約(Zod)・お金と時刻の計算(`money.ts`・`time.ts`)。項目は足すだけ・消さない(CI の「API の互換」が見張る)
-- `prototypes/<賭けの ID>-<名前>/` … 確かめるための試作(押せる画面だけ・偽のデータ・捨てる物)。`/prototype` が作り、`pnpm prototype:dev <ID>` で手元に開く。本物の API・DB・AWS・秘密を読むと CI が落ちる(`pnpm prototypes`)。`docs/guides/prototypes.md`
-- `docs/compliance/` … 認証(P マーク・ISMS)の準備。附属書 A の管理策の一覧 `controls.yaml`(正)から適用宣言書 `soa.md` を `pnpm compliance --write` で作る(古い・根拠のリンク切れ・台帳が無い管理策を指すと CI が落ちる)。規程のひな形は `policies/`。毎月の証跡は `evidence.yml` が消せない S3 へ(`pnpm evidence --list`)。期限の来た見直し・教育・内部監査は `/compliance-check`
-- `docs/cost/`・`scripts/cost/` … 費用のページ(何にいくら・動いている物ごと・見積もりとの比べ)。`cost.yml` が非公開の S3 に置く(公開の場所に出さない)。AWS のリソースにはタグ `Component`(provider の別名で付ける)と `Bet`。SaaS の月額は `docs/cost/saas.yaml`・見積もりは `estimates.yaml`。人の時間(PR からの目安と手入力の幅)と賭けごとの PL も出す(分数は `people.yaml`。時給・売上は非公開の S3 の `cost/inputs/` だけ。リポジトリに金額を置かない)。月1回の資産と費用の区分の案は `/ledger`。`docs/guides/cost-dashboard.md`
-- `docs/product/plan.md` … 始め方の計画(誰の困りごと・確かめ方・合格と撤退の線)。`/kickoff` が書く。考え方は `docs/guides/before-pmf.md`
-- `docs/product/bets/` … 機能ごとの賭け(仮説・線と期限・小石 = 足すだけの判断の記録・資産か費用かの案)。`/bet` が書き、`pnpm bets` が確かめる。PR の本文に「取り組み」と「作業の種類」。`docs/guides/bets-and-assets.md`
-- `docs/product/positioning.md` … 約束(誰の何を、どう変えるか)・売り文句・代わりとの違い・言わないこと・根拠(どの記録・小石か)。`/positioning` が書く(PSF の後。LP・ブランドはここから)
-- `docs/product/brand.md` … ブランド(名前(仮)・話し方のトーン・色の理由と比)。`/brand` が約束の後に書く。色の正は `packages/ui/src/tokens.css`(比は `pnpm contrast`)
-- `docs/concepts/` … 考え方の本体(7工程・ハーネス3層・段階と費用・人と AI の分担・長く回す)。`docs/security.md` … セキュリティの決まり(`AI-n`・`AZ-n`・`L-n`・`T-n`・`V-n`・`D-n`。番号は動かさない)と確かめ方。**根拠はこの2つを指す**(外の資料や PR の番号を根拠にしない。`pnpm self-contained`)
-- `docs/authz/matrix.yaml` … 権限の表 / `docs/specs` 仕様 / `docs/designs` 設計書(AI 用・網羅。未確定事項もここ。番号は仕様と対で同じ。`pnpm adr` が出す「仕様と設計書の次の番号」)/ `docs/adr` 設計判断(番号は `pnpm adr` が出す「次の番号」。仕様・設計書・設計判断とも、同じフォルダで重なると CI が落ちる)/ `docs/runbooks` 手順(障害のときの入口は `incident.md`)
-- `docs/compliance/` … 認証の準備(P マーク・ISMS)の入口。委託先の台帳 `vendors.yaml`(外の会社ごとに預け方・国・区分・契約・消え方)。**外のサービスの SDK・新しい種類の AWS の資源・Actions を足したら台帳に1件か1行**(無ければ CI が落ちる。台帳は人の確認が要る)。AI に渡すデータの決まり `ai-data.md`。AWS の管理操作の記録は `infra/terraform/modules/audit-trail`(手順は `docs/runbooks/audit-trail.md`)
-- `docs/review-viewpoints.md` … 設計とレビューの観点(共通の8つ+このプロダクト特有)。人が気づいた観点は足していく。使い方は `docs/guides/human-review.md`
-- `infra/terraform` … AWS(modules と envs)。**apply はしない**(人が CI で行う)
-- `.github/setup.yml`・`.github/labels.yml` … GitHub の設定とラベルの正(ADR 0027)。**ラベルを使う物を足したら `labels.yml` に1件(意味・誰が・いつ・付いたらどうするか)・ジョブの名前を変えたら `required_checks` も**(無ければ CI が落ちる)。PR に「マージの後に人がやる設定」を書かず、設定ファイルを直す(マージの後に人が `pnpm setup:github --apply`)。定期で動くワークフローは `vars.KIT_ROLE == 'product'` のときだけ(ひな形では運用を回さない)
+- `prototypes/<賭けの ID>-<名前>/` … 確かめるための試作(押せる画面だけ・偽のデータ・捨てる物)。`/prototype` が作る。本物の API・DB・AWS・秘密を読むと CI が落ちる(`pnpm prototypes`。`docs/guides/prototypes.md`)
+- `infra/terraform` … AWS(modules と envs。`infra/CLAUDE.md`)。**apply はしない**(人が CI で行う)
+- `.github/` … CI と、GitHub の設定とラベルの正(`.github/CLAUDE.md`)
+- `docs/` … 仕様・設計書・ADR・手順書・想定の場面・認証の準備・費用・プロダクトの記録(`docs/CLAUDE.md`)。**根拠は `docs/concepts/`(考え方)と `docs/security.md`(番号つきの決まり)を指す**(外の資料や PR の番号を根拠にしない。`pnpm self-contained`)
+- `scripts/` … キットのコマンドの中身(点検・GitHub の設定・認証の準備・費用・数字)。どのコマンドが何かは `docs/reference.md`
+
+## 足したら1行(場所をまたぐ決まり)
+
+| 足した・変えた物 | どこに | 忘れると |
+|---|---|---|
+| 書き込みの API | `apps/api/src/audit/actions.ts` に名前 | CI が落ちる |
+| DB の列 | `apps/api/src/db/classification.ts` に区分と目的 | CI が落ちる |
+| `tenant_id` の表 | `apps/api/src/offboarding` の `TENANT_TABLES` | 解約で消し残る |
+| ログに出す新しい名前 | `packages/logging` の `ALLOWED_KEYS`(人の確認) | `[REDACTED]` になる |
+| 外のサービスの SDK・新しい種類の AWS の資源・Actions | `docs/compliance/vendors.yaml`(人の確認) | CI が落ちる |
+| ラベルを使う物・ジョブの名前 | `.github/labels.yml`・`.github/setup.yml` の `required_checks` | CI が落ちる |
+| キットの部品 | `docs/kit/catalog.yaml`(`pnpm kit:catalog`) | CI が落ちる |
+| 部品を足した・穴を埋めた PR | `docs/scenarios/gaps.md` の行と、当たる場面の判定(何を足すか迷ったら `gaps.md` の上から) | 場面の判定が古くなる |
 
 ## 必ず守る
 
@@ -70,5 +59,5 @@
 - 秘密・本番の値をコード・ログ・PR に書く。`.env` を読む・作る。
 - 要配慮個人情報(スキーマ `sensitive` の中身・暗号文・復号した値・データ鍵)を読む・ログや PR や Issue に書く・自分の調べの材料にする。事故の調べでも、受け取るのは組織・利用者の ID と鍵の利用の記録の形(誰が・いつ)まで。要配慮の件数も受け取らない(AI-6・`docs/runbooks/incident.md` の 2)。
 - 本番の DB や AWS に書き込む操作(戻す・入れ替える・止める)を自分で打つ。手順書(`docs/runbooks/`)のコマンドを、確かめた形で人に渡す。
-- 人の承認なしに次を変える(危険度「高」): 一覧は `.claude/hooks/protected-paths.json`(認証・認可・DB・移行・権限の表・分離と認可を確かめるテスト・infra・CI・ハーネス・このファイルと apps の CLAUDE.md・検査の除外・依存の入れ方)。Edit・Write は確認が出る(使う人が手元の `env` に `KIT_EDIT_GUARD=pr` と書いたときは出ない。そのときは PR の危険度を「高」にして、変えた理由を「人に判断してほしい所」に書く)。Bash で書き換えて確認を避けない(フックが聞く)。変数は自分で書かない
+- 人の承認なしに次を変える(危険度「高」): 一覧は `.claude/hooks/protected-paths.json`(認証・認可・DB・移行・権限の表・分離と認可を確かめるテスト・infra・CI・ハーネス・このファイルと場所ごとの CLAUDE.md・検査の除外・依存の入れ方)。Edit・Write は確認が出る(使う人が手元の `env` に `KIT_EDIT_GUARD=pr` と書いたときは出ない。そのときは PR の危険度を「高」にして、変えた理由を「人に判断してほしい所」に書く)。Bash で書き換えて確認を避けない(フックが聞く)。変数は自分で書かない
 - main へ push する・強制 push する・PR をマージする・承認する(フックが止める。`docs/guides/local-guards.md`)
