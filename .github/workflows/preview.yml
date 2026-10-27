@@ -152,7 +152,7 @@ jobs:
       - name: 起動を待つ
         run: |
           for _ in $(seq 1 60); do
-            curl -fsS "${{ steps.apply.outputs.url }}/readyz" && exit 0
+            curl -fsS --max-time 5 "${{ steps.apply.outputs.url }}/readyz" && exit 0
             sleep 5
           done
           exit 1
