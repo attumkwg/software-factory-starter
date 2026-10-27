@@ -38,7 +38,11 @@ const app = createApp({
   lifecycle: { shuttingDown: false },
   files: store,
 });
-const uploaded = handleFileUploaded({ db: owner.db, logger, store });
+const uploaded = handleFileUploaded({
+  inTenant: (tenantId, fn) => withTenant(owner.db, tenantId, fn),
+  logger,
+  store,
+});
 const deleted = handleFileDeleted({ store });
 
 const NAME = "施主の山田様邸.jpg";

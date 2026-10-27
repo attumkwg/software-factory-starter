@@ -15,6 +15,9 @@ export function buildOpenApiDocument(mode: "dev" | "cognito") {
     COGNITO_CLIENT_ID: "example",
     APP_URL: "https://app.stg.example.com",
     MAIL_SMTP_URL: "smtp://mail:25",
+    // stg・prod は写真・ファイルの置き場が要る(docs/designs/0072-file-storage.md。定義を作るだけなので S3 には触らない)
+    FILES_BUCKET: "app-stg-files-123456789012",
+    FILES_ACCESS_ROLE_ARN: "arn:aws:iam::123456789012:role/app-stg-files-access",
   });
   const app = createApp({
     config,

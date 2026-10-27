@@ -31,7 +31,8 @@ import { supportSessionRoutes } from "./auth/support-routes.ts";
 import { authorize } from "./authz/middleware.ts";
 import type { Config } from "./config.ts";
 import type { RootDb } from "./db/client.ts";
-import { fileRoutes } from "./domains/files/index.ts";
+import { withTenant } from "./db/tenant.ts";
+import { fileRoutes, type InTenantTx } from "./domains/files/index.ts";
 import { linkKey } from "./domains/growth/index.ts";
 import { legalRoutes } from "./domains/legal/index.ts";
 import {
@@ -222,7 +223,9 @@ export function createApp(deps: AppDeps) {
   app.route("/api", organizationSwitchRoutes({ db, session: config.session }));
   app.route("/api", projectRoutes);
   app.route("/api", taskRoutes);
-  app.route("/api", fileRoutes({ db, store: deps.files ?? null }));
+  // 関所の外で動くファイルの API が、組織の文脈つきのトランザクションを開く(組織はセッションから。ADR 0079)
+  const inTenant: InTenantTx = (tenantId, fn) => withTenant(db, tenantId, fn);
+  app.route("/api", fileRoutes({ inTenant, store: deps.files ?? null }));
   app.route("/api", legalRoutes);
   // 公開の LP の事前登録と見た数(docs/specs/0025-public-landing-page.md)。運営の組織の持ち物
   app.route("/api", publicGrowthRoutes({ db, site: publicGrowthSite(config) }));

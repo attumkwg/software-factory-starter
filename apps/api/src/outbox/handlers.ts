@@ -71,7 +71,11 @@ export function outboxHandlers(deps: HandlerDeps): Partial<Record<OutboxTopic, O
   // 写真・ファイル: 書き直しと中身の削除(置き場を待つのはトランザクションの外。ADR 0080)
   const fileHandlers = files
     ? {
-        "files.file_uploaded": handleFileUploaded({ db, logger, store: files }),
+        "files.file_uploaded": handleFileUploaded({
+          inTenant: (tenantId, fn) => withTenant(db, tenantId, fn),
+          logger,
+          store: files,
+        }),
         "files.file_deleted": handleFileDeleted({ store: files }),
       }
     : {};
