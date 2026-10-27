@@ -22,3 +22,6 @@
 - テストは必ず2社で書く(`test/helpers/fixtures.ts` の `createTenantFixture`)。
 - 単体は `test/unit`(DB 無し)、DB が要るものは `test/integration/*.int.test.ts`(Testcontainers)。
 - 結合テストは全部のファイルが同じ DB を同時に使う。**全社分をまとめて扱う処理**(アウトボックスの送り出し `relayOnce`・`notifyLegalChange` など)を回すファイルは、`test/helpers/isolated-db.ts` の `createIsolatedDatabase` で自分だけの DB を使う(ほかのファイルの行を取り合って、流すたびに違う所で落ちる)。
+- **監査ログ**(`src/audit`。誰が・いつ・何を): 書き込みの API は認可の関所が自動で記録する。**書き込みの API を足したら `src/audit/actions.ts` に名前を1行**(無ければ CI が落ちる)。記録は足すだけ。
+- **解約の削除**(`src/offboarding` の `delete-tenant`。試し → `--execute --confirm-name`): `tenant_id` の表を足したら `TENANT_TABLES` にも。手順は `docs/runbooks/offboarding.md`。
+- **PMF の兆し**(`src/pmf-survey`。「無くなったら困るか」): キットのフラグ `pmf-survey` を入れた組織に四半期に1回聞き、答えは数だけ。`docs/runbooks/pmf-survey.md`。使われたかの記録(`recordUsage`)は中身・時刻を記録せず、400日で消す。
