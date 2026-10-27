@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "vrt": "playwright test -c playwright.vrt.config.ts",
+    "verify": "playwright test -c playwright.verify.config.ts",
     "vrt:update": "playwright test -c playwright.vrt.config.ts --update-snapshots=changed",
     "size": "node scripts/check-bundle-size.mjs"
   },
