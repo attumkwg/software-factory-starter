@@ -11,7 +11,7 @@ description: 仕様(docs/specs)から、AI 用の網羅的な設計書(docs/desi
 
 読んだ物は設計書の「作業の前に読んだ物」に書く。
 
-- 仕様: `docs/specs/NNNN-<名前>.md`(受け入れ条件・権限の表の行・悪用のされ方・やらないこと)
+- 仕様: `docs/specs/NNNN-<名前>.md`(第1部の業務の要求・業務ルール・受け入れ条件・やらないこと、第2部の状態 × 操作・境界値・権限の組み合わせ・悪用のされ方)。第1部に印の無い行は人が決めた確定、`(仮説)` は確かめていない思い込み(作り込まず、外しやすく作る)、`(未確定 U-n)` は設計書の未確定事項とそろえる。第2部に穴があれば(状態や境界値の抜け)、ここで埋めて仕様も直す
 - 観点: `docs/review-viewpoints.md`(共通の8つ+このプロダクト特有)
 - ナレッジ: `docs/domain/glossary.md`・`docs/domain/<領域>/README.md`・関係する `docs/adr/`・`docs/authz/matrix.yaml`
 - 既存のコード: その領域の `apps/api/src/domains/<領域>/`・`packages/shared/src/schemas.ts`・画面なら `apps/web/src/`
