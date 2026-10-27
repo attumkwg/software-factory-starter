@@ -10,7 +10,7 @@ import { centsToJpy, periodOf, usdToCents } from "./period.mjs";
 import { renderHtml } from "./render.mjs";
 import { awsCost, groupsToCents, UNTAGGED } from "./source-aws.mjs";
 import { estimates, githubActions, saas } from "./source-other.mjs";
-import { makeSummary } from "./summary.mjs";
+import { AI_WORKFLOW, aiUsageOf, makeSummary } from "./summary.mjs";
 
 test("期間: 月の初め・明日・来月・3か月前・何日目(月末と年またぎ)", () => {
   assert.deepEqual(periodOf("2026-10-25"), {
@@ -208,7 +208,10 @@ test("まとめ: 区分ごとの実績と見積もり・動いている物ごと
   );
   assert.deepEqual(s.saas_without_amount, ["Sentry"]);
   assert.equal(s.estimate.max, 100000);
+  // AI の回数と時間(G-62): Actions は読めたが背景の AI は動いていない・PR は集めていない
+  assert.deepEqual(s.ai, { background_runs: 0, background_minutes: 0, ai_prs: null, prs: null });
   const html = renderHtml(s);
+  assert.match(html, /AI の回数と時間/);
   assert.match(html, /⚠ 見積もりを超えた/);
   assert.match(html, /noindex/);
   assert.doesNotMatch(html, /<script|https?:\/\//, "外の読み込みもスクリプトも無い");
@@ -243,4 +246,18 @@ test("CLI: --render は JSON から summary・index.html・目録を作り、ロ
     "summary.json",
   ]);
   assert.match(readFileSync(join(dir, "index.html"), "utf8"), /費用 20\d\d-\d\d/);
+});
+
+test("AI の回数と時間: 背景の AI のワークフローと、AI が手伝った PR を数える(金額は出さない)", () => {
+  const usage = aiUsageOf({
+    "github-actions": entry({
+      workflows: [
+        { name: "CI", runs: 40, minutes: 300 },
+        { name: AI_WORKFLOW, runs: 6, minutes: 210 },
+      ],
+    }),
+    "people-prs": entry({ prs: [{ ai: true }, { ai: false }, { ai: true }] }),
+  });
+  assert.deepEqual(usage, { background_runs: 6, background_minutes: 210, ai_prs: 2, prs: 3 });
+  assert.equal(aiUsageOf({}), null);
 });

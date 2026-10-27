@@ -45,7 +45,7 @@
 | A.5.34 | プライバシーと個人を特定できる情報の保護 | 適用 | 個人データを預かる | 個人情報保護規程・個人データの台帳・列の分類・ログの許可リスト・消す期間 | `runbook-report` `legal-terms` `law-review` |  | [personal-information.md](policies/personal-information.md) [personal-data.md](../db/personal-data.md) [data-retention.md](../guides/data-retention.md) |
 | A.5.35 | 外からの独立した見直し | 適用 | 自分たちだけでは見落とす | 内部監査(年1回。作った人と別の人)・外部の診断(点検 pentest-yearly) | `pentest-before-launch` `pentest-yearly` `internal-audit` | `checkup-ledger` `compliance-docs` | [internal-audit.md](policies/internal-audit.md) |
 | A.5.36 | 決まりを守れているかの確かめ | 適用 | 決めただけでは守られない | 毎週の点検(自動で確かめる・人に聞く)・規程の見直し・内部監査 | `w-ledger` `policies-adopt` `internal-audit` `policy-review` | `checkup-ledger` `compliance-docs` | [internal-audit.md](policies/internal-audit.md) [README.md](../checkup/README.md) |
-| A.5.37 | 手順を文書にする | 適用 | 担当者がいなくても回るように | 手順書(docs/runbooks)・引き継ぎの練習(点検 handover) | `handover` `policies-adopt` `policy-review` | `compliance-docs` | [incident.md](../runbooks/incident.md) [playbook.md](../playbook.md) |
+| A.5.37 | 手順を文書にする | 適用 | 担当者がいなくても回るように | 手順書(docs/runbooks)・引き継ぎの練習(点検 handover) | `ai-spend` `handover` `policies-adopt` `policy-review` | `compliance-docs` | [incident.md](../runbooks/incident.md) [playbook.md](../playbook.md) |
 
 ## 人の管理策(A.6)
 
@@ -88,7 +88,7 @@
 | A.8.3 | 情報へのアクセスの制限 | 適用 | 他社のデータを見せない・権限の外の物を見せない | テナントの分離(RLS)・権限の表と2社のテスト・サポートの代理ログインは期限と記録つき | `authz-review` |  | [0001-shared-tables-with-rls.md](../adr/0001-shared-tables-with-rls.md) [matrix.yaml](../authz/matrix.yaml) [0014-support-access.md](../adr/0014-support-access.md) |
 | A.8.4 | ソースコードへのアクセス | 適用 | コードを書き換えられると、守りが外れる | main は PR 必須・強制 push の禁止・危険度「高」の場所は人の確認(CODEOWNERS とフック) | `w-guards` `w-protection` `gh-protection` | `github-ruleset` `github-collaborators` `github-environments` | [setup.yml](../../.github/setup.yml) [protected-paths.json](../../.claude/hooks/protected-paths.json) |
 | A.8.5 | 安全な認証 | 適用 | パスワードだけでは破られる | 利用者は二段階認証・セッションの時間切れ。運営の人は二段階認証(点検 acct-mfa) | `acct-mfa` `local-aws-credentials` | `aws-iam-users` `aws-iam-summary` | [0006-account-security.md](../specs/0006-account-security.md) [0017-session-idle-and-absolute-timeout.md](../adr/0017-session-idle-and-absolute-timeout.md) |
-| A.8.6 | 容量の管理 | 適用 | 足りなくなって止まる・費用が膨らむ | 台数の自動の増減・DB の上限のアラーム・Actions の分数の点検・予算のアラーム | `w-minutes` `cost-review` |  | [monitoring.md](../guides/monitoring.md) [alarms.md](../runbooks/alarms.md) |
+| A.8.6 | 容量の管理 | 適用 | 足りなくなって止まる・費用が膨らむ | 台数の自動の増減・DB の上限のアラーム・Actions の分数の点検・予算のアラーム | `w-minutes` `ai-spend` `cost-review` |  | [monitoring.md](../guides/monitoring.md) [alarms.md](../runbooks/alarms.md) |
 | A.8.7 | 悪いプログラムからの守り | 適用 | 依存や端末から、悪いプログラムが入る | イメージの検査(Trivy)・GuardDuty・端末は OS の守り(基本方針) |  | `aws-guardduty` | [ci.yml](../../.github/workflows/ci.yml) [security-baseline](../../infra/terraform/modules/security-baseline) |
 | A.8.8 | 技術的な脆弱性の管理 | 適用 | 部品の穴を、届くかを見て期限つきで直す | Dependabot・Renovate・毎週の検査・/cve の6段の精査と期限 | `w-vuln` `w-renovate` `dep-renovate` `dep-alerts` `major-backlog` `eol` | `github-security` | [vulnerabilities.md](../guides/vulnerabilities.md) [vulns.md](../security/vulns.md) |
 | A.8.9 | 設定の管理 | 適用 | 画面で直した設定は、誰が何をしたか残らない | AWS は Terraform・GitHub は .github/setup.yml が正(毎週、外れていないか点検) |  | `github-ruleset` `github-actions` `aws-securityhub` | [terraform](../../infra/terraform) [setup.yml](../../.github/setup.yml) |

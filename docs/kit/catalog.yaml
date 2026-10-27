@@ -1532,10 +1532,13 @@ parts:
         - .github/scripts/ai-input-authors.mjs
         - .github/scripts/ai-input-authors-lib.mjs
         - .github/scripts/ai-input-authors.test.mjs
+        - .github/scripts/ai-open-prs.mjs
+        - .github/scripts/ai-open-prs-lib.mjs
+        - .github/scripts/ai-open-prs.test.mjs
       edit:
         - { path: docs/guides/automation.md, what: claude の行を外す }
-        - { path: package.json, what: test:scripts の ai-input-authors.test.mjs を外す }
-      docs: [docs/specs/0060-background-ai-inputs.md, docs/designs/0060-background-ai-inputs.md]
+        - { path: package.json, what: test:scripts の ai-input-authors.test.mjs・ai-open-prs.test.mjs を外す }
+      docs: [docs/specs/0060-background-ai-inputs.md, docs/designs/0060-background-ai-inputs.md, docs/specs/0063-ai-cost-and-volume.md, docs/designs/0063-ai-cost-and-volume.md]
 
   - id: dynamic-scans
     name: 攻撃の形の検査(Schemathesis・ZAP)
