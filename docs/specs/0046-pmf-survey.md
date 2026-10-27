@@ -1,6 +1,6 @@
 # 仕様: 「無くなったら困るか」を画面の中で聞く(PMF の兆し)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0046-pmf-survey.md](../designs/0046-pmf-survey.md)・ADR: [0057](../adr/0057-pmf-survey-counts-only.md)
 > 穴 G-39(`docs/scenarios/gaps.md`)。場面は `00-best-case-run.md`・`fit-journey.md` の PMF の行(「無くなったら困る」の割合)。
 
