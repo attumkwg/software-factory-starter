@@ -605,6 +605,22 @@ items:
     source: docs/designs/0034-joiner-leaver.md の 6.(穴 G-13)
     review_by: 2027-04-25
 
+  - id: kit-upstream
+    title: キットの新しい版を取り込んだか
+    why: キットが直した穴・足した守りは、取り込まないとこのリポジトリに届かない(docs/kit/upgrade.md)
+    if_ignored: 作った日のキットのまま離れていき、キットでは直った穴を抱え続ける
+    who: human
+    phase: 1m
+    every: monthly
+    verify: auto
+    check: kit-upstream
+    severity: normal
+    controls: [ A.8.8, A.5.21 ]
+    status: open
+    history: []
+    source: docs/designs/0067-kit-upstream.md の 6.(穴 G-42)
+    review_by: 2027-04-27
+
   # ── 3か月(以後四半期ごと)────────────────────────────────────────
   - id: access-review
     title: GitHub・AWS・Sentry の人と権限、使っていない鍵の棚卸し

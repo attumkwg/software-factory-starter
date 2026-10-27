@@ -47,7 +47,7 @@
 
 | こんなとき | 使うもの |
 |---|---|
-| ルール全般 | `CLAUDE.md`(全体)・`apps/api/CLAUDE.md`・`apps/web/CLAUDE.md` |
+| ルール全般 | `CLAUDE.md`(どこでも守ること)・場所ごとの `CLAUDE.md`(`apps/api`・`apps/web`・`packages`・`infra`・`.github`・`docs`) |
 | API を足す | `.claude/skills/add-api-endpoint`(権限の表に1行足す) |
 | DB を変える | `.claude/skills/db-migration`(段階に分ける・RLS・squawk) |
 | 書いたら | フックが自動で整形(`.claude/hooks/format.mjs`) |
