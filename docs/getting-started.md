@@ -73,7 +73,7 @@ cd my-product && git remote rename origin kit
 gh repo create <自分か組織>/my-product --private --source . --push
 ```
 
-- `kit` の名前でキットを残しておくと、後でキットの直しを見られる(`git fetch kit` → `git log HEAD..kit/main`)。
+- `kit` の名前でキットを残しておくと、後でキットの新しい版を取り込める(手順は [kit/upgrade.md](kit/upgrade.md)。どの版から作ったかは `docs/kit/upstream.yaml`。新しい版は月1回の `/checkup` が知らせる)。
 - 1 で試したフォルダをそのまま使ってよい(2つ目と3つ目のコマンドだけ流す)。
 
 作ったら、最初に1つだけ流す(`gh` でそのリポジトリの管理者としてログインしておく):
@@ -126,7 +126,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 ### キットから来た `SECURITY.md`・`CHANGELOG.md`
 
 - 🔒 `SECURITY.md` は**キットの**穴の窓口。自分のプロダクトの穴を知らせてもらう連絡先(会社の窓口・GitHub の非公開の報告)に書き換える。キットに穴を見つけたら、キットの `SECURITY.md` の道で。
-- 📜 `CHANGELOG.md` は**キットの**変更の記録。消すか自分の物にしてよい。キットの記録は `git fetch kit` → `git show kit/main:CHANGELOG.md` で読める。どの版から作ったかは、キットの保守の方針 [kit/maintenance.md](kit/maintenance.md) の 4(版の付け方)。
+- 📜 `CHANGELOG.md` は**キットの**変更の記録。消すか自分の物にしてよい。キットの記録は `git fetch kit` → `git show kit/main:CHANGELOG.md` で読める。どの版から作ったかは `docs/kit/upstream.yaml`(取り込んだら直す。[kit/upgrade.md](kit/upgrade.md))。
 
 ## ③ GitHub の設定
 

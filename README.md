@@ -75,7 +75,7 @@ gh repo create <自分か組織>/my-product --private --source . --push
 pnpm setup:github
 ```
 
-`kit` の名前でキットを残すと、後でキットの直しを見られる。`pnpm setup:github` は試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
+`kit` の名前でキットを残すと、後でキットの新しい版を取り込める([docs/kit/upgrade.md](docs/kit/upgrade.md))。`pnpm setup:github` は試し(差分だけ)。よければ `pnpm setup:github --apply`。ブランチ保護・ラベル・Environments・定期の点検がそろう。最後に「人がやること」が一覧で出る。
 
 **3. 何を作るかを決める(半日〜)**
 
@@ -239,5 +239,5 @@ GitHub・AWS・OIDC の変数と秘密・Slack・バックアップの確かめ�
 | ファイルの地図・手元のコマンドの全部・考え方とファイルの対応・CI で回る物 | [docs/reference.md](docs/reference.md) |
 | なぜこう作るか(7工程・ハーネス3層・段階と費用・人と AI の分担) | [docs/concepts/](docs/concepts/README.md) |
 | docs 全体の地図 | [docs/README.md](docs/README.md) |
-| 版・変更の記録・誰がいつまで直すか・穴の知らせ方 | [CHANGELOG.md](CHANGELOG.md)・[docs/kit/maintenance.md](docs/kit/maintenance.md)・[SECURITY.md](SECURITY.md) |
+| 版・変更の記録・誰がいつまで直すか・穴の知らせ方・新しい版の取り込み方 | [CHANGELOG.md](CHANGELOG.md)・[docs/kit/maintenance.md](docs/kit/maintenance.md)・[SECURITY.md](SECURITY.md)・[docs/kit/upgrade.md](docs/kit/upgrade.md) |
 | AI(Claude Code)が読むルール | [CLAUDE.md](CLAUDE.md) |

@@ -2,7 +2,7 @@
 
 > キット(software-factory-starter)の版ごとの変更。版の付け方といつ切るかは [docs/kit/maintenance.md](docs/kit/maintenance.md) の 4。
 > キットから作ったリポジトリでは、これは**キットの**記録。自分のリポジトリで読むときは `git fetch kit` → `git show kit/main:CHANGELOG.md`。
-> 版を切るときに、前の版から main に入った PR から書く(PR ごとには書かない)。各版の「取り込むときにすること」を先に読む。
+> 版を切るときに、前の版から main に入った PR から書く(PR ごとには書かない)。各版の「取り込むときにすること」を先に読む。取り込み方は [docs/kit/upgrade.md](docs/kit/upgrade.md)。
 
 <!--
 版の節の型(無い見出しは消してよい):
