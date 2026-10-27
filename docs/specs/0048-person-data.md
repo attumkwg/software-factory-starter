@@ -1,6 +1,6 @@
 # 仕様: 利用者1人分の開示・削除(手順書と運営のコマンドの試し)
 
-> 状態: 下書き
+> 状態: 完了(実装済み。未確定事項は設計書で答え済み。@attumkwg が 2026-10-27 に完了とした)
 > 設計: [docs/designs/0048-person-data.md](../designs/0048-person-data.md)・ADR: [0059](../adr/0059-person-data-dry-run-first.md)
 > 手順書: [docs/runbooks/person-data.md](../runbooks/person-data.md)。穴 G-06(`docs/scenarios/gaps.md`)。
 
