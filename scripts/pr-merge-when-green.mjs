@@ -4,10 +4,12 @@
 // 読み書きは gh api(REST)だけ(クラウドの GitHub の中継は GraphQL を通さない)。
 // 必須のチェックは、main のルールセット(GitHub)と .github/setup.yml の required_checks の両方を合わせた物。
 // どれかが落ちたら・45分で緑にならなければ、マージせずに 1 で終わる(直すのは AI・2回まで。CLAUDE.md)。
+// 危険度「高」・テストを弱めた印・守りの場所(CI・フック・設定など)に触る PR は、AI はマージしない(人が GitHub で押す)。
+// 印は CI の途中で付くことがあるので、待つ前と、マージの直前の2回見る。
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { soloFrom } from "./decisions-lib.mjs";
-import { checkState, prProblems, requiredChecksFrom } from "./pr-merge-lib.mjs";
+import { checkState, humanOnlyReasons, prProblems, requiredChecksFrom } from "./pr-merge-lib.mjs";
 
 const fail = (message) => {
   process.stderr.write(`❌ ${message}\n`);
@@ -41,6 +43,23 @@ const pr = api(`repos/${repo}/pulls/${number}`);
 const bad = prProblems(pr);
 if (bad.length > 0) fail(bad.join("・"));
 
+// AI がマージしてはいけない PR か(印と、変えたファイル)
+const protectedPaths = JSON.parse(readFileSync(".claude/hooks/protected-paths.json", "utf8")).paths;
+const files = JSON.parse(
+  gh(["api", "--paginate", "--slurp", `repos/${repo}/pulls/${number}/files?per_page=100`]),
+)
+  .flat()
+  .map((f) => f.filename);
+const humanOnly = () => {
+  const labels = api(`repos/${repo}/issues/${number}/labels`).map((l) => l.name);
+  const reasons = humanOnlyReasons({ labels, files, protectedPaths });
+  if (reasons.length > 0)
+    fail(
+      `この PR は AI ではマージしない。人が GitHub でマージする(${reasons.join("・")})。返事のスレッドにそう伝える`,
+    );
+};
+humanOnly();
+
 const live = api(`repos/${repo}/rules/branches/main`)
   .filter((r) => r.type === "required_status_checks")
   .flatMap((r) => r.parameters.required_status_checks.map((c) => c.context));
@@ -56,6 +75,8 @@ for (;;) {
   process.stdout.write(`待っている: ${state.pending.join("・")}\n`);
   await new Promise((r) => setTimeout(r, 30_000));
 }
+
+humanOnly(); // 待つ間に付いた印(危険度「高」・テストを弱めた)も見る
 
 // 待つ間に push があれば、その版のチェックを見ていないので止める(sha を渡すと GitHub が断る)
 const merged = JSON.parse(
