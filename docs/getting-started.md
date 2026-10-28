@@ -44,7 +44,7 @@ pnpm test
 docker compose up --build
 ```
 
-http://localhost:8080 を開き、`admin@acme.test` でログインする(パスワードなし。開発用のログイン)。
+http://localhost:8080 を開き、`admin@acme.test` でログインする(パスワードなし。開発用のログイン)。見本のデータの会社(Acme・Globex・Initech)・人・メール(`*.test`)は全部架空。
 
 > アプリが送ったメールは http://localhost:8025(Mailpit)に届く。外には出ない。
 
@@ -122,7 +122,7 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 
 - 📄 キットは MIT。自分のプロダクトは、非公開のまま売ってもよいし、別のライセンスにしてもよい。
 - 🔁 **条件は1つ**: キットから持ってきた部分には、キットの著作権とライセンスの文を残す。ルートの `LICENSE` を `docs/kit/LICENSE-software-factory-starter` などへ移して残し、ルートには自分のプロダクトの `LICENSE`(非公開なら置かないか「All rights reserved」)を置く。
-- ⚠️ 迷ったら、売る前に専門家に確かめる(依存のライセンスも含めて)。
+- ⚠️ 迷ったら、売る前に専門家に確かめる。依存のライセンスは、キットの決まり([compliance/licenses.md](compliance/licenses.md)・`pnpm deps:licenses`)で GPL・AGPL などを CI が止めている。売る前は `pnpm deps:licenses --full licenses.csv` で版つきの全部を出して添える。
 
 ### キットから来た `SECURITY.md`・`CHANGELOG.md`
 

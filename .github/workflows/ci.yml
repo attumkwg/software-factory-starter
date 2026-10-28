@@ -60,6 +60,8 @@ jobs:
         run: pnpm setup:check
       - name: 委託先の台帳(コードで使う外のサービスの SDK・AWS のサービス・Actions が台帳にあるか・AI の会社に個人データを渡していないか・一覧の作り忘れ)
         run: pnpm vendors
+      - name: 依存のライセンス(GPL・AGPL など入れない物・決まりに無い物・注意の物の理由・一覧の作り忘れ)
+        run: pnpm deps:licenses
       - name: 認証の準備(管理策の一覧・規程・台帳の指し合い・根拠のリンク切れ・適用宣言書の古さ)
         run: pnpm compliance
       - name: 設計書の未確定事項(仮決めが残っていない・書き方・保留の期限)と ADR の番号(重なり・見出し)

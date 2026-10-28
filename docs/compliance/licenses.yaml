@@ -1,0 +1,67 @@
+# 依存のライセンスの決まり(ここが正)。キットは MIT(LICENSE)。依存はこの決まりに合う物だけを入れる。
+#   pnpm deps:licenses                 入っている依存(node_modules)と照らし合わせる(CI)。合わない物・一覧の作り忘れで 1 で終わる
+#   pnpm deps:licenses --write         人が読む一覧 docs/compliance/licenses.md を作り直す(手で書かない)
+#   pnpm deps:licenses --full a.csv    版つきの全部の一覧(DD・審査・弁護士に渡す)
+# 理由は ADR 0083。足す・分け方を変えるのは人の確認が要る(危険度「高」。.claude/hooks/protected-paths.json)。
+#
+# 書き方:
+#   - 名前は SPDX の名前(package.json の license)。* は何文字でも。`A OR B` はどれかが許せば許す、`A AND B` は全部を見る
+#   - allow:   表示(著作権とライセンスの文)を残せば、使う・直す・配る・売るに制限が無い
+#   - caution: 使ってよいが条件がある(直したファイルの公開・表示・使い道の制限)。出てきたら review に1件ずつ書く
+#   - deny:    MIT のキットにも、キットから作るプロダクトにも入れない(直さなくても、配ると全体を同じライセンスで公開する義務が出る・
+#              ネットワーク越しに使わせるだけで公開の義務が出る・SaaS の提供そのものを縛る)。出てきたら CI が落ちる
+#   - review:  caution か、どこにも無い名前の依存を1件ずつ。name・license(今のライセンス)・why(なぜ使ってよいか。1〜2文)
+#              依存が消える・ライセンスが変わると CI が落ちる(消すか、確かめ直す)
+#   - 専門家の確認ではない。キットから作ったプロダクトを売る前・DD の前は、--full の一覧を添えて専門家に確かめる
+
+version: 1
+
+allow:
+  - MIT
+  - MIT-0
+  - ISC
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - 0BSD
+  - Apache-2.0
+  - Unlicense
+  - CC0-1.0
+  - BlueOak-1.0.0
+  - Python-2.0
+  - Zlib
+
+caution:
+  - MPL-*
+  - LGPL-*
+  - EPL-*
+  - CDDL-*
+  - CC-BY-*
+  - FSL-*
+  - BUSL-*
+  - Elastic-*
+
+deny:
+  - GPL-*
+  - AGPL-*
+  - SSPL-*
+  - CC-BY-NC-*
+  - CC-BY-ND-*
+  - CC-BY-SA-*
+  - UNLICENSED
+
+review:
+  - name: "@axe-core/playwright"
+    license: MPL-2.0
+    why: E2E のアクセシビリティの検査だけで使う(開発)。配る物にも画面にも入らない。直して配るときだけ、直したファイルを MPL で公開する
+  - name: axe-core
+    license: MPL-2.0
+    why: 同上(@axe-core/playwright が使う)。配る物に入らない
+  - name: caniuse-lite
+    license: CC-BY-4.0
+    why: ブラウザの対応表のデータで、build の道具(browserslist)が読む。画面の JS には入らない。データを配るなら出典の表示を残す
+  - name: lightningcss
+    license: MPL-2.0
+    why: 画面の build で CSS を変換する道具(vite・TanStack Start が使う)。出てくる CSS は MPL にならない。直して配るときだけ、直したファイルを MPL で公開する
+  - name: sentry
+    license: FSL-1.1-Apache-2.0
+    why: Sentry の CLI。@sentry/node が持つ(エラーの知らせ)。FSL は Sentry と競合する製品に使うことだけを禁じ、各版は2年で Apache-2.0 になる。会社向け SaaS を作る用途は当たらない

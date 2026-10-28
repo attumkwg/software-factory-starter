@@ -5,11 +5,13 @@
 // 必須のチェックは、main のルールセット(GitHub)と .github/setup.yml の required_checks の両方を合わせた物。
 // どれかが落ちたら・45分で緑にならなければ、マージせずに 1 で終わる(直すのは AI・2回まで。CLAUDE.md)。
 // 危険度「高」・テストを弱めた印・守りの場所(CI・フック・設定など)に触る PR は、AI はマージしない(人が GitHub で押す)。
+// 課金・個人データなどのセンサーに触ったときは、その領域の問い(docs/concepts/risk-areas.md)も返す。
 // 印は CI の途中で付くことがあるので、待つ前と、マージの直前の2回見る。
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { soloFrom } from "./decisions-lib.mjs";
 import { checkState, humanOnlyReasons, prProblems, requiredChecksFrom } from "./pr-merge-lib.mjs";
+import { parseRiskAreas, touchedAreas } from "./risk-areas-lib.mjs";
 
 const fail = (message) => {
   process.stderr.write(`❌ ${message}\n`);
@@ -45,6 +47,7 @@ if (bad.length > 0) fail(bad.join("・"));
 
 // AI がマージしてはいけない PR か(印と、変えたファイル)
 const protectedPaths = JSON.parse(readFileSync(".claude/hooks/protected-paths.json", "utf8")).paths;
+const areas = parseRiskAreas(readFileSync("docs/concepts/risk-areas.md", "utf8"));
 const files = JSON.parse(
   gh(["api", "--paginate", "--slurp", `repos/${repo}/pulls/${number}/files?per_page=100`]),
 )
@@ -53,9 +56,12 @@ const files = JSON.parse(
 const humanOnly = () => {
   const labels = api(`repos/${repo}/issues/${number}/labels`).map((l) => l.name);
   const reasons = humanOnlyReasons({ labels, files, protectedPaths });
+  // 触った「高」の領域の問い(コードを読ませずに、1行で答えてもらう。ADR 0084)
+  const questions = touchedAreas(files, areas).map((a) => `${a.name}: ${a.question}`);
+  const ask = questions.length > 0 ? `。人に聞く問い: ${questions.join(" / ")}` : "";
   if (reasons.length > 0)
     fail(
-      `この PR は AI ではマージしない。人が GitHub でマージする(${reasons.join("・")})。返事のスレッドにそう伝える`,
+      `この PR は AI ではマージしない。人が GitHub でマージする(${reasons.join("・")})${ask}。返事のスレッドにそう伝える`,
     );
 };
 humanOnly();

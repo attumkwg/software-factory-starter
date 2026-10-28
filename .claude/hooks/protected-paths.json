@@ -1,5 +1,5 @@
 {
-  "$comment": "危険度「高」の場所の一覧(ここが正)。AI は人の確認なしに変えない。編集のフック(guard-edit.mjs)と Bash のフック(guard-bash.mjs)がじかに読む。.github/labeler.yml の risk:high・.github/CODEOWNERS とずれたら `pnpm guards` が落ちる。足したらその2か所にも足す",
+  "$comment": "危険度「高」の場所の一覧(ここが正)。AI は人の確認なしに変えない。編集のフック(guard-edit.mjs)と Bash のフック(guard-bash.mjs)がじかに読む。.github/labeler.yml の risk:high・.github/CODEOWNERS とずれたら `pnpm guards` が落ちる。足したらその2か所にも足す。どの領域のセンサーかは docs/concepts/risk-areas.md(ADR 0084)",
   "paths": [
     "apps/api/src/auth/**",
     "apps/api/src/authz/**",
@@ -22,6 +22,7 @@
     "docker/**",
     "docs/authz/**",
     "docs/compliance/vendors.yaml",
+    "docs/compliance/licenses.yaml",
     "infra/**",
     ".github/**",
     "CLAUDE.md",
@@ -54,6 +55,32 @@
     ".trivyignore.yaml",
     "renovate.json",
     "pnpm-workspace.yaml",
-    ".npmrc"
+    ".npmrc",
+    "apps/api/test/integration/sso-login.int.test.ts",
+    "apps/api/test/integration/sso-required.int.test.ts",
+    "apps/api/test/integration/scim.int.test.ts",
+    "apps/api/test/unit/scim-protocol.test.ts",
+    "apps/api/test/unit/audit-coverage.test.ts",
+    "packages/shared/src/plans.ts",
+    "packages/shared/src/plans.test.ts",
+    "packages/shared/src/money-time.test.ts",
+    "apps/api/test/unit/plans.test.ts",
+    "apps/api/test/integration/plans.int.test.ts",
+    "apps/api/test/integration/usage-records.int.test.ts",
+    "apps/api/test/unit/usage-retention.test.ts",
+    "apps/api/test/unit/tenant-shares.test.ts",
+    "apps/api/test/integration/tenant-shares.int.test.ts",
+    "apps/api/test/integration/person-data.int.test.ts",
+    "apps/api/test/integration/export-stream.int.test.ts",
+    "apps/api/test/unit/export-stream.test.ts",
+    "apps/api/test/integration/audit-export.int.test.ts",
+    "apps/api/test/integration/offboarding.int.test.ts",
+    "apps/api/test/integration/mail.int.test.ts",
+    "apps/api/test/integration/invitation-mail.int.test.ts",
+    "apps/api/test/integration/legal-notify.int.test.ts",
+    "apps/api/test/unit/storage.test.ts",
+    "scripts/check-guards.mjs",
+    "scripts/risk-areas-lib.mjs",
+    "docs/concepts/risk-areas.md"
   ]
 }
