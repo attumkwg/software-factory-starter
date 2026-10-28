@@ -83,7 +83,11 @@ const SECTIONS = [
   "## 5. 結論の案",
   "## 6. 次に確かめる問い",
   "## 7. 人の判断",
+  "## 8. 星の採点",
 ];
+
+/** 星の軸(計画の採点。仕様 0083)。価値と確からしさは表から機械で出し、残りは議長が根拠つきで付ける */
+export const STAR_AXES = ["価値", "確からしさ", "守り", "ROI の見込み", "実現性"];
 
 // 見出しごとの行(次の ## まで)
 function sectionsOf(md) {
@@ -155,7 +159,36 @@ export function councilProblems(md, stanceOf) {
   return [
     ...tableProblems(rows, stanceOf, sections.get(SECTIONS[3]).join("\n")),
     ...closingProblems(sections),
+    ...starProblems(md),
   ];
+}
+
+/** 1の表の行(ペルソナ・立場・賛否・根拠)。星の機械の分に使う */
+export function councilRows(md) {
+  return (sectionsOf(md).get(SECTIONS[0]) ?? [])
+    .filter((l) => l.trim().startsWith("| P-"))
+    .map(cellsOf)
+    .map(([id, stance, vote, , , evidence]) => ({ id, stance, vote, evidence: evidence ?? "" }));
+}
+
+/** 8の表の星(軸 → ★)。読めない行は飛ばす */
+export function councilStars(md) {
+  const stars = new Map();
+  for (const line of sectionsOf(md).get(SECTIONS[7]) ?? []) {
+    if (!line.trim().startsWith("|")) continue;
+    const [axis, star] = cellsOf(line);
+    const n = Number(String(star).replace("★", ""));
+    if (STAR_AXES.includes(axis) && Number.isFinite(n)) stars.set(axis, n);
+  }
+  return stars;
+}
+
+// 8(星)の誤り: 5つの軸が 1〜5 で付いているか
+function starProblems(md) {
+  const stars = councilStars(md);
+  return STAR_AXES.filter((a) => !(stars.get(a) >= 1 && stars.get(a) <= 5)).map(
+    (a) => `「8. 星の採点」に ${a} の ★(1〜5)が無い`,
+  );
 }
 
 /** 合議から来ていない指標(council が無い・記録が無い)を知らせる文の並び。files は記録のパスの集まり */

@@ -86,6 +86,7 @@ PR が増えて手で回すのが追いつかなくなったら、自動のレ�
 | ラインの振り返り | AI が同じ失敗をした所 → ルール・テスト・lint・スキルのどれに変えるか。人がレビューで気づいた観点を台帳に足す | `CLAUDE.md`・`.claude/skills/`・`.semgrep/`・[review-viewpoints.md](review-viewpoints.md) |
 | 未確定事項 | 保留の期限が過ぎていないか・仮決めのまま止まった PR は無いか | `pnpm decisions` |
 | 賭け | 期限を過ぎて決めていない賭け(⏰)・線がまだ無い賭け(⏳)→ 進む・変える・やめるを決める | `pnpm bets`・`/bet` |
+| KPI と合議 | 追う指標の値を `records` に1行ずつ(割合と件数)。記録が古い(4週)・rollout 以降の賭けの KPI に記録が無い・合議の見込みが外れ続けた、の知らせ → 測る・`/persona` の 5 で書き換える・`/council` を回し直す | `pnpm kpi`・[guides/kpi.md](guides/kpi.md) の 8・9 |
 | 依存の更新 | Renovate の PR をまとめて見る(低はまとめてマージ)。認証・Cookie・暗号・DB に触る依存は小さい版でも高として見る。大きい版は Dependency Dashboard の承認待ちに並ぶので、上げる物にチェックを入れる | `renovate.json`・[guides/vulnerabilities.md](guides/vulnerabilities.md) の 8 |
 | 脆弱性 | 精査していない通知・見直す日が来た記録 → 関係あるか・期限と直し方を決める | `pnpm vulns`・`/cve` |
 | リリースノート | 先週マージした PR をまとめる(公開は人) | `/release-notes` スキル |
