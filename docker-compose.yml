@@ -42,6 +42,13 @@ services:
     command: ["dist/cli.js", "migrate"]
     environment:
       MIGRATION_DATABASE_URL: postgres://app_owner:app_owner@db:5432/app
+      # 運営のコマンドも、このサービスで流す(docker compose run --rm migrate dist/cli.js <コマンド>。本番の1回きりのタスクと同じ)。
+      # 解約(delete-tenant)が写真・ファイルの置き場の中身まで消せるように、api と同じ手元の置き場を渡す(本番は Terraform が入れる)
+      FILES_BUCKET: files-local
+      FILES_REGION: us-east-1
+      FILES_S3_ENDPOINT: http://files:9000
+      FILES_S3_ACCESS_KEY: rustfs-local
+      FILES_S3_SECRET_KEY: rustfs-local-not-a-secret
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +75,9 @@ services:
       SESSION_SECRET: local-dev-only-session-secret-not-used-anywhere
       # 運営の組織(種データの「運営(サポート)」)。社員の代理ログイン(docs/specs/0004-support-access.md)
       SUPPORT_TENANT_ID: 0199a000-0000-7000-8000-00000000c001
+      # 公開の LP(apps/site の pnpm dev)。事前登録の入口を開き、確認のメールのリンクの頭になる(docs/designs/0025-public-landing-page.md)。
+      # 一周の E2E(e2e/journey.spec.ts)は LP を立てずに、この入口を直接叩く
+      PUBLIC_SITE_URL: http://localhost:5190
       LOG_LEVEL: info
       # メールは Postfix に渡す(本番は ECS の Service Connect の smtp://mail:25)
       MAIL_SMTP_URL: smtp://postfix:25

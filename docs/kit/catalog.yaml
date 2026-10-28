@@ -452,6 +452,7 @@ parts:
         - apps/api/test/unit/create-tenant.test.ts
         - docs/runbooks/tenant-provisioning.md
       edit:
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、2 の段(運営が組織を作る)を、組織を作る別の道に合わせて直す }
         - { path: apps/api/src/cli.ts, what: create-tenant のコマンドを外す(中身は apps/api/src/tenant-commands.ts の createTenantCommand) }
         - { path: infra/terraform/envs/prod/main.tf, what: module.applications と app の applications_store を外す(stg も) }
         - { path: apps/api/package.json, what: "@aws-sdk/client-s3 を外す(ほかで使っていなければ)" }
@@ -480,6 +481,7 @@ parts:
         - apps/web/e2e/export.spec.ts
         - docs/runbooks/offboarding.md
       edit:
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、7 の段(書き出し)と 10 の段(解約)を外す }
         - { path: apps/api/src/app.ts, what: exportRoutes を外す }
         - { path: apps/api/src/cli.ts, what: delete-tenant のコマンドを外す(中身は apps/api/src/tenant-commands.ts の deleteTenantCommand) }
         - { path: apps/web/src/pages/SettingsPage.tsx, what: 書き出しのボタンを外す }
@@ -521,6 +523,7 @@ parts:
         - docs/domain/files
         - docs/runbooks/file-storage.md
       edit:
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、5 の段の写真(作る・上げる・ready を待つ・解約で消えたか)を外す }
         - { path: packages/shared/src/files.ts, what: 契約は足すだけなので残してよい(使わなくなるだけ) }
         - { path: apps/api/src/app.ts, what: fileRoutes と置き場(files)を外す }
         - { path: apps/api/src/index.ts, what: objectStoreFromConfig を外す }
@@ -642,6 +645,7 @@ parts:
         - apps/web/src/routes/invitation.tsx
         - apps/web/e2e/invitations.spec.ts
       edit:
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、4 の段(招待)を外し、職人は別の道で足す }
         - { path: apps/api/src/app.ts, what: invitationAcceptRoutes と invitationRoutes を外す }
         - { path: apps/api/src/authz/policy.ts, what: invitation:manage と招待の4行を外す }
         - { path: apps/api/src/audit/actions.ts, what: 招待の3つの名前を外す }
@@ -1791,6 +1795,7 @@ parts:
         - docs/runbooks/pre-registrations.md
         - docs/domain/growth
       edit:
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、1 の段(事前登録)と、2 の段の --from-pre-registration を外す(申し込みの JSON に会社名とメールを書く) }
         - { path: CLAUDE.md, what: apps/site の行を外す }
         - { path: infra/terraform/envs/stg/main.tf, what: module public_site と public_site_environment を外す(prod も同じ) }
         - { path: infra/terraform/envs/stg/github.tf, what: public_site_deploy と source_policy_documents を外す(prod も同じ) }
@@ -1975,6 +1980,7 @@ parts:
         - packages/shared/src/plans.test.ts
         - docs/runbooks/plans.md
       edit:
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、6 の段(プラン)を外す }
         - { path: apps/api/src/app.ts, what: plans(AppDeps と c.set)と planRoutes を外す }
         - { path: apps/api/src/env.ts, what: plans を外す }
         - { path: apps/api/src/cli.ts, what: plan・plan-report のコマンドを外す }
