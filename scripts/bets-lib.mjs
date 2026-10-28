@@ -99,6 +99,15 @@ export const parseBet = (text) => {
       .find((s) => s.startsWith("親:"))
       ?.slice(2)
       .trim(),
+    // 指すペルソナと KPI(docs/product/personas.md・kpi.yaml。psf から必須。仕様 0081)
+    persona: status?.status
+      .find((s) => s.startsWith("ペルソナ:"))
+      ?.slice(5)
+      .trim(),
+    kpi: status?.status
+      .find((s) => s.startsWith("動かす KPI:"))
+      ?.slice(8)
+      .trim(),
     lines: find("線と期限"),
     pebbles: find("小石"),
     ledger: find("会計区分"),

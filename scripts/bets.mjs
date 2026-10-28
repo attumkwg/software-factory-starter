@@ -9,10 +9,11 @@
 //                          PR の本文(標準入力)の「取り組み」「作業の種類」を確かめる(CI)
 //                          手元で: gh pr view <番号> --json body -q .body | pnpm bets --pr-body
 // 決まりは docs/guides/bets-and-assets.md。
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkBet, checkPrBody, idOfFile, parseBet } from "./bets-lib.mjs";
 import { renderInternal, renderPublic } from "./bets-roadmap.mjs";
+import { betLinkProblems, kpiIdsOf, personaIdsOf } from "./kpi-lib.mjs";
 
 const DIR = "docs/product/bets";
 const today = new Date().toISOString().slice(0, 10);
@@ -29,7 +30,17 @@ const readBets = () => {
   });
 };
 
+// 賭けが指してよいペルソナと KPI(無ければ空。psf からは指すのが必須なので、そのとき落ちる)
+const readLinks = () => {
+  const read = (p) => (existsSync(p) ? readFileSync(p, "utf8") : "");
+  return {
+    personas: personaIdsOf(read("docs/product/personas.md")),
+    kpis: kpiIdsOf(read("docs/product/kpi.yaml")),
+  };
+};
+
 const checkAll = (bets) => {
+  const links = readLinks();
   const problems = [];
   const ids = new Set();
   const rows = [];
@@ -43,6 +54,7 @@ const checkAll = (bets) => {
     if (!bet.title.startsWith(`賭け: ${id}`))
       problems.push(`${path} 1行目の見出しは「# 賭け: ${id} …」(ファイル名と合わせる)`);
     const result = checkBet(bet, today);
+    result.problems.push(...betLinkProblems(bet, links));
     for (const p of result.problems) problems.push(`${path} ${p}`);
     rows.push({ file, id, bet, ...result });
   }

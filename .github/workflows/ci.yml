@@ -49,9 +49,10 @@ jobs:
         run: pnpm self-contained
       - name: 穴の一覧と、それを指す文書が今の姿か(済んだ穴を「穴」と書いた所・済みの行の仕様の状態・段の抜け・今の数の表)
         run: pnpm gaps
-      - name: 賭けの記録(線を先に決めたか・段階を飛ばしていないか)と、記録の検査(賭け・脆弱性・キットの閉じ方)のテスト
+      - name: 賭けの記録(線を先に決めたか・段階を飛ばしていないか・psf からペルソナと KPI を指すか)と KPI の木、記録の検査のテスト
         run: |
           pnpm bets
+          pnpm kpi
           pnpm test:scripts
       - name: 部品のカタログ(書式・つながり・消し方のパスの実在・土台を消す答え・README の生成し忘れ)
         run: pnpm kit:catalog
