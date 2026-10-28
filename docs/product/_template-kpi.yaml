@@ -1,7 +1,8 @@
 # KPI の木: <プロダクトの名前(仮でよい)>
 # `/kickoff` が書く。写して docs/product/kpi.yaml にする。考え方は docs/guides/kpi.md。確かめは `pnpm kpi`。
-# 形: 北極星の指標1つ(ペルソナが価値を得た瞬間を数える)+入力の指標 2〜4(北極星を動かす。賭けはこれを動かす)
-#     +守りの指標 1つ以上(「安全に」の部分。エラー・解約・費用など。超えたら止める線)。
+# 形: 北極星の指標1つ(ペルソナが価値を得た瞬間を数える)+入力の指標 1〜2(北極星を動かす。賭けはこれを動かす)
+#     +守りの指標 1〜2(「安全に」の部分。エラー・解約・費用など。超えたら止める線)。**人が極端に絞る**(多いと運用できない)。
+#     合議(/council)の候補のうち、外した物は watch(見るだけの数。目標も線も持たない)へ。番号は候補のまま変えない。
 # 番号は変えない(K-0 / K-1… / K-G1…)。やめた指標は消さずに status: やめた。
 # 値: 割合と件数は records に書く(組織名・個人は書かない)。金額の指標(money: true)は値を書かず、
 #     reached(線に届いたか)だけ。金額そのものは非公開の置き場(費用のページと同じ。docs/guides/kpi.md)。
@@ -27,12 +28,6 @@ inputs:
     unit: "%"
     target: { value: 60, by: YYYY-MM-DD }
     status: 仮説
-  - id: K-2
-    name: "<…>"
-    persona: P-1
-    measure: { how: manual, source: "<…>" }
-    unit: "<…>"
-    status: 仮説
 
 guardrails:
   - id: K-G1
@@ -42,6 +37,14 @@ guardrails:
     unit: "%"
     limit: { value: 2, direction: below } # below = この値を下回っていること / above = 上回っていること
     status: 確か
+
+# 見るだけの数(人が絞ったときに外した候補)
+watch:
+  - id: K-2
+    name: "<…>"
+    measure: { how: manual, source: "<…>" }
+    unit: "<…>"
+    status: 仮説
 
 # 値の記録(足すだけ。古い行は消さない)。金額の指標は value を書かずに reached: true / false
 records:

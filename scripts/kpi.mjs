@@ -55,7 +55,7 @@ for (const note of councilLinkNotes(doc, new Set(councilFiles))) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
-const KIND = { north_star: "★ 北極星", input: "→ 入力", guardrail: "🛡 守り" };
+const KIND = { north_star: "★ 北極星", input: "→ 入力", guardrail: "🛡 守り", watch: "・ 見るだけ" };
 console.log(`KPI の木を読みました(${KPI})`);
 if (problems.length === 0) {
   for (const r of kpiReport(doc, today)) {

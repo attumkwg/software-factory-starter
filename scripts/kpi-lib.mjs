@@ -48,6 +48,7 @@ export const allKpis = (doc) => [
   ...(doc?.north_star ? [{ ...doc.north_star, kind: "north_star" }] : []),
   ...(doc?.inputs ?? []).map((k) => ({ ...k, kind: "input" })),
   ...(doc?.guardrails ?? []).map((k) => ({ ...k, kind: "guardrail" })),
+  ...(doc?.watch ?? []).map((k) => ({ ...k, kind: "watch" })),
 ];
 
 // 番号の形(正規表現を使わずに見る): 北極星 K-0・入力 K-1…・守り K-G1…
@@ -57,8 +58,13 @@ const ID_FORM = {
   north_star: (id) => id === "K-0",
   input: (id) => id.startsWith("K-") && isCount(id.slice(2)),
   guardrail: (id) => id.startsWith("K-G") && isCount(id.slice(3)),
+  // 見るだけの数は、決める前の番号のまま(番号は変えない)
+  watch: (id) =>
+    id.startsWith("K-G") ? isCount(id.slice(3)) : id.startsWith("K-") && isCount(id.slice(2)),
 };
-const KIND_NAME = { north_star: "北極星", input: "入力", guardrail: "守り" };
+const KIND_NAME = { north_star: "北極星", input: "入力", guardrail: "守り", watch: "見るだけ" };
+// 人が決めて追う数の上限(極端に絞る。仕様 0082)。残りは watch(見るだけの数)へ
+export const LIMITS = { inputs: [1, 2], guardrails: [1, 2] };
 
 function checkMeasure(k, at, features, problems, warnings) {
   const m = k.measure ?? {};
@@ -99,6 +105,7 @@ function targetProblems(k) {
 }
 
 function checkLine(k, at, problems, warnings) {
+  if (k.kind === "watch") return; // 見るだけ。目標も線も持たない
   if (k.kind === "guardrail") {
     const p = limitProblem(k);
     if (p) problems.push(`${at}: ${p}`);
@@ -109,14 +116,19 @@ function checkLine(k, at, problems, warnings) {
   }
 }
 
-// 木の形(北極星1・入力 2〜4・守り1以上)の誤りの並び
+// 木の形(北極星1・入力 1〜2・守り 1〜2。残りは見るだけ)の誤りの並び
 function shapeProblems(doc) {
   const out = [];
   if (!doc?.north_star) out.push("north_star(北極星の指標)が無い");
-  const inputs = (doc?.inputs ?? []).filter(live).length;
-  if (inputs < 2 || inputs > 4) out.push(`入力の指標(inputs)は 2〜4 個(いま ${inputs} 個)`);
-  if ((doc?.guardrails ?? []).filter(live).length < 1)
-    out.push("守りの指標(guardrails)が1つも無い(「安全に」の部分)");
+  for (const [key, name] of [
+    ["inputs", "入力の指標(inputs)"],
+    ["guardrails", "守りの指標(guardrails。「安全に」の部分)"],
+  ]) {
+    const n = (doc?.[key] ?? []).filter(live).length;
+    const [min, max] = LIMITS[key];
+    if (n < min || n > max)
+      out.push(`${name}は ${min}〜${max} 個(いま ${n} 個)。残りは watch(見るだけの数)へ`);
+  }
   return out;
 }
 
@@ -128,7 +140,8 @@ function itemProblems(k, seen, personas) {
   if (seen.has(k.id)) out.push("番号が重なっている");
   if (!k.name) out.push("name が無い");
   if (!KPI_STATES.includes(k.status)) out.push(`status は ${KPI_STATES.join(" / ")} のどれか`);
-  if (k.kind !== "guardrail" && !personas.has(k.persona))
+  const needsPersona = k.kind === "north_star" || k.kind === "input";
+  if ((needsPersona || k.persona !== undefined) && !personas.has(k.persona))
     out.push(`persona「${k.persona}」が personas.md に無い`);
   return out;
 }
@@ -208,6 +221,7 @@ function judgeGuardrail(k, last) {
 }
 
 function judge(k, last, today) {
+  if (k.kind === "watch") return "見るだけ";
   if (k.kind === "guardrail") return judgeGuardrail(k, last);
   if (!k.target) return "目標なし";
   const late = k.target.by < today;

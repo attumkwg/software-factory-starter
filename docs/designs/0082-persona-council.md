@@ -54,6 +54,8 @@ flowchart LR
 - 立場のそろい: 客層ごとに、やめていない人で7つの立場が1人以上
 - 合議の記録: 7つの見出し・賛否(賛成・条件つき・反対・拒否)・根拠(記録・事例・推測)・出席の立場が7つそろう・拒否した人は 4 に名前・6 に問いが1つ以上・7 は「未定」か「@名前」
 - 「確か」の指標は council が要り、その記録が存在する
+- 追う数の上限: 入力 1〜2・守り 1〜2(`LIMITS`)。`watch:` は数えず、目標・線を見ない。番号は候補のまま(`K-n` か `K-Gn`)
+- レビューは周ごとに議長が案を直し、新しい拒否・満たしていない条件が出なくなるか3周で止める(スキルの決まり。機械では見ない)
 
 ## 7. 要求との対応
 
@@ -65,6 +67,8 @@ flowchart LR
 | 記録の形の誤りで落ちる | `councilProblems` | `kpi.test.mjs`「合議の記録」 |
 | 指標と合議のつなぎ | `councilLinkNotes`・`kpi.mjs` | `kpi.test.mjs`「確かの指標は合議から」 |
 | 見本 | `industry.md`・`personas.md`(10人)・`councils/2026-10-28-kpi.md`・`kpi.yaml` | `kpi.test.mjs`「キットの見本のペルソナ」・`pnpm kpi` |
+| 追う数の上限と見るだけ | `kpi-lib.mjs` の `LIMITS`・`watch` | `kpi.test.mjs`「1〜2 に絞っていなければ落とす」 |
+| 探す・レビュー・受け入れ | `/persona` の 0・`/council` の 1・4.5・6・`/accept` の 1.5・`/new-feature`・`/slack-request` | 手順(機械では見ない) |
 | /kickoff・/bet | 各スキルの手順 | — |
 
 ## 8. 非機能

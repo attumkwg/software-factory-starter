@@ -1,5 +1,6 @@
 # KPI の木: タスク管理(見本)
-# 見本。題材はこのキットの TODO アプリ。ペルソナの合議(docs/product/councils/2026-10-28-kpi.md)から作った。
+# 見本。題材はこのキットの TODO アプリ。ペルソナの合議(docs/product/councils/2026-10-28-kpi.md)で13の候補を出し、
+# 人(@attumkwg 2026-10-28)が北極星1・入力2・守り1の4つに絞った。残りの9つは watch(見るだけの数。目標も線も持たない)。
 # ペルソナが架空で根拠が推測だけなので、どれも status: 仮説。線(数)は根拠が無いので、最初の4週は測るだけにして決め直す。
 # 自分のプロダクトでは /persona → /council で作り直す。考え方は docs/guides/kpi.md。確かめは `pnpm kpi`。
 
@@ -32,10 +33,23 @@ inputs:
     unit: "%"
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
+
+guardrails:
+  - id: K-G3
+    name: アプリを開いてから完了を押し終わるまでの時間(中央値)
+    why: 電話のほうが速ければ誰も使わない(P-2)。超えたら新しい機能を止める
+    measure: { how: manual, source: 画面の操作の時間の記録(直近4週の中央値) }
+    unit: 秒
+    limit: { value: 10, direction: below }
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+
+# 見るだけの数(人が絞ったときに外した候補。目標も線も持たず、一覧で様子だけ見る。番号は候補のまま)。
+# 拒否権を持つ人の条件(K-G1 の IT・K-G2 の経理)は、ここではなく合議の記録の「出す前の合否の一覧」で守る
+watch:
   - id: K-3
     name: 招待した人のうち、14日以内に自分で最初の操作まで進んだ割合
     persona: P-5
-    why: 説明会なしで始められる = 問い合わせが事務の長に集まらない(P-5。P-3 の「人に聞かずに」に近い)
     measure: { how: manual, source: 招待の受け付けの記録と、最初の操作の日(組織ごとの割合) }
     unit: "%"
     status: 仮説
@@ -43,75 +57,50 @@ inputs:
   - id: K-4
     name: 4週後も使っている組織の割合
     persona: P-10
-    why: 使われなくなった会社は、予告が当たる前に消える(P-10。P-4 の現場の利用率・P-7 の使われた席と同じ向き)
     measure: { how: manual, source: 契約開始から28日目の前後7日に、2人以上が更新した組織の数 ÷ その月に始めた組織の数 }
     unit: "%"
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
-
-guardrails:
   - id: K-G1
     name: 退職済みなのに有効なアカウントの数
-    why: 1件でも出たら、外部への招待・共有の拡大を止める(P-6・拒否権)
     measure: { how: manual, source: 管理者が止めた人の記録と、組織から届く退職の連絡を突き合わせる }
     unit: 件
-    limit: { value: 1, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G2
     name: 請求額が事前の見積りと違った月の数
-    why: 1件でも出たら、課金の仕組みの変更を止める(P-7・拒否権)
     measure: { how: manual, source: 請求と見積りの突き合わせ(件数だけ。金額は書かない) }
     unit: 件
-    limit: { value: 1, direction: below }
-    status: 仮説
-    council: docs/product/councils/2026-10-28-kpi.md
-  - id: K-G3
-    name: アプリを開いてから完了を押し終わるまでの時間(中央値)
-    why: 電話のほうが速ければ誰も使わない(P-2)
-    measure: { how: manual, source: 画面の操作の時間の記録(直近4週の中央値) }
-    unit: 秒
-    limit: { value: 10, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G4
     name: 本人の操作で消した・変えた件のうち、元に戻せなかった件数(月)
-    why: 「間違えて消しそう」が新人の使わない一番の理由(P-3)
     measure: { how: manual, source: 監査ログの削除・変更と、戻した記録 }
     unit: 件
-    limit: { value: 1, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G5
     name: 1社あたりの問い合わせの数(月)
-    why: 機能を増やすほど問い合わせが増え、1〜2人の窓口が先に潰れる(P-10・P-5)
     measure: { how: manual, source: 問い合わせの受け口の記録 ÷ 契約している組織の数 }
     unit: 件
-    limit: { value: 2, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G6
     name: 事務の手入力の時間(週)
-    why: 現場の更新が増えた代わりに事務の手直しが増えたら意味が無い(P-9)
     measure: { how: survey, source: 導入前後の各2週間の日報の自己申告 }
     unit: 時間
-    limit: { value: 5, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G7
     name: 発注元にアカウント作成・ログインを求めた件数
-    why: 1件でも出たら、その機能を止める(P-8)
     measure: { how: manual, source: 発注元向けの閲覧が登録・ログインを経由した件数(週) }
     unit: 件
-    limit: { value: 1, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G8
     name: 知らせを開かなかった・切った人の割合
-    why: 通知が増えると見なくなる(P-1・P-2・P-3・P-5・P-9 がそろって挙げた)
     measure: { how: manual, source: 知らせの開封と、知らせの設定を切った記録(直近4週) }
     unit: "%"
-    limit: { value: 20, direction: below }
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
 

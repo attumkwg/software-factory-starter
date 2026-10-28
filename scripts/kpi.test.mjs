@@ -71,14 +71,22 @@ test("キットの見本の木(docs/product/kpi.yaml)は通る", () => {
   assert.deepEqual(result.problems, []);
 });
 
-test("北極星1つ・入力 2〜4・守り1つ以上の形でなければ落とす", () => {
+test("北極星1つ・入力 1〜2・守り 1〜2 に絞っていなければ落とす(残りは見るだけ)", () => {
   assert.deepEqual(check(base()).problems, []);
   const noStar = { ...base(), north_star: undefined };
   assert.ok(check(noStar).problems.some((p) => p.includes("北極星")));
   const oneInput = { ...base(), inputs: base().inputs.slice(0, 1) };
-  assert.ok(check(oneInput).problems.some((p) => p.includes("2〜4")));
+  assert.deepEqual(check(oneInput).problems, []);
+  const third = { ...base().inputs[1], id: "K-3" };
+  const threeInputs = { ...base(), inputs: [...base().inputs, third] };
+  assert.ok(check(threeInputs).problems.some((p) => p.includes("1〜2")));
   const noGuard = { ...base(), guardrails: [] };
   assert.ok(check(noGuard).problems.some((p) => p.includes("守り")));
+  // 外した候補は watch に置けば通る(目標も線も要らない)
+  const watched = { ...base(), watch: [{ ...third, target: undefined }] };
+  assert.deepEqual(check(watched).problems, []);
+  const judge = kpiReport(watched, "2026-10-28").find((r) => r.id === "K-3")?.judge;
+  assert.equal(judge, "見るだけ");
 });
 
 test("番号の形・重なり・ペルソナ・測り方を確かめる", () => {
