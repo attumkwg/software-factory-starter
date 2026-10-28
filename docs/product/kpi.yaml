@@ -1,55 +1,108 @@
 # KPI の木: タスク管理(見本)
-# 見本。題材はこのキットの TODO アプリ。数字は架空。自分のプロダクトでは /kickoff が _template-kpi.yaml の形で書き直す
-# (見本の賭け B-0001・B-0002 を残すなら、ここの K-n も残す)。考え方は docs/guides/kpi.md。確かめは `pnpm kpi`。
+# 見本。題材はこのキットの TODO アプリ。ペルソナの合議(docs/product/councils/2026-10-28-kpi.md)で13の候補を出し、
+# 人(@attumkwg 2026-10-28)が北極星1・入力2・守り1の4つに絞った。残りの9つは watch(見るだけの数。目標も線も持たない)。
+# ペルソナが架空で根拠が推測だけなので、どれも status: 仮説。線(数)は根拠が無いので、最初の4週は測るだけにして決め直す。
+# 自分のプロダクトでは /persona → /council で作り直す。考え方は docs/guides/kpi.md。確かめは `pnpm kpi`。
 
 north_star:
   id: K-0
-  name: 期限の前に完了したタスクがあった組織の数(週)
+  name: 期限の前日の予告(間に合う / 遅れそう)が、期限日の結果と合っていた割合
   persona: P-1
-  why: 期限の前に終わる = P-1 が催促しなくて済んだ。P-1 が価値を得た瞬間
+  why: 遅れを先に、正しく知れる = 催促・問い合わせ・値引きが減る(P-1・P-4・P-5・P-8・P-9 が支えた)。予告はシステムが更新の様子から出し、本人に申告させない
   measure:
     how: manual
-    source: 運営の集計で、その週に期限の前に完了したタスクがある組織の数だけを出す(組織の ID は出さない)
-  unit: 組織
-  target: { value: 20, by: 2027-03-31 }
+    source: 運営の集計で、期限が前日の朝のまとめに載った案件ごとに予告と期限日の結果を比べ、組織ごとの割合だけを出す。見逃し(予告なしに遅れた件)と空振り(遅れそうが間に合った件)を必ず並べる。個人ごとには出さない
+  unit: "%"
   status: 仮説
+  council: docs/product/councils/2026-10-28-kpi.md
 
 inputs:
   - id: K-1
-    name: 期限が近いタスクに、期限の前に気づけた割合
-    persona: P-1
-    why: 早く気づけば、遅れる前に声をかけられる(北極星を動かす)
-    measure: { how: usage, feature: morning-digest, metric: 朝のまとめを入れた組織の 4週後の継続率(usage-report の continued) }
+    name: 期限の前日の夕方までに、現場が更新済みだった割合
+    persona: P-9
+    why: 予告の材料。古い表のせいで事務が責められなくなる(P-9・P-1)
+    measure: { how: manual, source: 朝のまとめを作るときに、載った期限つきタスクのうち前日 18:30 以降〜当日朝までに更新があった件の割合(組織ごと) }
     unit: "%"
-    target: { value: 70, by: 2026-12-31 }
     status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
   - id: K-2
-    name: 完了にしてから、見ている人に届くまでの時間
+    name: 完了を押した件のうち、24時間以内に問い合わせが来なかった割合
     persona: P-2
-    why: 完了がすぐ届けば、P-1 が電話で聞かなくて済む
-    measure: { how: manual, source: タスクの完了のお知らせのメールの送り出しの記録(送るまでの分の中央値) }
-    unit: 分
-    target: { value: 5, by: 2026-12-31, direction: below }
-    status: 確か
+    why: 終わったのにまた聞かれる、が無くなる(P-2)。北極星が管理者の側に寄りすぎないための数
+    measure: { how: survey, source: 最初は週1問の自己申告(先週、終わった後に聞かれた回数) }
+    unit: "%"
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
 
 guardrails:
-  - id: K-G1
-    name: 知らせがうるさいと答えた人の割合
-    why: 知らせを増やしすぎると、北極星が伸びても使われなくなる
-    measure: { how: survey, source: 「無くなったら困るか」の問いの自由記述で「多い・うるさい」 }
-    unit: "%"
+  - id: K-G3
+    name: アプリを開いてから完了を押し終わるまでの時間(中央値)
+    why: 電話のほうが速ければ誰も使わない(P-2)。超えたら新しい機能を止める
+    measure: { how: manual, source: 画面の操作の時間の記録(直近4週の中央値) }
+    unit: 秒
     limit: { value: 10, direction: below }
     status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+
+# 見るだけの数(人が絞ったときに外した候補。目標も線も持たず、一覧で様子だけ見る。番号は候補のまま)。
+# 拒否権を持つ人の条件(K-G1 の IT・K-G2 の経理)は、ここではなく合議の記録の「出す前の合否の一覧」で守る
+watch:
+  - id: K-3
+    name: 招待した人のうち、14日以内に自分で最初の操作まで進んだ割合
+    persona: P-5
+    measure: { how: manual, source: 招待の受け付けの記録と、最初の操作の日(組織ごとの割合) }
+    unit: "%"
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-4
+    name: 4週後も使っている組織の割合
+    persona: P-10
+    measure: { how: manual, source: 契約開始から28日目の前後7日に、2人以上が更新した組織の数 ÷ その月に始めた組織の数 }
+    unit: "%"
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-G1
+    name: 退職済みなのに有効なアカウントの数
+    measure: { how: manual, source: 管理者が止めた人の記録と、組織から届く退職の連絡を突き合わせる }
+    unit: 件
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
   - id: K-G2
-    name: 1組織あたりの月の費用(AI・メール・置き場)
-    why: 使われるほど赤字になる形にしない(賭けごとの損益と同じ物を見る)
-    measure: { how: manual, source: 費用のページ(cost.yml)の組織あたり }
-    unit: 円
-    money: true # 金額の線と値はリポジトリに書かない(非公開の置き場の budgets.csv)。ここは向きだけ
-    limit: { direction: below }
-    status: 確か
+    name: 請求額が事前の見積りと違った月の数
+    measure: { how: manual, source: 請求と見積りの突き合わせ(件数だけ。金額は書かない) }
+    unit: 件
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-G4
+    name: 本人の操作で消した・変えた件のうち、元に戻せなかった件数(月)
+    measure: { how: manual, source: 監査ログの削除・変更と、戻した記録 }
+    unit: 件
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-G5
+    name: 1社あたりの問い合わせの数(月)
+    measure: { how: manual, source: 問い合わせの受け口の記録 ÷ 契約している組織の数 }
+    unit: 件
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-G6
+    name: 事務の手入力の時間(週)
+    measure: { how: survey, source: 導入前後の各2週間の日報の自己申告 }
+    unit: 時間
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-G7
+    name: 発注元にアカウント作成・ログインを求めた件数
+    measure: { how: manual, source: 発注元向けの閲覧が登録・ログインを経由した件数(週) }
+    unit: 件
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
+  - id: K-G8
+    name: 知らせを開かなかった・切った人の割合
+    measure: { how: manual, source: 知らせの開封と、知らせの設定を切った記録(直近4週) }
+    unit: "%"
+    status: 仮説
+    council: docs/product/councils/2026-10-28-kpi.md
 
 # 値の記録(足すだけ)。金額の指標(money: true)は value を書かずに reached だけ
-records:
-  - { date: 2026-10-20, kpi: K-2, value: 3, source: タスクの完了のお知らせの送り出しの記録(架空) }
-  - { date: 2026-10-27, kpi: K-G2, reached: true, source: 費用のページ(架空) }
+records: []

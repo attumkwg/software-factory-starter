@@ -142,7 +142,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - `pnpm test:e2e`(`docker compose up --build -d` のあとで。http://localhost:8080 = ALB の代わり)
 - `pnpm vrt`(見た目の回帰テスト。先に `docker compose -f docker-compose.vrt.yml up -d --wait` で Docker の中のブラウザも)/ `pnpm vrt:update`(画面を変えたときだけ。撮り直した画像を見てからコミット)。`docs/guides/vrt.md`
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
-- `pnpm kpi`(KPI の木の一覧と確かめ。北極星・入力・守りの最新の値と線。形・番号・ペルソナ・測り方の誤りと、金額をリポジトリに書いたら落ちる。`docs/guides/kpi.md`・仕様 0081)
+- `pnpm kpi`(KPI の木の一覧と確かめ。ペルソナの7つの立場の地図と合議の記録の形も見る。北極星・入力・守りの最新の値と線。形・番号・ペルソナ・測り方の誤りと、金額をリポジトリに書いたら落ちる。`docs/guides/kpi.md`・仕様 0081)
 - `pnpm pr:merge-when-green <番号> --reply "<持ち主の返事>"`(1人の間・クラウドで持ち主が `KIT_AI_MERGE=slack` を入れた所だけ。必須のチェックが全部緑になってから AI がマージする。`/slack-request`・仕様 0080)
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)/ `pnpm outbound`(AI が外へ向けてした操作の記録を、PR の「🚪 外へ出した物」の表にする。`--clear` で空に。`docs/designs/0057-ai-egress.md`)
 - `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`
