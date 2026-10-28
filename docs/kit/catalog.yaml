@@ -2241,6 +2241,31 @@ parts:
         - { path: docs/README.md, what: personas と kpi の行を外す }
       docs: [docs/specs/0081-persona-kpi.md, docs/designs/0081-persona-kpi.md]
 
+  - id: persona-council
+    name: 業界ごとのペルソナと合議(/persona・/council)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 業界の前提(industry.md)を根拠つきで書き、7つの立場(使う人・買う人・決める人・止める人・周りの人・失う人・運営)を埋めるペルソナを作る。合議は1人ずつ別の AI → 反論役 → 議論の回 → 議長のまとめで、KPI の木・出す前の合否の一覧・本物の人に確かめる問いを出す。「確か」の KPI は合議から
+    needed_by: 機能や KPI を、立場の違う人の目で速く確かめたい・業界ごとに客層を広げる
+    not_needed_by: 使う人が1種類だけの小さな道具
+    if_removed: KPI と機能の判断が、作り手1人の思いつきになる。止める人・周りの人の反対に、出してから気づく
+    depends_on: [persona-kpi]
+    law: []
+    where: [.claude/skills/persona/SKILL.md, .claude/skills/council/SKILL.md, scripts/council-lib.mjs, docs/product/_template-industry.md, docs/product/industry.md, docs/product/councils/_template.md, docs/product/councils/2026-10-28-kpi.md]
+    remove:
+      delete: [.claude/skills/persona, .claude/skills/council, scripts/council-lib.mjs, docs/product/_template-industry.md, docs/product/industry.md, docs/product/councils]
+      edit:
+        - { path: scripts/kpi.mjs, what: 立場の地図と合議の記録の確かめ(council-lib の4つ)を外す }
+        - { path: scripts/kpi.test.mjs, what: 立場の地図と合議の記録のテストを外す }
+        - { path: docs/product/_template-personas.md, what: 立場・決める力・根拠・客層の行を任意に戻す }
+        - { path: docs/product/kpi.yaml, what: council の行を外す }
+        - { path: .claude/skills/kickoff/SKILL.md, what: A の 8.5 と OK の後の 1.5 の /persona・/council を外す }
+        - { path: .claude/skills/bet/SKILL.md, what: psf の前の /council を外す }
+        - { path: docs/guides/kpi.md, what: 1 の業界の前提と 2 の合議を外す }
+      docs: [docs/specs/0082-persona-council.md, docs/designs/0082-persona-council.md]
+
   - id: slack-requests
     name: Slack で頼むと PR → 返事でマージ(/slack-request)
     group: process

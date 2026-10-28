@@ -146,7 +146,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 🪶 **軽い型(1〜3人・PMF の前)**: `sso`・`scim`・`ip-allowlist`・`audit-export`・`certification-prep`・`on-call`・`ledger`・`cost-dashboard`・`security-questionnaire`・`sales-kit`・`preview-env`・`verify-pr` をまとめて「後で足す」にできる(足し直す合図は部品ごとにカタログの `presets`)。
 
 <details>
-<summary>部品の一覧を開く(74件)</summary>
+<summary>部品の一覧を開く(75件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -222,6 +222,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 進め方 | 受け入れの点数と書き戻し(/accept) `acceptance` | 作った機能を出す前の受け入れで、おすすめの観点(流れ・ルール・作り込み・仮決め)を中心に PdM に聞き、網羅の確かめは AI と QA に回す。結果を点数にし、外れた理由を要求・設計・AI の仮決め・実装に分け、要求のせいの物を解決済みの論点に書き戻す。記録を取るかは使うときに決める。書き方の崩れは CI(test:scripts)が止め、観点のおすすめから外れた所は知らせるだけ | 残す | あり |
 | 進め方 | PR の動作確認(/verify-pr) `verify-pr` | PR の本文の「🖱 動作確認」を AI が読み、E2E の部品で画面を確かめ、手順を PR のコメントに貼る(手順はコミットしない)。「通った ≠ 確かめた」として、流す前に pnpm verify:lint で危ない書き方を止め、通った後も画面のエラー・失敗した通信の記録とトレースを疑って読む | 残す | あり |
 | 進め方 | ペルソナ → KPI → 計測 → 資産の線(pnpm kpi) `persona-kpi` | プロダクトのペルソナ(P-n)と KPI の木(北極星1・入力 2〜4・守り1以上)を書き、賭けは psf から「どのペルソナのどの KPI を動かすか」を指す。pnpm kpi が最新の値と線を並べ、形の誤りと金額をリポジトリに書いたのを落とす。資産か費用かの案に KPI の結果を根拠として並べる | 残す | あり |
+| 進め方 | 業界ごとのペルソナと合議(/persona・/council) `persona-council` | 業界の前提(industry.md)を根拠つきで書き、7つの立場(使う人・買う人・決める人・止める人・周りの人・失う人・運営)を埋めるペルソナを作る。合議は1人ずつ別の AI → 反論役 → 議論の回 → 議長のまとめで、KPI の木・出す前の合否の一覧・本物の人に確かめる問いを出す。「確か」の KPI は合議から | 残す | あり |
 | 進め方 | Slack で頼むと PR → 返事でマージ(/slack-request) `slack-requests` | Slack(Claude Code in Slack)・クラウドで頼まれた1件を、AI が1本の PR にし、終わりに仮決めを並べて「これでいいですか」と聞く。1人の間は、持ち主の会話の返事を未確定事項の答えに認め、持ち主がクラウドの環境に KIT_AI_MERGE=slack を入れた所でだけ、必須のチェックが全部緑のときに AI がマージする(pnpm pr:merge-when-green) | 残す | あり |
 | 進め方 | 点検(/checkup) `checkup` | 段階ごと・毎週の点検を台帳(docs/checkup/todo.yaml)にし、pnpm checkup が使い始めた日からの段階に当たる項目を出して自動で確かめられる物を確かめる。人に聞くことは /checkup が1問ずつ聞き、答えを台帳に書いて PR にする。担当者には毎週月曜 8:00 に Issue で知らせ、急ぎは毎日 8:00 に1件ずつ(checkup.yml)。月1回 /checkup-refresh で世の中の変化を台帳に取り込む案を PR にする | 残す | あり |
 

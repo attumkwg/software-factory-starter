@@ -4,6 +4,13 @@ import { test } from "node:test";
 import { parse } from "yaml";
 import { parseBet } from "./bets-lib.mjs";
 import {
+  councilLinkNotes,
+  councilProblems,
+  parsePersonas,
+  personaProblems,
+  STANCES,
+} from "./council-lib.mjs";
+import {
   allKpis,
   betLinkProblems,
   checkKpi,
@@ -163,4 +170,93 @@ test("番号の形(北極星 K-0・入力 K-1…・守り K-G1…)", () => {
   const problems = check(doc).problems.join("\n");
   assert.match(problems, /入力 K-01: 番号の形/);
   assert.match(problems, /守り K-1: 番号の形/);
+});
+
+// ── 立場の地図と合議の記録(仕様 0082)──
+const card = (id, stance, power = "影響", extra = "") =>
+  `## ${id} 人\n\n- 立場: ${stance}\n- 決める力: ${power}\n- 根拠: 推測\n${extra}`;
+const fullMap = (prefix = "", extra = "") =>
+  STANCES.map((s, i) => card(`P-${prefix}${i + 1}`, s, "影響", extra)).join("\n");
+
+test("キットの見本のペルソナは7つの立場がそろい、見本の合議の記録は形が合っている", () => {
+  const personas = parsePersonas(readFileSync("docs/product/personas.md", "utf8"));
+  assert.deepEqual(personaProblems(personas), []);
+  const stanceOf = new Map(personas.map((p) => [p.id, p.stance]));
+  const record = readFileSync("docs/product/councils/2026-10-28-kpi.md", "utf8");
+  assert.deepEqual(councilProblems(record, stanceOf), []);
+});
+
+test("立場が欠けた地図・書き方の違う人は落ちる。やめた人は数えない", () => {
+  const short = parsePersonas(
+    STANCES.slice(0, 6)
+      .map((s, i) => card(`P-${i + 1}`, s))
+      .join("\n"),
+  );
+  assert.match(personaProblems(short).join("\n"), /足りない立場: 運営/);
+  const bad = parsePersonas(card("P-1", "社長", "全部"));
+  const problems = personaProblems(bad).join("\n");
+  assert.match(problems, /立場/);
+  assert.match(problems, /決める力/);
+  const ended = parsePersonas(`${fullMap()}\n${card("P-9", "運営", "影響", "- 状態: やめた\n")}`);
+  assert.deepEqual(personaProblems(ended), []);
+});
+
+test("客層が2つあれば、客層ごとに7つの立場が要る", () => {
+  const two = parsePersonas(
+    `${fullMap("", "- 客層: koumuten\n")}\n${card("P-21", "使う人", "なし", "- 客層: clinic\n")}`,
+  );
+  assert.match(personaProblems(two).join("\n"), /客層 clinic の足りない立場/);
+});
+
+test("合議の記録: 見出し・賛否・根拠・立場のそろい・拒否の扱い・問い・人の判断", () => {
+  const stanceOf = new Map(STANCES.map((s, i) => [`P-${i + 1}`, s]));
+  const rows = STANCES.map((s, i) => `| P-${i + 1} | ${s} | 条件つき | 成功 | 懸念 | 推測 |`);
+  const record = (r = rows, veto = "- なし", questions = "- 問い", decision = "- 判断: 未定") =>
+    [
+      "## 1. 1人ずつの評価",
+      "| ペルソナ | 立場 | 賛否 | 成功 | 懸念 | 根拠 |",
+      "|---|---|---|---|---|---|",
+      ...r,
+      "## 2. 反論役",
+      "- 反論",
+      "## 3. 議論の回",
+      "- なし",
+      "## 4. 拒否と、その扱い",
+      veto,
+      "## 5. 結論の案",
+      "案",
+      "## 6. 次に確かめる問い",
+      questions,
+      "## 7. 人の判断",
+      decision,
+    ].join("\n");
+  assert.deepEqual(councilProblems(record(), stanceOf), []);
+  const vetoRows = [
+    ...rows.slice(0, 3),
+    "| P-4 | 買う人 | 拒否 | 成功 | 懸念 | 推測 |",
+    ...rows.slice(4),
+  ];
+  assert.match(councilProblems(record(vetoRows), stanceOf).join("\n"), /拒否した P-4/);
+  assert.deepEqual(councilProblems(record(vetoRows, "- P-4: 月払いなら"), stanceOf), []);
+  assert.match(councilProblems(record(rows.slice(1)), stanceOf).join("\n"), /足りない立場: 使う人/);
+  assert.match(councilProblems(record(rows, "- なし", "なし"), stanceOf).join("\n"), /問い/);
+  assert.match(
+    councilProblems(record(rows, "- なし", "- 問い", "- 判断: たぶん"), stanceOf).join("\n"),
+    /人の判断/,
+  );
+  const guess = rows.map((r) => r.replace("| 推測 |", "| 勘 |"));
+  assert.match(councilProblems(record(guess), stanceOf).join("\n"), /根拠は/);
+});
+
+test("「確か」の指標は合議から。合議の記録が無い・無いパスは知らせる", () => {
+  const doc = base();
+  const notes = councilLinkNotes(doc, new Set());
+  assert.ok(notes.some((n) => n.startsWith("K-0:")));
+  doc.north_star.council = "docs/product/councils/x.md";
+  assert.ok(councilLinkNotes(doc, new Set()).some((n) => n.includes("x.md が無い")));
+  assert.ok(
+    !councilLinkNotes(doc, new Set(["docs/product/councils/x.md"])).some((n) =>
+      n.startsWith("K-0:"),
+    ),
+  );
 });
