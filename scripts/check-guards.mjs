@@ -29,7 +29,7 @@ for (const p of paths) {
   if (!ownerLines.includes(ownerPath(p)))
     missing.push(`.github/CODEOWNERS に ${ownerPath(p)} が無い`);
 }
-// 文書の危険度の表(line.md の「高」・risk-areas.md)と守る場所の一覧が合っているか(ADR 0083)
+// 文書の危険度の表(line.md の「高」・risk-areas.md)と守る場所の一覧が合っているか(ADR 0084)
 const riskAreasMd = read("docs/concepts/risk-areas.md");
 missing.push(
   ...riskAreaProblems({

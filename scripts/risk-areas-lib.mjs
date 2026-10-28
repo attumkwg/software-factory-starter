@@ -1,5 +1,5 @@
 // 危険度「高」の領域の表(docs/concepts/risk-areas.md)を読み、line.md の「高」の言葉・守る場所の一覧と突き合わせる。
-// 読むのは check-guards.mjs(ずれたら落とす)と pr-merge-when-green.mjs(断るときに問いを返す)。ADR 0083
+// 読むのは check-guards.mjs(ずれたら落とす)と pr-merge-when-green.mjs(断るときに問いを返す)。ADR 0084
 
 /** 表の行のセル(前後の | を外す) */
 const cells = (line) =>

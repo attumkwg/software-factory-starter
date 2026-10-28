@@ -71,7 +71,7 @@
 /pnpm-workspace.yaml                @attumkwg
 /.npmrc                             @attumkwg
 
-# ── 危険度「高」: 課金・個人データ・ログインの入口・顧客への連絡は、コードではなくセンサー(テスト)を守る(ADR 0083。docs/concepts/risk-areas.md) ──
+# ── 危険度「高」: 課金・個人データ・ログインの入口・顧客への連絡は、コードではなくセンサー(テスト)を守る(ADR 0084。docs/concepts/risk-areas.md) ──
 /apps/api/test/integration/sso-login.int.test.ts @attumkwg
 /apps/api/test/integration/sso-required.int.test.ts @attumkwg
 /apps/api/test/integration/scim.int.test.ts @attumkwg

@@ -56,7 +56,7 @@ const files = JSON.parse(
 const humanOnly = () => {
   const labels = api(`repos/${repo}/issues/${number}/labels`).map((l) => l.name);
   const reasons = humanOnlyReasons({ labels, files, protectedPaths });
-  // 触った「高」の領域の問い(コードを読ませずに、1行で答えてもらう。ADR 0083)
+  // 触った「高」の領域の問い(コードを読ませずに、1行で答えてもらう。ADR 0084)
   const questions = touchedAreas(files, areas).map((a) => `${a.name}: ${a.question}`);
   const ask = questions.length > 0 ? `。人に聞く問い: ${questions.join(" / ")}` : "";
   if (reasons.length > 0)

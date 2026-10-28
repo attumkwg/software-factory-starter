@@ -1,7 +1,7 @@
 # 危険度「高」の場所と、そのセンサー
 
 > **ここが「どこを人が判定するか」の正**。[line.md](line.md) の 5 の表の「高」の言葉と、守る場所の一覧(`.claude/hooks/protected-paths.json`・`.github/labeler.yml` の `risk:high`・`.github/CODEOWNERS`)を、`pnpm guards` が毎回突き合わせる。ずれたら CI が落ちる。
-> このファイル自身も守る場所(AI は人の確認なしに変えない)。決めた理由は [ADR 0083](../adr/0083-guard-the-sensors.md)。
+> このファイル自身も守る場所(AI は人の確認なしに変えない)。決めた理由は [ADR 0084](../adr/0084-guard-the-sensors.md)。
 
 ## 考え方: コードではなく、センサーを守る
 

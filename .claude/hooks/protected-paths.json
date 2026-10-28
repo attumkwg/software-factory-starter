@@ -1,5 +1,5 @@
 {
-  "$comment": "危険度「高」の場所の一覧(ここが正)。AI は人の確認なしに変えない。編集のフック(guard-edit.mjs)と Bash のフック(guard-bash.mjs)がじかに読む。.github/labeler.yml の risk:high・.github/CODEOWNERS とずれたら `pnpm guards` が落ちる。足したらその2か所にも足す。どの領域のセンサーかは docs/concepts/risk-areas.md(ADR 0083)",
+  "$comment": "危険度「高」の場所の一覧(ここが正)。AI は人の確認なしに変えない。編集のフック(guard-edit.mjs)と Bash のフック(guard-bash.mjs)がじかに読む。.github/labeler.yml の risk:high・.github/CODEOWNERS とずれたら `pnpm guards` が落ちる。足したらその2か所にも足す。どの領域のセンサーかは docs/concepts/risk-areas.md(ADR 0084)",
   "paths": [
     "apps/api/src/auth/**",
     "apps/api/src/authz/**",
