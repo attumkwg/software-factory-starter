@@ -1,0 +1,48 @@
+# KPI の木: <プロダクトの名前(仮でよい)>
+# `/kickoff` が書く。写して docs/product/kpi.yaml にする。考え方は docs/guides/kpi.md。確かめは `pnpm kpi`。
+# 形: 北極星の指標1つ(ペルソナが価値を得た瞬間を数える)+入力の指標 2〜4(北極星を動かす。賭けはこれを動かす)
+#     +守りの指標 1つ以上(「安全に」の部分。エラー・解約・費用など。超えたら止める線)。
+# 番号は変えない(K-0 / K-1… / K-G1…)。やめた指標は消さずに status: やめた。
+# 値: 割合と件数は records に書く(組織名・個人は書かない)。金額の指標(money: true)は値を書かず、
+#     reached(線に届いたか)だけ。金額そのものは非公開の置き場(費用のページと同じ。docs/guides/kpi.md)。
+
+north_star:
+  id: K-0
+  name: "<例: 写真で現場を締めた組織の数(週)>"
+  persona: P-1
+  why: "<この数が増えると、ペルソナが何を得ているか>"
+  measure:
+    how: manual # usage(機能の利用の記録。feature に機能フラグの名前)/ survey(「無くなったら困るか」の問い)/ manual(集計・手で数える。source に何で数えるか)
+    source: "<例: 運営の集計で、その週に現場を締めた組織の数だけを出す>"
+  unit: 組織
+  target: { value: 20, by: YYYY-MM-DD } # 決まっていなければ消す(pnpm kpi が「目標が無い」と出す)。少ないほど良い指標は direction: below
+  status: 仮説 # 仮説 / 確か / やめた
+
+inputs:
+  - id: K-1
+    name: "<例: 使い始めた組織の 4週後の継続率>"
+    persona: P-1
+    why: "<北極星をどう動かすか>"
+    measure: { how: usage, feature: "<機能フラグの名前>", metric: "<例: 4週後の継続率(usage-report の continued)>" }
+    unit: "%"
+    target: { value: 60, by: YYYY-MM-DD }
+    status: 仮説
+  - id: K-2
+    name: "<…>"
+    persona: P-1
+    measure: { how: manual, source: "<…>" }
+    unit: "<…>"
+    status: 仮説
+
+guardrails:
+  - id: K-G1
+    name: "<例: 上げるのに失敗した割合>"
+    why: "<これが悪くなったら、北極星が伸びても止める>"
+    measure: { how: manual, source: "<例: アラームと Logs Insights の数>" }
+    unit: "%"
+    limit: { value: 2, direction: below } # below = この値を下回っていること / above = 上回っていること
+    status: 確か
+
+# 値の記録(足すだけ。古い行は消さない)。金額の指標は value を書かずに reached: true / false
+records:
+  - { date: YYYY-MM-DD, kpi: K-1, value: 0, source: "<例: usage-report の4週後の継続率>" }

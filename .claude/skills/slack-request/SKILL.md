@@ -20,6 +20,7 @@ description: Slack(Claude Code in Slack)やクラウドの Claude Code で頼ま
 
 - 頼まれた文を「誰の・何の困りごとか」「できあがりの姿」に分ける。分からない所は、4つの問いに当たるかで分ける。
 - 近い仕様(`docs/specs/`)・領域の `CLAUDE.md`・`docs/scenarios/gaps.md`(キットの穴なら)を読む。
+- 機能なら、どの賭けか・どのペルソナ(`docs/product/personas.md`)と KPI(`docs/product/kpi.yaml`)を動かすかを決める。当たる物が無ければ、それを「これでいいですか」の仮決めに入れる(仕様の「なぜ作るか」と PR の「動かす KPI」に写す。`docs/guides/kpi.md`)。
 - 4つに当たる問いがあれば、**まとめて1回**聞く(選択肢つき。おすすめを先頭に)。
 
 ## 2. 作る

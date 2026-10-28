@@ -1,0 +1,55 @@
+# KPI の木: タスク管理(見本)
+# 見本。題材はこのキットの TODO アプリ。数字は架空。自分のプロダクトでは /kickoff が _template-kpi.yaml の形で書き直す
+# (見本の賭け B-0001・B-0002 を残すなら、ここの K-n も残す)。考え方は docs/guides/kpi.md。確かめは `pnpm kpi`。
+
+north_star:
+  id: K-0
+  name: 期限の前に完了したタスクがあった組織の数(週)
+  persona: P-1
+  why: 期限の前に終わる = P-1 が催促しなくて済んだ。P-1 が価値を得た瞬間
+  measure:
+    how: manual
+    source: 運営の集計で、その週に期限の前に完了したタスクがある組織の数だけを出す(組織の ID は出さない)
+  unit: 組織
+  target: { value: 20, by: 2027-03-31 }
+  status: 仮説
+
+inputs:
+  - id: K-1
+    name: 期限が近いタスクに、期限の前に気づけた割合
+    persona: P-1
+    why: 早く気づけば、遅れる前に声をかけられる(北極星を動かす)
+    measure: { how: usage, feature: morning-digest, metric: 朝のまとめを入れた組織の 4週後の継続率(usage-report の continued) }
+    unit: "%"
+    target: { value: 70, by: 2026-12-31 }
+    status: 仮説
+  - id: K-2
+    name: 完了にしてから、見ている人に届くまでの時間
+    persona: P-2
+    why: 完了がすぐ届けば、P-1 が電話で聞かなくて済む
+    measure: { how: manual, source: タスクの完了のお知らせのメールの送り出しの記録(送るまでの分の中央値) }
+    unit: 分
+    target: { value: 5, by: 2026-12-31, direction: below }
+    status: 確か
+
+guardrails:
+  - id: K-G1
+    name: 知らせがうるさいと答えた人の割合
+    why: 知らせを増やしすぎると、北極星が伸びても使われなくなる
+    measure: { how: survey, source: 「無くなったら困るか」の問いの自由記述で「多い・うるさい」 }
+    unit: "%"
+    limit: { value: 10, direction: below }
+    status: 仮説
+  - id: K-G2
+    name: 1組織あたりの月の費用(AI・メール・置き場)
+    why: 使われるほど赤字になる形にしない(賭けごとの損益と同じ物を見る)
+    measure: { how: manual, source: 費用のページ(cost.yml)の組織あたり }
+    unit: 円
+    money: true # 金額の線と値はリポジトリに書かない(非公開の置き場の budgets.csv)。ここは向きだけ
+    limit: { direction: below }
+    status: 確か
+
+# 値の記録(足すだけ)。金額の指標(money: true)は value を書かずに reached だけ
+records:
+  - { date: 2026-10-20, kpi: K-2, value: 3, source: タスクの完了のお知らせの送り出しの記録(架空) }
+  - { date: 2026-10-27, kpi: K-G2, reached: true, source: 費用のページ(架空) }

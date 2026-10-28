@@ -8,6 +8,8 @@
 
 - 段階: idea
 - 親: <プロダクト全体の計画(docs/product/plan.md)のどの仮説を確かめるか。PMF の後なら、どの指標を動かすか>
+- ペルソナ: <P-n(docs/product/personas.md)。psf から必須>
+- 動かす KPI: <K-n(docs/product/kpi.yaml の入力の指標)。悪くしてはいけない守りの指標 K-Gn も。psf から必須>
 - 仮説: <◯◯な人は △△に困っていて、□□があれば ×× が増える>
 - 担当: @<名前>
 - 最終更新: YYYY-MM-DD
