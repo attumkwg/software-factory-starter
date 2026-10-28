@@ -22,6 +22,7 @@
     "docker/**",
     "docs/authz/**",
     "docs/compliance/vendors.yaml",
+    "docs/compliance/licenses.yaml",
     "infra/**",
     ".github/**",
     "CLAUDE.md",

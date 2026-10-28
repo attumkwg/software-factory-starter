@@ -26,6 +26,7 @@
 /apps/web/server/logger.ts          @attumkwg
 /apps/api/test/integration/personal-data-logs.int.test.ts @attumkwg
 /docs/compliance/vendors.yaml       @attumkwg
+/docs/compliance/licenses.yaml      @attumkwg
 
 # ── 危険度「高」: DB の移行 ──
 /apps/api/drizzle/                  @attumkwg

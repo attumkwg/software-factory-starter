@@ -9,6 +9,7 @@
 | 物 | 何か | 正 | 確かめ方 |
 |---|---|---|---|
 | [委託先の台帳](vendors.yaml)(人が読む一覧: [vendors.md](vendors.md)) | 外の会社ごとに、預け方・国・渡す区分・契約(DPA)・第三者の認証・消え方 | `vendors.yaml` | `pnpm vendors`(CI。コードの SDK・Terraform の AWS のサービス・Actions が台帳にあるか) |
+| [依存のライセンスの決まり](licenses.yaml)(人が読む一覧: [licenses.md](licenses.md)) | 依存のライセンスを 許す・注意・入れない(GPL・AGPL など)に分け、注意の物は1件ずつ理由。版つきの全部は `pnpm deps:licenses --full <ファイル>.csv`(DD・審査に渡す) | `licenses.yaml` | `pnpm deps:licenses`(CI。入れない物・決まりに無い物・一覧の作り忘れで落ちる) |
 | [AI に渡すデータの決まり](ai-data.md) | 本番の個人データは渡さない(ID と集計まで)・要配慮は一切。出どころごとの表と、渡してしまったとき | `docs/security.md` の AI-6 | 台帳の AI の会社に personal・sensitive が無いか(`pnpm vendors`) |
 | 管理操作の記録(CloudTrail) | AWS の操作を、ロックした S3 に400日(消す・方針を変えると鳴る) | `infra/terraform/modules/audit-trail` | 手順書 [runbooks/audit-trail.md](../runbooks/audit-trail.md)(入れ方・調べ方・書き換えの検証) |
 | [controls.yaml](controls.yaml) | 附属書 A(ISO/IEC 27001:2022)の93の管理策の「適用する・しない・理由・このキットでの実施・根拠」 | `controls.yaml`(人が直す。導入時に自社の範囲へ) | `pnpm compliance`(CI) |
