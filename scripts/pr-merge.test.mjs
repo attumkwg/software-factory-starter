@@ -38,7 +38,7 @@ test("開いていない・下書き・main 向けでない PR はマージし�
   assert.equal(prProblems({ ...ok, base: { ref: "release" } }).length, 1);
 });
 
-test("危険度「高」・テストを弱めた印・守りの場所に触る PR は、AI がマージしない(人が押す)", () => {
+test("危険度「高」・テストを弱めた印・守りの場所に触る PR は、人の答えが要る(1人の間は会話の答えを記録してマージ)", () => {
   const protectedPaths = JSON.parse(
     readFileSync(".claude/hooks/protected-paths.json", "utf8"),
   ).paths;

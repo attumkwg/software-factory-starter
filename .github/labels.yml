@@ -19,7 +19,7 @@ labels:
     meaning: 間違えると戻せない・守りが外れる場所(認証・認可・DB と移行・権限の表・infra・CI・AI のハーネス)を変えた PR
     who: 自動(labeler。.github/labeler.yml のパス)
     when: PR を開いた・push したとき。複数付いたら一番高いものがその PR の危険度
-    action: 人が中身を読む(👥 人が増えたら2人。CODEOWNERS)。PR の「人に判断してほしい所」から読む
+    action: 人が「人に判断してほしい所」の問いに答える(1人の間はチャット・Slack で。工場が PR に記録してマージ。👥 人が増えたら2人。CODEOWNERS)
     used_by: .github/labeler.yml
   - name: risk:medium
     color: ededed
@@ -118,6 +118,15 @@ labels:
     when: Issue を作ったとき
     action: 週に1回まとめて見て、やる・やらない・後で を決めたら外す
     used_by: .github/ISSUE_TEMPLATE
+  - name: needs-human
+    color: d93f0b
+    description: 人の答えを待つ PR・Issue(毎朝「🧑‍⚖️ 判断待ち」の Issue に古い順に出る。答えはチャット・Slack で)
+    group: Issue の種類・仕分け
+    meaning: 人が決めなければならない問い(1問1行・選択肢つき)があり、答えを待っている PR・Issue
+    who: AI(問いを出したとき)・自動(判断待ちの Issue そのもの)
+    when: 人に聞く問いを出したとき
+    action: チャットか Slack で答える。工場が PR に「会話で回答(日時つき)」と残して進め、印を外す
+    used_by: scripts/human-queue.mjs・.github/workflows/human-queue.yml・docs/concepts/human-decisions.md
 
   # ── 依存の更新(Renovate)──
   - name: dependencies

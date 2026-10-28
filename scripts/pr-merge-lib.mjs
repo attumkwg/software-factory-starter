@@ -42,14 +42,14 @@ export function prProblems(pr) {
   return problems;
 }
 
-// ── AI がマージしてはいけない PR(人が GitHub で押す。2026-10-28 のレビューで見つけた穴)──
+// ── 人の答えが要る PR(2026-10-28 のレビューで見つけた穴。1人の間は会話の答えで進める。ADR 0085)──
 
-/** 印が付いていたら AI はマージしない(危険度「高」・テストを弱めた) */
+/** 印が付いていたら人の答えが要る(危険度「高」・テストを弱めた) */
 export const HUMAN_ONLY_LABELS = ["risk:high", "tests:weakened"];
 
 /**
  * 守りそのものを変える場所(危険度「高」の一覧に加えて)。ここに触る PR は、自分のチェックを自分で緑にできるので
- * AI はマージしない(CI・フック・設定・答えの出どころ・テストを弱めた印・このマージのスクリプト)
+ * 人の答えが要る(CI・フック・設定・答えの出どころ・テストを弱めた印・このマージのスクリプト)
  */
 export const HARNESS_PATHS = [
   ".github/**",
@@ -68,7 +68,7 @@ export const matchesPath = (file, pattern) =>
   pattern.endsWith("/**") ? file.startsWith(pattern.slice(0, -2)) : file === pattern;
 
 /**
- * AI がマージしてはいけない理由の並び(空なら AI がマージしてよい)。
+ * 人の答えが要る理由の並び(空なら、ふつうの返事でマージしてよい)。答えた言葉と一緒に PR の記録に書く。
  * labels は PR の印の名前・files は変えたファイルの道・protectedPaths は危険度「高」の場所(protected-paths.json)
  */
 export function humanOnlyReasons({ labels, files, protectedPaths }) {

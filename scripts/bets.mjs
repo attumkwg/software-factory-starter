@@ -6,13 +6,14 @@
 //                          ロードマップの1枚。社内の版(段階・親・次に決める日)と、--public の社外の版
 //                          (約束しない書き方)。--write で docs/product/roadmap.md・roadmap-public.md に書く
 //   pnpm bets --pr-body [--author <名前>]
-//                          PR の本文(標準入力)の「取り組み」「作業の種類」を確かめる(CI)
+//                          PR の本文(標準入力)の「取り組み」「作業の種類」と、人への問いの数(多くて2つ)を確かめる(CI)
 //                          手元で: gh pr view <番号> --json body -q .body | pnpm bets --pr-body
 // 決まりは docs/guides/bets-and-assets.md。
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkBet, checkPrBody, idOfFile, parseBet } from "./bets-lib.mjs";
 import { renderInternal, renderPublic } from "./bets-roadmap.mjs";
+import { prQuestionProblems } from "./human-queue-lib.mjs";
 import { betLinkProblems, kpiIdsOf, personaIdsOf } from "./kpi-lib.mjs";
 
 const DIR = "docs/product/bets";
@@ -100,11 +101,20 @@ const prBody = () => {
   for (const { id, bet } of readBets()) if (id) bets[id] = bet.stage;
   const at = process.argv.indexOf("--author");
   const author = at > 0 ? (process.argv[at + 1] ?? "") : "";
-  const result = checkPrBody(readFileSync(0, "utf8"), { author, bets });
+  const body = readFileSync(0, "utf8");
+  const result = checkPrBody(body, { author, bets });
   for (const n of result.notes) console.log(`ℹ️ ${n}`);
   if (result.problems.length > 0) {
     console.log("❌ PR の本文の「🎯 取り組み」を埋めてください(.github/pull_request_template.md):");
     for (const p of result.problems) console.log(`- ${p}`);
+    process.exit(1);
+  }
+  // 人への問いは端的に(多くて2つ・1問1行。仕様 0085)
+  const questions = prQuestionProblems(body);
+  for (const n of questions.notes) console.log(`ℹ️ ${n}`);
+  if (questions.problems.length > 0) {
+    console.log("❌ PR の本文の「🧑‍⚖️ 人に判断してほしい所」を絞ってください:");
+    for (const p of questions.problems) console.log(`- ${p}`);
     process.exit(1);
   }
   const where = result.stage ? `(段階 ${result.stage})` : "";
