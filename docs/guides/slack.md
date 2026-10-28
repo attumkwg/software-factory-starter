@@ -25,7 +25,7 @@ Slack: @Claude 大丈夫なのでマージして        (Claude のアプリ・�
 | 会話の答え | 1人の間(`required_approvals: 0`)だけ、Slack・チャットの返事を未確定事項の答えに認める。CI は書き手を確かめられない(割り切り) |
 | 人が増えたら | 承認数を 1 以上にすると、AI のマージも会話の答えも止まる |
 
-### つなぐ(持ち主が1回)
+### つなぐ(使う側のリポジトリで、持ち主が1回。キットそのものはつながない)
 
 1. Slack に Claude のアプリを入れる([Slack App Marketplace の Claude](https://slack.com/marketplace/A08SF47R6P4))→ App Home で「Connect」→ 自分の Claude のアカウントとつなぐ。
 2. [claude.ai/code](https://claude.ai/code) で GitHub とつなぎ、このリポジトリに Claude の GitHub App を入れる。

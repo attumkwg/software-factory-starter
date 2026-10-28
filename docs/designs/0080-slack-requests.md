@@ -61,8 +61,8 @@ sequenceDiagram
 
 | 受け入れ条件 | 設計 | テスト |
 |---|---|---|
-| 頼むと1本の PR・これでいいですか | `/slack-request` の 1〜3 | 持ち主がつないだ後の試し(`docs/guides/slack.md` の 5) |
-| 返事で承認 → 緑でマージ | `/slack-request` の 4・`scripts/pr-merge-when-green.mjs` | `scripts/pr-merge.test.mjs`(判定)・試し |
+| 頼むと1本の PR・これでいいですか | `/slack-request` の 1〜3 | 使う側のリポジトリでつないだ後の試し(`docs/guides/slack.md` の 5。キット自身はつながない) |
+| 返事で承認 → 緑でマージ | `/slack-request` の 4・`scripts/pr-merge-when-green.mjs` | `scripts/pr-merge.test.mjs`(判定)・使う側のリポジトリでの試し |
 | 落ちている間はマージしない | `checkState` | `pr-merge.test.mjs` |
 | 手元ではマージできない | フックとスクリプトの変数の確かめ | `guard-bash.test.mjs` |
 | 会話の答えを CI が認める・持ち主だけ | `conversationAnswerProblems` | `decisions.test.mjs` |

@@ -1,6 +1,6 @@
 # 仕様: Slack で頼むと、AI が PR を出し、持ち主の返事でマージまでする(1人の間)
 
-> 状態: 完了(実装済み。クラウドの中で Docker・REST のマージが動くかは、持ち主がつないだ後の試しで確かめる)
+> 状態: 完了(実装済み。クラウドの中で Docker・REST のマージが動くかは、キットを使う側のリポジトリでつないだ後の試しで確かめる。キット自身はつながない)
 > 設計: [docs/designs/0080-slack-requests.md](../designs/0080-slack-requests.md)・ADR: [0082](../adr/0082-solo-conversation-answers-and-ai-merge.md)
 > 穴 G-124(`docs/scenarios/gaps.md`)。手順は `docs/guides/slack.md` の「🧍 1人の間のおすすめ」と `/slack-request`。
 
