@@ -128,9 +128,11 @@ async function preRegister(request: APIRequestContext, c: Company): Promise<stri
     data: { token },
   });
   expect(confirm.status()).toBe(204);
-  // 本番では、営業・CS が本人とのやり取りでどの登録かを決め、開発が ID だけを受け取る(tenant-provisioning.md)。
-  // ここでは確認のリンクの token の頭(`<登録の ID>.<署名>`)から取る
-  return token.split(".")[0] as string;
+  // 営業・CS が本人とのやり取りのアドレスから登録を探し、ID だけを開通に渡す(tenant-provisioning.md。G-123)
+  const found = operator(["pre-registrations-find"], { input: c.adminEmail });
+  expect(found).toMatchObject({ mode: "find", found: 1, status: "confirmed" });
+  expect(JSON.stringify(found)).not.toContain(c.adminEmail);
+  return found.preRegistrationId as string;
 }
 
 // ── 2. 開通(運営が申し込みの JSON から組織を作る。試し → 本当に作る)→ 開通の案内のメール ──
