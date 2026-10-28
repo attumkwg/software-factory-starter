@@ -3,7 +3,13 @@
 // 一覧に足したのに守りに足し忘れたら、ここで落ちる。手元の確認は2つのフック(編集 guard-edit.mjs・Bash guard-bash.mjs)が
 // 一覧をじかに読むので、ここではフックが settings.json に付いているかを見て、続けてフックのテストを流す。docs/guides/local-guards.md
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  highWordsFromLine,
+  parseMediumPlaces,
+  parseRiskAreas,
+  riskAreaProblems,
+} from "./risk-areas-lib.mjs";
 
 const read = (f) => readFileSync(f, "utf8");
 const { paths } = JSON.parse(read(".claude/hooks/protected-paths.json"));
@@ -23,6 +29,20 @@ for (const p of paths) {
   if (!ownerLines.includes(ownerPath(p)))
     missing.push(`.github/CODEOWNERS に ${ownerPath(p)} が無い`);
 }
+// 文書の危険度の表(line.md の「高」・risk-areas.md)と守る場所の一覧が合っているか(ADR 0084)
+const riskAreasMd = read("docs/concepts/risk-areas.md");
+missing.push(
+  ...riskAreaProblems({
+    areas: parseRiskAreas(riskAreasMd),
+    medium: parseMediumPlaces(riskAreasMd),
+    highWords: highWordsFromLine(read("docs/concepts/line.md")),
+    protectedPaths: paths,
+    apiDirs: readdirSync("apps/api/src", { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name),
+    exists: existsSync,
+  }),
+);
 if (!claudeMd.includes(".claude/hooks/protected-paths.json"))
   missing.push("CLAUDE.md が .claude/hooks/protected-paths.json を指していない");
 
