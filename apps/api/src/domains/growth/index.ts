@@ -5,6 +5,8 @@ export { type PublicSiteLinks, preRegistrationConfirmMail } from "./notification
 export {
   countsBySource,
   deleteByEmail,
+  type FoundPreRegistration,
+  findByEmail,
   loadPreRegistrationForTenant,
   markPreRegistrationConverted,
   type PreRegistrationForTenant,

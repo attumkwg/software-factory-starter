@@ -24,6 +24,8 @@ type Options = {
   /** 手元のフォルダを /journey に読み取りだけで見せる(申し込みの JSON を渡す) */
   mount?: string;
   env?: Record<string, string>;
+  /** 標準入力に渡す1行(メールアドレスのように、引数に書かない値) */
+  input?: string;
 };
 
 /** 運営のコマンドを1回流し、出た JSON の行を返す(コマンドは結果を JSON 1行で出す) */
@@ -43,7 +45,13 @@ export function operator(args: string[], options: Options = {}): Record<string, 
       "dist/cli.js",
       ...args,
     ],
-    { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+      ...(options.input === undefined
+        ? { stdio: ["ignore", "pipe", "pipe"] }
+        : { input: `${options.input}\n`, stdio: ["pipe", "pipe", "pipe"] }),
+    },
   );
   const line = out.split("\n").find((l) => l.startsWith("{"));
   if (!line) throw new Error(`運営のコマンドが JSON を出しませんでした: ${args[0]}\n${out}`);

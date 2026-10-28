@@ -107,7 +107,7 @@ flowchart LR
 - 公開のページ(`www.<ドメイン>`)から API のホスト(`app.<ドメイン>`)へ **JSON の fetch** で送る。CORS は公開のページの origin(`PUBLIC_SITE_URL`)だけに開き、資格情報(Cookie)は送らせない(`app.ts` の `/api/public/*`)。下見(OPTIONS)は CORS の部品が関所の前で答える。本文は 8KB まで。
 - 権限は `policy.ts` の `public`(関所はログインを見ずに通す)。ハンドラーが運営の組織の文脈(`withTenant`)を自分で開く。`PUBLIC_SITE_URL` か `SUPPORT_TENANT_ID` が無ければ全部 404。
 - 入力のスキーマは `packages/shared/src/pre-registration.ts` の Zod(足すだけ)。
-- 監査ログ: 公開の入口は `public` なので、関所の自動の記録(`actions.ts`)の外。運営のコマンドが運営の組織の監査ログに `pre_registration.purged`(件数)・`pre_registration.deleted`(登録の ID)・`pre_registration.converted`(作った組織の ID)を残す。
+- 監査ログ: 公開の入口は `public` なので、関所の自動の記録(`actions.ts`)の外。運営のコマンドが運営の組織の監査ログに `pre_registration.purged`(件数)・`pre_registration.deleted`(登録の ID)・`pre_registration.converted`(作った組織の ID)・`pre_registration.found`(アドレスから引いた登録の ID。G-123)を残す。
 - 権限の表: 仕様の「権限の表に足す行」。
 
 ## 4. 状態遷移
@@ -143,6 +143,7 @@ flowchart LR
 - **消し方**: ①本人がメールの取り消しのリンクから ②本人が問い合わせ → 運営がコマンド `pre-registrations-delete`(アドレスは標準入力から。運営が打つ。AI は打たない・アドレスを受け取らない)③保存期間を過ぎたら `pre-registrations-purge`。
 - **UTM の扱い**: 英数と `-_.` だけ・100 文字まで。外れた値は空にする(自由な文や個人のメールアドレスが UTM に入れられても残さない)。
 - **見た数**: ページが開いて1秒たってから1回だけ送る(機械の先読みを減らす)。Cookie・端末の ID・IP・User-Agent・Referrer の全部は残さない。数は目安(広告の管理画面の数と合わない)。
+- **ID の引き方**(G-123): 開通の前に、営業・CS が本人とのやり取りのアドレスを運営に渡し、運営がコマンド `pre-registrations-find`(アドレスは標準入力から1行・読むだけ)で引く。出すのは登録の ID・状態・登録した日(日本時間)・開通済みなら組織の ID だけ(アドレス・会社名は出さない)。確認待ちは ID を出さない(組織にできないため)。引いたら運営の組織の監査ログに登録の ID を残す。
 - **率**: 登録の率 = 登録 ÷ 見た数、確認の率 = 確認 ÷ 登録。来た所ごと。運営のコマンド `pre-registrations-report --from --to` が出す(個人の行は出さない)。
 - **本番以外**: 公開のページは全部 noindex・`robots.txt` で全部お断り。確認のメールは Mailpit へ。
 
@@ -165,6 +166,7 @@ flowchart LR
 | 本人のリンク・運営のコマンドで消せる | 3. API・6. 業務ルール | `growth-public.int.test.ts`「取り消しのリンクで…」「delete は…」 |
 | UTM が記録と集計に残る・Cookie なし・外へ送らない | 2. データモデル・6. 業務ルール | `pre-registration.test.ts`(UTM の整え)・`growth-public.int.test.ts`「見た数」・`apps/site/src/site.test.tsx`「外のサイトの読み込みが無い」「URL から読む物」 |
 | 運営のコマンドで率を見る | 6. 業務ルール | `growth-public.int.test.ts`「report は…」 |
+| アドレスから ID と状態を引く(G-123) | 6. 業務ルール | `growth-commands.int.test.ts`「find は…」・`apps/web/e2e/journey.spec.ts` の 1 |
 | 確認済みの ID を組織を作る入力に・開通済みにする | 5. 連携 | `growth-public.int.test.ts`「確認済みの登録だけを…」(G-01 のコマンドとつなぐのは G-01 の側) |
 | 同じアドレスへは24時間に1通 | 2. データモデル・6. 業務ルール | `growth-public.int.test.ts`「同じアドレスは行を作らず…」 |
 
@@ -217,6 +219,7 @@ flowchart LR
 - **見た数は日ごとの集計の行だけ**(一回ずつの行を持たない) — 個人に結びつく物を持たない。行も増えない。
 - **UTM は英数と `-_.` だけ** — UTM に個人のメールアドレスなどを入れたリンクを配られても残さない。
 - **メールアドレスの一覧を書き出すコマンドを作らない** — 組織を作るのは ID 1つずつで足りる。一覧があると、人の手で外へ持ち出される道になる。
+- **ID を引く道はアドレス1つ → 登録1件のコマンド**(G-123。運営の画面の「確認済みの一覧」にしない) — 一覧を作らない決まり(上)のまま、営業・CS が本人とのやり取りから ID にたどれる。画面に一覧を出すと、運営の社員の誰でもアドレスを眺められる。引いた記録は監査ログに残す(誰の登録を引いたかを後から追える)。
 - **仕様と設計の PR では手引きと設計まで**(コードを足さない) — 表・API・`apps/site` は U-1 の答えで形が変わる。どの案でも要る物(同意の文の型・計測の考え方・LP に要る物)だけ先に入れた。
 - **実装は3つの PR に分ける**: ① 事前登録の受け口(表・公開の API・運営のコマンド・組織へのつなぎ)② 公開のページ `apps/site` ③ 置き場所(Terraform の S3+CloudFront・stg と prod へのつなぎ・WAF の数の上限・配る仕組み・E2E と VRT)。①だけでも外の CMS のフォームから送れる。③ は手元で Terraform を確かめられないので分けた。
 - **置き場所は stg と prod の環境に `public_site_domain` で足す**(別の Terraform の根を作らない) — 証明書・DNS のゾーン・API の `PUBLIC_SITE_URL`・配る役割が同じ環境の中で閉じる。入れなければ何も作らず、API の公開の入口も 404 のまま(キットの既定は無し)。
