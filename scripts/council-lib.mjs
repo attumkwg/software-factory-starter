@@ -1,5 +1,6 @@
 // ペルソナの立場の地図(docs/product/personas.md)と、合議の記録(docs/product/councils/*.md)の確かめ(中身だけ)。
-// 読み書きは kpi.mjs。決まりは docs/guides/kpi.md・仕様 0082・スキル /persona・/council。
+// 読み書きは kpi.mjs。決まりは docs/guides/kpi.md・仕様 0082・0084・スキル /persona・/council。
+// 合議は判断の参考で、必須の関所にしない(仕様 0084)。7つの立場のそろいは知らせるだけ。既定の形は「軽い」(反論役1人)。
 import { allKpis } from "./kpi-lib.mjs";
 
 export const STANCES = ["使う人", "買う人", "決める人", "止める人", "周りの人", "失う人", "運営"];
@@ -63,17 +64,36 @@ function stancesBySegment(personas) {
   return segments;
 }
 
-/** 立場の地図の誤り(1人ずつの書き方と、客層ごとに7つの立場がそろっているか) */
-export function personaProblems(personas) {
-  const problems = personas.flatMap(cardProblems);
+/** 立場の地図の誤り(1人ずつの書き方だけ。立場のそろいは stanceNotes で知らせる) */
+export const personaProblems = (personas) => personas.flatMap(cardProblems);
+
+/** 客層ごとに7つの立場がそろっていない知らせ(落とさない。全員の合議を回すときの材料) */
+export function stanceNotes(personas) {
+  const notes = [];
   for (const [segment, stances] of stancesBySegment(personas)) {
     const missing = STANCES.filter((s) => !stances.has(s));
     if (missing.length === 0) continue;
     const where = segment ? `客層 ${segment} の` : "";
-    problems.push(`立場の地図が埋まっていない(${where}足りない立場: ${missing.join("・")})`);
+    notes.push(`立場の地図が埋まっていない(${where}足りない立場: ${missing.join("・")})`);
   }
-  return problems;
+  return notes;
 }
+
+/** 合議の形。「- 形: 軽い」なら反論役1人の軽い形(既定)、ほかは全員の形 */
+export const councilForm = (md) =>
+  String(md ?? "")
+    .split("\n")
+    .some((l) => l.trim().startsWith("- 形: 軽い"))
+    ? "軽い"
+    : "全員";
+
+/** 軽い形で要る見出し(反論役・結論の案・問い・人の判断) */
+const LIGHT_SECTIONS = [
+  "## 2. 反論役",
+  "## 5. 結論の案",
+  "## 6. 次に確かめる問い",
+  "## 7. 人の判断",
+];
 
 const SECTIONS = [
   "## 1. 1人ずつの評価",
@@ -120,12 +140,9 @@ function rowProblems([id, , vote, , , evidence], stanceOf) {
   return out;
 }
 
-// 1の表(全員の賛否)の誤り
+// 1の表(全員の賛否)の誤り。立場のそろいは councilNotes で知らせる
 function tableProblems(rows, stanceOf, vetoText) {
   const problems = rows.flatMap((r) => rowProblems(r, stanceOf));
-  const stances = new Set(rows.map(([id]) => stanceOf.get(id)).filter(Boolean));
-  const missing = STANCES.filter((s) => !stances.has(s));
-  if (missing.length > 0) problems.push(`出席に足りない立場: ${missing.join("・")}`);
   for (const [id, , vote] of rows)
     if (vote === "拒否" && !vetoText.includes(id))
       problems.push(`拒否した ${id} の扱いが「4. 拒否と、その扱い」に無い`);
@@ -147,9 +164,15 @@ function closingProblems(sections) {
   return out;
 }
 
-/** 合議の記録の誤り。stanceOf は P-n → 立場 */
+/** 合議の記録の誤り。stanceOf は P-n → 立場。軽い形は反論役・結論・問い・人の判断だけを見る */
 export function councilProblems(md, stanceOf) {
   const sections = sectionsOf(md);
+  if (councilForm(md) === "軽い") {
+    const missing = LIGHT_SECTIONS.filter((s) => !sections.has(s));
+    if (missing.length > 0) return missing.map((s) => `「${s}」の見出しが無い`);
+    const critic = sections.get(LIGHT_SECTIONS[0]).some((l) => l.trim().startsWith("- "));
+    return [...(critic ? [] : ["「2. 反論役」が空"]), ...closingProblems(sections)];
+  }
   const absent = SECTIONS.filter((s) => !sections.has(s)).map((s) => `「${s}」の見出しが無い`);
   if (absent.length > 0) return absent;
   const rows = sections
@@ -161,6 +184,15 @@ export function councilProblems(md, stanceOf) {
     ...closingProblems(sections),
     ...starProblems(md),
   ];
+}
+
+/** 全員の形で、出席に足りない立場の知らせ(落とさない) */
+export function councilNotes(md, stanceOf) {
+  if (councilForm(md) === "軽い") return [];
+  const rows = councilRows(md);
+  const stances = new Set(rows.map((r) => stanceOf.get(r.id)).filter(Boolean));
+  const missing = STANCES.filter((s) => !stances.has(s));
+  return missing.length > 0 ? [`出席に足りない立場: ${missing.join("・")}`] : [];
 }
 
 /** 1の表の行(ペルソナ・立場・賛否・根拠)。星の機械の分に使う */
@@ -191,11 +223,17 @@ function starProblems(md) {
   );
 }
 
-/** 合議から来ていない指標(council が無い・記録が無い)を知らせる文の並び。files は記録のパスの集まり */
+/**
+ * 合議・意義の判断から来ていない指標(council が無い・記録が無い)を知らせる文の並び。
+ * files は合議(councils/)と意義の判断(verdicts/)の記録のパスの集まり。どちらから来てもよい(仕様 0084)
+ */
 export function councilLinkNotes(doc, files) {
   const notes = [];
   for (const k of allKpis(doc).filter((x) => x.status !== "やめた")) {
-    if (!k.council) notes.push(`${k.id}: どの合議から来たか(council)がまだ無い(/council)`);
+    if (!k.council)
+      notes.push(
+        `${k.id}: どの合議・意義の判断から来たか(council)がまだ無い(/council・意義の判断役)`,
+      );
     else if (!files.has(k.council)) notes.push(`${k.id}: council の記録 ${k.council} が無い`);
   }
   return notes;
