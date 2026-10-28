@@ -44,7 +44,7 @@ pnpm test
 docker compose up --build
 ```
 
-http://localhost:8080 を開き、`admin@acme.test` でログインする(パスワードなし。開発用のログイン)。
+http://localhost:8080 を開き、`admin@acme.test` でログインする(パスワードなし。開発用のログイン)。見本のデータの会社(Acme・Globex・Initech)・人・メール(`*.test`)は全部架空。
 
 > アプリが送ったメールは http://localhost:8025(Mailpit)に届く。外には出ない。
 
