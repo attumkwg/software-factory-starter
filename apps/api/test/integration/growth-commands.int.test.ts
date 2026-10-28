@@ -8,6 +8,7 @@ import {
 } from "../../src/domains/growth/index.ts";
 import {
   runPreRegistrationDelete,
+  runPreRegistrationFind,
   runPreRegistrationPurge,
   runPreRegistrationReport,
 } from "../../src/pre-registrations/index.ts";
@@ -95,6 +96,63 @@ describe("運営のコマンド", () => {
     await runPreRegistrationPurge(h.owner.db, h.ops.tenantId, ["--execute"]);
     expect(await h.rowOf(expired)).toBeUndefined();
     expect(await h.rowOf(fresh)).toBeDefined();
+  });
+});
+
+describe("アドレスから登録を探す(G-123)", () => {
+  it("find はアドレスから ID と状態だけを出す(確認待ちは ID を出さない・アドレスは出さない・引いたら監査ログ)", async () => {
+    const address = email();
+    const find = async (input: string) =>
+      JSON.parse((await runPreRegistrationFind(h.owner.db, h.ops.tenantId, input))[0] ?? "");
+    expect(await find(address)).toEqual({ mode: "find", found: 0 });
+
+    await h.register(address);
+    const id = (await h.rowOf(address))?.id ?? "";
+    const pending = await find(` ${address.toUpperCase()} `);
+    expect(pending).toMatchObject({ mode: "find", found: 1, status: "pending" });
+    expect(pending.preRegistrationId).toBeUndefined();
+    expect(pending.registeredOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    const mail = await h.mailFor(id);
+    if ("skip" in mail) throw new Error(mail.skip);
+    await h.post("/api/public/pre-registrations/confirm", { token: tokenIn(mail, "confirm") });
+    const lines = await runPreRegistrationFind(h.owner.db, h.ops.tenantId, address);
+    expect(lines.join("\n")).not.toContain(address);
+    expect(lines.join("\n")).not.toContain("サンプル商事");
+    expect(JSON.parse(lines[0] ?? "")).toMatchObject({
+      found: 1,
+      status: "confirmed",
+      preRegistrationId: id,
+      convertedTenantId: null,
+    });
+    // 見つけた ID は、そのまま組織を作るコマンドの入力になる
+    expect(
+      await h.asOps((tx) => loadPreRegistrationForTenant(tx, h.ops.tenantId, id)),
+    ).not.toBeNull();
+
+    await h.asOps((tx) => markPreRegistrationConverted(tx, h.ops.tenantId, id, h.a.tenantId));
+    expect(await find(address)).toMatchObject({
+      status: "converted",
+      preRegistrationId: id,
+      convertedTenantId: h.a.tenantId,
+    });
+
+    const audit = await h.asOps((tx) =>
+      tx
+        .select({ id: auditEvents.targetId })
+        .from(auditEvents)
+        .where(
+          and(
+            eq(auditEvents.tenantId, h.ops.tenantId),
+            eq(auditEvents.action, "pre_registration.found"),
+            eq(auditEvents.targetId, id),
+          ),
+        ),
+    );
+    expect(audit).toHaveLength(3);
+    await expect(runPreRegistrationFind(h.owner.db, h.ops.tenantId, "")).rejects.toThrow(
+      "メールアドレス",
+    );
   });
 });
 

@@ -1,9 +1,10 @@
 import type { RootDb } from "../db/client.ts";
-import { runDelete, runPurge, runReport } from "./command.ts";
+import { runDelete, runFind, runPurge, runReport } from "./command.ts";
 
-// cli.ts の「数だけを出す運営のコマンド」の表(COUNT_COMMANDS)に混ぜる、事前登録の3つのコマンド
+// cli.ts の「数だけを出す運営のコマンド」の表(COUNT_COMMANDS)に混ぜる、事前登録の4つのコマンド
 // (docs/runbooks/pre-registrations.md)。事前登録は運営の組織の持ち物なので、SUPPORT_TENANT_ID が無ければ止める。
 //   pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD] … 来た所ごとの見た数・登録・確認と率(読むだけ)
+//   pre-registrations-find               … アドレスから登録を1件探し、ID と状態だけを出す(アドレスは標準入力から1行。読むだけ。G-123)
 //   pre-registrations-purge [--execute]  … 消す日を過ぎた事前登録・古い日ごとの数を消す(試し → 本番)
 //   pre-registrations-delete [--execute] … 問い合わせのあったアドレスの事前登録を消す(アドレスは標準入力から1行。試し → 本番)
 
@@ -32,6 +33,11 @@ export function preRegistrationCommands(
 ): Record<string, CountCommand> {
   return {
     "pre-registrations-report": (db, args) => runReport(db, operatorTenantIdFrom(env), args),
+    "pre-registrations-find": async (db) => {
+      const operatorTenantId = operatorTenantIdFrom(env);
+      process.stderr.write("探す登録のメールアドレスを1行で入れてください: ");
+      return runFind(db, operatorTenantId, await readLine());
+    },
     "pre-registrations-purge": (db, args) => runPurge(db, operatorTenantIdFrom(env), args),
     "pre-registrations-delete": async (db, args) => {
       const operatorTenantId = operatorTenantIdFrom(env);

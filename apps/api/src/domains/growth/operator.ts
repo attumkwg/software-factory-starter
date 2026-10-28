@@ -2,7 +2,7 @@ import { PRE_REGISTRATION_RETENTION_DAYS } from "@app/shared";
 import { and, eq, gte, lt, lte, sql } from "drizzle-orm";
 import { MANUAL_AUDIT_ACTIONS, recordAudit } from "../../audit/index.ts";
 import type { TenantTx } from "../../db/client.ts";
-import type { PublicScope } from "./repository.ts";
+import { type PublicScope, tokyoDay } from "./repository.ts";
 import { lpDailyCounts, preRegistrations } from "./schema.ts";
 
 // 運営のコマンド(src/pre-registrations/command.ts)と、組織を作るコマンド(G-01 の create-tenant)が使う読み書き。
@@ -123,6 +123,54 @@ export async function deleteByEmail(
     });
   }
   return { found: gone.length };
+}
+
+export type FoundPreRegistration = {
+  preRegistrationId: string;
+  /** pending / confirmed / converted */
+  status: string;
+  /** 登録した日(日本時間)。本人とのやり取りで「いつ頃の登録か」を突き合わせる */
+  registeredOn: string;
+  /** 組織にした登録なら、作った組織の ID */
+  convertedTenantId: string | null;
+};
+
+/**
+ * 問い合わせ・申し込みのあったアドレスから、登録を1件探す(G-123。開通の前に ID を決める)。アドレスは返さない。
+ * 見つかったら運営の組織の監査ログに登録の ID を残す(誰の登録を引いたかを後から追える)。
+ */
+export async function findByEmail(
+  scope: PublicScope,
+  email: string,
+): Promise<FoundPreRegistration | null> {
+  const [row] = await scope.tx
+    .select({
+      id: preRegistrations.id,
+      status: preRegistrations.status,
+      createdAt: preRegistrations.createdAt,
+      convertedTenantId: preRegistrations.convertedTenantId,
+    })
+    .from(preRegistrations)
+    .where(
+      and(
+        eq(preRegistrations.tenantId, scope.tenantId),
+        eq(preRegistrations.email, email.trim().toLowerCase()),
+      ),
+    );
+  if (!row) return null;
+  await recordAudit(scope.tx, {
+    tenantId: scope.tenantId,
+    actor: { kind: "system", id: null },
+    action: MANUAL_AUDIT_ACTIONS.preRegistrationFound,
+    target: { type: "pre_registration", id: row.id },
+    outcome: "allowed",
+  });
+  return {
+    preRegistrationId: row.id,
+    status: row.status,
+    registeredOn: tokyoDay(row.createdAt),
+    convertedTenantId: row.convertedTenantId,
+  };
 }
 
 // ── 組織を作るコマンド(G-01 の create-tenant)へのつなぎ。運営の組織の文脈(withTenant)の中で呼ぶ ──

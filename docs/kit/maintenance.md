@@ -2,6 +2,7 @@
 
 > 外部のコードの審査・契約で聞かれることを1ページに。**キットは作成中で、保守の日数も期限も約束しない**(できる範囲で直す)。決まりは [仕様 0066](../specs/0066-kit-versions-and-maintenance.md)・[設計書 0066](../designs/0066-kit-versions-and-maintenance.md)。
 > 変更の記録は [CHANGELOG.md](../../CHANGELOG.md)、穴の知らせ方は [SECURITY.md](../../SECURITY.md)、キットから作ったリポジトリへの取り込み方は [upgrade.md](upgrade.md)。
+> **できないこと・確かめていないこと**(本物の AWS の上で確かめていない物を含む)は [limits.md](limits.md) に1か所にまとめた。審査の資料にはそれも添える。
 
 ## 1. 誰が
 
@@ -41,6 +42,6 @@
 
 ## 5. 審査・契約に出すとき(使う会社へ)
 
-- 📋 審査の資料には、この1ページ・[SECURITY.md](../../SECURITY.md)・[CHANGELOG.md](../../CHANGELOG.md)・使っている版(取り込んだ最後のタグ)を添える。
+- 📋 審査の資料には、この1ページ・[limits.md](limits.md)(できないこと・確かめていないこと)・[SECURITY.md](../../SECURITY.md)・[CHANGELOG.md](../../CHANGELOG.md)・使っている版(取り込んだ最後のタグ)を添える。
 - 🤝 **保守を契約で約束してほしいとき**は、キットの持ち主ではなく、①自社で持つ(キットから作ったリポジトリはあなたの物で、MIT なので直してよい)か、②キットを使って支援する会社と契約する。キットの直しは「上流の更新」として取り込む。
 - 🧾 キットから作ったプロダクトの穴の窓口は、**あなたの会社**。キットから来た `SECURITY.md` は、あなたの連絡先に置き換える([getting-started.md](../getting-started.md) の ②)。

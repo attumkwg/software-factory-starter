@@ -33,6 +33,8 @@
 
 ## 2. AWS アカウントと状態の置き場
 
+> ⚠️ キットは本物の AWS に一度も載せていない。最初の apply で何を確かめるかは [../kit/limits.md](../kit/limits.md) の 3.1。
+
 1. AWS Organizations で **dev(プレビュー)・stg・prod** のアカウントを分ける(本番だけ別の鍵。AI が触れるのは dev まで)
    - 人の入り口は IAM Identity Center。**prod の許可セットはセッションの長さを1時間に**し、人のアクセスキーは作らない。AI を動かす端末には prod のプロファイルを既定で置かない([local-guards.md](local-guards.md) の「手元の資格情報」。点検の `local-aws-credentials`)
 2. 状態の S3 バケットを作る(バージョニング・暗号化・公開ブロックを有効に)。名前を GitHub の変数 `TF_STATE_BUCKET` に

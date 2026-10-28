@@ -53,7 +53,7 @@ import { runTenantShares, runUsagePurge, runUsageReport } from "./usage/index.ts
 //                                      … 保存期間を過ぎた「聞き終えた印」を消す(試し → 本番。docs/runbooks/pmf-survey.md)
 //   node dist/cli.js files-local-bucket  … 手元(docker compose)の S3 互換の置き場に置き場を作る(local / test だけ。
 //                                        docs/guides/local-environment.md。本番・stg は Terraform)
-//   node dist/cli.js pre-registrations-report | -purge | -delete  … 公開の LP の事前登録の数・消す
+//   node dist/cli.js pre-registrations-report | -find | -purge | -delete  … 公開の LP の事前登録の数・探す・消す
 //                                      (src/pre-registrations/cli.ts・docs/runbooks/pre-registrations.md)
 
 const appEnv = process.env.APP_ENV ?? "local";
@@ -247,7 +247,7 @@ async function usageCommand(run: (db: RootDb) => Promise<string[]>) {
 const commands = process.argv.slice(2);
 if (commands.length === 0)
   throw new Error(
-    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge / pmf-survey-report / pmf-survey-purge / pre-registrations-report / pre-registrations-purge / pre-registrations-delete / demo-reset)",
+    "コマンドがありません(init-roles / migrate / seed / create-tenant / person-data / delete-tenant / legal-notify / feature-flag / plan / plan-report / usage-report / tenant-shares / usage-purge / pmf-survey-report / pmf-survey-purge / pre-registrations-report / pre-registrations-find / pre-registrations-purge / pre-registrations-delete / demo-reset)",
   );
 // 数だけを出す運営のコマンド(中身は src/usage・src/pmf-survey・src/pre-registrations。組織の ID・名前・人の ID は出さない)
 const supportTenantId = process.env.SUPPORT_TENANT_ID ?? null;

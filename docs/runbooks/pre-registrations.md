@@ -1,7 +1,7 @@
 # 公開の LP の事前登録: 数える・消す・組織にする
 
 > 仕様: [specs/0025](../specs/0025-public-landing-page.md)・領域: [domain/growth](../domain/growth/README.md)・決まり: [guides/landing-page.md](../guides/landing-page.md)。
-> `pre-registrations-report` は**読むだけ**。`pre-registrations-purge --execute`・`pre-registrations-delete --execute` は**本番の DB から消す操作**(戻せない)。どれも人が打つ。AI は打たない。
+> `pre-registrations-report`・`pre-registrations-find` は**読むだけ**。`pre-registrations-purge --execute`・`pre-registrations-delete --execute` は**本番の DB から消す操作**(戻せない)。どれも人が打つ。AI は打たない。
 > **メールアドレス・会社名をチャット・Issue・PR・AI に貼らない**(出力は数と率だけ。docs/security.md の AI-6)。
 
 ECS の API のイメージで、移行と同じ接続(表の持ち主)・`SUPPORT_TENANT_ID`(運営の組織)を渡して流す(`usage-report` と同じ)。
@@ -17,6 +17,23 @@ node dist/cli.js pre-registrations-report --from 2026-11-01 --to 2026-11-30
 - 期間は日本時間の日付(両端を含む)。省くと今日までの28日。
 - `views` は公開のページが開かれた数(Cookie を使わない目安。広告の管理画面の数とは合わない)。`registrationRate` = 登録 ÷ 見た数(%)・`confirmationRate` = 確認 ÷ 登録(%)。
 - 賭けの小石や全体の計画には、来た所ごとの**率**で書く。
+
+## アドレスから登録を探す(開通の前)
+
+申し込みのあった会社の事前登録の ID を決めるとき([tenant-provisioning.md](tenant-provisioning.md) の「事前登録から」)。営業・CS は本人とのやり取りのメールアドレスを運営に渡す(チャット・Issue に貼らない)。
+
+1. 運営が**手元の端末で**、アドレスを標準入力から入れる(コマンドの引数に書かない = 端末の履歴・ECS の引数に残さない):
+   ```bash
+   node dist/cli.js pre-registrations-find
+   ```
+2. 出た行で次を決める。運営の組織の監査ログに `pre_registration.found`(登録の ID だけ)が残る。
+
+| 出た行 | どうするか |
+|---|---|
+| `{"mode":"find","found":1,"preRegistrationId":"…","status":"confirmed","registeredOn":"2026-11-02","convertedTenantId":null}` | `preRegistrationId` を開通の作業に渡す。`registeredOn` が本人の話と合うかも見る |
+| `{"mode":"find","found":1,"status":"pending","registeredOn":"…","convertedTenantId":null}` | 確認待ち(ID は出ない)。本人に確認のメールを開いてもらってから、もう一度探す。7日たつとリンクが切れるので、登録し直してもらう |
+| `{"mode":"find","found":1,"preRegistrationId":"…","status":"converted","registeredOn":"…","convertedTenantId":"…"}` | もう組織にした。同じ登録から2つ目の組織を作らない(その組織の管理者の招待をやり直すなど) |
+| `{"mode":"find","found":0}` | アドレスの打ち間違い・本人が取り消した・期限で消えた。本人に LP から登録し直してもらう |
 
 ## 期限の過ぎた登録を消す(週1回)
 
