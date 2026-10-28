@@ -216,8 +216,8 @@ controls:
     name: 知的財産権
     applies: true
     why: 使う部品の使用許諾(ライセンス)を守るため
-    how: 依存は package.json と pnpm-lock.yaml に固定(使用許諾は依存を足す PR で確かめる)
-    refs: [pnpm-lock.yaml]
+    how: 依存は package.json と pnpm-lock.yaml に固定。使用許諾は決まりの台帳で分け、GPL・AGPL など入れない物と理由の無い注意の物を CI が止める(pnpm deps:licenses)
+    refs: [pnpm-lock.yaml, docs/compliance/licenses.yaml, docs/compliance/licenses.md]
   - id: A.5.33
     name: 記録を守る
     applies: true
