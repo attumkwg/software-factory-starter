@@ -104,5 +104,10 @@ watch:
     status: 仮説
     council: docs/product/councils/2026-10-28-kpi.md
 
-# 値の記録(足すだけ)。金額の指標(money: true)は value を書かずに reached だけ
+# 合議の見込み(足すだけ)。合議の 5 の見込みの幅を写し、期限の後に records と比べて当たり外れを出す(pnpm kpi)
+forecasts:
+  - { date: 2026-10-28, kpi: K-1, council: docs/product/councils/2026-10-28-kpi.md, low: 50, high: 80, by: 2026-12-31 }
+  - { date: 2026-10-28, kpi: K-2, council: docs/product/councils/2026-10-28-kpi.md, low: 60, high: 90, by: 2026-12-31 }
+
+# 値の記録(足すだけ。毎週の手順と /bet の結果で1行)。金額の指標(money: true)は value を書かずに reached だけ
 records: []

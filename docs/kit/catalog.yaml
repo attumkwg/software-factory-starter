@@ -2225,11 +2225,12 @@ parts:
     if_removed: 賭けの線はあるが、プロダクト全体のどの数を動かしたかが残らない。資産の根拠が合格の線だけになる
     depends_on: []
     law: []
-    where: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, docs/guides/kpi.md]
+    where: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/loop-lib.mjs, docs/guides/kpi.md]
     remove:
-      delete: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/kpi.test.mjs, docs/guides/kpi.md]
+      delete: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/kpi.test.mjs, scripts/loop-lib.mjs, scripts/loop.test.mjs, docs/guides/kpi.md]
       edit:
-        - { path: package.json, what: kpi と、test:scripts の scripts/kpi.test.mjs を外す }
+        - { path: package.json, what: kpi と、test:scripts の scripts/kpi.test.mjs・scripts/loop.test.mjs を外す }
+        - { path: docs/playbook.md, what: 毎週の KPI と合議の行を外す }
         - { path: .github/workflows/ci.yml, what: pnpm kpi を外す }
         - { path: scripts/bets.mjs, what: readLinks と betLinkProblems を外す(bets-lib.mjs の persona・kpi の読み取りも) }
         - { path: docs/product/bets/_template.md, what: ペルソナと動かす KPI の行を外す(見本の B-0001・B-0002 も) }

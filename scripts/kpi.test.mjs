@@ -237,6 +237,10 @@ test("合議の記録: 見出し・賛否・根拠・立場のそろい・拒否
       questions,
       "## 7. 人の判断",
       decision,
+      "## 8. 星の採点",
+      "| 軸 | ★ | 根拠 |",
+      "|---|---|---|",
+      ...["価値", "確からしさ", "守り", "ROI の見込み", "実現性"].map((a) => `| ${a} | 1 | 根拠 |`),
     ].join("\n");
   assert.deepEqual(councilProblems(record(), stanceOf), []);
   const vetoRows = [
