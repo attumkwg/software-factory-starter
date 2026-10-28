@@ -1,5 +1,7 @@
 // 依存のライセンスの一覧の中身(読む・分ける・照らし合わせる・書く)。入口は licenses.mjs、テストは licenses.test.mjs。
 // 決まりは docs/compliance/licenses.yaml(正)と ADR 0083。
+// 名前の照らし合わせ(* は何文字でも)は委託先の台帳と同じ物を使う(正規表現を組み立てない。Semgrep の regex_dos)。
+import { matches } from "./vendors-lib.mjs";
 
 /** pnpm licenses list --json の形({ ライセンス: [{ name, versions, paths, license, homepage }] })を1件ずつに */
 export const packagesFrom = (json) =>
@@ -35,10 +37,6 @@ export const byName = (packages) => {
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 };
-
-/** 決まりの名前(* は何文字でも)に当たるか */
-const matches = (pattern, id) =>
-  new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("*", ".*")}$`).test(id);
 
 /** 1つの名前を 許す / 入れない / 注意 / 知らない に分ける */
 const classifyId = (id, policy) => {
