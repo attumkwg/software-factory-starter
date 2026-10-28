@@ -39,6 +39,8 @@ Slack: @Claude 大丈夫なのでマージして        (Claude のアプリ・�
 
 ### まだ確かめていない物(試しで見る)
 
+> キット自身は Slack とつながないので、ここは使う側のリポジトリで初めて確かめる。ほかの「確かめていない物」は [../kit/limits.md](../kit/limits.md)。
+
 - クラウドの中で Docker が起きるか・testcontainers が動くか・Node 24 を入れられるか(動かなければ結合と E2E は CI に任せる)。
 - スレッドで `@Claude` を付けた返事が、同じ作業に届くか(届かなければ、Slack の「View Session」から Claude のアプリで返す)。
 - クラウドの GitHub の中継を通って、REST でマージできるか(`pnpm pr:merge-when-green`。できなければ、承認の書き換えまでを AI、マージは人が GitHub で押す)。
