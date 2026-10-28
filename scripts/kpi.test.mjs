@@ -8,6 +8,7 @@ import {
   betLinkProblems,
   checkKpi,
   featureNamesOf,
+  kpiIdsOf,
   kpiReport,
   personaIdsOf,
 } from "./kpi-lib.mjs";
@@ -145,4 +146,21 @@ test("賭けは psf からペルソナと動かす KPI が要り、指す番号�
 test("機能フラグの名前は、注の中の見本を数えない", () => {
   const names = featureNamesOf(' *   { name: "morning-digest" }\n  { name: "sso", bet: "B-1" },\n');
   assert.deepEqual([...names], ["sso"]);
+});
+
+test("kpi.yaml の番号は YAML の部品なしでも読める(木の番号と同じ)", () => {
+  const text = readFileSync("docs/product/kpi.yaml", "utf8");
+  const fromYaml = allKpis(parse(text))
+    .map((k) => k.id)
+    .sort();
+  assert.deepEqual([...kpiIdsOf(text)].sort(), fromYaml);
+});
+
+test("番号の形(北極星 K-0・入力 K-1…・守り K-G1…)", () => {
+  const doc = base();
+  doc.inputs[0].id = "K-01";
+  doc.guardrails[0].id = "K-1";
+  const problems = check(doc).problems.join("\n");
+  assert.match(problems, /入力 K-01: 番号の形/);
+  assert.match(problems, /守り K-1: 番号の形/);
 });

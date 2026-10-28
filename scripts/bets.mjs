@@ -11,10 +11,9 @@
 // 決まりは docs/guides/bets-and-assets.md。
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse } from "yaml";
 import { checkBet, checkPrBody, idOfFile, parseBet } from "./bets-lib.mjs";
 import { renderInternal, renderPublic } from "./bets-roadmap.mjs";
-import { allKpis, betLinkProblems, personaIdsOf } from "./kpi-lib.mjs";
+import { betLinkProblems, kpiIdsOf, personaIdsOf } from "./kpi-lib.mjs";
 
 const DIR = "docs/product/bets";
 const today = new Date().toISOString().slice(0, 10);
@@ -34,10 +33,9 @@ const readBets = () => {
 // 賭けが指してよいペルソナと KPI(無ければ空。psf からは指すのが必須なので、そのとき落ちる)
 const readLinks = () => {
   const read = (p) => (existsSync(p) ? readFileSync(p, "utf8") : "");
-  const kpi = read("docs/product/kpi.yaml");
   return {
     personas: personaIdsOf(read("docs/product/personas.md")),
-    kpis: new Set(kpi ? allKpis(parse(kpi)).map((k) => k.id) : []),
+    kpis: kpiIdsOf(read("docs/product/kpi.yaml")),
   };
 };
 

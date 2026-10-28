@@ -26,6 +26,23 @@ export const featureNamesOf = (ts) =>
 export const personaRefs = (s) => [...String(s ?? "").matchAll(/\bP-\d+\b/g)].map((m) => m[0]);
 export const kpiRefs = (s) => [...String(s ?? "").matchAll(/\bK-G?\d+\b/g)].map((m) => m[0]);
 
+// 前の空白を飛ばし、空白か # の前までの1語
+const firstWord = (s) => {
+  const t = s.trim();
+  const end = [...t].findIndex((c) => c === " " || c === "\t" || c === "#");
+  return end < 0 ? t : t.slice(0, end);
+};
+
+/** kpi.yaml の文から、指標の番号の集まり(YAML の部品を読まずに。依存を入れずに流す PR の本文の検査からも呼ばれる) */
+export const kpiIdsOf = (yamlText) =>
+  new Set(
+    String(yamlText ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith("id:") || l.startsWith("- id:"))
+      .map((l) => firstWord(l.slice(l.indexOf("id:") + 3))),
+  );
+
 /** 木の全部の指標(種類つき) */
 export const allKpis = (doc) => [
   ...(doc?.north_star ? [{ ...doc.north_star, kind: "north_star" }] : []),
@@ -33,7 +50,14 @@ export const allKpis = (doc) => [
   ...(doc?.guardrails ?? []).map((k) => ({ ...k, kind: "guardrail" })),
 ];
 
-const ID_FORM = { north_star: /^K-0$/, input: /^K-[1-9]\d*$/, guardrail: /^K-G[1-9]\d*$/ };
+// 番号の形(正規表現を使わずに見る): 北極星 K-0・入力 K-1…・守り K-G1…
+const isCount = (s) =>
+  s.length > 0 && s.length < 5 && s[0] !== "0" && [...s].every((c) => c >= "0" && c <= "9");
+const ID_FORM = {
+  north_star: (id) => id === "K-0",
+  input: (id) => id.startsWith("K-") && isCount(id.slice(2)),
+  guardrail: (id) => id.startsWith("K-G") && isCount(id.slice(3)),
+};
 const KIND_NAME = { north_star: "北極星", input: "入力", guardrail: "守り" };
 
 function checkMeasure(k, at, features, problems, warnings) {
@@ -99,7 +123,7 @@ function shapeProblems(doc) {
 // 1つの指標の番号・名前・状態・ペルソナの誤りの並び
 function itemProblems(k, seen, personas) {
   const out = [];
-  if (!ID_FORM[k.kind].test(String(k.id ?? "")))
+  if (!ID_FORM[k.kind](String(k.id ?? "")))
     out.push("番号の形が違う(北極星 K-0・入力 K-1…・守り K-G1…)");
   if (seen.has(k.id)) out.push("番号が重なっている");
   if (!k.name) out.push("name が無い");
