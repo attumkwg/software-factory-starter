@@ -5,6 +5,7 @@ import { InstantSchema } from "./time.ts";
 
 // 大きなお客さん向けの守り(docs/specs/0056-sso-scim-ip-audit-export.md)の契約:
 // 会社のドメイン・組織に入れる IP の範囲・組織の人の一覧(強制ログアウト)。
+// 人を止める・戻す・ロールを変える(docs/specs/0079-member-admin.md)。
 
 /** 会社のドメイン(小文字。example.co.jp の形。1つのドメインは1つの組織だけが確かめられる) */
 export const DomainNameSchema = z
@@ -54,17 +55,23 @@ export const PutIpAllowlistSchema = z.object({
 });
 export type PutIpAllowlist = z.infer<typeof PutIpAllowlistSchema>;
 
-/** 組織の人(管理者が見る一覧。強制ログアウトに使う) */
+/** 組織の人(管理者が見る一覧。止める・戻す・ロールを変える・強制ログアウトに使う) */
 export const OrganizationMemberSchema = z.object({
   id: IdSchema,
   name: z.string(),
   email: z.email(),
   role: RoleSchema,
   createdAt: InstantSchema,
-  /** SCIM(情シスの道具)で止めた時刻。止めた人は入れない(古い版の API には無い) */
+  /** 止めた時刻(管理者が画面で・情シスの道具が SCIM で)。止めた人は入れない(古い版の API には無い) */
   disabledAt: InstantSchema.nullable().optional(),
+  /** 情シスの道具(SCIM)が扱える人。画面で止めても、道具が次に「有効」を送ると戻る(古い版の API には無い) */
+  scimManaged: z.boolean().optional(),
 });
 export type OrganizationMember = z.infer<typeof OrganizationMemberSchema>;
+
+/** ロールを変える(管理者。自分は変えられない・有効な管理者を0人にできない) */
+export const PutMemberRoleSchema = z.object({ role: RoleSchema });
+export type PutMemberRole = z.infer<typeof PutMemberRoleSchema>;
 
 export const OrganizationMemberPageSchema = z.object({
   members: z.array(OrganizationMemberSchema),

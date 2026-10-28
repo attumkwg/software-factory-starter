@@ -30,6 +30,7 @@ import type {
   Project,
   ProjectPage,
   PutSsoSettings,
+  Role,
   ScimTokenList,
   SsoSettings,
   SsoStartResult,
@@ -310,6 +311,13 @@ export const api = {
     ),
   }),
   signOutMember: (id: string) => request<void>("POST", `/organization/members/${id}/sign-out`),
+  // 止める(外す)・戻す・ロールを変える(docs/specs/0079-member-admin.md)
+  changeMemberRole: (id: string, role: Role) =>
+    request<OrganizationMember>("PUT", `/organization/members/${id}/role`, { role }),
+  disableMember: (id: string) =>
+    request<OrganizationMember>("POST", `/organization/members/${id}/disable`),
+  enableMember: (id: string) =>
+    request<OrganizationMember>("POST", `/organization/members/${id}/enable`),
   // SSO の必須と緊急用(プランの機能 sso。IdP をつなぐのは運営)
   getSso: () => request<SsoSettings>("GET", "/organization/sso"),
   putSso: (body: PutSsoSettings) => request<SsoSettings>("PUT", "/organization/sso", body),

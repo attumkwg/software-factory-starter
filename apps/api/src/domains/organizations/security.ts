@@ -3,13 +3,11 @@ import {
   type FeatureFlagDefinition,
   IP_ALLOWLIST_MAX,
   type OrganizationDomain,
-  type OrganizationMemberPage,
   type PlanDefinition,
 } from "@app/shared";
 import { and, asc, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { TenantTx } from "../../db/client.ts";
-import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
 import { ApiError, badRequest, notFound } from "../../errors.ts";
 import { isFeatureEnabled } from "../../feature-flags/index.ts";
@@ -17,7 +15,7 @@ import { ipInRanges, parseCidr } from "../../http/client-ip.ts";
 import { domains, ipAllowlist, users } from "./schema.ts";
 
 // 大きなお客さん向けの守りの段1a(docs/specs/0056-sso-scim-ip-audit-export.md・ADR 0067):
-// 会社のドメインの確認(T-8)・組織に入れる IP の範囲・人の一覧と強制ログアウト。
+// 会社のドメインの確認(T-8)・組織に入れる IP の範囲。人の一覧と強制ログアウトは members.ts。
 
 /** DNS の TXT を置く名前の頭。_sfs-verify.<ドメイン> に「sfs-verify=<文字>」 */
 export const VERIFY_LABEL = "_sfs-verify";
@@ -180,57 +178,6 @@ export async function ipAllowedFor(
 
 export const ipNotAllowed = () =>
   new ApiError(403, "ip_not_allowed", "この組織は、決めた場所(IP)の外からは入れません");
-
-// ── 人の一覧と強制ログアウト ───────────────────────────────────────────────
-
-/** 組織の人(古い順に1ページずつ)。管理者が強制ログアウトする人を選ぶ */
-export async function listMembers(
-  s: TenantScope,
-  opts: { cursor?: string | undefined; limit: number },
-): Promise<OrganizationMemberPage> {
-  const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
-  const rows = await s.tx
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      role: users.role,
-      createdAt: users.createdAt,
-      disabledAt: users.disabledAt,
-      cursorAt: cursorTime(users.createdAt),
-    })
-    .from(users)
-    .where(
-      and(eq(users.tenantId, s.tenantId), beyondCursor(cursor, "asc", users.createdAt, users.id)),
-    )
-    .orderBy(asc(users.createdAt), asc(users.id))
-    .limit(opts.limit + 1);
-  const page = toPage(rows, opts.limit, (r) => ({ at: r.cursorAt, id: r.id }));
-  return {
-    members: page.rows.map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      createdAt: u.createdAt.toISOString(),
-      disabledAt: u.disabledAt?.toISOString() ?? null,
-    })),
-    nextCursor: page.nextCursor,
-  };
-}
-
-/**
- * その人の、この組織のセッションを全部切る(次のリクエストから 401)。サーバー側のセッション保存は作らず、
- * 関所が毎回見ている sessions_valid_after を今にする(ADR 0067・0017)。いなければ false
- */
-export async function signOutMember(s: TenantScope, userId: string): Promise<boolean> {
-  const rows = await s.tx
-    .update(users)
-    .set({ sessionsValidAfter: new Date() })
-    .where(and(eq(users.tenantId, s.tenantId), eq(users.id, userId)))
-    .returning({ id: users.id });
-  return rows.length > 0;
-}
 
 function constraintOf(e: unknown): string | undefined {
   const cause = ((e as { cause?: unknown }).cause ?? e) as { code?: string; constraint?: string };

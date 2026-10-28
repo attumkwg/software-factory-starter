@@ -60,6 +60,10 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   sso_not_connected: "IdP がまだつながっていないので、必須にできません。運営に依頼してください",
   sso_exempt_required: "必須にするには、緊急用の管理者を1人以上選んでください",
   too_many_scim_tokens: "鍵は2つまでです。使っていない鍵を取り消してから作ってください",
+  cannot_change_yourself:
+    "自分のロール・有効かは、自分では変えられません。ほかの管理者に頼んでください",
+  last_sso_exempt:
+    "この人は最後の緊急用の管理者です。先に「SSO」の設定で別の緊急用を選んでから変えてください",
 };
 
 /** API まで届かなかったとき・それ以外の想定外。 */

@@ -136,8 +136,8 @@ const toMember = ({ disabledAt, ...r }: MemberRow): ScimMember => ({
   active: disabledAt === null,
 });
 
-/** その組織の確かめたドメインのメールの人(SCIM が扱える人) */
-const inVerifiedDomain = sql`exists (select 1 from organizations.domains d
+/** その組織の確かめたドメインのメールの人(SCIM が扱える人。組織の人の一覧の印にも使う) */
+export const inVerifiedDomain = sql`exists (select 1 from organizations.domains d
   where d.tenant_id = ${users.tenantId} and d.verified_at is not null
     and d.domain = split_part(${users.email}, '@', 2))`;
 
