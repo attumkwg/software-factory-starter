@@ -1,5 +1,6 @@
 // 意義の判断役(.claude/agents/purpose-judge.md)の記録の確かめと、当たり外れ(中身だけ)。
 // 記録は docs/product/verdicts/*.md(作るプロダクト)と docs/kit/verdicts/*.md(キット自身)。読み書きは kpi.mjs。
+// Semgrep の regex_dos に当たる所(意義・KPI の確かめ)は、正規表現を使わずに読む。
 // 歯止めの3つ(仕様 0084): ① やらない線(誰の・どんな困りごとが・どれだけ減るかを数で言えなければ「やらない」)
 // ② ROI の根拠(費用と得る物の幅から loop-lib.mjs の式で出す。手で上げない)③ 当たり外れ(期限の後に実測と比べ、人が判定する)
 import { roiRange } from "./loop-lib.mjs";
@@ -63,12 +64,12 @@ const manyQuestions = (q) => (q.match(/[?？]/g) ?? []).length > 1 || / \/ /.tes
 // やる・条件つきのときに要る物(歯止め ① と ②)
 function goProblems(v, kpiIds) {
   const out = [];
-  if (!/\d/.test(v.purpose))
+  if (![...v.purpose].some((c) => c >= "0" && c <= "9"))
     out.push(
       "意義に数が無い(誰の・どんな困りごとが・どれだけ減るかを数で言えなければ「やらない」)",
     );
   if (!v.kpi) out.push("「- 動かす KPI:」が無い");
-  else if (/^K-/.test(v.kpi) && kpiIds && !kpiIds.has(v.kpi))
+  else if (v.kpi.startsWith("K-") && kpiIds && !kpiIds.has(v.kpi))
     out.push(`動かす KPI ${v.kpi} が kpi.yaml に無い`);
   if (!v.forecast || !isDate(v.by))
     out.push("「- 見込み:」は「40〜60(YYYY-MM-DD まで)」の形(当たり外れを比べる)");
