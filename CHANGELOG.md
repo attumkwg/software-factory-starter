@@ -18,7 +18,7 @@
 
 ## [未リリース]
 
-> 最初の版 `v0.1.0` になる予定(いつ打つかは持ち主が決める。設計書 0066 の U-3)。これより前の変更は git の履歴(〜#117)にある。
+> 最初の版 `v0.1.0` になる予定。**タグはリポジトリを公開する日(目安 2026-11-29)に持ち主が打つ**(@attumkwg 2026-10-29。設計書 0066 の U-3)。これより前の変更は git の履歴(〜#117)にある。
 > #118 から #159 までに main に入った PR を書いた。**版を切るときは**、それより後に入った PR を足し、見出しを `## [0.1.0] - YYYY-MM-DD` に、[docs/kit/upstream.yaml](docs/kit/upstream.yaml) の `version` を `v0.1.0` にする(同じ PR で。[maintenance.md](docs/kit/maintenance.md) の 4)。
 
 ### 取り込むときにすること
@@ -41,6 +41,7 @@
 - 引き継ぐ人の入口: 最初の1週間・用語集・`CLAUDE.md` を場所ごとに。穴 G-49(#127)
 - 経営者・情シス向けの1枚 [docs/kit/one-pager.md](docs/kit/one-pager.md)。穴 G-50(#128)
 - 想定の場面(台本 11〜18)と穴の一覧の見張り(`pnpm gaps`)。穴 G-64〜G-121・G-109(#122・#123・#136・#145)
+- 事前登録の ID を、DB に入らずに見つける運営のコマンド `pre-registrations-find`。穴 G-123(#155)
 - 公開までのロードマップ [docs/kit/roadmap.md](docs/kit/roadmap.md)(#154・#157)
 - できないこと・確かめていないこと(本物の AWS で確かめる物の表を含む)を1か所に [docs/kit/limits.md](docs/kit/limits.md)。穴 G-129・G-120(#156)
 - 依存のライセンスの一覧: 決まりの台帳 [docs/compliance/licenses.yaml](docs/compliance/licenses.yaml)・一覧 [docs/compliance/licenses.md](docs/compliance/licenses.md)・`pnpm deps:licenses`(CI。GPL・AGPL などが入ると落ちる。版つきの全部は `--full`)。穴 G-108・ADR 0083(#159)
