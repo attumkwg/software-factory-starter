@@ -3,13 +3,14 @@ import { withTenant } from "../db/tenant.ts";
 import {
   countsBySource,
   deleteByEmail,
+  findByEmail,
   type PublicScope,
   purgeExpired,
   type SourceCounts,
   tokyoDay,
 } from "../domains/growth/index.ts";
 
-// 運営のコマンド pre-registrations-report・pre-registrations-purge・pre-registrations-delete(cli.ts)の中身
+// 運営のコマンド pre-registrations-report・pre-registrations-find・pre-registrations-purge・pre-registrations-delete(cli.ts)の中身
 // (docs/runbooks/pre-registrations.md)。接続は表の持ち主。表は FORCE RLS なので、運営の組織の文脈を付けて読み書きする
 // (文脈を開くので領域の外に置く。読み書きの中身は domains/growth の operator.ts)。
 // **メールアドレス・会社名は外に出さない**(出すのは数と率だけ。AI に渡してよいのもここまで。docs/security.md の AI-6)。
@@ -113,4 +114,30 @@ export async function runDelete(
     lines.push("まだ消していません。--execute を付けて、もう一度アドレスを入れてください");
   }
   return lines;
+}
+
+/** 状態ごとの次の一歩(開通の手順書 tenant-provisioning.md の「事前登録から」) */
+const FIND_NEXT: Record<string, string> = {
+  pending:
+    "確認待ちです(組織にはできません)。本人に確認のメールを開いてもらってから、もう一度探してください",
+  confirmed: "確認済みです。この preRegistrationId を開通の作業に渡してください",
+  converted: "もう組織にしました(convertedTenantId)。同じ登録から2つ目の組織を作らないでください",
+};
+
+export async function runFind(db: RootDb, operatorTenantId: string, email: string) {
+  if (!email.includes("@")) throw new Error("メールアドレスを1行で入れてください");
+  const found = await inOperatorTenant(db, operatorTenantId, (scope) => findByEmail(scope, email));
+  if (!found) {
+    return [
+      JSON.stringify({ mode: "find", found: 0 }),
+      "見つかりません。アドレスの打ち間違い・本人が取り消した・期限で消えた(確認待ちは7日)のどれかです",
+    ];
+  }
+  // 確認待ちの ID は開通に使えないので出さない(出すのは状態だけ)
+  const { preRegistrationId, ...rest } = found;
+  const shown = found.status === "pending" ? rest : { preRegistrationId, ...rest };
+  return [
+    JSON.stringify({ mode: "find", found: 1, ...shown }),
+    FIND_NEXT[found.status] ?? "",
+  ].filter(Boolean);
 }

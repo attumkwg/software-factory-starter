@@ -133,10 +133,12 @@ export const MANUAL_AUDIT_ACTIONS = {
   // details.plan・details.priceList に名前(PLANS・PRICE_LISTS。人数・日付は platform.tenant_plans の行)
   planChange: "plan.change",
   // 公開の LP の事前登録(docs/specs/0025-public-landing-page.md)。運営の組織の監査ログに残す。
-  // 期限で消した(details に件数)・問い合わせで消した(対象は登録の ID)・組織にした(details.convertedTenantId)
+  // 期限で消した(details に件数)・問い合わせで消した(対象は登録の ID)・組織にした(details.convertedTenantId)・
+  // メールアドレスから登録を探した(対象は見つかった登録の ID。見つからなければ残さない)
   preRegistrationPurged: "pre_registration.purged",
   preRegistrationDeleted: "pre_registration.deleted",
   preRegistrationConverted: "pre_registration.converted",
+  preRegistrationFound: "pre_registration.found",
   // 組織を選び直して、この組織に入った(元の組織には関所が auth.switch_out を残す)
   switchIn: "auth.switch_in",
   // 運営のコマンド sso-connect・sso-disconnect が、組織に IdP をつないだ・外した(docs/designs/0056-sso-scim-ip-audit-export.md の 5)

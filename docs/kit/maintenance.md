@@ -38,7 +38,8 @@
 - ✍️ **版を切る手順**(持ち主):
   1. AI に「前の版から main に入った PR から、CHANGELOG の『未リリース』を版の節にして」と頼む(`gh pr list --state merged` から下書き。PR ごとには書かない — 並べた PR がぶつかるので)。
   2. 同じ PR で [upstream.yaml](upstream.yaml) の `version` を新しいタグにする(キットから作ったリポジトリが、どの版から来たかを持つ)。「取り込むときにすること」を確かめて、その PR をマージする。
-  3. 持ち主が `git tag -a v0.Y.Z -m "v0.Y.Z"` → `git push origin v0.Y.Z` → GitHub のリリースに CHANGELOG のその版の節を写す。**AI はタグもリリースも作らない**。
+  3. 公開の前の点検([release-check.md](release-check.md))を同じ見方で流し、結果をそこに書く。
+  4. 持ち主が `git tag -a v0.Y.Z -m "v0.Y.Z"` → `git push origin v0.Y.Z` → GitHub のリリースに CHANGELOG のその版の節を写す。**AI はタグもリリースも作らない**。
 
 ## 5. 審査・契約に出すとき(使う会社へ)
 
