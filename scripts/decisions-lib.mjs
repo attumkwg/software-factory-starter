@@ -233,3 +233,31 @@ export const evidenceProblems = ({ row, evidence, item, repo, prNumber, designNu
     );
   return problems;
 };
+
+// ── 1人の間の会話の答え(仕様 0080)──────────────────────────────
+// 1人で回している間(.github/setup.yml の ruleset.required_approvals が 0)は、持ち主が会話で返した答えも認める:
+// Slack で頼んだ作業のスレッドの返事・Claude Code のチャットでの返事。状態の文に場所を書く
+// (例: 承認(@名前 2026-10-29 Slack の返事)・承認(@名前 2026-10-29 会話で回答))。@名前 はリポジトリの持ち主。
+// CI は会話の書き手を確かめられない(1人の間だけの割り切り。人が増えて承認数を 1 以上にすると、また GitHub の答えだけ)。
+
+/** 状態の文が会話(Slack・チャット・会話)の答えを指すか */
+export const conversationAnswerOf = (state) => /slack|チャット|会話/i.test(String(state ?? ""));
+
+/** setup.yml の中身から、1人の間か(required_approvals が 0) */
+export const soloFrom = (setupYaml) => {
+  const m = String(setupYaml ?? "").match(/^\s*required_approvals:\s*(\d+)/m);
+  return m !== null && Number(m[1]) === 0;
+};
+
+/** 会話の答えの行の問題(空なら良い)。owner はリポジトリの持ち主の名前 */
+export const conversationAnswerProblems = ({ row, solo, owner }) => {
+  if (!solo)
+    return [
+      `${row.id}: 会話(Slack・チャット)の答えを認めるのは1人の間だけ(承認数が 1 以上なので、GitHub のコメントかレビューを指す)`,
+    ];
+  const named = approverOf(row.state);
+  if (!named) return [`${row.id}: 状態に答えた人(@名前)が無い`];
+  if (named.toLowerCase() !== String(owner).toLowerCase())
+    return [`${row.id}: 会話の答えを認めるのはリポジトリの持ち主(@${owner})だけ`];
+  return [];
+};

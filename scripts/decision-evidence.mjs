@@ -5,7 +5,14 @@
 // 書き方は docs/guides/human-review.md の 2。中身は decisions-lib.mjs。
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { changedAnswers, evidenceOf, evidenceProblems } from "./decisions-lib.mjs";
+import {
+  changedAnswers,
+  conversationAnswerOf,
+  conversationAnswerProblems,
+  evidenceOf,
+  evidenceProblems,
+  soloFrom,
+} from "./decisions-lib.mjs";
 
 const repo = process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY;
 const number = Number(process.env.PR_NUMBER);
@@ -49,6 +56,10 @@ const designs = api(`repos/${repo}/pulls/${number}/files?per_page=100`).filter(
     !f.filename.split("/").pop().startsWith("_"),
 );
 
+// 1人の間は、持ち主が会話(Slack・チャット)で返した答えも認める(仕様 0080。土台のブランチの setup.yml で決める)
+const solo = soloFrom(baseText(".github/setup.yml"));
+const owner = repo.split("/")[0];
+
 const problems = [];
 const ok = [];
 for (const f of designs) {
@@ -57,6 +68,15 @@ for (const f of designs) {
   const designNumber = f.filename.split("/").pop().slice(0, 4);
   for (const row of changedAnswers(base, head)) {
     const evidence = evidenceOf(row.state);
+    if (!evidence && conversationAnswerOf(row.state)) {
+      const found = conversationAnswerProblems({ row, solo, owner });
+      if (found.length > 0) problems.push(...found.map((p) => `${f.filename} ${p}`));
+      else
+        ok.push(
+          `${f.filename} ${row.id}: @${owner} の会話の答え(1人の間。CI は書き手を確かめない)`,
+        );
+      continue;
+    }
     const item =
       evidence && evidence.repo.toLowerCase() === repo.toLowerCase()
         ? one(ITEM_PATH[evidence.type](evidence))

@@ -1,12 +1,52 @@
 # Slack から「これ作りたい」を受け付ける(指示書)
 
-> **いまは動かしていません。** 有効にする日: ここに日付を入れてください(YYYY-MM-DD)
+> **1人で回している間(Pro / Max)のおすすめは、下の「🧍 1人の間のおすすめ」**: Slack で `@Claude` に頼む → クラウドの Claude Code が PR → 「これでいいですか」に返事 → AI がマージ(仕様 0080・ADR 0082)。
+> 有効にした日: ここに日付を入れてください(YYYY-MM-DD)
 >
-> まずは手元の Claude Code で `/new-feature` を使い、対話で仕様と Issue を作る(docs/playbook.md)。
-> 慣れて「Slack からも頼みたい」となったら、下の A・B・C のどれかで Slack につなぐ。
+> 人が増えたら(承認数を 1 以上にしたら)、AI のマージと会話の答えは効かなくなり、ふだんのレビューに戻る。下の A・B・C のどれかで Slack につなぐ。
 > 内容は 2026年10月時点の公式の説明で確かめた範囲だけを書いています。確かめられなかった所は「要確認」とリンクだけにしています。
 
-## どれから始めるか(おすすめ)
+## 🧍 1人の間のおすすめ: 頼む → PR → 返事でマージ
+
+```
+Slack: @Claude ○○を作って
+  → クラウドの Claude Code が /slack-request の手順で作り、PR を出す
+  → スレッドに「仮決め U-1 … これでいいですか」
+Slack: @Claude 大丈夫なのでマージして        (Claude のアプリ・チャットで返してもよい)
+  → 仮決めを「承認(@持ち主 日付 Slack の返事)」に書き換えて push
+  → pnpm pr:merge-when-green が、必須のチェックが全部緑になってからマージ → スレッドに「マージしました」
+```
+
+| 守り | どうなっているか |
+|---|---|
+| マージの合図 | 持ち主がこの作業に返した返事だけ(スレッドのほかの発言・PR のコメントは合図にしない) |
+| マージの条件 | 必須のチェック(main のルールセット+`.github/setup.yml`)が全部緑。待つ間に push があれば止める |
+| AI がマージできる所 | 持ち主がクラウドの環境に `KIT_AI_MERGE=slack` を入れた所だけ(手元はフックが止める) |
+| 会話の答え | 1人の間(`required_approvals: 0`)だけ、Slack・チャットの返事を未確定事項の答えに認める。CI は書き手を確かめられない(割り切り) |
+| 人が増えたら | 承認数を 1 以上にすると、AI のマージも会話の答えも止まる |
+
+### つなぐ(持ち主が1回)
+
+1. Slack に Claude のアプリを入れる([Slack App Marketplace の Claude](https://slack.com/marketplace/A08SF47R6P4))→ App Home で「Connect」→ 自分の Claude のアカウントとつなぐ。
+2. [claude.ai/code](https://claude.ai/code) で GitHub とつなぎ、このリポジトリに Claude の GitHub App を入れる。
+3. 依頼用のチャンネルを作り(自分だけ・外の人を入れない)、`/invite @Claude`。DM では動かない。App Home のルーティングは「Code only」(相談もしたいなら「Code + Chat」)。
+4. claude.ai/code でこのリポジトリの**環境**を作る:
+   - 準備の手順(setup script): `bash scripts/cloud-setup.sh`(Node 24・pnpm・依存・Docker を用意し、何が動くかを出す)
+   - 変数: `KIT_EDIT_GUARD=pr`(危険度「高」の確認を出さず、PR の「高」で見る)・`KIT_AI_MERGE=slack`(AI のマージ)・`BASH_DEFAULT_TIMEOUT_MS=600000`・`BASH_MAX_TIMEOUT_MS=600000`(結合テストが2分を超える)
+   - 網: 既定(Trusted)に、Node を入れるなら `nodejs.org` を足す
+5. 最初の1回は試し: スレッドで「`@Claude` このリポジトリで `bash scripts/cloud-setup.sh` を流し、`pnpm lint`・`pnpm typecheck`・`pnpm test`、Docker が動けば `pnpm test:integration -- members` を流して、結果だけ教えて。ファイルは変えないで」と頼む。
+
+### まだ確かめていない物(試しで見る)
+
+- クラウドの中で Docker が起きるか・testcontainers が動くか・Node 24 を入れられるか(動かなければ結合と E2E は CI に任せる)。
+- スレッドで `@Claude` を付けた返事が、同じ作業に届くか(届かなければ、Slack の「View Session」から Claude のアプリで返す)。
+- クラウドの GitHub の中継を通って、REST でマージできるか(`pnpm pr:merge-when-green`。できなければ、承認の書き換えまでを AI、マージは人が GitHub で押す)。
+
+### 費用
+
+- 使った分は持ち主の Claude のプランの枠から(別の請求は無い)。GitHub Actions の分は今と同じ。
+
+## 人が増えたら: どれから始めるか
 
 | 案 | 中身 | 向いているとき | 手間 | お金 |
 |---|---|---|---|---|
