@@ -3,6 +3,7 @@
 export { operatorTenantIdFrom, preRegistrationCommands } from "./cli.ts";
 export {
   runDelete as runPreRegistrationDelete,
+  runFind as runPreRegistrationFind,
   runPurge as runPreRegistrationPurge,
   runReport as runPreRegistrationReport,
 } from "./command.ts";
