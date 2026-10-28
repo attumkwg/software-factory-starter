@@ -661,15 +661,15 @@ parts:
       docs: [docs/specs/0027-invitations.md, docs/adr/0040-invitations-signed-link.md]
 
   - id: member-sign-out
-    name: 組織の人の一覧と強制ログアウト
+    name: 組織の人(止める・戻す・ロールを変える・強制ログアウト)
     group: business
     status: あり
     removable: true
     default: 残す
-    what: 管理者が組織の人を一覧し、端末をなくした人・辞める人のこの組織のセッションを全部切る(次のリクエストから 401)
-    needed_by: 会社向けで、お客さんの管理者が人の出入りを自分で止めたい
+    what: 管理者が組織の人を一覧し、辞めた人を止める(行と作った物は残し、ログインと契約の人数から外す)・戻す・ロールを変える・端末をなくした人を強制ログアウトする。自分は変えられず、有効な管理者は0人にならない
+    needed_by: 会社向けで、お客さんの管理者が人の出入りを自分で扱いたい
     not_needed_by: 個人向け
-    if_removed: 切りたいときに運営が DB を直す(sessions_valid_after)ことになる。お客さんの管理者は自分で止められない
+    if_removed: 辞めた人を外す・ロールを変えるのに運営が DB を直す(disabled_at・role・sessions_valid_after)ことになる。外せない人は契約の人数に数え続ける
     depends_on: [organizations, login]
     law:
       - ISMS 5.18(アクセス権)
@@ -677,15 +677,24 @@ parts:
       delete:
         - apps/web/src/pages/MembersPage.tsx
         - apps/web/src/routes/_app/members.tsx
+        - apps/api/src/domains/organizations/members.ts
+        - apps/api/src/domains/organizations/members-routes.ts
+        - apps/api/test/integration/members.int.test.ts
       edit:
         - { path: apps/api/src/domains/organizations/security-routes.ts, what: memberRoutes を外す }
-        - { path: apps/api/src/authz/policy.ts, what: member:manage と2行を外す }
-        - { path: apps/api/src/audit/actions.ts, what: member.sign_out を外す }
+        - { path: apps/api/src/authz/policy.ts, what: member:manage と5行を外す }
+        - { path: apps/api/src/audit/actions.ts, what: member.sign_out・member.role_change・member.disable・member.enable を外す }
         - { path: apps/web/src/pages/SettingsPage.tsx, what: 組織の人の欄を外す }
+        - { path: apps/web/src/api.ts, what: 組織の人の6つの呼び出しを外す }
+        - { path: apps/web/e2e/journey.spec.ts, what: 一周の E2E で、8 の段(人を外す)を「未」の印に戻す }
+        - { path: apps/api/test/integration/organization-domains.int.test.ts, what: 人の一覧と強制ログアウトの describe を外す }
       matrix:
         - GET /api/organization/members
         - POST /api/organization/members/{memberId}/sign-out
-      docs: [docs/specs/0056-sso-scim-ip-audit-export.md]
+        - PUT /api/organization/members/{memberId}/role
+        - POST /api/organization/members/{memberId}/disable
+        - POST /api/organization/members/{memberId}/enable
+      docs: [docs/specs/0079-member-admin.md, docs/specs/0056-sso-scim-ip-audit-export.md]
 
   - id: ip-allowlist
     name: 組織ごとの IP の制限

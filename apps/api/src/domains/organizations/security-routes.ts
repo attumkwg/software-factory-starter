@@ -5,7 +5,6 @@ import {
   IpAllowlistSchema,
   OrganizationDomainListSchema,
   OrganizationDomainSchema,
-  OrganizationMemberPageSchema,
   PutIpAllowlistSchema,
   PutSsoSettingsSchema,
   SCIM_BASE_PATH,
@@ -26,28 +25,25 @@ import {
   json,
   jsonBody,
   notFoundError,
-  PageQuery,
 } from "../../http/common.ts";
+import { memberRoutes } from "./members-routes.ts";
 import { createScimToken, listScimTokens, revokeScimToken } from "./scim.ts";
 import {
   createDomain,
   deleteDomain,
   findIpAllowlist,
   listDomains,
-  listMembers,
   replaceIpAllowlist,
-  signOutMember,
 } from "./security.ts";
 import { getSsoSettings, updateSsoSettings } from "./sso.ts";
 
 // 大きなお客さん向けの守りの段1a・1b・2(管理者。docs/specs/0056-sso-scim-ip-audit-export.md):
-// 会社のドメインの確認・SSO の必須と緊急用・組織に入れる IP の範囲・SCIM の鍵・人の一覧と強制ログアウト。
+// 会社のドメインの確認・SSO の必須と緊急用・組織に入れる IP の範囲・SCIM の鍵。組織の人は members-routes.ts。
 // ドメインと IP の範囲はプランの機能(sso・ip-allowlist。入っていなければ 404。設計書 0056 の U-6)。
 // 権限はここに書かない(src/authz/policy.ts の ROUTE_RULES と docs/authz/matrix.yaml)。
 
 const tags = ["organization"];
 const DomainParams = z.object({ domainId: IdSchema });
-const MemberParams = z.object({ memberId: IdSchema });
 const ScimTokenParams = z.object({ tokenId: IdSchema });
 
 /**
@@ -234,44 +230,6 @@ const scimTokenRoutes = createRouter()
     async (c) => {
       await requireFeature(c, "scim");
       if (!(await revokeScimToken(scopeOf(c), c.req.valid("param").tokenId))) throw notFound();
-      return c.body(null, 204);
-    },
-  );
-
-/** 組織の人の一覧と強制ログアウト(全部の組織) */
-export const memberRoutes = createRouter()
-  .openapi(
-    createRoute({
-      method: "get",
-      path: "/organization/members",
-      tags,
-      summary: "【管理者】組織の人(古い順に1ページずつ)",
-      request: { query: PageQuery },
-      responses: {
-        200: json(OrganizationMemberPageSchema, "一覧"),
-        ...badRequestError,
-        ...authErrors,
-      },
-    }),
-    async (c) => c.json(await listMembers(scopeOf(c), c.req.valid("query")), 200),
-  )
-  .openapi(
-    createRoute({
-      method: "post",
-      path: "/organization/members/{memberId}/sign-out",
-      tags,
-      summary:
-        "【管理者】その人を強制ログアウトする(この組織の全部の端末が、次のリクエストから入れない)",
-      request: { params: MemberParams },
-      responses: {
-        204: { description: "切った" },
-        ...badRequestError,
-        ...authErrors,
-        ...notFoundError,
-      },
-    }),
-    async (c) => {
-      if (!(await signOutMember(scopeOf(c), c.req.valid("param").memberId))) throw notFound();
       return c.body(null, 204);
     },
   );

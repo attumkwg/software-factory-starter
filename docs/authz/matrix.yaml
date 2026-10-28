@@ -398,13 +398,29 @@ routes:
 
   - route: GET /api/organization/members
     permission: member:manage
-    note: 組織の人(古い順に1ページずつ)。強制ログアウトする人を選ぶ。全部の組織で使える
+    note: 組織の人(古い順に1ページずつ。止めた人も出る)。止める・戻す・ロールを変える・強制ログアウトする人を選ぶ。全部の組織で使える
     expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
 
   - route: POST /api/organization/members/{memberId}/sign-out
     permission: member:manage
     note: その人のこの組織のセッションを全部切る(sessions_valid_after を今に。次のリクエストから 401)。他社の人は 404
     expect: { admin: 204, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: PUT /api/organization/members/{memberId}/role
+    permission: member:manage
+    note: ロールを変える(次のリクエストから効く)。自分は 409 cannot_change_yourself。緊急用の管理者を0人にすると 409。流れは members.int.test.ts
+    body: { role: viewer }
+    expect: { admin: 200, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/organization/members/{memberId}/disable
+    permission: member:manage
+    note: 止める(外す)。ログイン・人数から外れ、セッションも切る。行・作った物・記録は残る。自分は 409。他社の人は 404
+    expect: { admin: 200, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
+
+  - route: POST /api/organization/members/{memberId}/enable
+    permission: member:manage
+    note: 止めた人を戻す(前のロールで入れる。止めていなければ何もしない)。他社の人は 404
+    expect: { admin: 200, member: 403, viewer: 403, other_tenant: 404, anonymous: 401 }
 
   - route: GET /api/organization/scim-tokens
     permission: scim:manage

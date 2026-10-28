@@ -7,7 +7,7 @@ import { operator, operatorAvailable } from "./operator.ts";
 
 // SaaS の一周(穴 G-119・「使える」の条件 2。docs/scenarios/gaps.md の頭)。
 // docker compose を本番の代わりにして、1つの会社が来てから去るまでを1本でたどる:
-//   事前登録 → 開通 → 最初の管理者 → 招待 → 機能と写真 → プラン → 書き出し → 人を外す → 1人分の削除 → 解約
+//   事前登録 → 開通 → 最初の管理者 → 招待 → 機能と写真 → プラン → 書き出し → 人を外す(止める)→ 1人分の削除 → 解約
 // 運営の手(開通・プラン・解約)は、本番の ECS の1回きりのタスクの代わりに、移行のコンテナで同じコマンドを流す(operator.ts)。
 // 部品ごとの細かい確かめは、それぞれの spec(invitations・export・tenant-isolation など)と API の結合テストにある。
 // ここで見るのは「つながるか」だけ。まだ無い段は「未」の印(annotations)を付けて先へ進む(報告に穴の番号が出る)。
@@ -247,6 +247,21 @@ async function exportData(admin: Page, saveAs: (name: string) => string, c: Comp
   expect(text).not.toContain("Acme");
 }
 
+// ── 8. 人を外す(管理者が「組織の人」で止める。行と作った物は残り、人数から外れる)──
+async function removeMember(admin: Page, member: Page) {
+  await admin.getByRole("link", { name: "設定" }).click();
+  await admin.getByRole("link", { name: "組織の人を開く" }).click();
+  const row = admin.getByRole("row", { name: /一周 花子/ });
+  await row.getByRole("button", { name: "止める" }).click();
+  const dialog = admin.getByRole("alertdialog", { name: "この人を止めますか?" });
+  await dialog.getByRole("button", { name: "止める" }).click();
+  await expect(row.getByText("止めた")).toBeVisible();
+  // 外した人は次の操作から入れず、契約の人数にも数えない
+  expect((await member.request.get("/api/me")).status()).toBe(401);
+  const plan = await getJson<Record<string, unknown>>(admin.request, "/api/organization/plan");
+  expect(plan).toMatchObject({ members: 1 });
+}
+
 // ── 10. 解約(運営が組織を消す。試し → 本当に消す)→ 誰も入れず、写真も消える ──
 async function closeTenant(
   tenantId: string,
@@ -318,9 +333,7 @@ test("1つの会社が、事前登録から解約まで一周できる", async (
   });
   await test.step("7. 管理者が自社のデータを書き出す(写真は名前だけ・他社の物は入らない)", () =>
     exportData(page, (name) => testInfo.outputPath(name), c));
-  await test.step("8. 管理者が辞めた職人を外す", async () => {
-    notYet("G-103", "お客さんの管理者が人を外す・無効にする・ロールを変える画面と API");
-  });
+  await test.step("8. 管理者が辞めた職人を外す(止める)", () => removeMember(page, member));
   await test.step("9. 運営が1人分のデータを数える(削除はまだ手で)", async () => {
     const plan = operator(["person-data", tenantId, memberMe.userId]);
     expect(plan).toMatchObject({ mode: "plan", found: true });

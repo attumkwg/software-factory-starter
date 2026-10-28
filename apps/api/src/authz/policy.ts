@@ -54,7 +54,8 @@ export const PERMISSIONS = {
   "ip_allowlist:manage": ["admin"],
   // SCIM の鍵を作る・取り消す(プランの機能 scim)。情シスの道具の入口(/api/scim/v2)は鍵で組織が決まる公開の API
   "scim:manage": ["admin"],
-  // 組織の人の一覧と、強制ログアウト(全部の組織で使える)
+  // 組織の人の一覧・強制ログアウト・止める・戻す・ロールを変える(全部の組織で使える。docs/specs/0079-member-admin.md)。
+  // 自分は変えられない・有効な管理者を0人にできないは、ハンドラーがロックの中で確かめる
   "member:manage": ["admin"],
   // 本人が所属しているほかの組織へ選び直す(docs/specs/0055-multi-org-membership.md)。所属しているかはハンドラーが
   // DB の関数で確かめる。代理の最中は使えない(NOT_DURING_SUPPORT)
@@ -144,6 +145,9 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "PUT /api/organization/ip-allowlist": "ip_allowlist:manage",
   "GET /api/organization/members": "member:manage",
   "POST /api/organization/members/{memberId}/sign-out": "member:manage",
+  "PUT /api/organization/members/{memberId}/role": "member:manage",
+  "POST /api/organization/members/{memberId}/disable": "member:manage",
+  "POST /api/organization/members/{memberId}/enable": "member:manage",
   "GET /api/organization/scim-tokens": "scim:manage",
   "POST /api/organization/scim-tokens": "scim:manage",
   "DELETE /api/organization/scim-tokens/{tokenId}": "scim:manage",

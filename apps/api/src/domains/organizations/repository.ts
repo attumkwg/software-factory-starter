@@ -1,5 +1,5 @@
 import type { ExportData, Me, Role } from "@app/shared";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
 import { beyondCursor, cursorTime, decodeCursor, toPage } from "../../db/paging.ts";
 import type { TenantScope } from "../../db/scope.ts";
@@ -38,7 +38,7 @@ export async function findRole(
 
 /**
  * 知らせ(メール)の宛先。アウトボックスの受け手が、送る直前に読む(出来事の中身にメールを入れないため)。
- * いなければ null(消された人には送らない)。
+ * いなければ null(消された人・止めた人には送らない。docs/specs/0079-member-admin.md)。
  */
 export async function findContact(
   tx: TenantTx,
@@ -48,16 +48,19 @@ export async function findContact(
   const [row] = await tx
     .select({ email: users.email, name: users.name })
     .from(users)
-    .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
+    .where(and(eq(users.id, userId), eq(users.tenantId, tenantId), isNull(users.disabledAt)));
   return row ?? null;
 }
 
-/** 組織の全員の ID(運営のコマンドが、組織の全員にお知らせを積むときに使う。docs/specs/0009-legal-consent.md) */
+/**
+ * 組織の止めていない全員の ID(運営のコマンドが、組織の全員にお知らせを積むときに使う。docs/specs/0009-legal-consent.md)。
+ * 止めた人を戻したら、次のログインで同意の画面が出る(お知らせのメールは届かない)
+ */
 export async function listUserIds(tx: TenantTx, tenantId: string): Promise<string[]> {
   const rows = await tx
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.tenantId, tenantId))
+    .where(and(eq(users.tenantId, tenantId), isNull(users.disabledAt)))
     .orderBy(asc(users.createdAt), asc(users.id));
   return rows.map((r) => r.id);
 }

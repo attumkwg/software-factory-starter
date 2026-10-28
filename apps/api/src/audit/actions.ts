@@ -91,6 +91,19 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
     action: "member.sign_out",
     target: "member",
   },
+  // 止める・戻す・ロールを変える(docs/specs/0079-member-admin.md)。変えた先のロールは details に入れない(値を入れない決まり。いまのロールは組織の人の一覧)
+  "PUT /api/organization/members/{memberId}/role": {
+    action: "member.role_change",
+    target: "member",
+  },
+  "POST /api/organization/members/{memberId}/disable": {
+    action: "member.disable",
+    target: "member",
+  },
+  "POST /api/organization/members/{memberId}/enable": {
+    action: "member.enable",
+    target: "member",
+  },
   // 組織の選び直し(docs/specs/0055-multi-org-membership.md)。関所が元の組織に「出た」を残す。先の組織の「入った」はハンドラーが手で
   "POST /api/session/organization": {
     action: "auth.switch_out",

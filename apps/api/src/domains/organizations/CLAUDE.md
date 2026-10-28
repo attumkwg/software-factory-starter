@@ -6,7 +6,7 @@
 
 ## 触ってよい所
 
-- `apps/api/src/domains/organizations/`(組織・利用者・アカウント・招待・二段階認証の必須・サポートの許可・会社のドメイン・IP の範囲・強制ログアウト)
+- `apps/api/src/domains/organizations/`(組織・利用者・アカウント・招待・二段階認証の必須・サポートの許可・会社のドメイン・IP の範囲・組織の人を止める・戻す・ロール・強制ログアウト)
 - 画面: `apps/web/src/pages/` の `AccountPage`・`SettingsPage`・`InvitationsPage`・`InvitationAcceptPage`・`SupportGrantsPage`・`SupportStaffPage`・`MembersPage`(と `account/`・`settings/`)
 - 契約: `packages/shared` の組織・アカウント・招待のスキーマ(足すだけ)
 - 資料: `docs/domain/organizations/README.md`・`docs/db/organizations.*.md`(`pnpm docs:db`)
@@ -20,17 +20,17 @@
 ## 先に読む
 
 - `docs/domain/organizations/README.md`(社員がお客さんの組織に入れるのは代理ログインだけ・二段階認証の必須)
-- 仕様: `docs/specs/0004-support-access.md`・`0006-account-security.md`・`0026-tenant-provisioning.md`・`0027-invitations.md`・`0056-sso-scim-ip-audit-export.md`
+- 仕様: `docs/specs/0004-support-access.md`・`0006-account-security.md`・`0026-tenant-provisioning.md`・`0027-invitations.md`・`0056-sso-scim-ip-audit-export.md`・`0079-member-admin.md`
 - 権限の表: `docs/authz/matrix.yaml` の `/api/me`・`/api/account*`・`/api/invitations*`・`/api/organization/*`・`/api/support*`
 
 ## 外との出入り
 
 - ほかへ出している物(`index.ts`): `findAccess`・`findRole`・`findTimeZone`・`findContact`・`listUserIds` などの読む関数、アカウントと招待の操作、書き出し(`exportOrganization`・`exportUsersPage`)
 - 外へ知らせる出来事: `organizations.email_changed`・`invitation_created`・`mfa_enabled`・`mfa_disabled`・`password_changed`・`tenant_opened`
-- 監査ログ: `account.*`・`invitation.*`・`organization.mfa_*`・`support*`・`tenant.create`・`domain.*`・`ip_allowlist.update`・`member.sign_out`
+- 監査ログ: `account.*`・`invitation.*`・`organization.mfa_*`・`support*`・`tenant.create`・`domain.*`・`ip_allowlist.update`・`member.sign_out`・`member.role_change`・`member.disable`・`member.enable`
 
 ## 流すテスト
 
 - 単体: `pnpm --filter @app/api test`(`domain-boundaries`・`support`・`session` を含む)
-- 結合(Docker): `pnpm --filter @app/api test:integration -- account-security invitations mfa-requirement support-access tenant-provisioning organization-domains ip-allowlist`
+- 結合(Docker): `pnpm --filter @app/api test:integration -- account-security invitations mfa-requirement support-access tenant-provisioning organization-domains ip-allowlist members`
 - いつも: `tenant-isolation`・`authz-matrix`・`rls`

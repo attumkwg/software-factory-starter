@@ -148,6 +148,9 @@ export const ERROR_CODES = [
   "sso_not_connected", // IdP がまだつながっていないので、SSO を必須にできない(409)
   "sso_exempt_required", // 必須にするには緊急用の管理者が1人以上要る(409)
   "too_many_scim_tokens", // 生きている SCIM の鍵が上限に届いた(409)。古い鍵を取り消してから
+  // 組織の人(docs/specs/0079-member-admin.md)
+  "cannot_change_yourself", // 自分のロール・有効かは、自分では変えられない(409。ほかの管理者に頼む)
+  "last_sso_exempt", // SSO を必須にしている間は、最後の緊急用の管理者を止める・管理者から外すことはできない(409)
 ] as const;
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
