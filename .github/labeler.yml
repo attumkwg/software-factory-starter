@@ -59,6 +59,32 @@
           - renovate.json
           - pnpm-workspace.yaml
           - .npmrc
+          - apps/api/test/integration/sso-login.int.test.ts
+          - apps/api/test/integration/sso-required.int.test.ts
+          - apps/api/test/integration/scim.int.test.ts
+          - apps/api/test/unit/scim-protocol.test.ts
+          - apps/api/test/unit/audit-coverage.test.ts
+          - packages/shared/src/plans.ts
+          - packages/shared/src/plans.test.ts
+          - packages/shared/src/money-time.test.ts
+          - apps/api/test/unit/plans.test.ts
+          - apps/api/test/integration/plans.int.test.ts
+          - apps/api/test/integration/usage-records.int.test.ts
+          - apps/api/test/unit/usage-retention.test.ts
+          - apps/api/test/unit/tenant-shares.test.ts
+          - apps/api/test/integration/tenant-shares.int.test.ts
+          - apps/api/test/integration/person-data.int.test.ts
+          - apps/api/test/integration/export-stream.int.test.ts
+          - apps/api/test/unit/export-stream.test.ts
+          - apps/api/test/integration/audit-export.int.test.ts
+          - apps/api/test/integration/offboarding.int.test.ts
+          - apps/api/test/integration/mail.int.test.ts
+          - apps/api/test/integration/invitation-mail.int.test.ts
+          - apps/api/test/integration/legal-notify.int.test.ts
+          - apps/api/test/unit/storage.test.ts
+          - scripts/check-guards.mjs
+          - scripts/risk-areas-lib.mjs
+          - docs/concepts/risk-areas.md
 
 "risk:medium":
   - changed-files:
