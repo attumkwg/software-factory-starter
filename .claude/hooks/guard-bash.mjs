@@ -1,5 +1,7 @@
 // PreToolUse(Bash): settings.json の deny と編集のフック(guard-edit.mjs)を Bash で回り道されないようにする(auto モードでも効く)。
-// - main への push・強制 push・ブランチの削除・PR のマージと承認は止める(deny。KIT_EDIT_GUARD に関係なく)
+// - main への push・強制 push・ブランチの削除・PR のマージと承認は止める(deny。KIT_EDIT_GUARD に関係なく)。
+//   例外は1つ: 持ち主がクラウドの環境に KIT_AI_MERGE=slack を入れたときの scripts/pr-merge-when-green.mjs
+//   (持ち主の会話の返事+必須のチェックが全部緑のときだけ。仕様 0080)。変数をコマンドの中で入れるのは止める
 // - 危険度「高」の場所(protected-paths.json)に触る、読むだけでないコマンドは人に聞く(ask)。
 //   手元の env に KIT_EDIT_GUARD=pr と書いたときだけ、この確認を出さずに通す(編集のフックと同じ)
 // 完全ではない(スクリプトの中で書くもの・変数で組み立てた道は見えない)。疑わしいときは聞く側に倒す。
@@ -77,8 +79,14 @@ function checkPush(segment, currentBranch) {
   return null;
 }
 
-function checkMerge(segment) {
+const AI_MERGE_SCRIPT = /pr-merge-when-green\.mjs|pr:merge-when-green/;
+
+function checkMerge(segment, env) {
   const s = segment.replace(/\s+/g, " ");
+  if (/\bKIT_AI_MERGE\b/.test(s))
+    return "KIT_AI_MERGE は持ち主がクラウドの環境に入れる物(コマンドの中で入れない)";
+  if (AI_MERGE_SCRIPT.test(s) && env.KIT_AI_MERGE !== "slack")
+    return "AI のマージは、持ち主がクラウドの環境に KIT_AI_MERGE=slack を入れたときだけ(手元は人がマージする)";
   if (/\bgh pr merge\b/.test(s)) return "PR のマージは人がする(gh pr merge は使わない)";
   if (/\bgh pr review\b/.test(s) && /--approve|-a\b/.test(s))
     return "PR の承認は人がする(AI は承認しない)";
@@ -129,7 +137,7 @@ export function touchedProtected(command) {
 // { decision: "deny" | "ask" | "pass", reason } か null(ふつうに通す)。deny は env に関係なく止める
 export function decide(command, currentBranch = () => "", env = process.env) {
   for (const segment of segments(command)) {
-    const reason = checkPush(segment, currentBranch) ?? checkMerge(segment);
+    const reason = checkPush(segment, currentBranch) ?? checkMerge(segment, env);
     if (reason) return { decision: "deny", reason };
   }
   // KIT_EDIT_GUARD に関係なく聞く(人の答えは、人が書いたことが値打ち)

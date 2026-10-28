@@ -47,6 +47,22 @@ test("マージ・承認は止める", () => {
   assert.equal(decision("gh pr view 12"), "allow");
 });
 
+test("AI のマージのスクリプトは、持ち主が環境に KIT_AI_MERGE=slack を入れたときだけ通す(仕様 0080)", () => {
+  const merge = 'node scripts/pr-merge-when-green.mjs 12 --reply "大丈夫なのでマージして"';
+  assert.equal(decision(merge), "deny");
+  assert.equal(decision("pnpm pr:merge-when-green 12 --reply ok"), "deny");
+  assert.equal(decision(merge, onFeature, optedOut), "deny");
+  assert.equal(decision(merge, onFeature, { KIT_AI_MERGE: "slack" }), "allow");
+  // 変数をコマンドの中で入れて回り道しない
+  for (const c of [`KIT_AI_MERGE=slack ${merge}`, `export KIT_AI_MERGE=slack && ${merge}`]) {
+    assert.equal(decision(c), "deny", c);
+  }
+  // 環境に入っていても、ほかのマージの道は止めたまま
+  const slack = { KIT_AI_MERGE: "slack" };
+  assert.equal(decision("gh pr merge 12 --squash", onFeature, slack), "deny");
+  assert.equal(decision("gh api -X PUT repos/o/r/pulls/12/merge", onFeature, slack), "deny");
+});
+
 test("危険度「高」の場所を書くコマンドは聞く", () => {
   for (const c of [
     "sed -i 's/a/b/' .github/workflows/ci.yml",

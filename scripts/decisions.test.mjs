@@ -6,11 +6,14 @@ import {
   approverOf,
   byDesign,
   changedAnswers,
+  conversationAnswerOf,
+  conversationAnswerProblems,
   dueDateOf,
   evidenceOf,
   evidenceProblems,
   groupRows,
   readDecisions,
+  soloFrom,
   verdict,
 } from "./decisions-lib.mjs";
 
@@ -252,4 +255,31 @@ test("別の PR・Issue の答えを指すなら、設計書の番号も要る(�
   const state = `承認(@suzuki 2026-11-03 ${LINK})`;
   assert.ok(check(state, human("U-1 承認"), { prNumber: 99 }).some((p) => p.includes("0061")));
   assert.deepEqual(check(state, human("0061 の U-1 承認"), { prNumber: 99 }), []);
+});
+
+// ── 1人の間の会話の答え(仕様 0080)──
+test("1人の間は、持ち主の Slack・チャット(Claude Code の会話)の返事を答えにできる", () => {
+  for (const where of ["Slack の返事", "会話で回答", "チャットで回答"]) {
+    const row = { id: "U-1", state: `承認(@attumkwg 2026-10-29 ${where})` };
+    assert.equal(conversationAnswerOf(row.state), true, where);
+    assert.deepEqual(conversationAnswerProblems({ row, solo: true, owner: "attumkwg" }), []);
+  }
+  assert.equal(conversationAnswerOf(`承認(@suzuki 2026-11-03 ${LINK})`), false);
+});
+
+test("会話の答えは、人が増えたら(承認数が 1 以上)・持ち主でない名前・名前が無いと答えにならない", () => {
+  const row = { id: "U-1", state: "承認(@attumkwg 2026-10-29 Slack の返事)" };
+  const problems = (r, solo = true) =>
+    conversationAnswerProblems({ row: r, solo, owner: "attumkwg" })[0] ?? "";
+  assert.ok(problems(row, false).includes("1人の間だけ"));
+  assert.ok(
+    problems({ id: "U-2", state: "承認(@suzuki 2026-10-29 会話で回答)" }).includes("持ち主"),
+  );
+  assert.ok(problems({ id: "U-3", state: "承認(2026-10-29 Slack の返事)" }).includes("@名前"));
+});
+
+test("1人の間かは setup.yml の required_approvals で決まる", () => {
+  assert.equal(soloFrom("ruleset:\n  required_approvals: 0 # 1人\n"), true);
+  assert.equal(soloFrom("ruleset:\n  required_approvals: 1\n"), false);
+  assert.equal(soloFrom(""), false);
 });

@@ -2204,6 +2204,31 @@ parts:
         - { path: docs/guides/acceptance.md, what: /verify-pr を指す所を外す }
       docs: [docs/specs/0076-verify-pr.md, docs/designs/0076-verify-pr.md, docs/adr/0081-verify-scripts-not-tests.md]
 
+  - id: slack-requests
+    name: Slack で頼むと PR → 返事でマージ(/slack-request)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: Slack(Claude Code in Slack)・クラウドで頼まれた1件を、AI が1本の PR にし、終わりに仮決めを並べて「これでいいですか」と聞く。1人の間は、持ち主の会話の返事を未確定事項の答えに認め、持ち主がクラウドの環境に KIT_AI_MERGE=slack を入れた所でだけ、必須のチェックが全部緑のときに AI がマージする(pnpm pr:merge-when-green)
+    needed_by: 1人(か少人数)で、Slack から頼んで AI に作らせたい
+    not_needed_by: 人が増えてレビューの人数を 1 以上にした(会話の答えと AI のマージは自動で止まる)
+    if_removed: 頼むたびに手元の Claude Code で対話し、答えは GitHub のコメント、マージは人が押す
+    depends_on: []
+    law: []
+    where: [.claude/skills/slack-request/SKILL.md, scripts/pr-merge-when-green.mjs, scripts/pr-merge-lib.mjs, scripts/cloud-setup.sh, docs/guides/slack.md]
+    remove:
+      delete: [.claude/skills/slack-request, scripts/pr-merge-when-green.mjs, scripts/pr-merge-lib.mjs, scripts/pr-merge.test.mjs, scripts/cloud-setup.sh]
+      edit:
+        - { path: package.json, what: pr:merge-when-green と、test:scripts の scripts/pr-merge.test.mjs を外す }
+        - { path: .claude/hooks/guard-bash.mjs, what: checkMerge の KIT_AI_MERGE とスクリプトの例外を外す(マージは全部止める)。テストも }
+        - { path: scripts/decisions-lib.mjs, what: 会話の答え(conversationAnswerOf・soloFrom・conversationAnswerProblems)を外す。decision-evidence.mjs とテストも }
+        - { path: CLAUDE.md, what: 会話の答えの1文・/slack-request の行・マージの例外を外す }
+        - { path: docs/guides/slack.md, what: 「🧍 1人の間のおすすめ」を外す }
+        - { path: docs/guides/human-review.md, what: 2 の会話の答えの例外を外す }
+        - { path: docs/scenarios/gaps.md, what: 条件 8 と G-124 }
+      docs: [docs/specs/0080-slack-requests.md, docs/designs/0080-slack-requests.md, docs/adr/0082-solo-conversation-answers-and-ai-merge.md]
+
   - id: checkup
     name: 点検(/checkup)
     group: process
