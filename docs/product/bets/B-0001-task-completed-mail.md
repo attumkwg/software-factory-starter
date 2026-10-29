@@ -54,4 +54,5 @@
 - 仕様: [docs/specs/0002-task-completed-mail.md](../../specs/0002-task-completed-mail.md)
 - 仕組み: [docs/guides/mail.md](../../guides/mail.md)
 - 次の一歩(組織ごとに止める・戻す): [docs/specs/0093-task-mail-switch.md](../../specs/0093-task-mail-switch.md)(撤退の線「メールを止める組織」を数える手段)
+  - 撤退の線の数え方: 月末に `select count(*) filter (where task_completed_mail = false), count(*) from organizations.tenants`(止めている組織の数 ÷ 全組織の数。組織の名前は使わない)。1回目は 2026-11-30。結果は [../verdicts/2026-10-29-task-mail-switch-accept.md](../verdicts/2026-10-29-task-mail-switch-accept.md) の「## 結果」に書く(受け入れの意義の判断の条件)
 - PR を探す: `gh pr list --state all --search "\"bet:B-0001\" in:body"`(この見本より前の PR には書いていない)
