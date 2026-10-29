@@ -47,7 +47,7 @@
 
 ## 5. 直し方(上から順に検討する)
 
-1. **上げる**: 直った版に上げる。Renovate の PR があればそれを使い、無ければ PR を出す。下の 8 の自己点検も。間接の依存でも、直った版が親の範囲の中にあるなら(古いのは lockfile だけ)、`pnpm update -r <名前>` で lockfile だけを上げる(2 の overrides は使わない。毎月の lockfile の見直しを待たない)。
+1. **上げる**: 直った版に上げる。Renovate の PR があればそれを使い、無ければ PR を出す。下の 8 の自己点検も。間接の依存でも、直った版が親の範囲の中にあるなら(古いのは lockfile だけ)、`pnpm update -r <名前>` で lockfile だけを上げる(5 の 2 の overrides は使わない。毎月の lockfile の見直しを待たない)。
 2. **間接の依存だけ上げる**: 親が古い版を固定しているときは、`pnpm.overrides`(ルートの `package.json`。または `pnpm-workspace.yaml` の `overrides`)。親が壊れないかテストを全部回し、親が直したら外す(外す日をコメントに)。
 3. **置き換える・外す**: 親の更新が止まっている・使っていない機能のための依存なら外す。
 4. **設定で塞ぐ**: 直った版がまだ無いとき。WAF のルール・機能を止める・設定を変える(手で塞いだことを手順書 `docs/runbooks/` に)。
@@ -102,3 +102,5 @@ Renovate の PR・`/cve` が出す「上げる」PR で、マージの前に確�
   - `pnpm test` と `pnpm test:integration`(認証・Cookie・RLS・2社のテストが通るか)。画面の依存なら `pnpm test:e2e` も。
   - `pnpm why <名前> -r` で、同じ依存の古い版が残っていないか(残っていれば 5 の 2)。
   - 公開から日が浅い版を入れていないか(`pnpm-workspace.yaml` の `minimumReleaseAge`。緊急で外すなら理由を PR に)。
+  - 前の版より出どころの証明(provenance)が落ちていないか(`npm view <名前>@<版> dist.attestations`)。落ちていれば、同じ中身で証明の付いた版を待つか、落ちた事実を PR に書く。
+  - 上の5つの下の間接の依存(例: `@tanstack/react-start` の下の `seroval`)も、同じく「高」として見る。
