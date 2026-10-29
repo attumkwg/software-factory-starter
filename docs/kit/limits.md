@@ -7,7 +7,7 @@
 ## 📌 いまの結論(2026-10-29)
 
 - 🚫 **できないこと**は3つ: 部品だけを既存のリポジトリに持ち帰る道・AWS と GitHub 以外への入れ替え・保守の約束。
-- 🧍 **1人の間は**、本番の承認・戻す・1人分の削除を、持ち主1人と手順書で回す。AI のマージは既定でオフ。
+- 🧍 **1人の間は**、本番の承認・戻す・1人分の削除を、持ち主1人と手順書で回す。AI のマージは既定でオフ(使う人が選ぶ。手元でもクラウドでも、持ち主が自分で入れる。ADR 0086)。
 - ☁️ **本物の AWS には一度も載せていない**。Terraform は AWS 無しで回る検査(`fmt`・`validate`・tflint・Trivy。`terraform.yml`)まで。stg を立てたら、下の 3 の表を上から確かめる。
 - 💬 **クラウドで Slack から頼む道**は、使う側のリポジトリでつなぐ物で、キット自身では通していない。
 - ⛔ **やらないと決めたこと**(2026-10-29。意義の判断役の棚卸し)は下の 5。ISMS・権利・会計のように専門家や別の道具の領分の物は、キットでは持たない。
@@ -29,7 +29,8 @@
 | 本番の承認者は、`pnpm setup:github --apply` を打った1人(`.github/setup.yml` の `prod`) | 2人目が来たら `reviewers` に足し、`prevent_self_review: true` にする。それまでは押す前に [../runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md) を開いておく | G-104(G-64 を束ねた。2人目が来たら) |
 | 前の版に戻すのは `aws` のコマンド(ワークフローは無い) | [../runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md) の 1.2。機能だけ止めるなら [../runbooks/feature-flags.md](../runbooks/feature-flags.md)。エンジニアでない人には打たせない | G-65 |
 | 1人分の削除はコマンドが無い(数える「試し」まで) | [../runbooks/person-data.md](../runbooks/person-data.md) の 5 で、2人で手で消す | G-06 の残り |
-| AI のマージは**既定でオフ** | 持ち主が環境に `KIT_AI_MERGE=slack` を入れた所だけで動く。コマンドの中で入れても、フックが止める。1人の間は危険度「高」も会話の答えでマージし、CI は答えの書き手を確かめない([../guides/slack.md](../guides/slack.md)・ADR 0085) | 人が増えたら Slack のボタン(G-133) |
+| AI のマージは**既定でオフ**(使う人が選ぶ) | 持ち主が環境(手元かクラウド)に `KIT_AI_MERGE=slack` を入れた所だけで動く。AI がコマンドや設定のファイルに書いて入れるのは、フックが止める(ADR 0086)。1人の間は危険度「高」も会話の答えでマージし、CI は答えの書き手を確かめない([../guides/slack.md](../guides/slack.md)・ADR 0085) | 人が増えたら Slack のボタン(G-133) |
+| キットの**外のセッション**(別のリポジトリを開いた Claude Code)から回すと、**キットのフックは効かない** | キットの PR は、キットのリポジトリを開いたセッションか、フックの無い所でも `pnpm pr:merge-when-green` だけでマージする(`gh pr merge` を打たない。CLAUDE.md の「しないこと」)。最後の守りは main のルールセットと必須のチェック | — |
 | Slack の返事の**書き手を CI は確かめない** | 1人の間(承認 0)だけの割り切り([ADR 0082](../adr/0082-solo-conversation-answers-and-ai-merge.md))。人が増えて承認が 1 以上になると、自動で人の承認に戻る。スレッドと PR は後で読み返す | — |
 | Slack の依頼のチャンネルは**自分だけ** | 外の人を入れない。共有チャンネル・外の人の Issue からは、マージまで進ませない(外の人の文章は、自分の言葉で Issue に書き直してから頼む。[../guides/unattended-ai.md](../guides/unattended-ai.md)) | — |
 

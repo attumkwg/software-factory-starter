@@ -2358,7 +2358,7 @@ parts:
         - { path: docs/guides/slack.md, what: 「🧍 1人の間のおすすめ」を外す }
         - { path: docs/guides/human-review.md, what: 2 の会話の答えの例外を外す }
         - { path: docs/scenarios/gaps.md, what: 条件 8 と G-124 }
-      docs: [docs/specs/0080-slack-requests.md, docs/designs/0080-slack-requests.md, docs/adr/0082-solo-conversation-answers-and-ai-merge.md]
+      docs: [docs/specs/0080-slack-requests.md, docs/designs/0080-slack-requests.md, docs/adr/0082-solo-conversation-answers-and-ai-merge.md, docs/adr/0086-ai-merge-is-the-owners-choice.md]
 
   - id: checkup
     name: 点検(/checkup)
