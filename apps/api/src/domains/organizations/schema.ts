@@ -28,6 +28,9 @@ export const tenants = organizations.table("tenants", {
   // この組織では全員に二段階認証を必須にする(docs/specs/0006-account-security.md)。管理者が入れ・切る。
   // 運営の組織(SUPPORT_TENANT_ID)は最初から true で、切れない
   mfaRequired: boolean("mfa_required").notNull().default(false),
+  // この組織で「タスクが完了したメール」を送るか(docs/specs/0093-task-mail-switch.md)。管理者が止め・戻す。
+  // 送る直前に読む(tasks の taskCompletedMail)。既定は送る
+  taskCompletedMail: boolean("task_completed_mail").notNull().default(true),
   createdAt: createdAt(),
 });
 

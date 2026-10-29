@@ -84,3 +84,5 @@ export {
   startSupportSession,
 } from "./support.ts";
 export { supportGrantRoutes } from "./support-routes.ts";
+export { findTaskMailEnabled } from "./task-mail.ts";
+export { taskMailRoutes } from "./task-mail-routes.ts";

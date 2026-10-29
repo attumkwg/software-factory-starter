@@ -214,6 +214,7 @@
 | `name` | **personal** | 組織の名前を画面に出す(個人事業主なら人の名前になる) |
 | `time_zone` | public | 時刻を見せる時間帯・「1日」の区切り |
 | `mfa_required` | public | 全員に二段階認証を求めるか |
+| `task_completed_mail` | public | タスクが完了したメールを送るか |
 | `created_at` | internal | 作った時刻 |
 
 ### `organizations.users`

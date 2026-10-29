@@ -40,6 +40,7 @@ import {
   mfaRequirementRoutes,
   organizationRoutes,
   supportGrantRoutes,
+  taskMailRoutes,
 } from "./domains/organizations/index.ts";
 import { projectRoutes } from "./domains/projects/index.ts";
 import { taskRoutes } from "./domains/tasks/index.ts";
@@ -162,6 +163,19 @@ function appContext(deps: AppDeps): MiddlewareHandler<AppEnv> {
   };
 }
 
+/** どのルートにも当たらなかった(失敗と同じ形。errors.ts) */
+const notFoundJson = (c: Context) =>
+  c.json(
+    {
+      error: {
+        code: "not_found",
+        message: "見つかりません",
+        requestId: getRequestContext()?.requestId,
+      },
+    },
+    404,
+  );
+
 export function createApp(deps: AppDeps) {
   const { config, db, logger } = deps;
   const lifecycle = deps.lifecycle ?? { shuttingDown: false };
@@ -215,6 +229,7 @@ export function createApp(deps: AppDeps) {
   // 領域ごとのルート(src/domains/<領域>/routes.ts)
   app.route("/api", organizationRoutes);
   app.route("/api", mfaRequirementRoutes);
+  app.route("/api", taskMailRoutes);
   app.route("/api", supportGrantRoutes());
   app.route("/api", invitationRoutes);
   // 社員の代理ログイン(組織を切り替えるので認証の側)
@@ -248,18 +263,7 @@ export function createApp(deps: AppDeps) {
 
   // 画面は配らない。画面は別のサービス(apps/web の SSR)で、ALB が /api/* だけをここへ振り分ける。
 
-  app.notFound((c) =>
-    c.json(
-      {
-        error: {
-          code: "not_found",
-          message: "見つかりません",
-          requestId: getRequestContext()?.requestId,
-        },
-      },
-      404,
-    ),
-  );
+  app.notFound(notFoundJson);
 
   // 失敗はすべてここで同じ形にする(errors.ts)。中身(SQL・値・スタック)は返さない。
   //   4xx … 利用者の側の問題。ログは残さない(アクセスログに status が出る)

@@ -176,6 +176,13 @@
       "when": 1793189521384,
       "tag": "0024_member_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793243794412,
+      "tag": "0025_task_mail",
+      "breakpoints": true
     }
   ]
 }
