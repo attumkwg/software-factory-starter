@@ -8,6 +8,8 @@
 // そのときは、人の答えが要った理由と、触った「高」の領域の問い(docs/concepts/risk-areas.md)も記録に書く。
 // マージの前に、持ち主の言葉・答えた日時・当てた版を PR にコメントで残す(「## 持ち主の承認(会話で…」。判断待ちの積み場はこれで答え済みと見る)。
 //
+// 書いた人と別の AI のレビューの記録(/review-pr。人格ごとに回し、人が1問ずつ決めた物)が PR に無ければ、入れない(G-137・仕様 0096)。
+//
 // センサーだけで入れる(G-135・ADR 0094): node scripts/pr-merge-when-green.mjs <PR の番号> --sensors
 //   持ち主が .github/setup.yml の ai_merge.sensors_only を true にした所だけ。人を呼ぶ理由(守る場所・「高」の領域・印・問い・
 //   本文の危険度「高」)が1つでもあれば、返事を待つ(1 で終わる)。緑になった後にもう一度見る(待つ間に付いた印・直した本文)。
@@ -22,6 +24,7 @@ import {
   mergeQueueOn,
   prProblems,
   requiredChecksFrom,
+  reviewState,
   SENSOR_MARK,
   sensorComment,
   sensorMergeBlockers,
@@ -116,6 +119,19 @@ if (!sensors && before.reasons.length > 0)
     `人の答えが要る PR(${before.reasons.join("・")})。1人の間なので、会話の答えでマージする(ADR 0085)\n`,
   );
 
+// レビューの記録を先に見る(無ければ緑を待たずに止める)。待つ間に記録が付くこともあるので、緑の後にもう一度見る
+const reviewed = () => {
+  const review = reviewState(
+    api(`repos/${repo}/issues/${number}/comments?per_page=100`),
+    pr.head.sha,
+  );
+  if (review.problem) fail(review.problem);
+  if (review.note)
+    process.stdout.write(`${review.note}
+`);
+};
+reviewed();
+
 const rules = api(`repos/${repo}/rules/branches/main`);
 const queued = mergeQueueOn(rules);
 const live = rules
@@ -137,6 +153,7 @@ for (;;) {
 // 会話の答えを PR に残す(待つ間に付いた印も書く)。同じ版に当てた記録があれば足さない
 const after = needs();
 if (sensors && after.blockers.length > 0) stopForHuman(after.blockers);
+reviewed();
 const comments = api(`repos/${repo}/issues/${number}/comments?per_page=100`);
 const recorded = (mark) =>
   comments.some(

@@ -143,3 +143,43 @@ export const sensorComment = ({ sha, required, queued }) =>
 
 /** main の規則(rules/branches/main)にマージキューがあるか */
 export const mergeQueueOn = (rules) => (rules ?? []).some((r) => r.type === "merge_queue");
+
+// ── 書いた人と別の AI のレビューの記録(G-137・G-139・仕様 0096)──
+// /review-pr が、書いた文脈を持たない AI を人格ごとに回し、人が1問ずつ決めた所までを PR に残す。記録が無い PR は AI がマージしない。
+
+/** レビューの記録のコメントの頭 */
+export const REVIEW_MARK = "## 🔍 レビューの記録(書いた人と別の AI";
+
+const SHA_HEAD = "当てた版: `";
+
+/** 記録の「当てた版: `abc1234`」から版を取る(無ければ空) */
+export function reviewedShaOf(body) {
+  const text = String(body ?? "");
+  const at = text.indexOf(SHA_HEAD);
+  if (at < 0) return "";
+  const rest = text.slice(at + SHA_HEAD.length);
+  const end = rest.indexOf("`");
+  return end < 0 ? "" : rest.slice(0, end);
+}
+
+/**
+ * レビューの記録の様子(いちばん新しい記録を見る)。problem があれば入れない。
+ * note は知らせるだけ(レビューの後に、決めたことを直した版が積まれるのはふつう)
+ */
+export function reviewState(comments, headSha) {
+  const records = (comments ?? []).filter((c) => String(c.body ?? "").startsWith(REVIEW_MARK));
+  if (records.length === 0)
+    return {
+      problem:
+        "書いた人と別の AI のレビューの記録が無い(/review-pr で人格ごとに回し、人が1問ずつ決めた記録を PR に残す。仕様 0096)",
+    };
+  const sha = reviewedShaOf(records.at(-1).body);
+  if (!sha)
+    return { problem: "レビューの記録に「当てた版」が無い(/review-pr の記録の形。仕様 0096)" };
+  const head = String(headSha ?? "");
+  if (!head.startsWith(sha))
+    return {
+      note: `レビューの後に版が進んだ(当てた版 ${sha}・今の版 ${head.slice(0, 7)})。直した分が決めたことどおりかは、記録の「直したこと」で見る`,
+    };
+  return {};
+}

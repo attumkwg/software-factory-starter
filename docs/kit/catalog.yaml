@@ -2288,6 +2288,31 @@ parts:
         - { path: docs/guides/kpi.md, what: 1 の業界の前提と 2 の合議を外す }
       docs: [docs/specs/0082-persona-council.md, docs/designs/0082-persona-council.md]
 
+  - id: review-by-other-ai
+    name: 書いた人と別の AI のレビュー(人格ごと・人が1問ずつ決める)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: AI が出した PR を、書いた AI と別の AI(レビュー役)が、観点の台帳と人格(使う人・越えようとする人・夜中に起こされる人・後から確かめる人・3か月後に触る人)で1つずつ読む。所見は人が1問ずつ「直す / このまま / 今回は見ない」で決め、記録が無い PR は AI がマージしない
+    needed_by: AI に PR を書かせてマージまで任せる・書いた側の申告だけで入れたくない
+    not_needed_by: 人が全部の PR を読んで承認する(承認数 1 以上)
+    if_removed: 書いた AI の申告だけでマージに回り、自分の抜け(足していないテスト・文の足し忘れ)が受け入れや本番まで残る
+    depends_on: []
+    law: []
+    where: [.claude/agents/reviewer.md, .claude/skills/review-pr/SKILL.md, docs/review-viewpoints.md, docs/guides/human-review.md, scripts/pr-merge-lib.mjs]
+    remove:
+      delete: [.claude/agents/reviewer.md]
+      edit:
+        - { path: scripts/pr-merge-lib.mjs, what: REVIEW_MARK・reviewedShaOf・reviewState を外す }
+        - { path: scripts/pr-merge-when-green.mjs, what: reviewed() の2か所を外す }
+        - { path: scripts/pr-merge.test.mjs, what: レビューの記録のテストを外す }
+        - { path: .claude/skills/review-pr/SKILL.md, what: 1.5・7・7.5 を外す }
+        - { path: docs/review-viewpoints.md, what: 「👥 レビューの人格」の節を外す }
+        - { path: docs/guides/human-review.md, what: 7 を外す }
+        - { path: CLAUDE.md, what: 必ず守るの「AI が出した PR は、マージに回す前に /review-pr」の1文を外す }
+      docs: [docs/specs/0096-review-by-other-ai.md, docs/designs/0092-review-by-other-ai.md]
+
   - id: purpose-judge
     name: 意義の判断役と歯止めの3つ(やる / やらない / 条件つき)
     group: process

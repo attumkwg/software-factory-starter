@@ -7,7 +7,10 @@ import {
   humanOnlyReasons,
   mergeQueueOn,
   prProblems,
+  REVIEW_MARK,
   requiredChecksFrom,
+  reviewedShaOf,
+  reviewState,
   SENSOR_MARK,
   sensorComment,
   sensorMergeBlockers,
@@ -114,4 +117,22 @@ test("センサーだけで入れた記録と、マージキューの見分け",
   assert.equal(mergeQueueOn([{ type: "pull_request" }, { type: "merge_queue" }]), true);
   assert.equal(mergeQueueOn([{ type: "required_status_checks" }]), false);
   assert.equal(mergeQueueOn(undefined), false);
+});
+
+test("書いた人と別の AI のレビューの記録が無ければ入れない・版が進んでいれば知らせるだけ(G-137)", () => {
+  const record = (sha) => ({
+    body: `${REVIEW_MARK}・人格ごと・仕様 0096)
+
+- 当てた版: \`${sha}\`
+`,
+  });
+  assert.match(reviewState([], "abcdef0123").problem, /レビューの記録が無い/);
+  assert.match(reviewState([{ body: "LGTM" }], "abcdef0123").problem, /レビューの記録が無い/);
+  assert.deepEqual(reviewState([record("abcdef0")], "abcdef0123"), {});
+  assert.match(reviewState([record("1234567")], "abcdef0123").note, /版が進んだ/);
+  // いちばん新しい記録を見る
+  assert.deepEqual(reviewState([record("1234567"), record("abcdef0")], "abcdef0123"), {});
+  assert.match(reviewState([{ body: `${REVIEW_MARK})` }], "abcdef0").problem, /当てた版/);
+  assert.equal(reviewedShaOf("当てた版: `abc`"), "abc");
+  assert.equal(reviewedShaOf("当てた版: `abc"), "");
 });
