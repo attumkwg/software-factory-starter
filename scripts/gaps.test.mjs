@@ -118,6 +118,22 @@ test("正しい一覧は問題なし・数の要約", () => {
   );
 });
 
+test("束ねた子は、親が済み・やらないなら親に合わせて数え、親が開いていれば残り", () => {
+  const rows = [
+    { id: "G-116", status: "済み" },
+    { id: "G-72", status: "束ねた", parent: "G-116" },
+    { id: "G-121", status: "やらない" },
+    { id: "G-75", status: "束ねた", parent: "G-121" },
+    { id: "G-80", status: "残り" },
+    { id: "G-81", status: "束ねた", parent: "G-80" },
+  ];
+  const stageOf = new Map(rows.map((r) => [r.id, "使える前に"]));
+  const [all] = summarize({ rows, stageOf });
+  assert.equal(all.済み, 2);
+  assert.equal(all.やらない, 2);
+  assert.equal(all.残り, 2);
+});
+
 test("行の形: 重なり・崩れ・🔧 の番号・束ねた先", () => {
   const rows = [
     ...okRows,
