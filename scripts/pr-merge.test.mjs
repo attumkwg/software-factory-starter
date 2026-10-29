@@ -133,21 +133,20 @@ const table = (rows) =>
     ...rows.map(([id, w, d]) => `| ${id} | 🦹 | 権限 | x | ${w} | ${d} | |`),
   ].join("\n");
 const record = (sha, rows = [], who = "OWNER", at = "2026-10-29T10:00:00Z") => ({
-  body: `${REVIEW_MARK}・人格ごと・仕様 0096)
-
-- 当てた版: \`${sha.slice(0, 7)}\`
-
-${table(rows)}
-`,
+  body: [
+    `${REVIEW_MARK}・人格ごと・仕様 0096)`,
+    "",
+    `- 当てた版: \`${sha.slice(0, 7)}\``,
+    "- 回した人格: 🦹 越えようとする人",
+    "",
+    table(rows),
+  ].join("\n"),
   author_association: who,
   created_at: at,
   html_url: "https://example.test/c/1",
 });
 const fix = (sha, at = "2026-10-29T11:00:00Z", who = "OWNER") => ({
-  body: `${FIX_MARK}・仕様 0096)
-
-- 直した版: \`${sha.slice(0, 7)}\`(#1)
-`,
+  body: [`${FIX_MARK}・仕様 0096)`, "", `- 直した版: \`${sha.slice(0, 7)}\`(#1)`].join("\n"),
   author_association: who,
   created_at: at,
 });
@@ -164,14 +163,23 @@ test("レビューの記録: 無い・外の人の記録・回せなかった・
   );
   const cannot = {
     ...record(A),
-    body: `${record(A).body}
-別の AI のレビューを回せなかった`,
+    body: record(A).body.replace("🦹 越えようとする人", "別の AI のレビューを回せなかった"),
   };
   assert.match(reviewState([cannot], A, [commit(A)]).problem, /回せなかった/);
+  // 所見の文に「回せなかった」が出ても、回した人格の行が埋まっていれば止めない(#189 で見つけた取り違え)
+  const mention = {
+    ...record(A),
+    body: `${record(A).body}\n| W1 | 🔍 | x | 「回せなかった」の記録で通る | ⚠️ | このまま | |`,
+  };
+  assert.equal(reviewState([mention], A, [commit(A)]).problem, undefined);
+  const noPersonas = {
+    ...record(A),
+    body: record(A).body.replace("- 回した人格: 🦹 越えようとする人", ""),
+  };
+  assert.match(reviewState([noPersonas], A, [commit(A)]).problem, /回した人格/);
   const short = {
     ...record(A),
-    body: `${REVIEW_MARK})
-- 当てた版: \`abc\``,
+    body: [`${REVIEW_MARK})`, "- 当てた版: `abc`", "- 回した人格: 🦹"].join("\n"),
   };
   assert.match(reviewState([short], A, [commit(A)]).problem, /版の形でない/);
   assert.match(reviewState([record(B)], A, [commit(A)]).problem, /この PR の版に無い/);

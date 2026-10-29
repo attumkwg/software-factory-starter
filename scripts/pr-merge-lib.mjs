@@ -210,10 +210,21 @@ const HEAVY = ["❌", "❓"];
 const undecided = (d) =>
   d.decided === "" || d.decided.startsWith("未") || d.decided.startsWith("今回は見ない");
 
-/** 記録そのものの問題(回せなかった・版の形・この PR の版でない・決めていない ❌ ❓)。無ければ空 */
+/** 記録の「- 回した人格:」の行(無ければ空)。所見の文に同じ言葉が出ても取り違えないよう、この行だけを見る */
+export function personasLineOf(body) {
+  const line = String(body ?? "")
+    .split("\n")
+    .find((l) => l.trimStart().startsWith("- 回した人格:"));
+  return line ? line.trimStart().slice("- 回した人格:".length).trim() : "";
+}
+
+/** 記録そのものの問題(回した人格が無い・回せなかった・版の形・この PR の版でない・決めていない ❌ ❓)。無ければ空 */
 function recordProblem(body, sha, inPr) {
-  if (body.includes("回せなかった"))
-    return "レビューの記録が「別の AI のレビューを回せなかった」になっている(回してから記録し直す)";
+  const personas = personasLineOf(body);
+  if (!personas)
+    return "レビューの記録に「- 回した人格:」の行が無い(/review-pr の記録の形。仕様 0096)";
+  if (personas.includes("回せなかった"))
+    return "レビューの記録の「回した人格」が「別の AI のレビューを回せなかった」になっている(回してから記録し直す)";
   if (!isSha(sha))
     return `レビューの記録の「当てた版」が版の形でない(16進で7文字以上: ${sha || "空"})`;
   if (!inPr(sha)) return `レビューの記録の「当てた版」${sha} が、この PR の版に無い`;
