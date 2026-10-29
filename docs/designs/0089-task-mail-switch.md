@@ -70,10 +70,10 @@ flowchart LR
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
 | 管理者が止めると、完了してもメールが届かない | 3. API・5. 連携 | 子1 `test/integration/task-mail.int.test.ts`(止める・戻す)/ 子2 `test/integration/mail.int.test.ts`(止めた組織には送らない) |
-| 管理者が戻すと、その後のメールは届く | 3. API・5. 連携 | 子2 `mail.int.test.ts`(戻した後は送る) |
-| 管理者でない人には操作が出ない | 3. API(403)・画面(カードを出さない) | `authz-matrix`(3行)/ 子3 画面の単体テスト |
-| 止めた・戻したが監査ログに残る | 3. API | `audit-coverage`・子1 の結合テスト |
-| 止めている組織の数を数えられる | 5. 連携(集計) | 子1 の結合テストで列を読む |
+| 管理者が戻すと、その後のメールは届く | 3. API・5. 連携 | 子2 `apps/api/test/integration/mail.int.test.ts`(戻した後は送る) |
+| 管理者でない人には操作が出ない | 3. API(403)・画面(受け皿と 403。#186) | `apps/api/test/integration/authz-matrix.int.test.ts`(3行)・`apps/web/e2e/audit.spec.ts`(member・viewer が設定を開くと 403 と受け皿。子3 は画面のテストを足していなかったので、#186 の直しで足した) |
+| 止めた・戻したが監査ログに残る | 3. API | `apps/api/test/unit/audit-coverage.test.ts`・`apps/api/test/integration/task-mail.int.test.ts` |
+| 止めている組織の数を数えられる | 5. 連携(集計) | `apps/api/test/integration/task-mail.int.test.ts`(列を読む) |
 
 ## 8. 非機能
 

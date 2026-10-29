@@ -5,6 +5,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { NONCE, secureHeaders } from "hono/secure-headers";
 import type { Logger } from "pino";
+import { API_STATUS_HEADER, withApiStatus } from "./api-status.ts";
 import { compressResponse } from "./compress.ts";
 
 // 画面のサービス(SSR)の入口。ALB から「/api/* 以外」が全部ここに来る。
@@ -204,6 +205,8 @@ export function createWebApp(deps: {
     const headers = new Headers(c.req.raw.headers);
     headers.set("x-request-id", c.get("requestId"));
     headers.delete(CSP_NONCE_HEADER);
+    // 受け皿の番号を渡す内側のヘッダーは、外から来た物を捨てる(SSR の応答からだけ読む。#186)
+    headers.delete(API_STATUS_HEADER);
     const nonce = c.get("secureHeadersNonce");
     if (nonce) headers.set(CSP_NONCE_HEADER, nonce);
     try {
@@ -212,7 +215,15 @@ export function createWebApp(deps: {
       // 共有の PC で「戻る」やキャッシュから見えないように)。ログイン前の画面も同じにする
       // (残しても速さの得は小さく、ログインの前後をここで見分けるより取り違えが無い)。
       // 画面の側で決めて付けたものはそのまま
-      return compressResponse(c.req.raw, withNoStore(res));
+      // API が断っただけ(権限が無い・無い物)なら 500 でなくその番号で返す(#186。api-status.ts)。
+      // 書き換えたら1行残す(Logs Insights で「500 だった物」を後から数えられるように)
+      const fixed = withApiStatus(res);
+      if (fixed.rewrittenFrom !== undefined)
+        logger.info(
+          { requestId: c.get("requestId"), from: fixed.rewrittenFrom, to: fixed.res.status },
+          "API の断りの番号で返した",
+        );
+      return compressResponse(c.req.raw, withNoStore(fixed.res));
     } catch (err) {
       logger.error({ err }, "SSR で失敗");
       return c.text("内部エラーです", 500);
