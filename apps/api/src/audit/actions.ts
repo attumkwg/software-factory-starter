@@ -2,7 +2,7 @@
 // **書き込みの API(GET 以外・ログインが要る物)を足したら、ここにも1行**。無ければ単体テスト
 // (test/unit/audit-coverage.test.ts)が落ちる。記録は認可の関所(src/authz/middleware.ts)が自動で取る。
 //
-// 名前は画面の文(apps/web/src/messages.ts の AUDIT_ACTION_LABELS)と、お客さんが読む記録の両方で使う。
+// 名前は画面の文(apps/web/src/audit-labels.ts の AUDIT_ACTION_LABELS。無いと画面の単体テストが落ちる)と、お客さんが読む記録の両方で使う。
 // **一度使った名前は変えない**(古い記録が読めなくなる)。
 
 /** param … 対象の ID が入るパスの名前(省略すると `<target>Id`) */

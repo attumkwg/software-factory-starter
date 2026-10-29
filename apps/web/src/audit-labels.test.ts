@@ -1,6 +1,32 @@
+import { readFileSync } from "node:fs";
 import type { AuditEvent } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { auditActionLabel, auditActorLabel, auditTargetLabel } from "./audit-labels.ts";
+import {
+  AUDIT_ACTION_LABELS,
+  auditActionLabel,
+  auditActorLabel,
+  auditTargetLabel,
+} from "./audit-labels.ts";
+
+/**
+ * API の監査ログの名前(apps/api/src/audit/actions.ts)を、ファイルの文字から拾う。
+ * 画面から API のコードは import しない(別のサービス)ので読むだけ。コメントの行は飛ばし、
+ * 「"」で囲まれた中で、点を含み・空白と「/」を含まない物(project.create など)を名前とみなす。
+ */
+function apiActionNames(): string[] {
+  const text = readFileSync(new URL("../../api/src/audit/actions.ts", import.meta.url), "utf8");
+  const names = new Set<string>();
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
+    const parts = trimmed.split('"');
+    for (let i = 1; i < parts.length; i += 2) {
+      const s = parts[i] as string;
+      if (s.includes(".") && !s.includes(" ") && !s.includes("/")) names.add(s);
+    }
+  }
+  return [...names];
+}
 
 const base: AuditEvent = {
   id: "0199a000-0000-7000-8000-000000000001",
@@ -39,6 +65,13 @@ describe("監査ログの文", () => {
     expect(auditActorLabel({ ...base, actor: { kind: "user", id: base.id, name: null } })).toBe(
       "(いまはいない人)",
     );
+  });
+
+  it("API の監査ログの名前に、全部の文がある(無いと画面に名前がそのまま出る)", () => {
+    const names = apiActionNames();
+    // 拾い方が壊れて0件で通るのを防ぐ(関所の名前・手で残す名前・代理の社員の読み)
+    expect(names).toEqual(expect.arrayContaining(["project.create", "auth.login", "support.read"]));
+    expect(names.filter((name) => !(name in AUDIT_ACTION_LABELS))).toEqual([]);
   });
 
   it("対象: 種類と ID の終わり", () => {
