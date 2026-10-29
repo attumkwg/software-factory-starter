@@ -50,7 +50,7 @@ jobs:
         run: pnpm self-contained
       - name: 穴の一覧と、それを指す文書が今の姿か(済んだ穴を「穴」と書いた所・済みの行の仕様の状態・段の抜け・今の数の表)
         run: pnpm gaps
-      # 合わせたコミット(PR)の1つ目の親 = 元(base)と比べる。新しい設計書と、7 の節か状態を変えた物だけ(docs/designs/0093-design-test-paths.md)
+      # 合わせたコミット(PR)の1つ目の親 = 元(base)と比べる。新しい設計書と、7 の節か状態を変えた物だけ(docs/designs/0097-design-test-paths.md)
       - name: 変えた設計書の「要求との対応」(受け入れ条件ごとにテストのファイルを名指しているか・「完了」ならそのファイルがあるか)
         run: pnpm design-tests --base HEAD^1
       - name: 賭けの記録(線を先に決めたか・段階を飛ばしていないか・psf からペルソナと KPI を指すか)と KPI の木、記録の検査のテスト
