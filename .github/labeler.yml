@@ -75,6 +75,7 @@
           - apps/api/test/unit/tenant-shares.test.ts
           - apps/api/test/integration/tenant-shares.int.test.ts
           - apps/api/test/integration/person-data.int.test.ts
+          - apps/api/test/integration/person-erase.int.test.ts
           - apps/api/test/integration/export-stream.int.test.ts
           - apps/api/test/unit/export-stream.test.ts
           - apps/api/test/integration/audit-export.int.test.ts

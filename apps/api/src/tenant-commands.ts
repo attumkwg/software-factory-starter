@@ -9,10 +9,11 @@ import { deleteTenant, planTenantDeletion } from "./offboarding/delete-tenant.ts
 import { applicationSourceFor } from "./onboarding/application-source.ts";
 import { createTenant, parseTenantApplication } from "./onboarding/create-tenant.ts";
 import { withPreRegistration } from "./onboarding/from-pre-registration.ts";
+import { erasePersonData } from "./person-data/erase-person-data.ts";
 import { planPersonData } from "./person-data/plan-person-data.ts";
 import { objectStoreFromConfig } from "./storage/index.ts";
 
-// 組織を作る・1人分を数える・組織を消す、の運営のコマンド(cli.ts から呼ぶ。手順は docs/runbooks/)。
+// 組織を作る・1人分を数える・消す・組織を消す、の運営のコマンド(cli.ts から呼ぶ。手順は docs/runbooks/)。
 // 本番の DB に書く(読む)ので人が打つ。接続は移行と同じ表の持ち主。
 
 const appEnv = process.env.APP_ENV ?? "local";
@@ -121,21 +122,40 @@ async function linkPreRegistration(
   }
 }
 
-/** 利用者1人分の開示・削除の試し(数えるだけ・何も変えない)。結果は JSON 1行(値は出さない) */
+/**
+ * 利用者1人分の開示・削除。--execute が無ければ数えるだけ(何も変えない)。結果は JSON 1行(値は出さない)。
+ * 本当に消すのは --execute --confirm-rows <試しの anonymize と delete の合計>(docs/runbooks/person-data.md の 5)
+ */
 export async function personDataCommand(args: string[]) {
-  const [tenantId, userId] = args;
+  const [tenantId, userId, ...flags] = args;
   const uuid = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
   if (!tenantId || !userId || !uuid.test(tenantId) || !uuid.test(userId)) {
     throw new Error(
-      "使い方: person-data <組織の ID> <利用者の ID>(どちらも UUID。名前・メールは渡さない)",
+      "使い方: person-data <組織の ID> <利用者の ID> [--execute --confirm-rows <数>](どちらも UUID。名前・メールは渡さない)",
     );
+  }
+  const execute = flags.includes("--execute");
+  const confirmRows = Number(flagValue(flags, "--confirm-rows"));
+  if (execute && !Number.isInteger(confirmRows)) {
+    throw new Error("--execute には --confirm-rows <試しの anonymize と delete の合計> が要ります");
   }
   const { db, pool } = createDb(migrationUrl);
   try {
+    if (execute) {
+      const done = await erasePersonData(db, tenantId, userId, {
+        confirmRows,
+        supportTenantId: process.env.SUPPORT_TENANT_ID || null,
+      });
+      process.stdout.write(`${JSON.stringify(done)}\n`);
+      return;
+    }
     const plan = await planPersonData(db, tenantId, userId);
     process.stdout.write(`${JSON.stringify({ mode: "plan", ...plan })}\n`);
-    if (!plan.found)
-      process.stdout.write("その組織にその利用者はいません(ID を確かめてください)\n");
+    process.stdout.write(
+      plan.found
+        ? "まだ変えていません。お客さんの管理者と確かめて --execute --confirm-rows <anonymize と delete の合計> を付けて流してください\n"
+        : "その組織にその利用者はいません(ID を確かめてください)\n",
+    );
   } finally {
     await pool.end();
   }

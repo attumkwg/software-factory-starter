@@ -3,9 +3,11 @@ import type { RootDb, TenantTx } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
 
 // 利用者1人分の開示・削除の「試し」(docs/specs/0048-person-data.md・ADR 0059)。
-// 手順は docs/runbooks/person-data.md。**数えるだけで、何も変えない**(消す・匿名化するのは次の一歩)。
+// 手順は docs/runbooks/person-data.md。**数えるだけで、何も変えない**(消す・匿名化するのは
+// erase-person-data.ts。同じ一覧・同じ条件で。docs/specs/0089-person-erase.md)。
 //
-//   node dist/cli.js person-data <組織の ID> <利用者の ID>
+//   node dist/cli.js person-data <組織の ID> <利用者の ID>                                 … 試し
+//   node dist/cli.js person-data <組織の ID> <利用者の ID> --execute --confirm-rows <数> … 本当に消す
 //
 // 引数は ID だけ(名前・メールを ECS の引数 = CloudTrail に残さない)。利用者の ID は、お客さんの管理者が
 // データの書き出し(users の id)で見つけて、運営に渡す(お客さんが委託元・自社は委託先。docs/legal/data-processing.md)。
@@ -204,28 +206,54 @@ export type PersonDataPlan = {
   totals: Record<PersonAction, number>;
 };
 
-const table = (name: string) => {
+export const table = (name: string) => {
   const [schema, rel] = name.split(".");
   return sql`${sql.identifier(schema as string)}.${sql.identifier(rel as string)}`;
 };
 
-/** 1つの列で、その人を指している行の数(組織の文脈と、組織の ID でも絞る) */
-async function countRows(
-  tx: TenantTx,
-  ref: PersonReference,
-  who: { tenantId: string; userId: string; email: string },
-): Promise<number> {
+/** 1人分を指す材料。emails は値なので、外(出力・ログ)に出さない */
+export type Person = { tenantId: string; userId: string; emails: string[] };
+
+/**
+ * その列で、その人を指している行の条件(組織の ID でも絞る)。数える試しと消すのとで同じ物を使う。
+ * メールで指す列は、いまのメールと、確かめ終えたメールの変更の前のメール(古いメールの招待も本人の物)で見る
+ */
+export function personMatch(ref: PersonReference, who: Person) {
   const col = sql.identifier(ref.column);
   const match =
     ref.by === "email"
-      ? sql`${col} = ${who.email}`
+      ? sql`${col} in ${who.emails}`
       : ref.by === "payload"
         ? sql`(${col}->>'userId' = ${who.userId} or ${col}->>'completedBy' = ${who.userId})`
         : sql`${col} = ${who.userId}`;
+  return sql`tenant_id = ${who.tenantId} and ${match}`;
+}
+
+/** 1つの列で、その人を指している行の数 */
+async function countRows(tx: TenantTx, ref: PersonReference, who: Person): Promise<number> {
   const r = await tx.execute<{ n: number }>(
-    sql`select count(*)::int as n from ${table(ref.table)} where tenant_id = ${who.tenantId} and ${match}`,
+    sql`select count(*)::int as n from ${table(ref.table)} where ${personMatch(ref, who)}`,
   );
   return r.rows[0]?.n ?? 0;
+}
+
+/** その組織のその人(いなければ null)。メールは、いまの物と、変える前の物 */
+export async function findPerson(
+  tx: TenantTx,
+  tenantId: string,
+  userId: string,
+): Promise<(Person & { externalId: string | null }) | null> {
+  const user = await tx.execute<{ email: string; external_id: string | null }>(
+    sql`select email, external_id from organizations.users where tenant_id = ${tenantId} and id = ${userId}`,
+  );
+  const row = user.rows[0];
+  if (!row) return null;
+  const old = await tx.execute<{ email: string }>(
+    sql`select distinct previous_email as email from organizations.email_changes
+         where tenant_id = ${tenantId} and user_id = ${userId} and confirmed_at is not null`,
+  );
+  const emails = [...new Set([row.email, ...old.rows.map((r) => r.email)])];
+  return { tenantId, userId, emails, externalId: row.external_id };
 }
 
 /**
@@ -237,44 +265,47 @@ export async function planPersonData(
   tenantId: string,
   userId: string,
 ): Promise<PersonDataPlan> {
-  return withTenant(db, tenantId, async (tx) => {
-    const totals: Record<PersonAction, number> = { anonymize: 0, delete: 0, keep: 0 };
-    const user = await tx.execute<{ email: string; external_id: string | null }>(
-      sql`select email, external_id from organizations.users where tenant_id = ${tenantId} and id = ${userId}`,
-    );
-    const row = user.rows[0];
-    if (!row) {
-      return {
-        tenantId,
-        userId,
-        found: false,
-        cognitoSub: null,
-        otherMemberships: 0,
-        lines: [],
-        totals,
-      };
-    }
-    const who = { tenantId, userId, email: row.email };
-    const lines: PersonDataLine[] = [];
-    for (const ref of PERSON_REFERENCES) {
-      const rows = await countRows(tx, ref, who);
-      if (rows === 0) continue;
-      lines.push({ ...ref, rows });
-      totals[ref.action] += rows;
-    }
-    const otherMemberships = row.external_id
-      ? Math.max(0, (await countAll(tx, row.external_id)) - 1)
-      : 0;
+  return withTenant(db, tenantId, (tx) => planPersonDataIn(tx, tenantId, userId));
+}
+
+/** planPersonData を、開いているトランザクション(組織の文脈つき)の中で。消すコマンドが前と後に使う */
+export async function planPersonDataIn(
+  tx: TenantTx,
+  tenantId: string,
+  userId: string,
+): Promise<PersonDataPlan> {
+  const totals: Record<PersonAction, number> = { anonymize: 0, delete: 0, keep: 0 };
+  const who = await findPerson(tx, tenantId, userId);
+  if (!who) {
     return {
       tenantId,
       userId,
-      found: true,
-      cognitoSub: row.external_id,
-      otherMemberships,
-      lines,
+      found: false,
+      cognitoSub: null,
+      otherMemberships: 0,
+      lines: [],
       totals,
     };
-  });
+  }
+  const lines: PersonDataLine[] = [];
+  for (const ref of PERSON_REFERENCES) {
+    const rows = await countRows(tx, ref, who);
+    if (rows === 0) continue;
+    lines.push({ ...ref, rows });
+    totals[ref.action] += rows;
+  }
+  const otherMemberships = who.externalId
+    ? Math.max(0, (await countAll(tx, who.externalId)) - 1)
+    : 0;
+  return {
+    tenantId,
+    userId,
+    found: true,
+    cognitoSub: who.externalId,
+    otherMemberships,
+    lines,
+    totals,
+  };
 }
 
 /** その人(sub)の、全部の組織での所属の数(DB の関数。組織をまたぐ) */

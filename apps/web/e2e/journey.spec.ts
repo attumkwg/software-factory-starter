@@ -4,6 +4,7 @@ import { currentPreRegistrationConsent } from "@app/shared";
 import { type APIRequestContext, type Browser, expect, type Page, test } from "@playwright/test";
 import { expectAccessible } from "./helpers.ts";
 import { operator, operatorAvailable } from "./operator.ts";
+import { erasePerson } from "./person-erase.ts";
 
 // SaaS の一周(穴 G-119・「使える」の条件 2。docs/scenarios/gaps.md の頭)。
 // docker compose を本番の代わりにして、1つの会社が来てから去るまでを1本でたどる:
@@ -336,11 +337,8 @@ test("1つの会社が、事前登録から解約まで一周できる", async (
   await test.step("7. 管理者が自社のデータを書き出す(写真は名前だけ・他社の物は入らない)", () =>
     exportData(page, (name) => testInfo.outputPath(name), c));
   await test.step("8. 管理者が辞めた職人を外す(止める)", () => removeMember(page, member));
-  await test.step("9. 運営が1人分のデータを数える(削除はまだ手で)", async () => {
-    const plan = operator(["person-data", tenantId, memberMe.userId]);
-    expect(plan).toMatchObject({ mode: "plan", found: true });
-    notYet("G-06 の残り", "1人分の削除のコマンド(今は docs/runbooks/person-data.md の手順で手で)");
-  });
+  await test.step("9. 運営が1人分のデータを数えてから消し、管理者の一覧で名前が置き換わる", () =>
+    erasePerson(page, tenantId, memberMe.userId, c.memberEmail));
   await test.step("10. 運営が組織を消し、誰も入れず、写真も消える", () =>
     closeTenant(tenantId, c, { admin: page, member, request }, photoUrl));
 });

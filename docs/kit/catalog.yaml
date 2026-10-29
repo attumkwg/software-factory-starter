@@ -1389,7 +1389,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)。いまは、どの表に何件あるかと消すときの扱いを数える運営のコマンド(試し)と手順書まで。消すのは手順書で手作業
+    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)。運営のコマンドが、どの表に何件あるかと消すときの扱いを数え(試し)、同じ一覧で消す・匿名化する(--execute --confirm-rows。監査ログに件数)。手順書つき
     needed_by: 個人向け・個人情報を扱うすべて
     not_needed_by: なし
     if_removed: 求めのたびに、どの表にその人のデータがあるかを SQL で探すことになる(表を足したときの見落としに気づけない)
@@ -1400,11 +1400,15 @@ parts:
       delete:
         - apps/api/src/person-data
         - apps/api/test/integration/person-data.int.test.ts
+        - apps/api/test/integration/person-erase.int.test.ts
+        - apps/web/e2e/person-erase.ts
         - docs/runbooks/person-data.md
       edit:
         - { path: apps/api/src/cli.ts, what: person-data のコマンドを外す(中身は apps/api/src/tenant-commands.ts の personDataCommand) }
         - { path: docs/legal/data-processing.md, what: 5-2 の手順書への道しるべを外す(分担の既定は残す) }
-      docs: [docs/specs/0048-person-data.md, docs/adr/0059-person-data-dry-run-first.md]
+        - { path: apps/api/src/audit/actions.ts, what: MANUAL_AUDIT_ACTIONS の personErase を外す(画面の文 apps/web/src/audit-labels.ts の person.erase は古い記録のために残す) }
+        - { path: apps/web/e2e/journey.spec.ts, what: 9 の段(erasePerson)を外す }
+      docs: [docs/specs/0048-person-data.md, docs/adr/0059-person-data-dry-run-first.md, docs/specs/0089-person-erase.md, docs/designs/0085-person-erase.md, docs/adr/0088-person-erase-same-list-as-dry-run.md]
 
   # ── 決まりごと ─────────────────────────────────────────────────────────
   - id: terms-consent

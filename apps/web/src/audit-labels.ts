@@ -54,6 +54,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "auth.switch_in": "ほかの組織からこの組織に切り替えた",
   "auth.switch_out": "この組織からほかの組織に切り替えた",
   "demo.reset": "デモのデータを戻した",
+  "person.erase": "本人の求めで、その人のデータを消した",
   // 何と答えたかは記録に無い(数の表にだけある)
   "pmf_survey.respond": "「無くなったら困るか」に答えた",
 };
