@@ -10,6 +10,7 @@
 - 🧍 **1人の間は**、本番の承認・戻す・1人分の削除を、持ち主1人と手順書で回す。AI のマージは既定でオフ。
 - ☁️ **本物の AWS には一度も載せていない**。Terraform は AWS 無しで回る検査(`fmt`・`validate`・tflint・Trivy。`terraform.yml`)まで。stg を立てたら、下の 3 の表を上から確かめる。
 - 💬 **クラウドで Slack から頼む道**は、使う側のリポジトリでつなぐ物で、キット自身では通していない。
+- ⛔ **やらないと決めたこと**(2026-10-29。意義の判断役の棚卸し)は下の 5。ISMS・権利・会計のように専門家や別の道具の領分の物は、キットでは持たない。
 - 🔒 ここに書いた物があっても、**機械が強制する守り**(必須のチェック・守るパス・危険度「高」の扱い)は1つも外していない。
 <!-- いまの結論:end -->
 
@@ -17,7 +18,7 @@
 
 | できないこと | 代わりにどうするか | 穴 |
 |---|---|---|
-| 部品だけを、既存のリポジトリに持ち帰る | キットを丸ごと clone して始める。既存のリポジトリには、KPI の線(`docs/product/` の `personas.md`・`kpi.yaml` と `pnpm kpi`・`/persona`・`/council`)と考え方([../concepts/](../concepts/README.md))だけは持ち帰れる([../guides/kpi.md](../guides/kpi.md)) | G-51 |
+| 部品だけを、既存のリポジトリに持ち帰る | キットを丸ごと clone して始める。既存のリポジトリには、KPI の線(`docs/product/` の `personas.md`・`kpi.yaml` と `pnpm kpi`・`/persona`・`/council`)と考え方([../concepts/](../concepts/README.md))だけは持ち帰れる([../guides/kpi.md](../guides/kpi.md)) | G-51(2026-10-29 にやらないと決めた) |
 | AWS・GitHub・Claude Code 以外に入れ替える(Azure・GitLab・Cursor など) | 入れ替えの地図は無い。替えるなら、`infra/terraform/`・`.github/`・`.claude/hooks/` を作り直す前提で見積もる | G-55(G-51 に束ねた) |
 | 保守の約束(直すまでの日数・期限・SLA) | MIT・無保証。日数が要るなら、自社で持つか、支援する会社と契約する([maintenance.md](maintenance.md) の 5) | — |
 
@@ -25,7 +26,7 @@
 
 | 1人の間の形 | 代わりにどうするか | 穴 |
 |---|---|---|
-| 本番の承認者は、`pnpm setup:github --apply` を打った1人(`.github/setup.yml` の `prod`) | 2人目が来たら `reviewers` に足し、`prevent_self_review: true` にする。それまでは押す前に [../runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md) を開いておく | G-64 |
+| 本番の承認者は、`pnpm setup:github --apply` を打った1人(`.github/setup.yml` の `prod`) | 2人目が来たら `reviewers` に足し、`prevent_self_review: true` にする。それまでは押す前に [../runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md) を開いておく | G-104(G-64 を束ねた。2人目が来たら) |
 | 前の版に戻すのは `aws` のコマンド(ワークフローは無い) | [../runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md) の 1.2。機能だけ止めるなら [../runbooks/feature-flags.md](../runbooks/feature-flags.md)。エンジニアでない人には打たせない | G-65 |
 | 1人分の削除はコマンドが無い(数える「試し」まで) | [../runbooks/person-data.md](../runbooks/person-data.md) の 5 で、2人で手で消す | G-06 の残り |
 | AI のマージは**既定でオフ** | 持ち主が環境に `KIT_AI_MERGE=slack` を入れた所だけで動く。コマンドの中で入れても、フックが止める。1人の間は危険度「高」も会話の答えでマージし、CI は答えの書き手を確かめない([../guides/slack.md](../guides/slack.md)・ADR 0085) | 人が増えたら Slack のボタン(G-133) |
@@ -72,5 +73,17 @@
 - セキュリティの検査で、何を確かめていて何を確かめていないか: [../security.md](../security.md)
 - わざとやっていないこと(次の一歩): [../reference.md](../reference.md) の「📏 わざとやっていないこと」
 - 費用の数は**推定**(Aurora の単価は公式の料金表で確かめていない): [../getting-started.md](../getting-started.md) の費用の節
+
+## 5. やらないと決めたこと(2026-10-29)
+
+> 意義の判断役で「使う人の困りごとを数で言えない」とした物([verdicts/2026-10-29-gap-triage.md](verdicts/2026-10-29-gap-triage.md)・[../scenarios/gaps.md](../scenarios/gaps.md) の「⛔ やらないと決めた穴」)。キットでは持たないので、要るときは使う側か専門家で。
+
+| やらないこと | 代わりにどうするか | 穴 |
+|---|---|---|
+| ISMS・P マークの本体、医療の情報の安全管理ガイドラインの対応表 | 審査とコンサルに頼む。キットの適用宣言書(`docs/compliance/`)には、適用なのに点検も証跡も無い項目が残っている(数は確かめていない)ので、審査の前に自分で洗う | G-53・G-110・G-111 |
+| AI が書いたコードが OSS の写しでないかの確かめと、権利の説明 | 確かめていない。依存のライセンスは `pnpm deps:licenses` が止める。写しの確かめと権利の説明が要るなら専門家に | G-87 |
+| 技術の DD の束・事業を譲るときの引き継ぎ | 材料は `pnpm sales:pack` と各手順書にある。求められたらその場で組む | G-86・G-88 |
+| 経営に報告する計測・月の締め・投資の計算 | 会計ソフトと表計算で。キットの ROI は `pnpm kpi`(G-136 で累計に) | G-54・G-117・G-118 |
+| 製品の AI の決まり(まだ無い。こちらは「やらない」ではなく、最初の AI の機能の Issue で始める) | 製品に AI を足すときは、文脈の関所(G-84)を最初に入れる | G-80(使えた後で) |
 
 最終更新: 2026-10-29

@@ -7,7 +7,7 @@ export const START = "<!-- gaps:summary:start -->";
 export const END = "<!-- gaps:summary:end -->";
 const STAGE_HEADING = "## 🎯";
 const LEFT_MARKS = ["🔴", "🟡", "🟢"];
-const FORM_HINT = "✅ 済み / ✅ ほぼ済み / 🔧 #番号 / 🔴🟡🟢 / → G-xx に束ねた";
+const FORM_HINT = "✅ 済み / ✅ ほぼ済み / 🔧 #番号 / 🔴🟡🟢 / → G-xx に束ねた / ⛔ やらない";
 
 const isDigit = (c) => c !== undefined && c >= "0" && c <= "9";
 const isAsciiWord = (c) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || isDigit(c);
@@ -75,6 +75,7 @@ export const cellsOf = (raw) => {
 /** 「何が無いか」のセルの頭から、行の状態を読む。形が違えば undefined */
 export const statusOf = (cell) => {
   if (cell.startsWith("→ ") && cell.includes("に束ねた")) return "束ねた";
+  if (cell.startsWith("⛔ やらない")) return "やらない";
   if (cell.startsWith("✅ 済み")) return "済み";
   if (cell.startsWith("✅ ほぼ済み")) return "ほぼ済み";
   if (cell.startsWith("🔧")) return "作業中";
@@ -187,6 +188,8 @@ const stageIdProblems = (id, s, byId, stageOf) => {
   const row = byId.get(id);
   const out = [];
   if (!row) out.push(`gaps.md:${s.line} 段の表の ${id} が穴の一覧に無い`);
+  else if (row.status === "やらない")
+    out.push(`gaps.md:${s.line} ${id} はやらないと決めた行。段の表から外す`);
   else if (row.status === "束ねた")
     out.push(`gaps.md:${s.line} ${id} は束ねた行。段の表には束ねた先(${row.parent})を書く`);
   if (stageOf.has(id)) out.push(`gaps.md:${s.line} ${id} が2つの段に入っている`);
@@ -202,10 +205,12 @@ const stageProblems = (rows, stages) => {
       problems.push(...stageIdProblems(id, s, byId, stageOf));
       stageOf.set(id, s.stage);
     }
+  // やらないと決めた行と、その子は段に入れない
+  const closed = (r) => r.status === "やらない" || byId.get(r.parent)?.status === "やらない";
   for (const r of rows) {
     const via = stageOf.get(r.status === "束ねた" ? r.parent : r.id);
     if (via) stageOf.set(r.id, via);
-    else if (r.status && r.status !== "済み")
+    else if (r.status && r.status !== "済み" && !closed(r))
       problems.push(`gaps.md:${r.line} ${r.id} は残っているのに、どの段にも入っていない`);
   }
   return { problems, stageOf };
@@ -228,32 +233,40 @@ export const checkGaps = (text, specStates) => {
   };
 };
 
-const COUNTED = ["済み", "ほぼ済み", "作業中", "残り"];
-const countOf = (rows) => {
-  const c = { 全体: rows.length, 済み: 0, ほぼ済み: 0, 作業中: 0, 残り: 0 };
+const COUNTED = ["済み", "ほぼ済み", "作業中", "残り", "やらない"];
+const countOf = (rows, byId) => {
+  const c = { 全体: rows.length, 済み: 0, ほぼ済み: 0, 作業中: 0, 残り: 0, やらない: 0 };
   for (const r of rows) {
-    const key = r.status === "束ねた" ? "残り" : r.status;
+    const parentClosed = byId.get(r.parent)?.status === "やらない";
+    const key = r.status === "束ねた" ? (parentClosed ? "やらない" : "残り") : r.status;
     if (COUNTED.includes(key)) c[key] += 1;
   }
   return c;
 };
 
-/** 数の要約: 全部と段ごと([{ name, 全体, 済み, ほぼ済み, 作業中, 残り }]) */
-export const summarize = ({ rows, stageOf }) => [
-  { name: "全部", ...countOf(rows) },
-  ...STAGES.map((stage) => ({
-    name: stage,
-    ...countOf(rows.filter((r) => stageOf.get(r.id) === stage)),
-  })),
-];
+/** 数の要約: 全部と段ごと([{ name, 全体, 済み, ほぼ済み, 作業中, 残り, やらない }]) */
+export const summarize = ({ rows, stageOf }) => {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return [
+    { name: "全部", ...countOf(rows, byId) },
+    ...STAGES.map((stage) => ({
+      name: stage,
+      ...countOf(
+        rows.filter((r) => stageOf.get(r.id) === stage),
+        byId,
+      ),
+    })),
+  ];
+};
 
 /** gaps.md の頭に置く「今の数」の表(印の間に入る中身) */
 export const renderSummary = (summary) =>
   [
-    "| 今の数 | 全体 | 済み | ほぼ済み | 作業中 | 残り |",
-    "|---|---|---|---|---|---|",
+    "| 今の数 | 全体 | 済み | ほぼ済み | 作業中 | 残り | やらない |",
+    "|---|---|---|---|---|---|---|",
     ...summary.map(
-      (s) => `| ${s.name} | ${s.全体} | ${s.済み} | ${s.ほぼ済み} | ${s.作業中} | ${s.残り} |`,
+      (s) =>
+        `| ${s.name} | ${s.全体} | ${s.済み} | ${s.ほぼ済み} | ${s.作業中} | ${s.残り} | ${s.やらない} |`,
     ),
   ].join("\n");
 
