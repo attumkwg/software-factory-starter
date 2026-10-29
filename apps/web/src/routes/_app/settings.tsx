@@ -9,8 +9,9 @@ import { SettingsPage } from "../../pages/SettingsPage.tsx";
 export const Route = createFileRoute("/_app/settings")({
   loader: async ({ context }) => {
     const sso = hasFeature(context.me, "sso");
-    const [mfa, domains, ipAllowlist, ssoSettings, members, scim] = await Promise.all([
+    const [mfa, taskMail, domains, ipAllowlist, ssoSettings, members, scim] = await Promise.all([
       api.getMfaRequirement(),
+      api.getTaskMail(),
       sso ? api.listDomains() : null,
       hasFeature(context.me, "ip-allowlist") ? api.getIpAllowlist() : null,
       sso ? api.getSso() : null,
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_app/settings")({
     const admins = members?.members.filter((m) => m.role === "admin") ?? [];
     return {
       mfa,
+      taskMail,
       domains: domains?.domains ?? null,
       ipAllowlist,
       sso: ssoSettings ? { state: ssoSettings, admins } : null,
@@ -33,11 +35,12 @@ export const Route = createFileRoute("/_app/settings")({
 
 function SettingsRoute() {
   const { me } = Route.useRouteContext();
-  const { mfa, domains, ipAllowlist, sso, scim } = Route.useLoaderData();
+  const { mfa, taskMail, domains, ipAllowlist, sso, scim } = Route.useLoaderData();
   return (
     <SettingsPage
       me={me}
       mfa={mfa}
+      taskMail={taskMail}
       domains={domains}
       ipAllowlist={ipAllowlist}
       sso={sso}

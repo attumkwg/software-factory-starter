@@ -38,13 +38,17 @@ import type {
   SupportGrant,
   SupportSession,
   Task,
+  TaskMail,
   TaskPage,
   UpdateTask,
 } from "@app/shared";
 import { PAGE_LIMIT } from "@app/shared";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { appendResponseHeader, getRequest } from "@tanstack/react-start/server";
+import { HttpError, NetworkError } from "./api-errors.ts";
 import { sessionSetCookies, withCode } from "./api-parts.ts";
+
+export { HttpError, NetworkError };
 
 // API の呼び出し。型は packages/shared の契約をそのまま使う。
 // 認証は HttpOnly の Cookie(同じオリジン)。トークンを localStorage に置かない。
@@ -53,39 +57,6 @@ import { sessionSetCookies, withCode } from "./api-parts.ts";
 //   ブラウザ … /api へ(ALB が API のサービスへ振り分ける)。Cookie はブラウザが付ける
 //   SSR     … API_INTERNAL_URL へ直接(ECS の Service Connect)。来た Cookie と request ID を渡す
 // SSR から API を呼ぶのは読み取り(GET)だけ。書き込みは必ずブラウザから(CSRF の守りを通す)。
-
-/** API が失敗を返した(4xx / 5xx)。code で分岐する(packages/shared の ERROR_CODES)。 */
-export class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    readonly body: ApiError | null,
-  ) {
-    super(body?.error.message ?? `HTTP ${status}`);
-  }
-  get code() {
-    return this.body?.error.code;
-  }
-  get requestId() {
-    return this.body?.error.requestId;
-  }
-}
-
-/**
- * API まで届かなかった(通信が切れている・時間切れ)。
- * side … どこで起きたか。browser なら利用者の通信の問題かもしれない。server(SSR)ならこちらの問題。
- */
-export class NetworkError extends Error {
-  constructor(
-    readonly reason: "timeout" | "unreachable",
-    readonly side: "server" | "browser",
-    options?: { cause?: unknown },
-  ) {
-    super(
-      reason === "timeout" ? "API の応答が時間内にありませんでした" : "API に届きませんでした",
-      options,
-    );
-  }
-}
 
 type Failure = { method: string; path: string; status?: number; reason?: string };
 type Target = {
@@ -347,6 +318,10 @@ export const api = {
   getMfaRequirement: () => request<MfaRequirement>("GET", "/organization/mfa-requirement"),
   requireMfa: () => request<void>("POST", "/organization/mfa-requirement"),
   unrequireMfa: () => request<void>("DELETE", "/organization/mfa-requirement"),
+  // 組織の「タスクが完了したメール」(管理者だけ。docs/specs/0093-task-mail-switch.md)
+  getTaskMail: () => request<TaskMail>("GET", "/organization/task-mail"),
+  enableTaskMail: () => request<void>("POST", "/organization/task-mail"),
+  disableTaskMail: () => request<void>("DELETE", "/organization/task-mail"),
   // データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。管理者だけ
   exportData: () => download("/exports"),
   // 監査ログの書き出し(プランの機能 audit-export。docs/specs/0056-sso-scim-ip-audit-export.md の段3)
