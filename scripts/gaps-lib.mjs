@@ -237,8 +237,10 @@ const COUNTED = ["済み", "ほぼ済み", "作業中", "残り", "やらない"
 const countOf = (rows, byId) => {
   const c = { 全体: rows.length, 済み: 0, ほぼ済み: 0, 作業中: 0, 残り: 0, やらない: 0 };
   for (const r of rows) {
-    const parentClosed = byId.get(r.parent)?.status === "やらない";
-    const key = r.status === "束ねた" ? (parentClosed ? "やらない" : "残り") : r.status;
+    // 束ねた子は、親が閉じた(やらない・済み)なら親に合わせる。親が開いていれば残り
+    const parentStatus = byId.get(r.parent)?.status;
+    const closed = parentStatus === "やらない" || parentStatus === "済み";
+    const key = r.status === "束ねた" ? (closed ? parentStatus : "残り") : r.status;
     if (COUNTED.includes(key)) c[key] += 1;
   }
   return c;
