@@ -1,0 +1,44 @@
+# 人の判断待ちの積み場: 人の答えを待つ PR・Issue・意義の判断を古い順に、「🧑‍⚖️ 判断待ち」の Issue 1つにまとめる(仕様 0085)。
+# SLACK_WEBHOOK_URL(任意)があれば Slack にも同じ本文を送る。人が決めることの一覧は docs/concepts/human-decisions.md。
+# 費用: 毎日 1分未満(依存を入れない。node の標準と gh だけ)。
+name: 判断待ち
+
+on:
+  workflow_dispatch:
+  # 有効にする日: 2026-10-30
+  schedule:
+    - cron: "10 23 * * *" # 日本時間 毎朝 8:10(点検の後)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: human-queue
+  cancel-in-progress: false
+
+jobs:
+  queue:
+    name: 判断待ちを出す
+    # 定期で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)だけ。手で流すのはどこでもできる(ADR 0027)
+    if: github.event_name != 'schedule' || vars.KIT_ROLE == 'product'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: 積み場の Issue を直す
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          node scripts/human-queue.mjs --issue --slack >> "$GITHUB_STEP_SUMMARY"

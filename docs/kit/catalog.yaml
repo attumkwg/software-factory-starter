@@ -2267,13 +2267,35 @@ parts:
         - { path: docs/guides/kpi.md, what: 1 の業界の前提と 2 の合議を外す }
       docs: [docs/specs/0082-persona-council.md, docs/designs/0082-persona-council.md]
 
+  - id: human-decisions
+    name: 人が決めることの一覧と判断待ちの積み場(pnpm queue)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 人が決めることを1か所に集め、強制か頼みかを書く。判断待ち(印か問いのある PR・needs-human の Issue・人の判定待ちの意義の判断)を古い順に、毎朝「🧑‍⚖️ 判断待ち」の Issue 1つ(と Slack)に出す。PR の問いは多くて2つ(CI)。答えは会話でもらい、工場が PR に記録する
+    needed_by: 人の出番を減らしたい・判断待ちがどこに溜まっているかを毎日見たい
+    not_needed_by: 人の判断が週に数件で、全部覚えていられる
+    if_removed: 人が決めることがスキルと手引きに散らばり、どれが仕組みで止まるか分からない。判断待ちが PR の中に埋もれる
+    depends_on: []
+    law: []
+    where: [docs/concepts/human-decisions.md, scripts/human-queue.mjs, scripts/human-queue-lib.mjs, .github/workflows/human-queue.yml]
+    remove:
+      delete: [docs/concepts/human-decisions.md, scripts/human-queue.mjs, scripts/human-queue-lib.mjs, scripts/human-queue.test.mjs, .github/workflows/human-queue.yml]
+      edit:
+        - { path: package.json, what: queue と、test:scripts の scripts/human-queue.test.mjs を外す }
+        - { path: scripts/bets.mjs, what: PR の本文の問いの数(prQuestionProblems)を外す }
+        - { path: scripts/pr-merge-when-green.mjs, what: 会話の答えの記録(answerComment・answeredAtOf・hasAnswer)を外す }
+        - { path: .github/labels.yml, what: needs-human を外す(pnpm setup:labels) }
+        - { path: docs/concepts/README.md, what: human-decisions.md の行を外す }
+      docs: [docs/specs/0085-human-decisions-queue.md, docs/adr/0085-conversation-answers-merge-high-risk.md]
   - id: slack-requests
     name: Slack で頼むと PR → 返事でマージ(/slack-request)
     group: process
     status: あり
     removable: true
     default: 残す
-    what: Slack(Claude Code in Slack)・クラウドで頼まれた1件を、AI が1本の PR にし、終わりに仮決めを並べて「これでいいですか」と聞く。1人の間は、持ち主の会話の返事を未確定事項の答えに認め、持ち主がクラウドの環境に KIT_AI_MERGE=slack を入れた所でだけ、必須のチェックが全部緑のときに AI がマージする(pnpm pr:merge-when-green)
+    what: Slack(Claude Code in Slack)・クラウドで頼まれた1件を、AI が1本の PR にし、終わりに仮決めを並べて「これでいいですか」と聞く。1人の間は、持ち主の会話の返事を未確定事項の答えに認め、持ち主が環境に KIT_AI_MERGE=slack を入れた所でだけ、返事の言葉と日時を PR に残して、必須のチェックが全部緑のときに AI がマージする(危険度「高」も。pnpm pr:merge-when-green・ADR 0085)
     needed_by: 1人(か少人数)で、Slack から頼んで AI に作らせたい
     not_needed_by: 人が増えてレビューの人数を 1 以上にした(会話の答えと AI のマージは自動で止まる)
     if_removed: 頼むたびに手元の Claude Code で対話し、答えは GitHub のコメント、マージは人が押す
