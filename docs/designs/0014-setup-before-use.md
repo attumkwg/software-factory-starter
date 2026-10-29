@@ -196,6 +196,7 @@ labels:
 - `refreshed_on` を消す(まだ一度も流していない)
 - 引退していない項目: `status` を `open` に・`snoozed_until` を消す・`history` に `{ on: 今日, by: 担当者, result: adopted, note: キットから使い始めた… }` を1行足す(**消さない**。台帳の記録は足すだけの決まり。`adopted` は `scripts/checkup/todo.mjs` の `RESULTS` に足す)。**引退した項目は触らない**(キットが引退させた理由の記録)
 - 書いたあと `validateLedger` を通し、`docs/checkup/README.md` を作り直す。コメント・並び・書き方は崩さない(YAML の文書のまま書く)
+- 書く前に、自分の記録の番号の範囲の始まり(`docs/kit/numbering.yaml` の `own_from`。既定はキットの範囲の次 = 5000・`--numbers-from` で変える)を決める。範囲が壊れるなら台帳も書かずに止まる([仕様 0091](../specs/0091-own-number-range.md))
 
 ## 7. 要求との対応
 

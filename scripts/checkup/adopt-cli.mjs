@@ -2,8 +2,10 @@
 //   pnpm checkup:adopt --by @自分                     担当者と相談先を自分に・使い始めた日を今日に
 //   pnpm checkup:adopt --by @自分 --advisor @詳しい人  相談先を別の人に
 //   --today YYYY-MM-DD で日付を変える。pnpm setup:github が「人がやること」に出す
-// 書くと台帳が壊れるときは何も書かずに 1 で終わる。中身は adopt.mjs
+//   --numbers-from 5000 で自分の記録(仕様・設計書・ADR)の番号の始まりを変える(既定はキットの範囲の次。docs/kit/numbering.yaml)
+// 書くと台帳か番号の範囲が壊れるときは何も書かずに 1 で終わる。中身は adopt.mjs・../numbering.mjs
 import { readFileSync, writeFileSync } from "node:fs";
+import { decideOwnFrom } from "../numbering.mjs";
 import { adoptLedger } from "./adopt.mjs";
 import { isDate, todayInTokyo } from "./phase.mjs";
 import { README, renderReadme } from "./readme.mjs";
@@ -35,8 +37,13 @@ const { text, reset } = adoptLedger(readFileSync(FILE, "utf8"), {
 const after = loadLedger(text);
 const problems = validateLedger(after, names);
 if (problems.length > 0) stop(`書くと台帳が壊れるので書かなかった: ${problems.join(" / ")}`);
+const numbers = decideOwnFrom(option("--numbers-from"));
+if (numbers.problems.length > 0)
+  stop(
+    `番号の範囲を ${numbers.ownFrom} からにできないので書かなかった: ${numbers.problems.join(" / ")}`,
+  );
 writeFileSync(FILE, text);
 writeFileSync(README, renderReadme(after));
 console.log(
-  `✅ 台帳を ${after.owners.responder} の物にした(使い始めた日 ${today}・${reset}件を「まだ」に)。次: 最初の /checkup-refresh・変えたファイルを PR に`,
+  `✅ 台帳を ${after.owners.responder} の物にした(使い始めた日 ${today}・${reset}件を「まだ」に)。自分の仕様・設計書・ADR の番号は ${numbers.ownFrom} から。次: 最初の /checkup-refresh・変えたファイルを PR に`,
 );

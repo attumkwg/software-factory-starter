@@ -1,0 +1,8 @@
+# 仕様(docs/specs)・設計書(docs/designs)・ADR(docs/adr)の番号の範囲。pnpm adr が読み、CI が見る。
+#   キットの中: kit_until までの番号だけを使う。own_from は null のまま(キットはこのファイルの own_from を変えない)
+#   キットから作ったリポジトリ: pnpm checkup:adopt が own_from を決める(既定は kit_until の次)。自分の記録はそこから振る
+#     先に adopt を済ませていたら pnpm adr --own-from 5000 で一度だけ決める
+#   範囲が重ならないので、キットの新しい版を取り込んでも同じ番号はできない(docs/kit/upgrade.md の 3)
+# 決まり: docs/specs/0091-own-number-range.md
+kit_until: 4999
+own_from: null
