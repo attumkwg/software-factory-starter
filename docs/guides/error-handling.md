@@ -50,6 +50,7 @@ API の失敗は必ず `{ error: { code, message, requestId } }` の形で返す
 ## 4. 画面(apps/web)
 
 - **読む失敗**(route の loader): 投げるだけ。`router.tsx` の `defaultErrorComponent`(`pages/ErrorPages.tsx`)が受け止め、理由・問い合わせ番号・「もう一度読み込む」を出す。無い物は `notFound()` を投げる(404 の画面)。
+- **API の断りの番号**(#186): 受け皿に届いた失敗が API の断り(400・401・403・404)なら、応答はその番号で返す(TanStack は読み込みで投げた物を 500 にするため)。受け皿が `src/ssr-status.ts` で内側のヘッダーに積み、画面のサーバーの `server/api-status.ts` が番号を直して外す。画面が自分で拾った失敗は積まないので、本物の失敗は 500 のまま(Web の 5xx はアラームとデプロイの自動の戻しに使う)。断りの番号を足すときは `src/api-parts.ts` の `REFUSAL_STATUSES`。
 - **書く失敗**: 必ず `useAction`(`src/use-action.ts`)を通す。Semgrep の `web-writes-through-use-action` が、通していない書き込みを止める。
   - 成功 → 画面を読み直す → トースト / 失敗 → フォームなら入力の下に、それ以外はトースト / 401 → ログイン画面へ / 実行中 → ボタンを押せない(二重に送らない)
 - **文は `src/errors.ts` の `describeError`** が code から選ぶ(文の中身は `src/messages.ts`)。API の message をそのまま出さない。
@@ -64,6 +65,8 @@ API の失敗は必ず `{ error: { code, message, requestId } }` の形で返す
 | 画面の文(code ごと・通信の失敗・SSR とブラウザの違い) | `apps/web/src/errors.test.ts` |
 | 文の決まり(固定の文・ログインの失敗で欄を名指ししない・「無い」で権限に触れない・中の仕組みを書かない) | `apps/web/src/messages.test.ts` |
 | SSR の想定外の失敗の中身をブラウザへ送らない | `apps/web/src/start.test.ts` |
+| API の断りだけで受け皿が出た画面は、その番号で返す(5xx が混ざれば 500・外から来たヘッダーは捨てる・アクセスログも直した番号) | `apps/web/server/app.test.ts` |
+| 権限の無い画面を直接開くと 403 と受け皿(member・viewer) | `apps/web/e2e/audit.spec.ts` |
 | 書き込みに失敗したら入力を残して理由を出す・ログインが切れたらログイン画面へ・読み込みの失敗から戻れる | `apps/web/e2e/errors.spec.ts` |
 | 書き込みが useAction を通っている | Semgrep `web-writes-through-use-action` |
 | Sentry に送る中身(決めた項目だけ・値を伏せる・送る数の上限・error 以上だけ) | `packages/error-reporting/src/*.test.ts`・`apps/api/test/unit/errors.test.ts` |

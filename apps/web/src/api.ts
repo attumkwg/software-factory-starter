@@ -46,7 +46,7 @@ import { PAGE_LIMIT } from "@app/shared";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { appendResponseHeader, getRequest } from "@tanstack/react-start/server";
 import { HttpError, NetworkError } from "./api-errors.ts";
-import { API_STATUS_HEADER, sessionSetCookies, withCode } from "./api-parts.ts";
+import { sessionSetCookies, withCode } from "./api-parts.ts";
 
 export { HttpError, NetworkError };
 
@@ -93,9 +93,7 @@ const target = createIsomorphicFn()
       timeoutMs: 10_000,
       // 画面のサーバーの JSON ログと同じ形(server/index.ts)。Logs Insights で requestId から API の行と突き合わせる
       // Sentry には送らない(API の 5xx は API が送る・API に届かないならアラームが鳴る。二重に数えない)
-      report: (failure) => {
-        // 失敗の番号を画面のサーバーに渡す(API が断っただけなら、500 でなくその番号で返す。届かなかったは 0。#186)
-        appendResponseHeader(API_STATUS_HEADER, String(failure.status ?? 0));
+      report: (failure) =>
         process.stdout.write(
           `${JSON.stringify({
             level: failure.status !== undefined && failure.status < 500 ? "warn" : "error",
@@ -105,8 +103,7 @@ const target = createIsomorphicFn()
             ...failure,
             message: "SSR から API を読めませんでした",
           })}\n`,
-        );
-      },
+        ),
       // API が出し直したセッションの Cookie を画面の応答に写す(画面を開き直すだけでも期限が延びる。ADR 0017)
       relay: (res) => {
         for (const cookie of sessionSetCookies(res)) appendResponseHeader("set-cookie", cookie);

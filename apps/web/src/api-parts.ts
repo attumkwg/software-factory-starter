@@ -16,5 +16,8 @@ export function withCode<T extends object>(body: T, code?: string): T | (T & { c
   return code ? { ...body, code } : body;
 }
 
-/** SSR の API の失敗の番号を積む内側のヘッダー(画面のサーバーが 500 を API の断りの番号に直す。server/api-status.ts。#186) */
+/** 画面の受け皿に届いた API の断りの番号を、画面のサーバーへ渡す内側のヘッダー(src/ssr-status.ts が積み、server/api-status.ts が読んで外す。#186) */
 export const API_STATUS_HEADER = "x-kit-ssr-api-status";
+
+/** 受け皿の番号として写してよい API の断り(400 は URL の形が変・401 は入り直し・403 は権限・404 は無い物) */
+export const REFUSAL_STATUSES: readonly number[] = [400, 401, 403, 404];
