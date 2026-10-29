@@ -1,0 +1,45 @@
+# 依頼ごとの進み具合: 開いている親 Issue(印 kind:feature)の本文に、n/m・次に進められる子・待つ子・止まった PR・完成の判定を書く(仕様 0086)。
+# 毎朝と、子の Issue が閉じた・開き直したときに流す。依頼から届くまでの日数(北極星の入力)も要約に出す。
+# 費用: 1回 1分未満(依存を入れない。node の標準と gh だけ)。
+name: 進み具合
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [closed, reopened]
+  # 有効にする日: 2026-10-30
+  schedule:
+    - cron: "5 23 * * *" # 日本時間 毎朝 8:05(判断待ちの前)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: progress
+  cancel-in-progress: false
+
+jobs:
+  progress:
+    name: 親 Issue の進み具合を直す
+    # 定期と Issue の出来事で動くのは、キットから作ったリポジトリ(KIT_ROLE=product)だけ。手で流すのはどこでもできる(ADR 0027)
+    if: github.event_name == 'workflow_dispatch' || vars.KIT_ROLE == 'product'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: 親 Issue の本文を直す
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          node scripts/progress.mjs --write >> "$GITHUB_STEP_SUMMARY"

@@ -144,6 +144,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - 影響範囲だけ: `pnpm turbo run typecheck test --filter=...[HEAD]`
 - `pnpm kpi`(KPI の木の一覧と確かめ。記録の古さ・合議の見込みの当たり外れ・合議の星も出す。ペルソナの7つの立場の地図と合議の記録の形も見る。北極星・入力・守りの最新の値と線。形・番号・ペルソナ・測り方の誤りと、金額をリポジトリに書いたら落ちる。`docs/guides/kpi.md`・仕様 0081)
 - `pnpm pr:merge-when-green <番号> --reply "<持ち主の返事>" --answered-at <答えた日時>`(1人の間・持ち主が `KIT_AI_MERGE=slack` を入れた所だけ。返事の言葉と日時を PR に残し、必須のチェックが全部緑になってから AI がマージする。危険度「高」も。`/slack-request`・仕様 0080・0085)
+- `pnpm progress`(依頼ごとの進み具合: 親 Issue ごとの n/m・次に進められる子・待つ子・止まった PR・完成の判定と、依頼から届くまでの日数。`--write` で親 Issue の本文を直す・毎朝と子が閉じたとき `progress.yml`。仕様 0086)
 - `pnpm queue`(人の判断待ちを古い順に。`--issue` で「🧑‍⚖️ 判断待ち」の Issue を直す・毎朝 `human-queue.yml`。`docs/concepts/human-decisions.md`)
 - `pnpm guards`(危険度「高」の守りが一覧とそろっているか+Bash のフックのテスト)/ `pnpm outbound`(AI が外へ向けてした操作の記録を、PR の「🚪 外へ出した物」の表にする。`--clear` で空に。`docs/designs/0057-ai-egress.md`)
 - `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`

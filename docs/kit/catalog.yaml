@@ -2267,6 +2267,27 @@ parts:
         - { path: docs/guides/kpi.md, what: 1 の業界の前提と 2 の合議を外す }
       docs: [docs/specs/0082-persona-council.md, docs/designs/0082-persona-council.md]
 
+  - id: progress-control
+    name: 依頼ごとの進み具合の管制(pnpm progress)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: 親 Issue(印 kind:feature)の本文の子の一覧と「待つ」から、n/m・次に進められる子・待つ子・止まった PR(2日動かない・進められるのに PR が無い)・完成(子が全部閉じた+受け入れ)を出し、親の本文に「📍 進み具合」を書く。依頼から届くまでの日数の中央値も出す
+    needed_by: 大きな依頼を子の Issue・PR に割って AI に回し、どこまで進んだか・どこで止まったかを毎日見たい
+    not_needed_by: 依頼がいつも PR 1本で終わる
+    if_removed: 子が何本済んだか・何を待っているかを、人が Issue を開いて数える。止まった PR に誰も気づかない
+    depends_on: []
+    law: []
+    where: [scripts/progress.mjs, scripts/progress-lib.mjs, .github/workflows/progress.yml]
+    remove:
+      delete: [scripts/progress.mjs, scripts/progress-lib.mjs, scripts/progress.test.mjs, .github/workflows/progress.yml]
+      edit:
+        - { path: package.json, what: progress と、test:scripts の scripts/progress.test.mjs を外す }
+        - { path: .claude/skills/new-feature/SKILL.md, what: 5 の「待つ」と pnpm progress の文を外す }
+        - { path: .claude/skills/accept/SKILL.md, what: 0 の「親 Issue」の行を外す }
+        - { path: docs/acceptance/_template.md, what: 「親 Issue」の行を外す }
+      docs: [docs/specs/0086-progress-control.md]
   - id: human-decisions
     name: 人が決めることの一覧と判断待ちの積み場(pnpm queue)
     group: process

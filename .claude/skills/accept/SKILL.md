@@ -23,6 +23,7 @@ description: 作った機能を「出してよいか」確かめる受け入れ�
 - 解決済みの論点 `docs/domain/resolved-questions.md`(当たる論点が守られているかも項目にする)
 - 前の回の記録 `docs/acceptance/NNNN-*.md`(あれば。前に外れた項目は必ずもう一度入れる)
 - 実装の PR(`gh pr list --search "<仕様の番号>" --state all`)。番号を記録の頭に書く
+- 依頼の親 Issue(印 kind:feature)。番号を記録の頭の「親 Issue: #」に書く(子が全部閉じていれば、`pnpm progress` がこれで「完成」と見て、依頼から届くまでの日数を数える)
 
 ## 1.5 ペルソナの受け入れレビュー(先に)
 
