@@ -145,8 +145,9 @@ export const sensorComment = ({ sha, required, queued }) =>
 export const mergeQueueOn = (rules) => (rules ?? []).some((r) => r.type === "merge_queue");
 
 // ── 書いた人と別の AI のレビューの記録(G-137・G-139・仕様 0096)──
-// /review-pr が、書いた文脈を持たない AI を人格ごとに回し、人が1問ずつ決めた所までを PR に残す。記録が無い PR は AI がマージしない。
-// 2026-10-29 にこの PR 自身を5つの人格でレビューし、持ち主が1問ずつ決めた直し(書き手・「直す」の後・版の形・未・回せなかった)を入れた。
+// /review-pr が、書いた文脈を持たない AI を人格ごとに回し、❌・⚠️ はおすすめどおり AI が直し、❓ は人が決めた所までを PR に残す。
+// 記録が無い PR は AI がマージしない。2026-10-29 に #189・#190・#191 自身を5つの人格でレビューし、見つけた抜けを足した
+// (書き手・「直す」の後・版の形・未・回せなかった・❌ を直さずに残す・決めた人の印)。
 
 /** レビューの記録のコメントの頭 */
 export const REVIEW_MARK = "## 🔍 レビューの記録(書いた人と別の AI";
@@ -209,6 +210,29 @@ export function reviewDecisions(body) {
 const HEAVY = ["❌", "❓"];
 const undecided = (d) =>
   d.decided === "" || d.decided.startsWith("未") || d.decided.startsWith("今回は見ない");
+/** 決めた人の印: AI がおすすめどおり決めた「(AI)」か、人が決めた「(@名前)」 */
+const byAi = (d) => d.decided.includes("(AI)");
+const byPerson = (d) => d.decided.includes("(@");
+const ids = (list) => list.map((d) => d.id).join("・");
+
+/** 決めたことの表の問題(決めていない ❌ ❓・直さずに残した ❌・決めた人の印が無い・AI が決めた ❓)。無ければ空 */
+export function decisionsProblem(body) {
+  const decisions = reviewDecisions(body);
+  const isWeight = (d, w) => d.weight.includes(w);
+  const open = decisions.filter((d) => HEAVY.some((w) => isWeight(d, w)) && undecided(d));
+  if (open.length > 0)
+    return `❌・❓ の所見に、決めていない物がある(${ids(open)})。「今回は見ない」の ❌・❓ が残る間は入れない`;
+  const kept = decisions.filter((d) => isWeight(d, "❌") && !d.decided.startsWith("直す"));
+  if (kept.length > 0)
+    return `❌ の所見を直さずに残している(${ids(kept)})。残すなら行を ❓ にして、人の答えを入れる`;
+  const unsigned = decisions.filter((d) => !undecided(d) && !byAi(d) && !byPerson(d));
+  if (unsigned.length > 0)
+    return `決めたことに、決めた人の印(「(AI)」か「(@名前)」)が無い(${ids(unsigned)})`;
+  const aiQuestions = decisions.filter((d) => isWeight(d, "❓") && !byPerson(d));
+  if (aiQuestions.length > 0)
+    return `❓ の所見を人が決めていない(${ids(aiQuestions)})。❓ は人の答えを「(@名前)」で入れる`;
+  return "";
+}
 
 /** 記録の「- 回した人格:」の行(無ければ空)。所見の文に同じ言葉が出ても取り違えないよう、この行だけを見る */
 export function personasLineOf(body) {
@@ -218,7 +242,7 @@ export function personasLineOf(body) {
   return line ? line.trimStart().slice("- 回した人格:".length).trim() : "";
 }
 
-/** 記録そのものの問題(回した人格が無い・回せなかった・版の形・この PR の版でない・決めていない ❌ ❓)。無ければ空 */
+/** 記録そのものの問題(回した人格が無い・回せなかった・版の形・この PR の版でない・決めたことの表)。無ければ空 */
 function recordProblem(body, sha, inPr) {
   const personas = personasLineOf(body);
   if (!personas)
@@ -228,12 +252,7 @@ function recordProblem(body, sha, inPr) {
   if (!isSha(sha))
     return `レビューの記録の「当てた版」が版の形でない(16進で7文字以上: ${sha || "空"})`;
   if (!inPr(sha)) return `レビューの記録の「当てた版」${sha} が、この PR の版に無い`;
-  const open = reviewDecisions(body).filter(
-    (d) => HEAVY.some((w) => d.weight.includes(w)) && undecided(d),
-  );
-  if (open.length > 0)
-    return `❌・❓ の所見に、決めていない物がある(${open.map((d) => d.id).join("・")})。「今回は見ない」の ❌・❓ が残る間は入れない`;
-  return "";
+  return decisionsProblem(body);
 }
 
 /** 「直したこと」の問題(「直す」があるのに無い・この PR の版でない)。無ければ空 */
@@ -270,7 +289,7 @@ export function reviewState(comments, headSha, commits = []) {
   if (!record)
     return {
       problem:
-        "書いた人と別の AI のレビューの記録が無い(/review-pr で人格ごとに回し、人が1問ずつ決めた記録を PR に残す。持ち主・メンバー・共同作業者の書いた物だけを数える。仕様 0096)",
+        "書いた人と別の AI のレビューの記録が無い(/review-pr で人格ごとに回し、❌・⚠️ は AI が直し、❓ は人が決めた記録を PR に残す。持ち主・メンバー・共同作業者の書いた物だけを数える。仕様 0096)",
     };
   const body = String(record.body);
   const sha = reviewedShaOf(body);

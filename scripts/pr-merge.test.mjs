@@ -169,7 +169,7 @@ test("レビューの記録: 無い・外の人の記録・回せなかった・
   // 所見の文に「回せなかった」が出ても、回した人格の行が埋まっていれば止めない(#189 で見つけた取り違え)
   const mention = {
     ...record(A),
-    body: `${record(A).body}\n| W1 | 🔍 | x | 「回せなかった」の記録で通る | ⚠️ | このまま | |`,
+    body: `${record(A).body}\n| W1 | 🔍 | x | 「回せなかった」の記録で通る | ⚠️ | このまま(AI) | |`,
   };
   assert.equal(reviewState([mention], A, [commit(A)]).problem, undefined);
   const noPersonas = {
@@ -223,11 +223,14 @@ test("レビューの記録: ❌・❓ に「未」が残れば入れない・�
   );
   assert.match(reviewState([record(A, [["2", "❓", "未"]])], A, c).problem, /決めていない/);
   assert.equal(reviewState([record(A, [["3", "⚠️", "今回は見ない"]])], A, c).problem, undefined);
-  assert.equal(reviewState([record(A, [["4", "❓", "このまま"]])], A, c).problem, undefined);
+  assert.equal(
+    reviewState([record(A, [["4", "❓", "このまま(@attumkwg)"]])], A, c).problem,
+    undefined,
+  );
 });
 
 test("レビューの記録: 「直す」は直した版が書かれるまで入れない・その後のレビューしていない版も止める(持ち主の決めた D)", () => {
-  const rows = [["1", "❌", "直す"]];
+  const rows = [["1", "❌", "直す(AI)"]];
   assert.match(reviewState([record(A, rows)], B, [commit(A), commit(B)]).problem, /直したこと/);
   // 直した版を書けば入る。その後の main の取り込みも通す
   const done = [record(A, rows), fix(B)];
@@ -261,4 +264,20 @@ test("レビューの記録の読み方(版・決めたことの表)", () => {
     { id: "1", weight: "❌", decided: "直す" },
   ]);
   assert.deepEqual(reviewDecisions("所見なし"), []);
+});
+
+test("レビューの記録: ❌ を直さずに残す・決めた人の印が無い・❓ を AI が決める は入れない(#191 のレビュー)", () => {
+  const c = [commit(A)];
+  const one = (row) => reviewState([record(A, [row]), fix(A)], A, c).problem;
+  // ❌ は AI が直す。残すなら ❓ にして人の答えを入れる
+  assert.match(one(["1", "❌", "このまま(AI)"]), /直さずに残している/);
+  assert.match(one(["1", "❌", "新しい穴に回す(AI)"]), /直さずに残している/);
+  assert.equal(one(["1", "❌", "直す(AI)"]), undefined);
+  // ⚠️ はおすすめどおり AI が決めてよい(直す・このまま・新しい穴に回す)
+  assert.equal(one(["2", "⚠️", "新しい穴に回す(AI)"]), undefined);
+  // 決めた人の印が無ければ止める
+  assert.match(one(["2", "⚠️", "直す"]), /決めた人の印/);
+  // ❓ は人が決める
+  assert.match(one(["3", "❓", "承知で進める(AI)"]), /人が決めていない/);
+  assert.equal(one(["3", "❓", "承知で進める(@attumkwg)"]), undefined);
 });
