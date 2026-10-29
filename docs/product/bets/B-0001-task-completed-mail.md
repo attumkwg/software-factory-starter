@@ -53,4 +53,5 @@
 
 - 仕様: [docs/specs/0002-task-completed-mail.md](../../specs/0002-task-completed-mail.md)
 - 仕組み: [docs/guides/mail.md](../../guides/mail.md)
+- 次の一歩(組織ごとに止める・戻す): [docs/specs/0093-task-mail-switch.md](../../specs/0093-task-mail-switch.md)(撤退の線「メールを止める組織」を数える手段)
 - PR を探す: `gh pr list --state all --search "\"bet:B-0001\" in:body"`(この見本より前の PR には書いていない)
