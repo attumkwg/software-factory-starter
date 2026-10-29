@@ -126,6 +126,12 @@ labels:
 - GitHub の REST API だけ(`gh api`)。書き込みは持ち主のログインで(リポジトリの管理者の権限が要る)。Actions からは流さない(ジョブのトークンには設定を書く権限が無い・持たせない)
 - 秘密の値は読まない・書かない(GitHub も値を返さない。名前だけ)
 - 点検(`docs/designs/0007-checkup.md`)とのつながり: `gh-protection`・`gh-envs`・`gh-plan`・`dep-alerts`・`w-protection` は、セットアップが整えた物が「今も効いているか」を毎週見る側。直し方として `pnpm setup:github` を出せるようにする(台帳の文は `/checkup-refresh` で直す。この PR では手順書の文だけ)
+- **設定ファイルと GitHub のずれ(2026-10-29・G-74)**: `w-protection` の3つ目の確かめ `setup-drift`(`scripts/checkup/checks/setup-drift.mjs`)が、毎週 `.github/setup.yml` と今の設定を比べる。見るのは、ずれると守りが黙って弱くなる物だけ: 必須のチェック(足りない・余計)・最新に追いついてから・承認の数・Environments の承認する人(人数・名前の人が居るか・自分の承認を止めるか)
+  - 正の形は `pnpm setup:github` と同じ `desiredRules`(`scripts/setup/areas-ruleset.mjs`)から作る。比べ方が2つに分かれない
+  - 読むのは `rules/branches/main`(main にかかる規則。ルールセットが複数でも合わせる。承認は多い方)と `environments` だけ。点検の読む権限のトークンで見られる。書かない
+  - `@me`(セットアップを打った人)は名前で比べず人数だけ(点検はトークンの持ち主で動くので、誰かは分からない)
+  - ラベル・リポジトリの設定・守りの機能は見ない(ずれても守りが黙って外れない。外れる物は `gh-protection`・`gh-envs`・`dep-alerts` が見る)
+  - 不合格の直し方は「`pnpm setup:github` で差分を見て `--apply`(リポジトリの管理者が手元で)」。点検は直さない
 
 ## 6. 業務ルール
 
