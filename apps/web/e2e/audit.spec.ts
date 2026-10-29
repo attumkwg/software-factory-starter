@@ -31,6 +31,10 @@ test("管理者は監査ログで、自分が作ったプロジェクトの記�
 test("メンバーには設定(監査ログ)のリンクが出ず、開いても見られない", async ({ page }) => {
   await loginAs(page, "member@acme.test");
   await expect(page.getByRole("link", { name: "設定" })).toHaveCount(0);
-  await page.goto("/audit");
-  await expect(page.getByText("この操作の権限がありません")).toBeVisible();
+  // 直接開くと受け皿が出て、応答は 403(サーバーの失敗の 500 にしない。#186)
+  for (const path of ["/audit", "/settings"]) {
+    const res = await page.goto(path);
+    expect(res?.status(), `${path} の応答`).toBe(403);
+    await expect(page.getByText("この操作の権限がありません")).toBeVisible();
+  }
 });

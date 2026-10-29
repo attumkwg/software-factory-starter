@@ -15,3 +15,6 @@ export function sessionSetCookies(res: Response): string[] {
 export function withCode<T extends object>(body: T, code?: string): T | (T & { code: string }) {
   return code ? { ...body, code } : body;
 }
+
+/** SSR の API の失敗の番号を積む内側のヘッダー(画面のサーバーが 500 を API の断りの番号に直す。server/api-status.ts。#186) */
+export const API_STATUS_HEADER = "x-kit-ssr-api-status";

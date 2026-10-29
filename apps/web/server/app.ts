@@ -5,6 +5,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { NONCE, secureHeaders } from "hono/secure-headers";
 import type { Logger } from "pino";
+import { withApiStatus } from "./api-status.ts";
 import { compressResponse } from "./compress.ts";
 
 // 画面のサービス(SSR)の入口。ALB から「/api/* 以外」が全部ここに来る。
@@ -212,7 +213,8 @@ export function createWebApp(deps: {
       // 共有の PC で「戻る」やキャッシュから見えないように)。ログイン前の画面も同じにする
       // (残しても速さの得は小さく、ログインの前後をここで見分けるより取り違えが無い)。
       // 画面の側で決めて付けたものはそのまま
-      return compressResponse(c.req.raw, withNoStore(res));
+      // API が断っただけ(権限が無い・無い物)なら 500 でなくその番号で返す(#186。api-status.ts)
+      return compressResponse(c.req.raw, withNoStore(withApiStatus(res)));
     } catch (err) {
       logger.error({ err }, "SSR で失敗");
       return c.text("内部エラーです", 500);
