@@ -1,5 +1,6 @@
 // ADR(docs/adr/NNNN-*.md)の番号を確かめる中身。入口は adr.mjs。
 // Semgrep の regex_dos に当たらないよう、正規表現を使わずに読む。
+import { parse, parseDocument } from "yaml";
 
 const isDigits = (s) => s.length > 0 && [...s].every((c) => c >= "0" && c <= "9");
 
@@ -70,3 +71,65 @@ export const checkNumberedDocs = (dir, files) => {
 
 // 仕様と設計書が次に使う番号(2つのフォルダ全部の中で一番大きい番号+1。対で同じ番号にするため)
 export const nextDocNumber = (...fileLists) => nextNumber(fileLists.flat());
+
+// ── 番号の範囲(docs/kit/numbering.yaml。G-116・仕様 0091)──
+// キットは 0001〜kit_until だけを使い、キットから作ったリポジトリは own_from から振る。
+// 範囲が重ならなければ、キットの新しい版を取り込んでも同じ番号はできない。own_from が無い(null)のはキットの中か、まだ取り込んでいないリポジトリ。
+export const NUMBER_MAX = 9999;
+
+const isWhole = (n) => Number.isInteger(n) && n >= 1 && n <= NUMBER_MAX;
+
+// 設定そのものの問題。range: { kitUntil, ownFrom }(ownFrom は null か数)
+export const checkRange = ({ kitUntil, ownFrom }) => {
+  if (!isWhole(kitUntil)) return [`kit_until は 1〜${NUMBER_MAX} の整数(いま: ${kitUntil})`];
+  if (ownFrom === null || ownFrom === undefined) return [];
+  if (!isWhole(ownFrom)) return [`own_from は 1〜${NUMBER_MAX} の整数か null(いま: ${ownFrom})`];
+  if (ownFrom <= kitUntil) {
+    return [
+      `own_from ${ownFrom} がキットの範囲(〜${kitUntil})と重なる(${kitUntil + 1} 以上にする)`,
+    ];
+  }
+  return [];
+};
+
+// 番号が範囲の中にあるか。files: [{ file }]
+//   own_from が無い(キットの中): kit_until を越えた番号は落とす(使う側の範囲に入る)
+//   own_from がある(使う側): キットの範囲と自分の範囲の間の番号は落とす(どちらの物でもない)
+export const checkNumbersInRange = (dir, files, { kitUntil, ownFrom }) => {
+  const hasOwn = ownFrom !== null && ownFrom !== undefined;
+  const problems = [];
+  for (const { file } of files) {
+    const num = numberOfFile(file);
+    if (!num || Number(num) <= kitUntil) continue;
+    if (!hasOwn) {
+      problems.push(
+        `${dir}/${file} 番号 ${num} がキットの範囲(〜${kitUntil})を越えた(キットの中なら範囲の中で振る。キットから作ったリポジトリなら pnpm adr --own-from で自分の範囲を決める)`,
+      );
+    } else if (Number(num) < ownFrom) {
+      problems.push(
+        `${dir}/${file} 番号 ${num} はキットの範囲(〜${kitUntil})でも自分の範囲(${ownFrom}〜)でもない(${ownFrom} 以上に振り直す)`,
+      );
+    }
+  }
+  return problems;
+};
+
+// 範囲の中で次に使う番号。own_from があれば、自分の範囲の一番大きい番号の次(無ければ own_from)
+export const nextInRange = (files, { ownFrom } = {}) => {
+  if (ownFrom === null || ownFrom === undefined) return nextNumber(files);
+  const own = files.filter(({ file }) => Number(numberOfFile(file) ?? 0) >= ownFrom);
+  return own.length > 0 ? nextNumber(own) : String(ownFrom).padStart(4, "0");
+};
+
+// docs/kit/numbering.yaml の文から範囲を読む
+export const parseRange = (text) => {
+  const data = parse(text) ?? {};
+  return { kitUntil: data.kit_until, ownFrom: data.own_from ?? null };
+};
+
+// own_from だけを書き換えた文を返す(コメントと並びは崩さない)
+export const withOwnFrom = (text, ownFrom) => {
+  const doc = parseDocument(text);
+  doc.set("own_from", ownFrom);
+  return doc.toString({ lineWidth: 0 });
+};
