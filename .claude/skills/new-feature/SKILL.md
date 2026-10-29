@@ -91,7 +91,7 @@ description: 「これ作りたい」の一言から、どの賭け(docs/product
 5. Issue を作る(**もう一度「Issue を作ってよいか」を確かめてから**):
    - 親: `gh issue create --title "<機能名>" --label kind:feature --body "<要約と仕様の PR へのリンクと子 Issue の一覧>"`
    - 子: 1つ = 1 PR の大きさで。本文に受け入れ条件の該当部分・権限の表の行・「仕様: docs/specs/NNNN-…」・「設計: docs/designs/NNNN-…」・「親: #番号」・「取り組み: bet:B-NNNN / 作業の種類: …」(実装の PR の本文の「🎯 取り組み」にそのまま写す)。
-   - 作ったら、親 Issue の本文の子の一覧を番号つきに直す(`gh issue edit`)。
+   - 作ったら、親 Issue の本文の子の一覧を番号つきに直す(`gh issue edit`)。1行に子が1つで、先に閉じる子があれば「(待つ: #番号・#番号)」を足す(例: `2. #13 API(待つ: #12)`)。`pnpm progress` がここから n/m・次に進められる子・止まった PR を出し、親の本文に「📍 進み具合」を書く(仕様 0086)。
    - ラベルは `.github/labels.yml` にある物だけを使う(無いと失敗する。そのときは本人に `pnpm setup:github --apply` を頼む。`gh label create` で一覧に無いラベルを作らない)。
 6. 最後に、作った PR と Issue の URL を並べて伝える。実装に進むかは聞くだけにする(勝手に始めない)。
 
