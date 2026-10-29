@@ -70,7 +70,7 @@
 - AWS・Slack・Sentry の設定(Terraform と手順書のまま)。秘密の値を入れること
 - 一覧に無いラベルを消すこと(Issue から外れてしまう。消すなら人が画面で)
 - ひな形の印(GitHub の「Template repository」)を付けること(公開の判断は持ち主。README の注意のとおり)
-- 定期で回すこと(セットアップは人が打つ。点検の `w-protection` が毎週、外れていないかを見る)
+- 定期で回すこと(セットアップは人が打つ。点検の `w-protection` が毎週、外れていないか・`.github/setup.yml` とずれていないかを見る。G-74)
 - 組織(Organization)の設定・チームの作成
 
 ## 決めたこと
