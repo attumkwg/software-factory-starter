@@ -3,7 +3,7 @@
 // 【実測】PR の数・マージした週・KPI の記録 /【推定】人の時間(PR × docs/cost/people.yaml の分数)・得る物の見込み。金額は扱わない。
 import { checkPrBody, stripComments } from "./bets-lib.mjs";
 import { addDays, daysBetween, mondayOf, toDate, todayInTokyo } from "./checkup/phase.mjs";
-import { prMinutes } from "./cost/source-people.mjs";
+import { humanComments, prMinuteRange } from "./cost/source-people.mjs";
 import { kpiRefs } from "./kpi-lib.mjs";
 import { roiRange } from "./loop-lib.mjs";
 import { questionsOf } from "./metrics/lib.mjs";
@@ -15,8 +15,6 @@ export const REACHED = ["rollout", "adopted"];
 export const DAY_MINUTES = 8 * 60;
 /** 1か月の日数(経った月数 = 日数 ÷ 30) */
 const MONTH_DAYS = 30;
-/** 人が答えた問い1つに、別にかかったとみなす分(幅の上の端。docs/kit/roi.md の 2 と同じ) */
-const QUESTION_MINUTES = 5;
 
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -38,7 +36,7 @@ const loginOf = (author) => {
 
 /**
  * マージした PR 1件の事実(gh pr list --json number,author,labels,body,comments,reviews,mergedAt)。
- * 人の名前・題名・本文は持たない。分は費用のページと同じ式(prMinutes)。幅の上の端は問い1つ × 5分を足す
+ * 人の名前・題名・本文は持たない。分は費用のページと同じ式(prMinuteRange。週の数字の無人化率と同じ)。幅の上の端は問い1つ × 5分を足す
  */
 export function prFactOf(pr, { config, stages }) {
   const login = loginOf(pr.author);
@@ -48,11 +46,10 @@ export function prFactOf(pr, { config, stages }) {
     user: { login },
     labels: pr.labels,
     body: pr.body,
-    comments: (pr.comments ?? []).length,
+    comments: humanComments(pr.comments), // ボット(Actions の要約など)は除く。週の数字の無人化率と同じ
   };
   const reviews = (pr.reviews ?? []).map((r) => ({ user: { login: loginOf(r.author) } }));
-  const total = sum(Object.values(prMinutes(shaped, reviews, config).minutes));
-  const questions = questionsOf(pr.body).count;
+  const range = prMinuteRange(shaped, reviews, questionsOf(pr.body).count, config);
   const kpiField = kpiFieldOf(pr.body);
   const day = todayInTokyo(new Date(pr.mergedAt));
   return {
@@ -62,10 +59,7 @@ export function prFactOf(pr, { config, stages }) {
     proposal: checked.proposal ?? null,
     kpiField,
     kpis: kpiRefs(kpiField),
-    minutes: {
-      low: total,
-      high: total + questions * (config.minutes.question ?? QUESTION_MINUTES),
-    },
+    minutes: { low: range.low, high: range.high },
     day,
     week: mondayOf(day),
   };

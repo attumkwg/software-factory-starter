@@ -95,9 +95,9 @@ test("PR の事実: AI はラベルで見分ける(本文の印やコミット�
     labels: ["risk:medium", "area:api"],
     commits: [AI_COMMIT],
   };
-  const notLabeled = prFacts(pr, MARKERS);
+  const notLabeled = prFacts(pr);
   assert.equal(notLabeled.ai, false);
-  const f = prFacts({ ...pr, labels: [...pr.labels, AI_LABEL] }, MARKERS);
+  const f = prFacts({ ...pr, labels: [...pr.labels, AI_LABEL] });
   assert.equal(f.ai, true);
   assert.equal(f.risk, "medium");
   assert.equal(f.questions, 1);
@@ -105,7 +105,7 @@ test("PR の事実: AI はラベルで見分ける(本文の印やコミット�
   assert.equal(f.openToMergeHours, 6);
   assert.equal(f.week, "2026-10-12");
   assert.equal(JSON.stringify(f).includes("someone"), false);
-  assert.equal(prFacts({ ...pr, author: "renovate", authorType: "Bot" }, MARKERS).bot, true);
+  assert.equal(prFacts({ ...pr, author: "renovate", authorType: "Bot" }).bot, true);
 });
 
 test("デプロイ: 成功(次に替わった物も)・失敗・終わっていない物を分ける。リードタイムはマージの後の最初の成功まで", () => {
@@ -190,6 +190,9 @@ const pr = (over) => ({
   questions: 0,
   kinds: [],
   humanCommits: 0,
+  aiAny: true,
+  comments: 0,
+  minutes: { low: 15, high: 15, byHand: 120 },
   createdAt: "2026-10-13T00:00:00Z",
   mergedAt: "2026-10-13T02:00:00Z",
   week: "2026-10-12",
@@ -222,7 +225,8 @@ test("決裁用は週ごとにチームで1つの数。改善用は先週の PR 
     weeks: ["2026-10-05", "2026-10-12"],
     today: "2026-10-19",
   });
-  const [before, last] = report.decision.weeks;
+  const [before, { unmanned, ...last }] = report.decision.weeks;
+  assert.deepEqual(unmanned.prs, { ai: 4, human: 0, bot: 1 }); // 3 はラベルが無いが印で AI(分の見分けは aiAny)
   assert.deepEqual(last, {
     week: "2026-10-12",
     deploys: 2,
@@ -248,4 +252,7 @@ test("決裁用は週ごとにチームで1つの数。改善用は先週の PR 
   assert.match(md, /## 改善用\(2026-10-12 の週/);
   assert.match(md, /- 事業判断: 1件/);
   assert.match(md, /- 0003 t\(3日\)/);
+  assert.match(md, /\| 無人化率【推定】 \|\n/); // 決裁用の表の1列
+  assert.match(md, /### 無人化率【推定】/);
+  assert.match(md, /\| 2週の合計 \|/);
 });

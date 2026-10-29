@@ -1,6 +1,7 @@
 # 人の時間の見積もりの決まり(金額は書かない。時給・時間の手入力・売上は非公開の置き場。docs/guides/cost-dashboard.md の 6.)
 # 費用のページ(pnpm cost)が、今月作った PR を本文の「取り組み」(bet:B-NNNN か土台)ごとに数え、ここの分数を掛けて「自動の目安」にする。
 # あくまで推定。手入力(週ごとの割合)と並べて幅で見る。人の評価には使わない。設計: docs/designs/0020-people-time-and-bet-pl.md
+# 週の数字の無人化率(pnpm metrics)と北極星の分母(pnpm kpi --roi)も同じ分を使う(式は docs/kit/roi.md の 2。設計書 0094)
 
 # 1件あたりの分数(人の時間)。自分たちの実感に合わせて直してよい
 minutes:
@@ -9,6 +10,7 @@ minutes:
   bot_pr_check: 5 # Renovate などのボットの PR を確かめる(担当者に付ける)
   review: 20 # 人のレビュー1回(作った人以外)
   comment: 3 # PR のコメント1件(作った人に付ける)
+  question: 5 # PR で人に聞いた問い1つに、別にかかったとみなす分(人の工数の上の端 = 無人化率の低い方にだけ足す。pnpm metrics・pnpm kpi --roi)
 
 # AI が書いた PR の見分け方(本文にこのどれかがあれば AI の PR。ai-label.yml がラベル ai:assisted も付け、ラベルでも見分ける。週の数字 pnpm metrics と同じ)
 ai_markers:
