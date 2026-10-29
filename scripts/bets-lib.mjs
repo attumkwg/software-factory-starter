@@ -108,6 +108,11 @@ export const parseBet = (text) => {
       .find((s) => s.startsWith("動かす KPI:"))
       ?.slice(8)
       .trim(),
+    // 得る物の見込み(月。人日相当の幅)。rollout から ROI の累計に使う(pnpm kpi --roi。仕様 0094)
+    gain: status?.status
+      .find((s) => s.startsWith("得る物の見込み(月):"))
+      ?.slice(11)
+      .trim(),
     lines: find("線と期限"),
     pebbles: find("小石"),
     ledger: find("会計区分"),
