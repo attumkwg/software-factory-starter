@@ -2219,7 +2219,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: プロダクトのペルソナ(P-n)と KPI の木(北極星1・入力 2〜4・守り1以上)を書き、賭けは psf から「どのペルソナのどの KPI を動かすか」を指す。pnpm kpi が最新の値と線を並べ、形の誤りと金額をリポジトリに書いたのを落とす。資産か費用かの案に KPI の結果を根拠として並べる
+    what: プロダクトのペルソナ(P-n)と KPI の木(北極星1・入力 1〜2・守り 1〜2)を書き、賭けは psf から「どのペルソナのどの KPI を動かすか」を指す。pnpm kpi が最新の値と線を並べ、形の誤りと金額をリポジトリに書いたのを落とす。資産か費用かの案に KPI の結果を根拠として並べる
     needed_by: 機能を作る理由を数で言いたい・KPI の達成を見て資産価値を高めたい(既存のリポジトリにも、この2ファイルだけ先に入れられる)
     not_needed_by: 確かめずに作るだけの試作
     if_removed: 賭けの線はあるが、プロダクト全体のどの数を動かしたかが残らない。資産の根拠が合格の線だけになる
@@ -2248,7 +2248,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: 業界の前提(industry.md)を根拠つきで書き、7つの立場(使う人・買う人・決める人・止める人・周りの人・失う人・運営)を埋めるペルソナを作る。合議は1人ずつ別の AI → 反論役 → 議論の回 → 議長のまとめで、KPI の木・出す前の合否の一覧・本物の人に確かめる問いを出す。「確か」の KPI は合議から
+    what: 業界の前提(industry.md)を根拠つきで書き、7つの立場(使う人・買う人・決める人・止める人・周りの人・失う人・運営)を埋めるペルソナを作る。合議は任意の参考で、既定は反論役1人の軽い形(全員の形 = 1人ずつ別の AI → 反論役 → 議論の回 → 議長のまとめ は、頼んだときだけ)。KPI の木・出す前の合否の一覧・本物の人に確かめる問いの材料を出す
     needed_by: 機能や KPI を、立場の違う人の目で速く確かめたい・業界ごとに客層を広げる
     not_needed_by: 使う人が1種類だけの小さな道具
     if_removed: KPI と機能の判断が、作り手1人の思いつきになる。止める人・周りの人の反対に、出してから気づく
@@ -2266,6 +2266,31 @@ parts:
         - { path: .claude/skills/bet/SKILL.md, what: psf の前の /council を外す }
         - { path: docs/guides/kpi.md, what: 1 の業界の前提と 2 の合議を外す }
       docs: [docs/specs/0082-persona-council.md, docs/designs/0082-persona-council.md]
+
+  - id: purpose-judge
+    name: 意義の判断役と歯止めの3つ(やる / やらない / 条件つき)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: アイデア・大きな依頼を分ける前・受け入れの3つの場面で、「意義があるから、やる / やらない / 条件つき」を意義の1行(誰の・どんな困りごとが・どれだけ減るか)・ROI の見込み・止める線つきで言い切り、記録に残す。歯止めは、数で言えなければやらない・ROI は式から出す(手で上げない)・期限の後に当たり外れを出し、正しかったかは人が判定する。pnpm kpi が記録の形を落とす
+    needed_by: 作る物が増えて、どれをやるかを速く言い切りたい・判断の当たり外れを後で確かめたい
+    not_needed_by: 作る物が1つに決まっていて、選ぶ場面が無い
+    if_removed: 合議や話し合いが条件を集めるだけで、誰も「やる / やらない」を言わない。熱意で何にでも意義を見つける
+    depends_on: [persona-kpi]
+    law: []
+    where: [.claude/agents/purpose-judge.md, scripts/verdict-lib.mjs, docs/product/verdicts/_template.md, docs/kit/verdicts, docs/guides/kpi.md]
+    remove:
+      delete: [.claude/agents/purpose-judge.md, scripts/verdict-lib.mjs, scripts/verdict.test.mjs, docs/product/verdicts]
+      edit:
+        - { path: scripts/kpi.mjs, what: 意義の判断の記録を読む所(verdict-lib)を外す }
+        - { path: package.json, what: test:scripts の scripts/verdict.test.mjs を外す }
+        - { path: CLAUDE.md, what: 必ず守るの「意義の判断役」の1文を外す }
+        - { path: .claude/skills/bet/SKILL.md, what: 5.5 の意義の判断を外す }
+        - { path: .claude/skills/new-feature/SKILL.md, what: 分解の前の意義の判断を外す }
+        - { path: .claude/skills/accept/SKILL.md, what: 受け入れの意義の判断を外す }
+        - { path: docs/guides/kpi.md, what: 11 の意義の判断役を外す }
+      docs: [docs/specs/0084-lighter-council-and-purpose-judge.md]
 
   - id: progress-control
     name: 依頼ごとの進み具合の管制(pnpm progress)
