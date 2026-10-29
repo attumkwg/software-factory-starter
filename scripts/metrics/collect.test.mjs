@@ -134,7 +134,13 @@ test("集めた結果に人の名前・本文を出さない。GitHub が読め�
     files: (dir) => Object.keys(files).filter((f) => f.startsWith(`${dir}/`)),
   };
   const reviewed = prNode(1, {
-    comments: { totalCount: 2 },
+    comments: {
+      nodes: [
+        { author: { __typename: "User" } },
+        { author: { __typename: "User" } },
+        { author: { __typename: "Bot" } }, // Actions の要約は数えない
+      ],
+    },
     reviews: { nodes: [{ author: { login: "secret-reviewer", __typename: "User" } }] },
   });
   const { gh } = fakeGh(

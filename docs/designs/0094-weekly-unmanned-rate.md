@@ -24,7 +24,7 @@
 
 ## 2. データモデル
 
-- 集める PR(`collect.mjs` の `toPr`): `comments`(コメントの数)・`reviewers`(`{ login, type }` の並び)を足した。GraphQL に `comments { totalCount }`・`reviews(first: 50) { nodes { author { login __typename } } }`。
+- 集める PR(`collect.mjs` の `toPr`): `comments`(コメントの数。ボットのコメントは除く。roi.md の 2 の数え直しと同じ)・`reviewers`(`{ login, type }` の並び)を足した。GraphQL に `comments(first: 100) { nodes { author { __typename } } }`・`reviews(first: 50) { nodes { author { login __typename } } }`。
 - PR の事実(`prFacts`): `aiAny`・`comments`・`minutes { low, high, byHand }`(分)を足した。名前は持たない(改善用の PR の明細からは `minutes` も外す)。
 - 週の行(`decision.weeks[]`): `unmanned`。合計は `decision.unmanned`(式の分 `rule` つき)。
   - `unmanned = { prs: { ai, human, bot }, questions, comments, humanCommits, hours: { low, high }, byHandHours, pct: { low, high } | null }`
@@ -98,6 +98,7 @@
 - 無人化率だけ、AI の PR を「ラベルか本文の印」で見分ける — roi.md の 2 と費用のページがこの見分け方で、ラベルだけだと途中からラベルを付けたリポジトリで低く出る(キット自身の 2026-10-19 の週は「AI が手伝った 36%」)
 - 幅は roi.md と同じく、分母に問いの分を足さない — 手で数えた値と突き合わせるため
 - 低い方の端は 0% で止める — 問いが多い週に、負の割合を出さない(上の端はそのまま)
+- コメントはボット(Actions の要約など)を除く — roi.md の 2 の数え直し(2026-10-29 の夕方)と同じ。AI が持ち主のアカウントで残した記録は見分けられないので数に入る(コメント 1件 3分なので、無人化率は1点ほど低めに出る側)
 - 手直しは式に入れない — roi.md の 2 の式に入っていない。数だけ並べ、注に「多い週は高めに読んでいる」と書く
 - `weekOf`・`fullWeeks` を phase.mjs の計算で書き直した — 日付の計算をリポジトリで1つにする(G-122)。数え方は同じ
 

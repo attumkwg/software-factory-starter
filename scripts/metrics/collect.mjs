@@ -37,7 +37,7 @@ const PRS = `query($q: String!, $after: String) {
       number createdAt mergedAt body
       author { login __typename }
       labels(first: 30) { nodes { name } }
-      comments { totalCount }
+      comments(first: 100) { nodes { author { __typename } } }
       reviews(first: 50) { nodes { author { login __typename } } }
       commits(first: 100) { nodes { commit {
         message parents { totalCount } author { name email }
@@ -74,8 +74,9 @@ const toPr = (n) => ({
   author: n.author?.login ?? null,
   authorType: n.author?.__typename ?? null,
   labels: n.labels.nodes.map((l) => l.name),
-  // 無人化率の分(コメント × 3分・ほかの人のレビュー × 20分)にだけ使う。名前は prFacts が捨てる
-  comments: n.comments?.totalCount ?? 0,
+  // 無人化率の分(コメント × 3分・ほかの人のレビュー × 20分)にだけ使う。名前は prFacts が捨てる。
+  // コメントはボット(Actions の要約など)を除く(docs/kit/roi.md の 2 の数え直しと同じ)
+  comments: (n.comments?.nodes ?? []).filter((c) => c.author?.__typename !== "Bot").length,
   reviewers: (n.reviews?.nodes ?? []).map((r) => ({
     login: r.author?.login ?? null,
     type: r.author?.__typename ?? null,
