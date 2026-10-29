@@ -14,6 +14,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { idOfFile, parseBet } from "./bets-lib.mjs";
+import { todayInTokyo } from "./checkup/phase.mjs";
 import {
   councilLinkNotes,
   councilNotes,
@@ -73,7 +74,7 @@ function checkVerdicts(doc, today) {
   return { problems, lines, waiting: s.waiting };
 }
 
-const today = new Date().toISOString().slice(0, 10);
+const today = todayInTokyo();
 
 if (!existsSync(KPI)) {
   console.log(`${KPI} はまだ無い(/kickoff で、ペルソナと一緒に作る。docs/guides/kpi.md)`);

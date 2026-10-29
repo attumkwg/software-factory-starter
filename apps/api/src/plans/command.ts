@@ -1,8 +1,11 @@
 import {
+  addDays,
   currentPriceList,
   DateOnlySchema,
+  OPERATOR_TIME_ZONE,
   type PlanDefinition,
   type PriceListDefinition,
+  toLocalDate,
 } from "@app/shared";
 import { desc, eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -200,11 +203,10 @@ export async function planReport(
   db: RootDb,
   opts: Defs & { withinDays: number; supportTenantId: string | null; now?: Date },
 ): Promise<PlanReport> {
-  const today = (opts.now ?? new Date()).toISOString().slice(0, 10);
+  // 「今日」は運営の時間帯(仕様 0087)
+  const today = toLocalDate(opts.now ?? new Date(), OPERATOR_TIME_ZONE);
   const latest = currentPriceList(opts.priceLists, today)?.id ?? null;
-  const limit = new Date(Date.parse(`${today}T00:00:00Z`) + opts.withinDays * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
+  const limit = addDays(today, opts.withinDays);
   const ids = await db.execute<{ tenant_id: string }>(
     sql`select tenant_id from operator_tenant_ids() as tenant_id order by tenant_id`,
   );

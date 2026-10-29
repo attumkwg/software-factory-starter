@@ -13,11 +13,12 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkBet, checkPrBody, idOfFile, parseBet } from "./bets-lib.mjs";
 import { renderInternal, renderPublic } from "./bets-roadmap.mjs";
+import { todayInTokyo } from "./checkup/phase.mjs";
 import { prQuestionProblems } from "./human-queue-lib.mjs";
 import { betLinkProblems, kpiIdsOf, personaIdsOf } from "./kpi-lib.mjs";
 
 const DIR = "docs/product/bets";
-const today = new Date().toISOString().slice(0, 10);
+const today = todayInTokyo();
 
 const readBets = () => {
   const files = readdirSync(DIR)

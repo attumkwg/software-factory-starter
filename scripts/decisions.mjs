@@ -8,13 +8,14 @@
 // 書き方は docs/guides/human-review.md の 2。中身は decisions-lib.mjs。
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { todayInTokyo } from "./checkup/phase.mjs";
 import { ADOPT, adoptLines, groupRows, readDecisions, verdict } from "./decisions-lib.mjs";
 
 const DIR = "docs/designs";
 const strict = process.argv.includes("--strict");
 const adopt = process.argv.includes("--adopt");
 const launch = process.argv.includes("--launch");
-const today = new Date().toISOString().slice(0, 10);
+const today = todayInTokyo();
 
 const files = readdirSync(DIR)
   .filter((f) => f.endsWith(".md") && !f.startsWith("_"))

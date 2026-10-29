@@ -1,3 +1,4 @@
+import { addDays } from "@app/shared";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
 import {
@@ -15,8 +16,6 @@ import {
 // (文脈を開くので領域の外に置く。読み書きの中身は domains/growth の operator.ts)。
 // **メールアドレス・会社名は外に出さない**(出すのは数と率だけ。AI に渡してよいのもここまで。docs/security.md の AI-6)。
 
-const DAY = 86_400_000;
-const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const rate = (num: number, den: number) => (den === 0 ? null : Math.round((num / den) * 1000) / 10);
@@ -74,7 +73,7 @@ export function parseReportArgs(args: string[], now = new Date()): { from: strin
   // 日ごとの数は日本時間の日付で数えている(tokyoDay)。既定の終わりも日本時間の今日にする
   // (UTC の日付にすると、日本時間の 0〜9時は「今日」の数が入らない)
   const to = value("--to") ?? tokyoDay(now);
-  const from = value("--from") ?? isoDate(new Date(Date.parse(to) - 27 * DAY));
+  const from = value("--from") ?? (DATE.test(to) ? addDays(to, -27) : to);
   if (!DATE.test(from) || !DATE.test(to) || from > to) {
     throw new Error("使い方: pre-registrations-report [--from YYYY-MM-DD] [--to YYYY-MM-DD]");
   }

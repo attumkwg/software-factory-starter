@@ -1,10 +1,13 @@
 import {
+  addDays,
   currentVersion,
   type LpViewRequest,
   normalizeLandingPath,
   normalizeUtm,
+  OPERATOR_TIME_ZONE,
   PRE_REGISTRATION_RETENTION_DAYS,
   type PreRegistrationRequest,
+  toLocalDate,
 } from "@app/shared";
 import { and, eq, sql } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
@@ -23,11 +26,9 @@ export const CONFIRM_RESEND_MS = DAY;
 /** 確認のリンクの期限(確認待ちの登録が消えるまでと同じ) */
 export const CONFIRM_LINK_MS = PRE_REGISTRATION_RETENTION_DAYS.pending * DAY;
 
-const isoDate = (d: Date) => d.toISOString().slice(0, 10);
-const daysAfter = (d: Date, days: number) => isoDate(new Date(d.getTime() + days * DAY));
-/** 日本時間の日付(日ごとの数の区切り) */
-export const tokyoDay = (d: Date) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(d);
+/** 運営の時間帯(日本時間)の日付。日ごとの数の区切り・消す日(仕様 0087) */
+export const tokyoDay = (d: Date) => toLocalDate(d, OPERATOR_TIME_ZONE);
+const daysAfter = (d: Date, days: number) => addDays(tokyoDay(d), days);
 
 type Source = { path: string; utmSource: string; utmMedium: string; utmCampaign: string };
 type Counter = "views" | "registrations" | "confirmations";

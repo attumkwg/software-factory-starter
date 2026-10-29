@@ -6,6 +6,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { todayInTokyo } from "./checkup/phase.mjs";
 
 /** 束に入れる型(並び順)。正は各ファイル */
 export const PACK = [
@@ -97,7 +98,7 @@ if (import.meta.main) {
       return undefined;
     }
   };
-  const today = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10);
+  const today = todayInTokyo();
   let commit = null;
   try {
     commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();

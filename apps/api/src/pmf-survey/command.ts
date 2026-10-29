@@ -1,4 +1,10 @@
-import { PMF_SURVEY_ANSWERS, type PmfSurveyAnswer, pmfSurveyRound } from "@app/shared";
+import {
+  OPERATOR_TIME_ZONE,
+  PMF_SURVEY_ANSWERS,
+  type PmfSurveyAnswer,
+  pmfSurveyRound,
+  toLocalDate,
+} from "@app/shared";
 import { and, eq, lt, sql } from "drizzle-orm";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
@@ -35,8 +41,9 @@ export async function pmfSurveyReport(
   db: RootDb,
   opts: { round?: string; supportTenantId: string | null; now?: Date },
 ): Promise<PmfSurveyReport> {
-  // 回を渡さなければ、いまの回(UTC の日付。組織ごとの時間帯の差は四半期の境目の数時間だけ)
-  const round = opts.round ?? pmfSurveyRound((opts.now ?? new Date()).toISOString().slice(0, 10));
+  // 回を渡さなければ、いまの回(運営の時間帯の日付。仕様 0087。組織ごとの時間帯の差は四半期の境目の数時間だけ)
+  const round =
+    opts.round ?? pmfSurveyRound(toLocalDate(opts.now ?? new Date(), OPERATOR_TIME_ZONE));
   const counts = zeroCounts();
   let tenantsAnswered = 0;
   for (const tenantId of await allTenantIds(db)) {
