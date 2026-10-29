@@ -126,12 +126,16 @@ test("束ねた子は、親が済み・やらないなら親に合わせて数�
     { id: "G-75", status: "束ねた", parent: "G-121" },
     { id: "G-80", status: "残り" },
     { id: "G-81", status: "束ねた", parent: "G-80" },
+    // 親が「ほぼ済み」でも、子はまだ残り(親が閉じるまで)
+    { id: "G-119", status: "ほぼ済み" },
+    { id: "G-130", status: "束ねた", parent: "G-119" },
   ];
   const stageOf = new Map(rows.map((r) => [r.id, "使える前に"]));
   const [all] = summarize({ rows, stageOf });
   assert.equal(all.済み, 2);
   assert.equal(all.やらない, 2);
-  assert.equal(all.残り, 2);
+  assert.equal(all.ほぼ済み, 1);
+  assert.equal(all.残り, 3);
 });
 
 test("行の形: 重なり・崩れ・🔧 の番号・束ねた先", () => {
