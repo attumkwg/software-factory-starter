@@ -119,16 +119,17 @@ if (!sensors && before.reasons.length > 0)
     `人の答えが要る PR(${before.reasons.join("・")})。1人の間なので、会話の答えでマージする(ADR 0085)\n`,
   );
 
-// レビューの記録を先に見る(無ければ緑を待たずに止める)。待つ間に記録が付くこともあるので、緑の後にもう一度見る
+// レビューの記録を先に見る(無ければ緑を待たずに止める)。待つ間に記録が付くこともあるので、緑の後にもう一度見る。
+// コメントと版は全ページ読む(100件を超えても、いちばん新しい記録を見落とさない)
+const all = (path) => JSON.parse(gh(["api", "--paginate", "--slurp", path])).flat();
+let review = {};
 const reviewed = () => {
-  const review = reviewState(
-    api(`repos/${repo}/issues/${number}/comments?per_page=100`),
+  review = reviewState(
+    all(`repos/${repo}/issues/${number}/comments?per_page=100`),
     pr.head.sha,
+    all(`repos/${repo}/pulls/${number}/commits?per_page=100`),
   );
   if (review.problem) fail(review.problem);
-  if (review.note)
-    process.stdout.write(`${review.note}
-`);
 };
 reviewed();
 
@@ -154,7 +155,7 @@ for (;;) {
 const after = needs();
 if (sensors && after.blockers.length > 0) stopForHuman(after.blockers);
 reviewed();
-const comments = api(`repos/${repo}/issues/${number}/comments?per_page=100`);
+const comments = all(`repos/${repo}/issues/${number}/comments?per_page=100`);
 const recorded = (mark) =>
   comments.some(
     (c) =>
@@ -204,9 +205,14 @@ if (queued) {
   process.exit(0);
 }
 
-const how = sensors
-  ? "センサーだけでマージ(AI。人を呼ぶ理由なし。ADR 0094)"
-  : `持ち主の会話の答えでマージ(AI。仕様 0080・0085。${answered.at.toISOString()}・${where}): ${reply}`;
+const reviewLine = `レビューの記録(仕様 0096): 当てた版 ${review.reviewedSha}${review.fixes.length > 0 ? `・直した版 ${review.fixes.join("・")}` : ""} → 入れた版 ${pr.head.sha.slice(0, 7)}・${review.url}`;
+const how = `${
+  sensors
+    ? "センサーだけでマージ(AI。人を呼ぶ理由なし。ADR 0094)"
+    : `持ち主の会話の答えでマージ(AI。仕様 0080・0085。${answered.at.toISOString()}・${where}): ${reply}`
+}
+
+${reviewLine}`;
 // 待つ間に push があれば、その版のチェックを見ていないので止める(sha を渡すと GitHub が断る)
 const merged = JSON.parse(
   gh([

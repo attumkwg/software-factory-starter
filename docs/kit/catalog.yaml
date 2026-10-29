@@ -2300,13 +2300,17 @@ parts:
     if_removed: 書いた AI の申告だけでマージに回り、自分の抜け(足していないテスト・文の足し忘れ)が受け入れや本番まで残る
     depends_on: []
     law: []
-    where: [.claude/agents/reviewer.md, .claude/skills/review-pr/SKILL.md, docs/review-viewpoints.md, docs/guides/human-review.md, scripts/pr-merge-lib.mjs]
+    where: [.claude/agents/reviewer.md, .claude/skills/review-pr/SKILL.md, docs/review-viewpoints.md, docs/guides/human-review.md, scripts/pr-merge-lib.mjs, scripts/pr-merge-when-green.mjs, scripts/review-viewpoints.test.mjs, CLAUDE.md]
     remove:
-      delete: [.claude/agents/reviewer.md]
+      delete: [.claude/agents/reviewer.md, scripts/review-viewpoints.test.mjs]
       edit:
         - { path: scripts/pr-merge-lib.mjs, what: REVIEW_MARK・reviewedShaOf・reviewState を外す }
         - { path: scripts/pr-merge-when-green.mjs, what: reviewed() の2か所を外す }
         - { path: scripts/pr-merge.test.mjs, what: レビューの記録のテストを外す }
+        - { path: package.json, what: test:scripts の scripts/review-viewpoints.test.mjs を外す }
+        - { path: .claude/hooks/protected-paths.json, what: reviewer.md と review-viewpoints.md の2行を外す(labeler.yml・CODEOWNERS も) }
+        - { path: .claude/skills/slack-request/SKILL.md, what: 3 の /review-pr と所見の並べ方を外す }
+        - { path: docs/concepts/human-decisions.md, what: レビューの所見の行を外す }
         - { path: .claude/skills/review-pr/SKILL.md, what: 1.5・7・7.5 を外す }
         - { path: docs/review-viewpoints.md, what: 「👥 レビューの人格」の節を外す }
         - { path: docs/guides/human-review.md, what: 7 を外す }

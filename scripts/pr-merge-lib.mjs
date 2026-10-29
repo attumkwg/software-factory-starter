@@ -146,40 +146,132 @@ export const mergeQueueOn = (rules) => (rules ?? []).some((r) => r.type === "mer
 
 // ── 書いた人と別の AI のレビューの記録(G-137・G-139・仕様 0096)──
 // /review-pr が、書いた文脈を持たない AI を人格ごとに回し、人が1問ずつ決めた所までを PR に残す。記録が無い PR は AI がマージしない。
+// 2026-10-29 にこの PR 自身を5つの人格でレビューし、持ち主が1問ずつ決めた直し(書き手・「直す」の後・版の形・未・回せなかった)を入れた。
 
 /** レビューの記録のコメントの頭 */
 export const REVIEW_MARK = "## 🔍 レビューの記録(書いた人と別の AI";
-
+/** 「直す」を直した版を足すコメントの頭(記録は編集せず、これを足していく) */
+export const FIX_MARK = "## 🔧 直したこと(レビューの記録の続き";
+/** 記録として数える書き手(公開のリポジトリで、外の人のコメントを数えない。decisions-lib と同じ) */
+const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const SHA_HEAD = "当てた版: `";
+const FIXED_HEAD = "直した版: `";
+
+const startsWithMark = (c, mark) =>
+  String(c?.body ?? "")
+    .trimStart()
+    .startsWith(mark);
+const trusted = (c) => TRUSTED.has(c?.author_association);
+const isSha = (s) =>
+  s.length >= 7 && s.length <= 40 && [...s].every((ch) => "0123456789abcdef".includes(ch));
+
+/** 本文の中の「<head>`…`」を全部取る */
+function quotedAfter(body, head) {
+  const out = [];
+  const text = String(body ?? "");
+  for (let at = text.indexOf(head); at >= 0; at = text.indexOf(head, at + 1)) {
+    const rest = text.slice(at + head.length);
+    const end = rest.indexOf("`");
+    if (end >= 0) out.push(rest.slice(0, end));
+  }
+  return out;
+}
 
 /** 記録の「当てた版: `abc1234`」から版を取る(無ければ空) */
-export function reviewedShaOf(body) {
-  const text = String(body ?? "");
-  const at = text.indexOf(SHA_HEAD);
-  if (at < 0) return "";
-  const rest = text.slice(at + SHA_HEAD.length);
-  const end = rest.indexOf("`");
-  return end < 0 ? "" : rest.slice(0, end);
+export const reviewedShaOf = (body) => quotedAfter(body, SHA_HEAD)[0] ?? "";
+
+/**
+ * 記録の決めたことの表(| # | 人格 | 観点 | 所見 | 重さ | 決めたこと | 理由 |)を読む。
+ * 重さ・決めたことの列は見出しの名前で探す(列の並びが変わっても読める)
+ */
+export function reviewDecisions(body) {
+  const rows = String(body ?? "")
+    .split("\n")
+    .filter((l) => l.trimStart().startsWith("|"))
+    .map((l) =>
+      l
+        .trim()
+        .slice(1, -1)
+        .split("|")
+        .map((c) => c.trim()),
+    );
+  const header = rows.find((r) => r.includes("重さ") && r.includes("決めたこと"));
+  if (!header) return [];
+  const weight = header.indexOf("重さ");
+  const decided = header.indexOf("決めたこと");
+  return rows
+    .filter(
+      (r) => r !== header && !r.every((c) => c.split("").every((ch) => ch === "-" || ch === ":")),
+    )
+    .map((r) => ({ id: r[0], weight: r[weight] ?? "", decided: r[decided] ?? "" }));
+}
+
+const HEAVY = ["❌", "❓"];
+const undecided = (d) =>
+  d.decided === "" || d.decided.startsWith("未") || d.decided.startsWith("今回は見ない");
+
+/** 記録そのものの問題(回せなかった・版の形・この PR の版でない・決めていない ❌ ❓)。無ければ空 */
+function recordProblem(body, sha, inPr) {
+  if (body.includes("回せなかった"))
+    return "レビューの記録が「別の AI のレビューを回せなかった」になっている(回してから記録し直す)";
+  if (!isSha(sha))
+    return `レビューの記録の「当てた版」が版の形でない(16進で7文字以上: ${sha || "空"})`;
+  if (!inPr(sha)) return `レビューの記録の「当てた版」${sha} が、この PR の版に無い`;
+  const open = reviewDecisions(body).filter(
+    (d) => HEAVY.some((w) => d.weight.includes(w)) && undecided(d),
+  );
+  if (open.length > 0)
+    return `❌・❓ の所見に、決めていない物がある(${open.map((d) => d.id).join("・")})。「今回は見ない」の ❌・❓ が残る間は入れない`;
+  return "";
+}
+
+/** 「直したこと」の問題(「直す」があるのに無い・この PR の版でない)。無ければ空 */
+function fixProblem(body, fixes, inPr) {
+  if (reviewDecisions(body).some((d) => d.decided.startsWith("直す")) && fixes.length === 0)
+    return "「直す」と決めた所見があるのに、「## 🔧 直したこと」の記録が無い(直してから版を書き足す)";
+  const bad = fixes.find((f) => !isSha(f) || !inPr(f));
+  return bad ? `「直したこと」の版 ${bad} が、この PR の版に無い` : "";
+}
+
+/** レビュー(か直した)最後の版より後の、main の取り込みでない版。無ければ空 */
+function unreviewedProblem(commits, reviewed, headSha) {
+  const order = commits.map((c) => String(c.sha));
+  if (order.length === 0)
+    return reviewed.some((s) => String(headSha ?? "").startsWith(s))
+      ? ""
+      : `今の版 ${String(headSha ?? "").slice(0, 7)} が、レビューの記録にも「直したこと」にも無い`;
+  const last = Math.max(...reviewed.map((s) => order.findIndex((full) => full.startsWith(s))));
+  const after = commits.slice(last + 1).filter((c) => (c.parents ?? []).length < 2);
+  return after.length === 0
+    ? ""
+    : `レビューの後に、レビューを経ていない版がある(${after.map((c) => String(c.sha).slice(0, 7)).join("・")})。直した分なら「## 🔧 直したこと」に版を書く`;
 }
 
 /**
- * レビューの記録の様子(いちばん新しい記録を見る)。problem があれば入れない。
- * note は知らせるだけ(レビューの後に、決めたことを直した版が積まれるのはふつう)
+ * レビューの記録の様子。problem があれば入れない。
+ * - comments: PR のコメント({ body, author_association, html_url, created_at })。持ち主・メンバー・共同作業者の物だけを数える
+ * - commits: PR のコミットの並び(古い順。{ sha, parents: [...] })。当てた版・直した版がこの PR の物かと、
+ *   その後に足された版がレビューを経ているか(main の取り込み = 親が2つの版だけは、決めたことを変えないので通す)を見る
  */
-export function reviewState(comments, headSha) {
-  const records = (comments ?? []).filter((c) => String(c.body ?? "").startsWith(REVIEW_MARK));
-  if (records.length === 0)
+export function reviewState(comments, headSha, commits = []) {
+  const mine = (comments ?? []).filter(trusted);
+  const record = mine.filter((c) => startsWithMark(c, REVIEW_MARK)).at(-1);
+  if (!record)
     return {
       problem:
-        "書いた人と別の AI のレビューの記録が無い(/review-pr で人格ごとに回し、人が1問ずつ決めた記録を PR に残す。仕様 0096)",
+        "書いた人と別の AI のレビューの記録が無い(/review-pr で人格ごとに回し、人が1問ずつ決めた記録を PR に残す。持ち主・メンバー・共同作業者の書いた物だけを数える。仕様 0096)",
     };
-  const sha = reviewedShaOf(records.at(-1).body);
-  if (!sha)
-    return { problem: "レビューの記録に「当てた版」が無い(/review-pr の記録の形。仕様 0096)" };
-  const head = String(headSha ?? "");
-  if (!head.startsWith(sha))
-    return {
-      note: `レビューの後に版が進んだ(当てた版 ${sha}・今の版 ${head.slice(0, 7)})。直した分が決めたことどおりかは、記録の「直したこと」で見る`,
-    };
-  return {};
+  const body = String(record.body);
+  const sha = reviewedShaOf(body);
+  const inPr = (s) => commits.length === 0 || commits.some((c) => String(c.sha).startsWith(s));
+  // 記録より後の「直したこと」の版
+  const recordAt = String(record.created_at ?? "");
+  const fixes = mine
+    .filter((c) => startsWithMark(c, FIX_MARK) && String(c.created_at ?? "") >= recordAt)
+    .flatMap((c) => quotedAfter(c.body, FIXED_HEAD));
+  const problem =
+    recordProblem(body, sha, inPr) ||
+    fixProblem(body, fixes, inPr) ||
+    unreviewedProblem(commits, [sha, ...fixes], headSha);
+  return problem ? { problem } : { reviewedSha: sha, url: record.html_url ?? "", fixes };
 }
