@@ -88,6 +88,7 @@
 /apps/api/test/unit/tenant-shares.test.ts @attumkwg
 /apps/api/test/integration/tenant-shares.int.test.ts @attumkwg
 /apps/api/test/integration/person-data.int.test.ts @attumkwg
+/apps/api/test/integration/person-erase.int.test.ts @attumkwg
 /apps/api/test/integration/export-stream.int.test.ts @attumkwg
 /apps/api/test/unit/export-stream.test.ts @attumkwg
 /apps/api/test/integration/audit-export.int.test.ts @attumkwg
