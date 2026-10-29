@@ -12,7 +12,7 @@ export function ErrorPage({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   const { message, requestId } = describeError(error);
   const refusal = isRefusal(error);
-  // 応答の番号を、500 でなくその断りの番号にする(サーバーで描くときだけ。#186・src/ssr-status.ts)
+  // 応答の番号を、500 でなくその断りの番号にする(サーバーで描くときだけ。Issue 186・src/ssr-status.ts)
   if (refusal) markRefusal(error.status);
   // こちらのバグなら Sentry へ(API・通信・SSR の失敗は、ほかで記録済みなので送らない)
   useEffect(() => reportBrowserError(error), [error]);
