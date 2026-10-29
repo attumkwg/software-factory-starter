@@ -45,8 +45,11 @@ on:
   #   types: [opened, assigned]
 
 env:
-  # 背景の AI が同時に開いてよい PR の数(超えたら新しく動かない。G-62・設計書 0063 の U-1)
+  # 背景の AI が開いた PR のうち、人を待つ本数の上限(達したら新しく動かない。G-62・設計書 0063 の U-1)。
+  # setup.yml の ai_merge.sensors_only: true の所では、人を呼ぶ理由(印・問い)がある PR だけを数える(G-135・設計書 0091)
   AI_OPEN_PR_LIMIT: "5"
+  # 背景の AI が開いた PR の全部の本数の上限(センサーで回る PR も CI の同時の数と費用に効く。G-135・設計書 0091)
+  AI_OPEN_PR_TOTAL_LIMIT: "20"
   # ci.yml と同じ版
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 
@@ -96,6 +99,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           AI_OPEN_PR_LIMIT: ${{ env.AI_OPEN_PR_LIMIT }}
+          AI_OPEN_PR_TOTAL_LIMIT: ${{ env.AI_OPEN_PR_TOTAL_LIMIT }}
         run: node .github/scripts/ai-open-prs.mjs
 
   claude:

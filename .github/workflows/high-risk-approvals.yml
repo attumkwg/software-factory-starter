@@ -2,6 +2,7 @@
 # GitHub のルールセットの承認数はリポジトリで1つの値で、CODEOWNERS は並べた誰か1人の承認で通るので、
 # 「高だけ2人」はこのチェックで止める。レビューが付いた・外れたときにも流し直す。読むだけ(書く権限は持たない)。
 # 確かめる中身(一覧・人数・スクリプト)は PR の側ではなく土台のブランチ(base)の物を使う(PR の中で緩めて通すのを防ぐ)。
+# マージキューの中(merge_group)でも、キューの枝の名前から PR を引いて数え直す(G-135・仕様 0095)。
 name: 危険度「高」の承認
 
 on:
@@ -9,13 +10,15 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
   pull_request_review:
     types: [submitted, edited, dismissed]
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: high-risk-approvals-${{ github.event.pull_request.number }}
+  group: high-risk-approvals-${{ github.event.pull_request.number || github.event.merge_group.head_ref }}
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -37,9 +40,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
         run: |
           if [ ! -f scripts/review-count.mjs ]; then
             echo "土台のブランチにまだ scripts/review-count.mjs が無いので数えない(このチェックを足す PR)"
             exit 0
+          fi
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER="$(node .github/scripts/queue-pr.mjs)"
+            export PR_NUMBER
           fi
           node scripts/review-count.mjs
