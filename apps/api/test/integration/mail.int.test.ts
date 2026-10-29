@@ -134,6 +134,36 @@ describe("タスク完了のメール", () => {
   });
 
   // 組織ごとに止める・戻す(docs/specs/0093-task-mail-switch.md)。止める・戻すの API そのものは task-mail.int.test.ts
+  it("件名に改行を入れても、ヘッダーは増えない(ヘッダーの注入)", async () => {
+    const t = await createTenantFixture(owner.db, "inject");
+    const cookie = await login(app, t.users.member.email);
+    await call(app, "PATCH", `/api/tasks/${t.taskId}`, {
+      cookie,
+      body: { title: "悪い題名\r\nBcc: attacker@evil.example" },
+    });
+    await handler(await completeTask(t, "member"));
+    const [mail] = await inbox(t.users.admin.email);
+    expect(mail?.Subject).toContain("悪い題名");
+    expect(await inbox("attacker@evil.example")).toEqual([]);
+  });
+
+  it("SMTP に届かなければ投げる(アウトボックスがやり直す)", async () => {
+    const t = await createTenantFixture(owner.db, "down");
+    const event = await completeTask(t, "member");
+    const down = outboxHandlers({
+      db: appDb.db,
+      logger,
+      linkSecret: LINK_SECRET,
+      // 誰も待っていないポート
+      mailer: createMailer({ smtpUrl: "smtp://127.0.0.1:1", from: "x <x@example.test>" }, logger),
+      appUrl: APP_URL,
+    })["tasks.task_completed"];
+    await expect(down?.(event)).rejects.toThrow();
+    expect(await inbox(t.users.admin.email)).toEqual([]);
+  });
+});
+
+describe("組織ごとに、タスクが完了したメールを止める・戻す(仕様 0093)", () => {
   it("管理者が止めた組織には送らない。止める前に積まれた出来事も送らない", async () => {
     const t = await createTenantFixture(owner.db, "mail-off");
     const before = await completeTask(t, "member");
@@ -169,6 +199,8 @@ describe("タスク完了のメール", () => {
     const admin = await login(app, t.users.admin.email);
     await call(app, "DELETE", "/api/organization/task-mail", { cookie: admin });
     const whileOff = await completeTask(t, "member");
+    // 完了した時点で止めていたことが、出来事に積まれている(送らない理由は mail_off_at_completion)
+    expect(whileOff.payload).toMatchObject({ mailOffAtCompletion: true });
     // 送り出しが動く前に戻す(前は、送る直前に今の設定だけを見ていたので届いていた)
     expect((await call(app, "POST", "/api/organization/task-mail", { cookie: admin })).status).toBe(
       204,
@@ -177,31 +209,15 @@ describe("タスク完了のメール", () => {
     expect(await inbox(t.users.admin.email)).toEqual([]);
   });
 
-  it("件名に改行を入れても、ヘッダーは増えない(ヘッダーの注入)", async () => {
-    const t = await createTenantFixture(owner.db, "inject");
-    const cookie = await login(app, t.users.member.email);
-    await call(app, "PATCH", `/api/tasks/${t.taskId}`, {
-      cookie,
-      body: { title: "悪い題名\r\nBcc: attacker@evil.example" },
+  it("別の組織が止めていても、こちらの組織の完了は止めていない扱いで積まれ、届く", async () => {
+    const other = await createTenantFixture(owner.db, "mail-other-off");
+    await call(app, "DELETE", "/api/organization/task-mail", {
+      cookie: await login(app, other.users.admin.email),
     });
-    await handler(await completeTask(t, "member"));
-    const [mail] = await inbox(t.users.admin.email);
-    expect(mail?.Subject).toContain("悪い題名");
-    expect(await inbox("attacker@evil.example")).toEqual([]);
-  });
-
-  it("SMTP に届かなければ投げる(アウトボックスがやり直す)", async () => {
-    const t = await createTenantFixture(owner.db, "down");
+    const t = await createTenantFixture(owner.db, "mail-this-on");
     const event = await completeTask(t, "member");
-    const down = outboxHandlers({
-      db: appDb.db,
-      logger,
-      linkSecret: LINK_SECRET,
-      // 誰も待っていないポート
-      mailer: createMailer({ smtpUrl: "smtp://127.0.0.1:1", from: "x <x@example.test>" }, logger),
-      appUrl: APP_URL,
-    })["tasks.task_completed"];
-    await expect(down?.(event)).rejects.toThrow();
-    expect(await inbox(t.users.admin.email)).toEqual([]);
+    expect(event.payload).toMatchObject({ mailOffAtCompletion: false });
+    await handler(event);
+    expect(await inbox(t.users.admin.email)).toHaveLength(1);
   });
 });

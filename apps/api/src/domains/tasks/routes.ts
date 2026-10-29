@@ -20,7 +20,7 @@ import {
   PageQuery,
 } from "../../http/common.ts";
 import { enqueue } from "../../outbox/index.ts";
-// ほかの領域(projects)は index.ts の関数だけを使う。表を直接読まない
+// ほかの領域(organizations・projects)は index.ts の関数だけを使う。表を直接読まない
 import { findTaskMailEnabled } from "../organizations/index.ts";
 import { projectExists } from "../projects/index.ts";
 import { createTask, deleteTask, listTasks, updateTask } from "./repository.ts";
