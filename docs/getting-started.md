@@ -5,7 +5,7 @@
 
 | 順 | やること(節) | かかる時間の目安 | お金 |
 |---|---|---|---|
-| 1 | 手元で動かす・2社のデータが分かれているのを見る(①) | 30分 | 0円 |
+| 1 | 手元で動かす・2社のデータが分かれているのを見る(①) | 30分(初回はイメージの取得とビルドを含む。2回目からは README の「5分で見る」) | 0円 |
 | 2 | 自分のリポジトリにして、GitHub を一括で整える(はじめに) | 10分 | 0円 |
 | 3 | 何を作るかを決める `/kickoff`(⓪) | 半日〜(確かめるのは数週間) | 0円 |
 | 4 | 部品を選ぶ `/tailor`(⓪) | 30分〜(消すのは1つずつ PR) | 0円 |
@@ -53,8 +53,8 @@ http://localhost:8080 を開き、`admin@acme.test` でログインする(パス
 
 確かめること:
 
-- [ ] `pnpm test`(単体)と `pnpm test:integration`(本物の Postgres)が通る
-- [ ] `pnpm test:e2e`(画面の E2E。`docker compose up` のあと)が通る
+- [ ] `pnpm test`(単体)と `pnpm test:integration`(本物の Postgres。Docker が動いている必要がある。Testcontainers が DB を立てる)が通る
+- [ ] `pnpm test:e2e`(画面の E2E。`docker compose up` のあと。初回だけ `pnpm --filter @app/web exec playwright install chromium` でブラウザを入れる)が通る
 - [ ] `admin@globex.test` でログインすると、Acme のプロジェクトが見えない(組織が分かれている)
 - [ ] Claude Code でこのフォルダを開き、`/new-feature` で「タスクに期限を付けたい」と頼んでみる(OK と言うまで何も作られない)
 
