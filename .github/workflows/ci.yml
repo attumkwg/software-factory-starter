@@ -118,7 +118,8 @@ jobs:
     name: API の互換(oasdiff。項目は足すだけ)
     # 公開 API の決まり(docs/guides/api-changes.md): 項目は足すだけ・消さない・意味を変えない。
     # PR の元(base)と比べて、古い画面・スマホのアプリを壊す変更があれば落とす。
-    if: github.event_name == 'pull_request'
+    # マージキューの中では、キューの土台(merge_group.base_sha)と比べる(飛ばすと緑になり、確かめずに入る。仕様 0095)
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -146,7 +147,7 @@ jobs:
       - name: 元(base)の OpenAPI
         if: steps.scope.outputs.heavy == 'true'
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           git worktree add "$RUNNER_TEMP/base" "$BASE_SHA"
           cd "$RUNNER_TEMP/base"

@@ -92,6 +92,11 @@ function checkMerge(segment, env) {
   if (/\bgh pr review\b/.test(s) && /--approve|-a\b/.test(s))
     return "PR の承認は人がする(AI は承認しない)";
   if (/\bgh api\b/.test(s) && /\/merges?\b/.test(s)) return "gh api でのマージもしない";
+  if (
+    /\bgh api\b/.test(s) &&
+    /\b(enqueuePullRequest|mergePullRequest|enablePullRequestAutoMerge)\b/.test(s)
+  )
+    return "マージキューに並べる・自動マージを付けるのもマージ(AI は pnpm pr:merge-when-green だけ。仕様 0095)";
   return null;
 }
 

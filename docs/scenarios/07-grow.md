@@ -35,7 +35,7 @@
 ## 7-4 100人: PR が詰まる(B 社)
 
 - 🏭 B 社の基盤チーム: AI の PR が週300件。スカッシュ+「最新に追いついてから」で、1本ずつ追いつかせては CI を回し直す、が直列に並ぶ。
-- 判定: ✅ 回る(G-15 済み。仕様 0051)。組織に移して、マージキューを使う手順は [../runbooks/move-to-org.md](../runbooks/move-to-org.md)(移す前に洗う物: URL・Renovate・Environments・ルールセット)。移すかどうかは人。
+- 判定: ✅ 回る(G-15・G-135 済み。仕様 0051・0095)。組織に移して、マージキューを使う手順は [../runbooks/move-to-org.md](../runbooks/move-to-org.md)(移す前に洗う物: URL・Renovate・Environments・ルールセット)。キューは `setup.yml` の `ruleset.merge_queue` で入り、必須のチェックは1つも外さずにキューの中でも流れる。人を呼ぶ理由の無い PR はセンサーだけで入れる範囲(使う人が選ぶ)・背景の AI の上限は人を待つ本数で数える([../guides/throughput.md](../guides/throughput.md))。移すかどうかは人。
 - 足す前の判定: 🟡 待ちの内訳とこつは [../guides/ci-speed.md](../guides/ci-speed.md) にある。**マージキューは個人のリポジトリで使えず、組織に移す手順が無い**(穴 G-15。URL・Renovate・Environments・ルールセットへの影響を洗ってから)。
 
 ## 7-5 100人: DB と費用の形を見直す(B 社)

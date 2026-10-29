@@ -61,6 +61,12 @@ test("AI のマージのスクリプトは、持ち主が環境に KIT_AI_MERGE=
   const slack = { KIT_AI_MERGE: "slack" };
   assert.equal(decision("gh pr merge 12 --squash", onFeature, slack), "deny");
   assert.equal(decision("gh api -X PUT repos/o/r/pulls/12/merge", onFeature, slack), "deny");
+  // マージキューに並べる・自動マージを付ける GraphQL も、スクリプトの外からは止める(仕様 0095)
+  for (const m of ["enqueuePullRequest", "mergePullRequest", "enablePullRequestAutoMerge"]) {
+    const c = `gh api graphql -f query='mutation { ${m}(input: {pullRequestId: "x"}) { clientMutationId } }'`;
+    assert.equal(decision(c, onFeature, slack), "deny", m);
+  }
+  assert.equal(decision("gh api graphql -f query='{ viewer { login } }'"), "allow");
 });
 
 test("危険度「高」の場所を書くコマンドは聞く", () => {

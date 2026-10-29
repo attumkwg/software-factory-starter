@@ -102,6 +102,7 @@ export function readWorkflow(text) {
   });
   return {
     pullRequest: "pull_request" in on || "pull_request_target" in on,
+    mergeGroup: "merge_group" in on,
     scheduled: Array.isArray(on.schedule) && on.schedule.length > 0,
     jobs,
   };
