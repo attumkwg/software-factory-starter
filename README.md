@@ -239,7 +239,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 - 🪶 **軽い型(1〜3人・PMF の前)**: `sso`・`scim`・`ip-allowlist`・`audit-export`・`certification-prep`・`on-call`・`ledger`・`cost-dashboard`・`security-questionnaire`・`sales-kit`・`preview-env`・`verify-pr` をまとめて「後で足す」にできる(足し直す合図は部品ごとにカタログの `presets`)。
 
 <details>
-<summary>部品の一覧を開く(78件)</summary>
+<summary>部品の一覧を開く(79件)</summary>
 
 | 区分 | 部品 | 何をするか | 既定 | 状態 |
 |---|---|---|---|---|
@@ -254,6 +254,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 土台(消さない) | 🔒 ログの許可リスト(出してよい項目だけ) `log-allowlist` | ログに出してよい項目を決めておき、それ以外は落とす。全部の API を目印つきの値で叩き、個人情報がログに出ないことをテストで確かめる | 残す | あり |
 | 土台(消さない) | 🔒 AI のハーネス(守りの一覧とフック) `harness` | 危険度「高」の場所は AI が人の確認なしに変えない。Bash のフック・CODEOWNERS・ラベルと一覧をそろえる | 残す | あり |
 | 土台(消さない) | 🔒 GitHub の一括のセットアップとラベルの一覧 `github-setup` | GitHub の設定(ブランチ保護と必須のチェック・Environments・Actions・守りの機能・ラベル)をファイル(.github/setup.yml・labels.yml)に置き、pnpm setup:github が差分を出して一括で反映する。使うラベル・必須のチェック・Environment がファイルに無ければ CI が落ちる。ひな形と使う側を変数 KIT_ROLE で見分け、定期の運用は使う側でだけ動く | 残す | あり |
+| 土台(消さない) | 🔒 流量の受け皿(マージキュー・センサーだけで入れる範囲・AI の PR の上限) `throughput` | 週100〜200本を流すための3つのつまみ。マージキューの正を setup.yml に置き(既定はオフ)、必須のチェックを全部キューの中(merge_group)でも流す(PR の本文・承認・未確定事項の答えは PR を引いて読み直す。流れない・飛ばされるチェックは CI が落とす)。使う人がオンにした所では、人を呼ぶ理由の無い PR をセンサーが緑なら返事なしで入れる(pnpm pr:merge-when-green --sensors。既定はオフ)。背景の AI の上限は人を待つ本数(5)と全部の本数(20) | 残す | あり |
 | 土台(消さない) | 🔒 列の分類表とログ `column-classification` | 全部の列に「個人情報か」と目的を書き、要配慮は分けて置くまで足せないようにする。台帳(docs/db/personal-data.md)はここから作る | 残す | あり |
 | 会社向け | 監査ログ `audit-log` | 誰が・いつ・何をしたかを残し、お客さんの管理者が画面で見られる。書き込みの API は関所が自動で残す | 残す | あり |
 | 会社向け | サポートの代理ログイン `support-access` | お客さんの管理者が許可した間だけ、運営の社員がその組織の画面を「見るだけ」で開ける | 残す | あり |

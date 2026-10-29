@@ -46,14 +46,15 @@
 
 ## 3. マージキューを入れる
 
-組織のリポジトリ(公開か、非公開なら Enterprise Cloud)で:
+組織のリポジトリ(公開か、非公開なら Enterprise Cloud)で。なぜ要るか・数の根拠は [guides/throughput.md](../guides/throughput.md)(G-135・仕様 0095):
 
-1. **必須のチェックがキューの中でも流れるか**: キューは `merge_group` の出来事でワークフローを動かす。キットの `ci.yml`・`vrt.yml` は入っている。必須のチェックにほかのワークフローのジョブを足していたら、そのワークフローにも `merge_group:` を足す(`.github/**` は危険度「高」)。
-2. **キューの中で流れないチェックを、必須から外す**: 「取り組みと作業の種類(PR の本文)」は PR の本文を見るので、キューの中では流れない(`setup.yml` の `required_checks` の注のとおり)。外す PR を出し、マージの後に `pnpm setup:github --apply`。
-3. Settings → Rules → Rulesets → `main` に「Require merge queue」を足す(画面から。`pnpm setup:github` はキットが扱わない規則を消さずに残す)。既定の案(設計書 0051 の 6): マージの方法 squash・同時に流す数 5・1回にまとめる数 最大5・「失敗した PR は入れない」をオン・チェックの待ち 60分。
-4. `setup.yml` の `strict`(最新に追いついてから)を `false` に(キューが最新の main に重ねて確かめるので要らない)。PR → `--apply`。
-5. 自動マージ(`allow_auto_merge`)はそのまま。人が「マージ」を押すと、キューに並ぶ。
-6. 1週間、キューの待ち時間と、キューで落ちた数を見る。落ちる PR が多ければ「1回にまとめる数」を下げる。
+1. **必須のチェックがキューの中でも流れるか**: `pnpm setup:check` が緑なら流れる(必須のチェックのワークフローに `merge_group` が無い・キューの中で `if` に飛ばされると落ちる)。キットの必須のチェックは全部入っている。**必須から外すチェックは無い**(PR の本文・承認・未確定事項の答えを見るチェックは、キューの枝の名前から PR を引いて読み直す)。
+2. `setup.yml` を直す PR を出す: `ruleset.merge_queue.enabled: true`・`ruleset.strict: false`(キューが最新の main に重ねて確かめるので要らない)。ほかの数(同時に確かめる数 5・1回にまとめる数 最大5・まとめた全部が緑のときだけ入れる・チェックの待ち 60分)は `setup.yml` の既定のまま始める。`.github/**` は危険度「高」。
+3. マージの後に、人が `pnpm setup:github` で差分(「マージキューを足す」「最新に追いついてから: true → false」)を見て `--apply`。前に画面から足していたキューは、`setup.yml` の値で上書きされる。
+4. 文書だけの PR を1本キューに通して確かめる: キューの中で必須のチェック 16件が全部流れて入る(Actions の画面で `merge_group` の回が出る)。
+5. 自動マージ(`allow_auto_merge`)はそのまま。人が「Merge when ready」を押すとキューに並ぶ。持ち主がオンにした所の AI のマージ(`pnpm pr:merge-when-green`)も、キューに並べる。
+6. 1週間、キューの待ち時間と、キューで落ちた数を見る。落ちる PR が多ければ `max_entries_to_merge` を下げる PR を出して `--apply`。
+7. 戻すときは `enabled: false`・`strict: true` にして `--apply`。
 
 - ジョブを速くするこつ(文書だけの PR で重いジョブを省く等)は [guides/ci-speed.md](../guides/ci-speed.md)。キューの中(`merge_group`)では全部流す。
 
@@ -64,5 +65,5 @@
 | 移した後、デプロイ・plan が `Not authorized to perform sts:AssumeRoleWithWebIdentity` | OIDC の信頼の条件が古い名前のまま。2 の 5 |
 | Actions が「この Action は許されていない」 | 組織の Actions の決まり。1 の表の「Actions の設定」 |
 | Renovate の PR が来ない | 組織に App が入っていない・リポジトリを選んでいない |
-| キューから PR が外れ続ける | 必須のチェックに `merge_group` で流れない物がある(3 の 1・2) |
+| キューから PR が外れ続ける | 必須のチェックに `merge_group` で流れない物がある(`pnpm setup:check`。3 の 1)・キューの中で PR の番号が引けない(「確かめる PR の番号が分からない」。キューの枝の名前の形が変わった)・キューに並べた後に本文の問いや承認が変わった(読み直して落ちる。直して並べ直す) |
 | 移したのを戻したい | 同じ手順で逆に移す(OIDC・App・承認者もやり直し)。古い場所に同じ名前のリポジトリを作らない(転送が消える) |

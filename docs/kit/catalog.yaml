@@ -314,6 +314,22 @@ parts:
       - SOC 2 CC8.1
     where: [.github/setup.yml, .github/labels.yml, scripts/setup/run.mjs, scripts/setup/check.mjs, scripts/checkup/adopt-cli.mjs, docs/guides/github-setup.md, docs/adr/0027-setup-before-use-and-kit-role.md]
 
+  - id: throughput
+    name: 流量の受け皿(マージキュー・センサーだけで入れる範囲・AI の PR の上限)
+    group: foundation
+    status: あり
+    removable: false
+    default: 残す
+    what: 週100〜200本を流すための3つのつまみ。マージキューの正を setup.yml に置き(既定はオフ)、必須のチェックを全部キューの中(merge_group)でも流す(PR の本文・承認・未確定事項の答えは PR を引いて読み直す。流れない・飛ばされるチェックは CI が落とす)。使う人がオンにした所では、人を呼ぶ理由の無い PR をセンサーが緑なら返事なしで入れる(pnpm pr:merge-when-green --sensors。既定はオフ)。背景の AI の上限は人を待つ本数(5)と全部の本数(20)
+    needed_by: すべて(キューを入れる日に必須のチェックを外さずに済む。人の返事の数を「決めること」だけにできる)
+    not_needed_by: なし(つまみは全部、既定で今までどおり)
+    if_removed: キューを入れると必須のチェックが流れずに止まるか、外して守りが弱くなる。人を呼ぶ理由の無い PR でも全部の返事を待つ
+    depends_on: [github-setup, ci-checks, harness]
+    law:
+      - ISMS 8.32(変更管理)
+      - SOC 2 CC8.1
+    where: [docs/guides/throughput.md, .github/scripts/queue-pr.mjs, .github/scripts/queue-pr-lib.mjs, .github/workflows/pr-work.yml, .github/workflows/high-risk-approvals.yml, .github/workflows/decision-evidence.yml, docs/runbooks/move-to-org.md, docs/specs/0095-throughput.md, docs/adr/0094-sensor-only-merge.md]
+
   - id: column-classification
     name: 列の分類表とログ
     group: foundation
@@ -2334,6 +2350,7 @@ parts:
         - { path: scripts/pr-merge-when-green.mjs, what: 会話の答えの記録(answerComment・answeredAtOf・hasAnswer)を外す }
         - { path: .github/labels.yml, what: needs-human を外す(pnpm setup:labels) }
         - { path: docs/concepts/README.md, what: human-decisions.md の行を外す }
+        - { path: .github/scripts/ai-open-prs.test.mjs, what: human-queue-lib.mjs との突き合わせ(QUEUE_LABELS・prQuestions)を外す }
       docs: [docs/specs/0085-human-decisions-queue.md, docs/adr/0085-conversation-answers-merge-high-risk.md]
   - id: slack-requests
     name: Slack で頼むと PR → 返事でマージ(/slack-request)
@@ -2358,6 +2375,8 @@ parts:
         - { path: docs/guides/slack.md, what: 「🧍 1人の間のおすすめ」を外す }
         - { path: docs/guides/human-review.md, what: 2 の会話の答えの例外を外す }
         - { path: docs/scenarios/gaps.md, what: 条件 8 と G-124 }
+        - { path: .github/scripts/ai-open-prs.test.mjs, what: pr-merge-lib.mjs との突き合わせ(sensorsOnlyFrom)を外す }
+        - { path: .github/setup.yml, what: ai_merge(センサーだけで入れる範囲)を外す。docs/guides/throughput.md の 4 も }
       docs: [docs/specs/0080-slack-requests.md, docs/designs/0080-slack-requests.md, docs/adr/0082-solo-conversation-answers-and-ai-merge.md, docs/adr/0086-ai-merge-is-the-owners-choice.md]
 
   - id: checkup
