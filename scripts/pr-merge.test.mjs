@@ -4,10 +4,15 @@ import { test } from "node:test";
 import {
   bodySaysHigh,
   checkState,
+  FIX_MARK,
   humanOnlyReasons,
   mergeQueueOn,
   prProblems,
+  REVIEW_MARK,
   requiredChecksFrom,
+  reviewDecisions,
+  reviewedShaOf,
+  reviewState,
   SENSOR_MARK,
   sensorComment,
   sensorMergeBlockers,
@@ -114,4 +119,146 @@ test("センサーだけで入れた記録と、マージキューの見分け",
   assert.equal(mergeQueueOn([{ type: "pull_request" }, { type: "merge_queue" }]), true);
   assert.equal(mergeQueueOn([{ type: "required_status_checks" }]), false);
   assert.equal(mergeQueueOn(undefined), false);
+});
+
+// ── 書いた人と別の AI のレビューの記録(G-137・G-139・仕様 0096)──
+const A = "aaaaaaa1111111111111111111111111111111aa";
+const B = "bbbbbbb2222222222222222222222222222222bb";
+const M = "ccccccc3333333333333333333333333333333cc";
+const commit = (sha, merge = false) => ({ sha, parents: merge ? [{}, {}] : [{}] });
+const table = (rows) =>
+  [
+    "| # | 人格 | 観点 | 所見(場所) | 重さ | 決めたこと | 理由 |",
+    "|---|---|---|---|---|---|---|",
+    ...rows.map(([id, w, d]) => `| ${id} | 🦹 | 権限 | x | ${w} | ${d} | |`),
+  ].join("\n");
+const record = (sha, rows = [], who = "OWNER", at = "2026-10-29T10:00:00Z") => ({
+  body: [
+    `${REVIEW_MARK}・人格ごと・仕様 0096)`,
+    "",
+    `- 当てた版: \`${sha.slice(0, 7)}\``,
+    "- 回した人格: 🦹 越えようとする人",
+    "",
+    table(rows),
+  ].join("\n"),
+  author_association: who,
+  created_at: at,
+  html_url: "https://example.test/c/1",
+});
+const fix = (sha, at = "2026-10-29T11:00:00Z", who = "OWNER") => ({
+  body: [`${FIX_MARK}・仕様 0096)`, "", `- 直した版: \`${sha.slice(0, 7)}\`(#1)`].join("\n"),
+  author_association: who,
+  created_at: at,
+});
+
+test("レビューの記録: 無い・外の人の記録・回せなかった・版の形が違う は入れない(G-137・持ち主の決めた A)", () => {
+  assert.match(reviewState([], A, [commit(A)]).problem, /レビューの記録が無い/);
+  assert.match(
+    reviewState([record(A, [], "NONE")], A, [commit(A)]).problem,
+    /レビューの記録が無い/,
+  );
+  assert.match(
+    reviewState([record(A, [], "CONTRIBUTOR")], A, [commit(A)]).problem,
+    /レビューの記録が無い/,
+  );
+  const cannot = {
+    ...record(A),
+    body: record(A).body.replace("🦹 越えようとする人", "別の AI のレビューを回せなかった"),
+  };
+  assert.match(reviewState([cannot], A, [commit(A)]).problem, /回せなかった/);
+  // 所見の文に「回せなかった」が出ても、回した人格の行が埋まっていれば止めない(#189 で見つけた取り違え)
+  const mention = {
+    ...record(A),
+    body: `${record(A).body}\n| W1 | 🔍 | x | 「回せなかった」の記録で通る | ⚠️ | このまま | |`,
+  };
+  assert.equal(reviewState([mention], A, [commit(A)]).problem, undefined);
+  const noPersonas = {
+    ...record(A),
+    body: record(A).body.replace("- 回した人格: 🦹 越えようとする人", ""),
+  };
+  assert.match(reviewState([noPersonas], A, [commit(A)]).problem, /回した人格/);
+  const short = {
+    ...record(A),
+    body: [`${REVIEW_MARK})`, "- 当てた版: `abc`", "- 回した人格: 🦹"].join("\n"),
+  };
+  assert.match(reviewState([short], A, [commit(A)]).problem, /版の形でない/);
+  assert.match(reviewState([record(B)], A, [commit(A)]).problem, /この PR の版に無い/);
+  // 頭の前の空白は許す(BOM・空行で止めない)
+  assert.equal(
+    reviewState(
+      [
+        {
+          ...record(A),
+          body: `
+ ${record(A).body}`,
+        },
+      ],
+      A,
+      [commit(A)],
+    ).problem,
+    undefined,
+  );
+});
+
+test("レビューの記録: 所見なし・決めたことどおりなら入れる。main の取り込みだけの版は通す", () => {
+  const ok = reviewState([record(A)], A, [commit(A)]);
+  assert.equal(ok.problem, undefined);
+  assert.equal(ok.reviewedSha, A.slice(0, 7));
+  assert.equal(reviewState([record(A)], M, [commit(A), commit(M, true)]).problem, undefined);
+  // いちばん新しい記録を見る
+  assert.equal(
+    reviewState([record(B, [], "OWNER", "2026-10-29T09:00:00Z"), record(A)], A, [
+      commit(B),
+      commit(A),
+    ]).problem,
+    undefined,
+  );
+});
+
+test("レビューの記録: ❌・❓ に「未」が残れば入れない・⚠️ の未は通す(持ち主の決めた Q3)", () => {
+  const c = [commit(A)];
+  assert.match(
+    reviewState([record(A, [["1", "❌", "今回は見ない"]])], A, c).problem,
+    /決めていない/,
+  );
+  assert.match(reviewState([record(A, [["2", "❓", "未"]])], A, c).problem, /決めていない/);
+  assert.equal(reviewState([record(A, [["3", "⚠️", "今回は見ない"]])], A, c).problem, undefined);
+  assert.equal(reviewState([record(A, [["4", "❓", "このまま"]])], A, c).problem, undefined);
+});
+
+test("レビューの記録: 「直す」は直した版が書かれるまで入れない・その後のレビューしていない版も止める(持ち主の決めた D)", () => {
+  const rows = [["1", "❌", "直す"]];
+  assert.match(reviewState([record(A, rows)], B, [commit(A), commit(B)]).problem, /直したこと/);
+  // 直した版を書けば入る。その後の main の取り込みも通す
+  const done = [record(A, rows), fix(B)];
+  assert.equal(reviewState(done, B, [commit(A), commit(B)]).problem, undefined);
+  assert.equal(reviewState(done, M, [commit(A), commit(B), commit(M, true)]).problem, undefined);
+  assert.deepEqual(reviewState(done, B, [commit(A), commit(B)]).fixes, [B.slice(0, 7)]);
+  // 直した版より後に、レビューしていない版を足したら止める
+  assert.match(
+    reviewState(done, M, [commit(A), commit(B), commit(M)]).problem,
+    /レビューを経ていない版/,
+  );
+  // 記録より前の「直したこと」・外の人の「直したこと」は数えない
+  assert.match(
+    reviewState([record(A, rows), fix(B, "2026-10-29T09:00:00Z")], B, [commit(A), commit(B)])
+      .problem,
+    /直したこと/,
+  );
+  assert.match(
+    reviewState([record(A, rows), fix(B, "2026-10-29T11:00:00Z", "NONE")], B, [
+      commit(A),
+      commit(B),
+    ]).problem,
+    /直したこと/,
+  );
+});
+
+test("レビューの記録の読み方(版・決めたことの表)", () => {
+  assert.equal(reviewedShaOf("当てた版: `abc1234`"), "abc1234");
+  assert.equal(reviewedShaOf("当てた版: `abc"), "");
+  assert.deepEqual(reviewDecisions(table([["1", "❌", "直す"]])), [
+    { id: "1", weight: "❌", decided: "直す" },
+  ]);
+  assert.deepEqual(reviewDecisions("所見なし"), []);
 });

@@ -87,6 +87,8 @@
           - scripts/check-guards.mjs
           - scripts/risk-areas-lib.mjs
           - docs/concepts/risk-areas.md
+          - .claude/agents/reviewer.md
+          - docs/review-viewpoints.md
 
 "risk:medium":
   - changed-files:

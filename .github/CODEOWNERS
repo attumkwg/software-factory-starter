@@ -100,6 +100,8 @@
 /scripts/check-guards.mjs           @attumkwg
 /scripts/risk-areas-lib.mjs         @attumkwg
 /docs/concepts/risk-areas.md        @attumkwg
+/.claude/agents/reviewer.md         @attumkwg
+/docs/review-viewpoints.md          @attumkwg
 
 # ── 見た目の決まり(ブランドの判断。人が決める) ──
 /packages/ui/src/tokens.css         @attumkwg
