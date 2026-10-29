@@ -178,7 +178,7 @@ done ──(定期の項目で、次の期限が来た / auto が fail に戻っ
 | w-vuln | Dependabot の通知・Trivy・zizmor で、重い脆弱性が開いていないか | 急ぎ |
 | w-renovate | Renovate の PR が7日より長く止まっていないか・14日 PR が来ていなければ動いていない | 普通 |
 | w-guards | main で `pnpm guards` が通るか | 急ぎ |
-| w-protection | ブランチ保護・Environments が外れていないか | 急ぎ |
+| w-protection | ブランチ保護・Environments が外れていないか・`.github/setup.yml` とずれていないか(G-74) | 急ぎ |
 | w-secrets | secret scanning・gitleaks の見つけ物 | 急ぎ |
 | w-minutes | Actions の分数(月の枠の何割か。8割で知らせ) | 普通 |
 | w-decisions | 期限の過ぎた「保留」・残った「仮決め」(`pnpm decisions`) | 普通 |

@@ -19,7 +19,7 @@
 | 書いてある手順どおりに動かない(`pnpm setup:github`・`pnpm test`・手順書のコマンド) | 古い版(直すのは最新の版だけ。古い版に戻って直さない) |
 | 文書と今の姿の食い違い | 使っている道具(GitHub・AWS・Claude Code)そのものの穴 |
 
-- 🐛 不具合・要望は公開の Issue へ。**穴は公開の Issue に書かず** [SECURITY.md](../../SECURITY.md) の道で。
+- 🐛 不具合・要望は公開の Issue へ(テンプレート「キットの穴」「キットの直しの提案」)。**穴は公開の Issue に書かず** [SECURITY.md](../../SECURITY.md) の道で。外の PR はそのままマージせず、キットの決まりに合わせて取り込む([CONTRIBUTING.md](../../CONTRIBUTING.md))。
 
 ## 3. いつまで
 

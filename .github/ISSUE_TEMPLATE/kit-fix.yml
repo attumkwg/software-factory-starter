@@ -1,0 +1,51 @@
+name: キットの直しの提案(違っている・動かない)
+description: キット(software-factory-starter)そのものの、書いてあるとおりに動かない所・文書と今の姿が違う所
+labels: ["kind:bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        これは **キットそのもの** への直しの提案です。キットから作ったプロダクトの不具合は「不具合」のテンプレートへ(キットから作ったリポジトリでは、このテンプレートを消す。CONTRIBUTING.md)。
+
+        🔒 **脆弱性はここに書かない**。SECURITY.md の非公開の報告で。
+        誤字・リンク切れなど文書だけの直しは、Issue なしで PR を出してよい(CONTRIBUTING.md の「文書だけの PR」)。
+  - type: input
+    id: where
+    attributes:
+      label: どこか
+      description: "ファイル・コマンド・ワークフロー・手順書(例: docs/getting-started.md の ②・pnpm setup:github)"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 書いてあること / 実際
+      description: 手元で再現した手順があれば(本物の個人データ・鍵は貼らない)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 使った版
+      description: タグ(v0.Y.Z)か、コミットの ID
+  - type: textarea
+    id: fix
+    attributes:
+      label: 直し方の案(あれば)
+  - type: dropdown
+    id: pr
+    attributes:
+      label: 自分で PR を出すか
+      description: 外の PR はそのままはマージせず、持ち主がキットの決まりに合わせて取り込む(CONTRIBUTING.md)
+      options:
+        - 出したい
+        - 出さない(直してほしい)
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件(直ったと言える条件)
+      description: コードの直しには、再現するテストを付ける
+      value: |
+        - [ ] … のとき … になる
+    validations:
+      required: true
