@@ -38,6 +38,7 @@ import type {
   SupportGrant,
   SupportSession,
   Task,
+  TaskMail,
   TaskPage,
   UpdateTask,
 } from "@app/shared";
@@ -347,6 +348,10 @@ export const api = {
   getMfaRequirement: () => request<MfaRequirement>("GET", "/organization/mfa-requirement"),
   requireMfa: () => request<void>("POST", "/organization/mfa-requirement"),
   unrequireMfa: () => request<void>("DELETE", "/organization/mfa-requirement"),
+  // 組織の「タスクが完了したメール」(管理者だけ。docs/specs/0093-task-mail-switch.md)
+  getTaskMail: () => request<TaskMail>("GET", "/organization/task-mail"),
+  enableTaskMail: () => request<void>("POST", "/organization/task-mail"),
+  disableTaskMail: () => request<void>("DELETE", "/organization/task-mail"),
   // データの書き出し(docs/specs/0005-offboarding.md・0018-export-stream.md)。管理者だけ
   exportData: () => download("/exports"),
   // 監査ログの書き出し(プランの機能 audit-export。docs/specs/0056-sso-scim-ip-audit-export.md の段3)

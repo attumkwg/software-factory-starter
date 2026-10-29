@@ -6,6 +6,7 @@ import type {
   OrganizationMember,
   ScimTokenList,
   SsoSettings,
+  TaskMail,
 } from "@app/shared";
 import { Button, Card, Heading, Link, Muted, Stack } from "@app/ui";
 import { api } from "../api.ts";
@@ -16,13 +17,15 @@ import { IpAllowlistCard } from "./settings/IpAllowlistCard.tsx";
 import { MfaRequirementCard } from "./settings/MfaRequirementCard.tsx";
 import { ScimTokensCard } from "./settings/ScimTokensCard.tsx";
 import { SsoCard } from "./settings/SsoCard.tsx";
+import { TaskMailCard } from "./settings/TaskMailCard.tsx";
 
 // 組織の管理者の「設定」。招待(docs/specs/0027-invitations.md)・監査ログ・サポートへの許可・データの書き出し(docs/specs/0005-offboarding.md)・
-// 二段階認証の必須(docs/specs/0006-account-security.md)。組織の人と強制ログアウト・会社のドメイン・IP の制限
+// 二段階認証の必須(docs/specs/0006-account-security.md)・タスクが完了したメール(docs/specs/0093-task-mail-switch.md)。組織の人と強制ログアウト・会社のドメイン・IP の制限
 // ・会社のアカウント(SSO)・SCIM の鍵(docs/specs/0056-sso-scim-ip-audit-export.md。ドメイン・SSO・IP・SCIM はプランの機能が入った組織だけ。無ければ null)。
 export function SettingsPage({
   me,
   mfa,
+  taskMail,
   domains,
   ipAllowlist,
   sso,
@@ -30,6 +33,7 @@ export function SettingsPage({
 }: {
   me: Me;
   mfa: MfaRequirement;
+  taskMail: TaskMail;
   domains: OrganizationDomain[] | null;
   ipAllowlist: IpAllowlist | null;
   sso: { state: SsoSettings; admins: OrganizationMember[] } | null;
@@ -41,6 +45,7 @@ export function SettingsPage({
     <Stack gap={4}>
       <Heading level={1}>設定</Heading>
       <MfaRequirementCard me={me} state={mfa} />
+      <TaskMailCard state={taskMail} />
       {ipAllowlist && <IpAllowlistCard state={ipAllowlist} />}
       {domains && <DomainsCard domains={domains} />}
       {sso && <SsoCard state={sso.state} admins={sso.admins} />}
