@@ -40,6 +40,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
   "organizations.tenants.name": personal("組織の名前を画面に出す(個人事業主なら人の名前になる)"),
   "organizations.tenants.time_zone": pub("時刻を見せる時間帯・「1日」の区切り"),
   "organizations.tenants.mfa_required": pub("全員に二段階認証を求めるか"),
+  "organizations.tenants.task_completed_mail": pub("タスクが完了したメールを送るか"),
   "organizations.tenants.created_at": internal("作った時刻"),
 
   "organizations.users.id": internal("人の ID(ログ・監査ログで誰かを指す)"),

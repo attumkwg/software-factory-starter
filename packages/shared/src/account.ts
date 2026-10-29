@@ -53,6 +53,10 @@ export const MfaRequirementSchema = z.object({
 });
 export type MfaRequirement = z.infer<typeof MfaRequirementSchema>;
 
+/** 組織の「タスクが完了したメール」を送っているか(docs/specs/0093-task-mail-switch.md)。管理者だけが読む・変える */
+export const TaskMailSchema = z.object({ enabled: z.boolean() });
+export type TaskMail = z.infer<typeof TaskMailSchema>;
+
 /** 認証アプリに読ませる URI(otpauth://totp/発行者:メール?secret=…) */
 export function otpauthUri(email: string, secret: string, issuer = PRODUCT_NAME): string {
   const label = encodeURIComponent(`${issuer}:${email}`);

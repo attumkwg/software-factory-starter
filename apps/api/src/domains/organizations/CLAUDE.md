@@ -25,9 +25,9 @@
 
 ## 外との出入り
 
-- ほかへ出している物(`index.ts`): `findAccess`・`findRole`・`findTimeZone`・`findContact`・`listUserIds` などの読む関数、アカウントと招待の操作、書き出し(`exportOrganization`・`exportUsersPage`)
+- ほかへ出している物(`index.ts`): `findAccess`・`findRole`・`findTimeZone`・`findContact`・`listUserIds`・`findTaskMailEnabled`(tasks が送る直前に読む)などの読む関数、アカウントと招待の操作、書き出し(`exportOrganization`・`exportUsersPage`)
 - 外へ知らせる出来事: `organizations.email_changed`・`invitation_created`・`mfa_enabled`・`mfa_disabled`・`password_changed`・`tenant_opened`
-- 監査ログ: `account.*`・`invitation.*`・`organization.mfa_*`・`support*`・`tenant.create`・`domain.*`・`ip_allowlist.update`・`member.sign_out`・`member.role_change`・`member.disable`・`member.enable`
+- 監査ログ: `account.*`・`invitation.*`・`organization.mfa_*`・`organization.task_mail_*`・`support*`・`tenant.create`・`domain.*`・`ip_allowlist.update`・`member.sign_out`・`member.role_change`・`member.disable`・`member.enable`
 
 ## 流すテスト
 

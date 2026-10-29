@@ -66,6 +66,17 @@ export const AUDIT_ACTIONS: Readonly<Record<string, AuditAction>> = {
     target: "organization",
     param: "none",
   },
+  // 組織の「タスクが完了したメール」(docs/specs/0093-task-mail-switch.md)。止める・戻すを名前で分ける
+  "POST /api/organization/task-mail": {
+    action: "organization.task_mail_on",
+    target: "organization",
+    param: "none",
+  },
+  "DELETE /api/organization/task-mail": {
+    action: "organization.task_mail_off",
+    target: "organization",
+    param: "none",
+  },
   // 利用規約・プライバシーポリシーへの同意(docs/specs/0009-legal-consent.md)。どの版かは legal.consents の行
   "POST /api/legal/consents": { action: "legal.consent", target: "user", param: "none" },
   // 招待(docs/specs/0027-invitations.md)。メールアドレス・ロールは details に入れない(招待の行にある)

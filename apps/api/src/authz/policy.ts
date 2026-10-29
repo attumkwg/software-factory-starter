@@ -34,6 +34,8 @@ export const PERMISSIONS = {
   "account:manage": ["admin", "member", "viewer"],
   // 組織の二段階認証の必須。管理者だけ
   "mfa_requirement:manage": ["admin"],
+  // 組織の「タスクが完了したメール」を止める・戻す(docs/specs/0093-task-mail-switch.md)。組織の全員に効くので管理者だけ
+  "task_mail:manage": ["admin"],
   // 利用規約・プライバシーポリシーに同意する(docs/specs/0009-legal-consent.md)。対象はいつもセッションの本人だけ。
   // 管理者の利用規約の同意は「組織として」(ロールで決まる)。代理の最中は使えない(NOT_DURING_SUPPORT)
   "legal:accept": ["admin", "member", "viewer"],
@@ -125,6 +127,9 @@ export const ROUTE_RULES: Readonly<Record<string, RouteRule>> = {
   "GET /api/organization/mfa-requirement": "mfa_requirement:manage",
   "POST /api/organization/mfa-requirement": "mfa_requirement:manage",
   "DELETE /api/organization/mfa-requirement": "mfa_requirement:manage",
+  "GET /api/organization/task-mail": "task_mail:manage",
+  "POST /api/organization/task-mail": "task_mail:manage",
+  "DELETE /api/organization/task-mail": "task_mail:manage",
   "POST /api/legal/consents": "legal:accept",
   "GET /api/invitations": "invitation:manage",
   "POST /api/invitations": "invitation:manage",
