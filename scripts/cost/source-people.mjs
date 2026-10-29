@@ -68,6 +68,27 @@ export function prMinutes(pr, reviews, config) {
   return { ai, minutes: out };
 }
 
+/** 人が答えた問い1つに、別にかかったとみなす分(幅の上の端。docs/kit/roi.md の 2。people.yaml の minutes.question で変えられる) */
+export const QUESTION_MINUTES = 5;
+
+/**
+ * PR 1件の人の時間の幅と、全部を人が書いたらの分(docs/kit/roi.md の 2 の式)。
+ * low = prMinutes の合計・high = low + 問い × 5分・byHand = AI の PR を人が書いた(human_pr)とした分。
+ * 週の数字の無人化率(pnpm metrics)と北極星の分母(pnpm kpi --roi)が同じ物を使う
+ */
+export function prMinuteRange(pr, reviews, questions, config) {
+  const { ai, minutes } = prMinutes(pr, reviews, config);
+  const m = config.minutes;
+  const low = Object.values(minutes).reduce((a, b) => a + b, 0);
+  const byAi = ai && !isBot(pr.user?.login);
+  return {
+    ai,
+    low,
+    high: low + questions * (m.question ?? QUESTION_MINUTES),
+    byHand: byAi ? low - m.ai_pr_check + m.human_pr : low,
+  };
+}
+
 /** 今月作った PR を、賭けごとに数える(自動の目安) */
 export async function peoplePrs(ctx) {
   const config = loadPeopleConfig(ctx.read(PEOPLE_FILE));

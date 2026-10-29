@@ -1,17 +1,18 @@
-// 週の数字(DORA の4つ・AI が手伝った PR の割合・人の介在率・仕様の在庫・引き渡し)。metrics.yml が毎週(KIT_ROLE=product)流す。
+// 週の数字(DORA の4つ・AI が手伝った PR の割合・人の介在率・無人化率【推定】・仕様の在庫・引き渡し)。metrics.yml が毎週(KIT_ROLE=product)流す。
 //   pnpm metrics                        先週までの8週を Markdown で出す(gh のログインで読む)
 //   pnpm metrics --weeks 12             週の数(1〜26)
 //   pnpm metrics --environment prod     本番の Environment の名前(既定 prod。deploy.yml の environment)
 //   pnpm metrics --today 2026-10-26     この日の時点で数える(前の週を出し直す。既定は今日・日本時間)
 //   pnpm metrics --out <dir>            <dir>/metrics.json と metrics.md に書く(画面には出さない)
 // 読むだけ。人の名前・PR の題名と本文は出さない(数と PR の番号と仕様の番号・題だけ)。
-// 決まり: docs/designs/0035-delivery-metrics.md・手引き: docs/guides/metrics.md
+// 決まり: docs/designs/0035-delivery-metrics.md(無人化率は 0094)・手引き: docs/guides/metrics.md
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readAcceptance } from "../acceptance-lib.mjs";
 import { makeContext } from "../checkup/context.mjs";
 import { resolveRepo } from "../checkup/gh.mjs";
 import { addDays, isDate, todayInTokyo } from "../checkup/phase.mjs";
+import { loadPeopleConfig } from "../cost/source-people.mjs";
 import { aiMarkersOf, PEOPLE_FILE } from "./ai-assisted.mjs";
 import {
   acceptanceFiles,
@@ -70,6 +71,7 @@ export function collectHandoff({ ctx, gh, weeks }) {
 export function collectReport({ ctx, gh, files, weeksCount, environment }) {
   const weeks = fullWeeks(ctx.today, weeksCount);
   const markers = aiMarkersOf(ctx.read(PEOPLE_FILE));
+  const config = loadPeopleConfig(ctx.read(PEOPLE_FILE));
   // 検索の日付は UTC。日本時間の月曜 0:00 は前の日の 15:00(UTC)なので、1日前から読んで週で絞る
   const since = addDays(weeks[0], -1);
   const notes = [];
@@ -79,7 +81,8 @@ export function collectReport({ ctx, gh, files, weeksCount, environment }) {
     notes.push("リポジトリが分からない(gh repo view が通らない)。PR とデプロイは数えていない");
   else {
     const p = collectPrs(gh, ctx.repo, since, MAX_PRS);
-    if (p.ok) prs = p.prs.map((pr) => prFacts(pr, markers)).filter((pr) => pr.week >= weeks[0]);
+    if (p.ok)
+      prs = p.prs.map((pr) => prFacts(pr, markers, config)).filter((pr) => pr.week >= weeks[0]);
     else notes.push(p.message);
     if (p.truncated)
       notes.push(`マージした PR が ${MAX_PRS} 件を超えた(古い週の数が少ない。--weeks を減らす)`);
@@ -109,6 +112,7 @@ export function collectReport({ ctx, gh, files, weeksCount, environment }) {
     weeks,
     today: ctx.today,
     notes,
+    config,
   });
   return { ...report, handoff, notes: [...report.notes, ...handoffNotes] };
 }

@@ -37,6 +37,8 @@ const PRS = `query($q: String!, $after: String) {
       number createdAt mergedAt body
       author { login __typename }
       labels(first: 30) { nodes { name } }
+      comments { totalCount }
+      reviews(first: 50) { nodes { author { login __typename } } }
       commits(first: 100) { nodes { commit {
         message parents { totalCount } author { name email }
       } } }
@@ -72,6 +74,12 @@ const toPr = (n) => ({
   author: n.author?.login ?? null,
   authorType: n.author?.__typename ?? null,
   labels: n.labels.nodes.map((l) => l.name),
+  // 無人化率の分(コメント × 3分・ほかの人のレビュー × 20分)にだけ使う。名前は prFacts が捨てる
+  comments: n.comments?.totalCount ?? 0,
+  reviewers: (n.reviews?.nodes ?? []).map((r) => ({
+    login: r.author?.login ?? null,
+    type: r.author?.__typename ?? null,
+  })),
   commits: n.commits.nodes.map(({ commit: c }) => ({
     message: c.message,
     parents: c.parents.totalCount,

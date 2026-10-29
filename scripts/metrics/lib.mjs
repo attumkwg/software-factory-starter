@@ -1,24 +1,20 @@
 // 週の数字(pnpm metrics)の計算。GitHub もファイルも読まない(集めるのは collect.mjs)。
 // 決裁用(週ごとの並び。チームで1つの数)と改善用(先週の PR ごとの明細)を分けて出す。人ごとの数は出さない。
-// 決まりは docs/designs/0035-delivery-metrics.md の 6。
+// 決まりは docs/designs/0035-delivery-metrics.md の 6(無人化率【推定】は docs/designs/0094-weekly-unmanned-rate.md)。
+import { addDays, mondayOf, todayInTokyo } from "../checkup/phase.mjs";
+import { loadPeopleConfig, prMinuteRange, QUESTION_MINUTES } from "../cost/source-people.mjs";
 import { AI_LABEL } from "./ai-assisted.mjs";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-const JST = 9 * HOUR;
-const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
 
-/** 日時(ISO)か日付の、日本時間の週の月曜 */
-export function weekOf(at) {
-  const ms = Date.parse(at.length === 10 ? `${at}T00:00:00+09:00` : at) + JST;
-  const back = (new Date(ms).getUTCDay() + 6) % 7; // 月曜 = 0
-  return isoDay(ms - back * DAY);
-}
+/** 日時(ISO)か日付の、日本時間の週の月曜(日付の計算は scripts/checkup/phase.mjs の物を使う) */
+export const weekOf = (at) => mondayOf(at.length === 10 ? at : todayInTokyo(new Date(at)));
 
 /** today(日本時間の日付)から数えて、数え終わった週(今週は入れない)の月曜を古い順に n 個 */
 export function fullWeeks(today, n) {
-  const thisWeek = Date.parse(`${weekOf(today)}T00:00:00Z`);
-  return Array.from({ length: n }, (_, i) => isoDay(thisWeek - (n - i) * 7 * DAY));
+  const last = addDays(mondayOf(today), -7);
+  return Array.from({ length: n }, (_, i) => addDays(last, -7 * (n - 1 - i)));
 }
 
 export function median(values) {
@@ -28,6 +24,7 @@ export function median(values) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 const round1 = (v) => (v === null ? null : Math.round(v * 10) / 10);
+const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 const pct = (n, d) => (d > 0 ? Math.round((n / d) * 100) : null);
 
 // ── PR ──
@@ -65,10 +62,34 @@ export function humanCommits(commits, markers) {
   ).length;
 }
 
-/** PR 1件の事実(数えるのに要る物だけ。題名・本文・人の名前は持たない) */
-export function prFacts(pr, markers) {
+// GraphQL の作った人(ボットは login に [bot] が付かない)を、費用のページの書き方(ボットは …[bot])に
+const loginOf = (login, type) =>
+  type === "Bot" && !isBotName(login) ? `${login}[bot]` : String(login ?? "");
+
+/**
+ * PR 1件の人の時間【推定】(docs/kit/roi.md の 2 と同じ式。費用のページの prMinuteRange)。
+ * 名前は分を数えるのにだけ使い、持たない
+ */
+function minutesOf(pr, questions, config) {
+  const author = loginOf(pr.author, pr.authorType);
+  const shaped = {
+    user: { login: author },
+    labels: (pr.labels ?? []).map((name) => ({ name })),
+    body: pr.body,
+    comments: pr.comments ?? 0,
+  };
+  const reviews = (pr.reviewers ?? []).map((r) => ({ user: { login: loginOf(r.login, r.type) } }));
+  return prMinuteRange(shaped, reviews, questions, config);
+}
+
+/**
+ * PR 1件の事実(数えるのに要る物だけ。題名・本文・人の名前は持たない)。
+ * config は docs/cost/people.yaml(loadPeopleConfig)。無人化率の分と、AI の PR の見分け(ラベルか本文の印)に使う
+ */
+export function prFacts(pr, markers, config = loadPeopleConfig("")) {
   const labels = pr.labels ?? [];
   const questions = questionsOf(pr.body);
+  const { ai: aiAny, ...minutes } = minutesOf(pr, questions.count, config);
   return {
     number: pr.number,
     bot: pr.authorType === "Bot" || isBotName(pr.author),
@@ -77,6 +98,9 @@ export function prFacts(pr, markers) {
     questions: questions.count,
     kinds: questions.kinds,
     humanCommits: humanCommits(pr.commits ?? [], markers),
+    aiAny,
+    comments: pr.comments ?? 0,
+    minutes,
     createdAt: pr.createdAt,
     mergedAt: pr.mergedAt,
     week: weekOf(pr.mergedAt),
@@ -154,6 +178,40 @@ export function specInventory(specs, referenced, today) {
   };
 }
 
+// ── 無人化率【推定】 ──
+
+const pctOf = (minutes, byHand) =>
+  Math.min(100, Math.max(0, Math.round((1 - minutes / byHand) * 100)));
+
+/**
+ * 無人化率 = 1 − 人が使った工数 ÷ 全部を人が書いたらの工数(docs/kit/roi.md の 2 と同じ式)。
+ * prs は prFacts の並び(ボットの PR も入れる。分は people.yaml の決まった目安なので【推定】)。
+ * 幅: 人の工数の上の端(問い1つ × 5分を足す)で低い方、下の端で高い方。分母は問いの分を足さない(roi.md と同じ)。
+ * PR・問い・コメント・人の手直しの数は【実測】(手直しは式に入らない。数だけ並べる)
+ */
+export function unmannedOf(prs) {
+  const people = prs.filter((p) => !p.bot);
+  const ai = people.filter((p) => p.aiAny);
+  const low = sum(prs.map((p) => p.minutes.low));
+  const high = sum(prs.map((p) => p.minutes.high));
+  const byHand = sum(prs.map((p) => p.minutes.byHand));
+  return {
+    prs: { ai: ai.length, human: people.length - ai.length, bot: prs.length - people.length },
+    questions: sum(prs.map((p) => p.questions)),
+    comments: sum(people.map((p) => p.comments)),
+    humanCommits: sum(ai.map((p) => p.humanCommits)),
+    hours: { low: round1(low / 60), high: round1(high / 60) },
+    byHandHours: round1(byHand / 60),
+    pct: byHand > 0 ? { low: pctOf(high, byHand), high: pctOf(low, byHand) } : null,
+  };
+}
+
+/** 無人化率の式に使った分(画面の注に出す。people.yaml の minutes と、問い1つの分) */
+export const unmannedRule = (config) => ({
+  ...config.minutes,
+  question: config.minutes.question ?? QUESTION_MINUTES,
+});
+
 // ── まとめ ──
 
 function weekRow(week, { prs, deploys, incidents }) {
@@ -173,6 +231,7 @@ function weekRow(week, { prs, deploys, incidents }) {
     botMerged: prs.filter((p) => p.week === week && p.bot).length,
     aiPct: pct(ai.length, merged.length),
     aiUntouchedPct: pct(untouched.length, ai.length),
+    unmanned: unmannedOf(prs.filter((p) => p.week === week)),
   };
 }
 
@@ -189,7 +248,16 @@ function kindCounts(prs) {
  * 週の数字。prs は prFacts の並び(マージした PR)・deploys は deployFact・incidents は incidentFact・
  * inventory は specInventory の結果。weeks は fullWeeks の並び(最後が先週)
  */
-export function buildReport({ prs, deploys, incidents, inventory, weeks, today, notes = [] }) {
+export function buildReport({
+  prs,
+  deploys,
+  incidents,
+  inventory,
+  weeks,
+  today,
+  notes = [],
+  config = loadPeopleConfig(""),
+}) {
   const withLead = prs.map((p) => ({ ...p, leadTimeHours: leadTimeHours(p, deploys) }));
   const lastWeek = weeks.at(-1);
   const last = withLead.filter((p) => p.week === lastWeek && !p.bot);
@@ -198,12 +266,18 @@ export function buildReport({ prs, deploys, incidents, inventory, weeks, today, 
     weeks: { from: weeks[0], to: lastWeek },
     decision: {
       weeks: weeks.map((w) => weekRow(w, { prs: withLead, deploys, incidents })),
+      unmanned: {
+        ...unmannedOf(withLead.filter((p) => weeks.includes(p.week))),
+        rule: unmannedRule(config),
+      },
       specsReady: inventory.ready.length,
       specsDraft: inventory.drafts.length,
     },
     improvement: {
       week: lastWeek,
-      prs: last.map(({ kinds: _kinds, createdAt: _c, mergedAt: _m, week: _w, ...p }) => p),
+      prs: last.map(
+        ({ kinds: _kinds, createdAt: _c, mergedAt: _m, week: _w, minutes: _n, ...p }) => p,
+      ),
       kinds: kindCounts(last),
       incidents: incidents.filter((i) => i.week === lastWeek),
       specs: inventory,

@@ -190,6 +190,9 @@ const pr = (over) => ({
   questions: 0,
   kinds: [],
   humanCommits: 0,
+  aiAny: true,
+  comments: 0,
+  minutes: { low: 15, high: 15, byHand: 120 },
   createdAt: "2026-10-13T00:00:00Z",
   mergedAt: "2026-10-13T02:00:00Z",
   week: "2026-10-12",
@@ -222,7 +225,8 @@ test("決裁用は週ごとにチームで1つの数。改善用は先週の PR 
     weeks: ["2026-10-05", "2026-10-12"],
     today: "2026-10-19",
   });
-  const [before, last] = report.decision.weeks;
+  const [before, { unmanned, ...last }] = report.decision.weeks;
+  assert.deepEqual(unmanned.prs, { ai: 4, human: 0, bot: 1 }); // 3 はラベルが無いが印で AI(分の見分けは aiAny)
   assert.deepEqual(last, {
     week: "2026-10-12",
     deploys: 2,
@@ -248,4 +252,7 @@ test("決裁用は週ごとにチームで1つの数。改善用は先週の PR 
   assert.match(md, /## 改善用\(2026-10-12 の週/);
   assert.match(md, /- 事業判断: 1件/);
   assert.match(md, /- 0003 t\(3日\)/);
+  assert.match(md, /\| 無人化率【推定】 \|\n/); // 決裁用の表の1列
+  assert.match(md, /### 無人化率【推定】/);
+  assert.match(md, /\| 2週の合計 \|/);
 });

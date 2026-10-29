@@ -133,8 +133,12 @@ test("集めた結果に人の名前・本文を出さない。GitHub が読め�
     read: (f) => files[f],
     files: (dir) => Object.keys(files).filter((f) => f.startsWith(`${dir}/`)),
   };
+  const reviewed = prNode(1, {
+    comments: { totalCount: 2 },
+    reviews: { nodes: [{ author: { login: "secret-reviewer", __typename: "User" } }] },
+  });
   const { gh } = fakeGh(
-    [[prNode(1)]],
+    [[reviewed]],
     [[{ createdAt: "2026-10-13T05:00:00Z", state: "ACTIVE", latestStatus: { state: "SUCCESS" } }]],
   );
   const report = collectReport({ ctx, gh, files: [], weeksCount: 1, environment: "prod" });
@@ -143,7 +147,12 @@ test("集めた結果に人の名前・本文を出さない。GitHub が読め�
   assert.equal(report.improvement.prs[0].humanCommits, 1);
   assert.equal(report.decision.specsReady, 1);
   const text = JSON.stringify(report) + renderMarkdown(report);
+  // 無人化率【推定】: AI の PR 15分 + コメント 2 × 3分 + ほかの人のレビュー 20分 = 41分。全部を人が書いたら 146分
+  assert.deepEqual(report.decision.weeks[0].unmanned.hours, { low: 0.7, high: 0.7 });
+  assert.equal(report.decision.weeks[0].unmanned.byHandHours, 2.4);
+  assert.deepEqual(report.decision.weeks[0].unmanned.pct, { low: 72, high: 72 });
   assert.equal(text.includes("secret-person"), false);
+  assert.equal(text.includes("secret-reviewer"), false);
   assert.equal(text.includes("全体像"), false);
 
   const broken = collectReport({
