@@ -24,7 +24,7 @@ description: DB の表・列・索引を変えるときの手順。止めずに�
 
 1. その領域の `apps/api/src/domains/<領域>/schema.ts` を直す(表は領域の Postgres のスキーマに置く。`organizations.table(...)` など。ADR 0004)。
    - お金は `moneyAmount`+`currencyCode`、単価・率は `decimal`、瞬間は `instant`、日付だけは `dateOnly`(`src/db/columns.ts`。ADR 0005)。
-   - **列を足したら、列の分類表 `apps/api/src/db/classification.ts` に1行**(区分 `public` / `internal` / `personal` / `sensitive` と利用目的の一言)。決め方は分類表の先頭。迷ったら重い方(人が入れる自由な文は `personal`)。jsonb の列は中身のキーも書く。無ければ `test/unit/classification.test.ts` が落ちる。続けて `pnpm docs:personal-data`(個人情報の台帳 `docs/db/personal-data.md`)。
+   - **列を足したら、列の分類表 `apps/api/src/db/classification.ts` に1行**(区分 `public` / `internal` / `personal` / `sensitive` と利用目的の一言)。決め方は分類表の先頭。迷ったら重い方(人が入れる自由な文は `personal`)。jsonb の列は中身のキーも書く。無ければ `test/unit/classification.test.ts` が落ちる。続けて `pnpm docs:personal-data`(個人情報の台帳 `docs/db/personal-data.md`)。`personal` / `sensitive` の列の名前が新しければ、ログでどの深さにあっても伏せる名前(`packages/logging/src/fields.ts` の `ALWAYS_REDACTED`。危険度「高」)にも足す(無ければ同じテストが落ちる)。
    - **`sensitive`(要配慮個人情報: 病歴・障害・信条・犯罪の経歴など)は、人の確認が必須。** 仕様で「要配慮に当たる」と人が答えていない列を `sensitive` にしない・`sensitive` を外さない(迷ったら止めて PR の「人に判断してほしい所」に書く)。区分を変える PR も同じ。
      - 置けるのはスキーマ `sensitive` の表だけ・型は text(暗号文)だけ(`classification.test.ts` が落ちる)。表は `apps/api/src/sensitive/` の中に書く(`sensitive.table(...)`。外に書くと Semgrep が落ちる)。
      - 移行では、`GRANT … ON sensitive.<表> TO app_sensitive`(要る操作だけ。**`app_rw` には何も渡さない**)・RLS(下の 4 と同じ形)・ほかのスキーマの表へ外部キーを張らない(段2で持ち出せるように)・`TENANT_TABLES` の `sensitive.tenant_keys` より前。

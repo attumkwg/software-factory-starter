@@ -99,10 +99,15 @@ describe("書き出し(管理者)", () => {
 
 describe("削除(運営のコマンド)", () => {
   it("tenant_id を持つ表は、全部消す一覧にある(表を足したら一覧にも足す)", async () => {
+    // スキーマの名前を並べない(領域を足したとき、その表が見張りから漏れる)。表だけ(ビューは消す物ではない)
     const r = await withTenant(owner.db, a.tenantId, (tx) =>
       tx.execute<{ t: string }>(
-        sql`select table_schema || '.' || table_name as t from information_schema.columns
-             where column_name = 'tenant_id' and table_schema in ('organizations', 'projects', 'tasks', 'platform')`,
+        sql`select c.table_schema || '.' || c.table_name as t
+              from information_schema.columns c
+              join information_schema.tables t
+                on t.table_schema = c.table_schema and t.table_name = c.table_name
+             where c.column_name = 'tenant_id' and t.table_type = 'BASE TABLE'
+               and c.table_schema not in ('pg_catalog', 'information_schema', 'drizzle')`,
       ),
     );
     const missing = r.rows

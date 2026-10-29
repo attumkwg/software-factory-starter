@@ -12,7 +12,8 @@ description: 新しい API(エンドポイント)を足すときの手順。ル�
 1. **仕様を確かめる**: Issue の受け入れ条件か `docs/specs/` に「誰が(ロール)・何を・他社からは?」が書いてあるか。無ければ実装せず、PR / Issue で聞く。
 2. **契約**: 入力と出力のスキーマを `packages/shared/src/schemas.ts` に足す(項目は足すだけ・消さない。CI の「API の互換」が見張る。`docs/guides/api-changes.md`)。
    - 時刻は `InstantSchema`(UTC)、日付だけなら `DateOnlySchema`、お金は `MoneySchema`、単価・率は `DecimalSchema`(ADR 0005)。
-3. **どの領域か決める**: `apps/api/src/domains/<領域>/`(organizations・projects・tasks。`docs/domain/` と同じ名前)。
+3. **どの領域か決める**: `apps/api/src/domains/<領域>/`(今ある領域は `domains/dependencies.ts` の一覧。`docs/domain/` と同じ名前)。作業はその領域の `CLAUDE.md` から。どれにも入らなければ、先に `.claude/skills/add-domain` で領域を足す。
+   - その領域にまだ `routes.ts` が無ければ作り、`apps/api/src/app.ts` で `app.route("/api", …)` に登録する(無いと OpenAPI に載らず、権限の表のテストも叩けない)。
    - ほかの領域のデータが要るなら、その領域の `index.ts` の関数を使う(無ければそちらに足して export)。表を直接読まない。
    - 新しい向き(A → B)が要るなら `domains/dependencies.ts` に足す。輪(A → B → A)は作らない。迷ったら出来事(アウトボックス)で済まないか考える。
 4. **リポジトリ**: `apps/api/src/domains/<領域>/repository.ts` に関数を足す。

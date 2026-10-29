@@ -41,4 +41,4 @@
 
 - 単体: `pnpm --filter @app/api test`(`domain-boundaries` を含む)
 - 結合(Docker): `pnpm --filter @app/api test:integration -- <ファイル名の一部>` … <この領域に当たるファイル>
-- いつも: `tenant-isolation`・`authz-matrix`(他社が 404 になるか・権限の表とそろうか)
+- いつも: `tenant-isolation`・`authz-matrix`・`rls`(他社が 404 になるか・権限の表とそろうか・全部の表に RLS があるか)
