@@ -124,10 +124,11 @@ TODO アプリは「ラインを見せるための題材」。**ラインは残�
 - 🔁 **条件は1つ**: キットから持ってきた部分には、キットの著作権とライセンスの文を残す。ルートの `LICENSE` を `docs/kit/LICENSE-software-factory-starter` などへ移して残し、ルートには自分のプロダクトの `LICENSE`(非公開なら置かないか「All rights reserved」)を置く。
 - ⚠️ 迷ったら、売る前に専門家に確かめる。依存のライセンスは、キットの決まり([compliance/licenses.md](compliance/licenses.md)・`pnpm deps:licenses`)で GPL・AGPL などを CI が止めている。売る前は `pnpm deps:licenses --full licenses.csv` で版つきの全部を出して添える。
 
-### キットから来た `SECURITY.md`・`CHANGELOG.md`
+### キットから来た `SECURITY.md`・`CHANGELOG.md`・`CONTRIBUTING.md`
 
 - 🔒 `SECURITY.md` は**キットの**穴の窓口。自分のプロダクトの穴を知らせてもらう連絡先(会社の窓口・GitHub の非公開の報告)に書き換える。キットに穴を見つけたら、キットの `SECURITY.md` の道で。
 - 📜 `CHANGELOG.md` は**キットの**変更の記録。消すか自分の物にしてよい。キットの記録は `git fetch kit` → `git show kit/main:CHANGELOG.md` で読める。どの版から作ったかは `docs/kit/upstream.yaml`(取り込んだら直す。[kit/upgrade.md](kit/upgrade.md))。
+- 🤝 `CONTRIBUTING.md` と `.github/ISSUE_TEMPLATE/kit-gap.yml`・`kit-fix.yml` は**キットへの**直しの入口。消すか、自分のリポジトリの物に書き換える(残っていれば `pnpm setup:github` が知らせる)。キットに直しを出したいときは、キットの `CONTRIBUTING.md` の道で。
 
 ## ③ GitHub の設定
 

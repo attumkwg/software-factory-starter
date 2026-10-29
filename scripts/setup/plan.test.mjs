@@ -245,3 +245,23 @@ test("人がやること: SECURITY.md がキットの窓口のままなら書き
   assert.match(text(readFileSync("SECURITY.md", "utf8")), /SECURITY\.md がキットの窓口のまま/);
   assert.doesNotMatch(text("# 穴の知らせ方\n窓口は security@example.com"), /SECURITY\.md/);
 });
+
+test("人がやること: キットへの貢献の入口(CONTRIBUTING.md・キット用の Issue のテンプレート)が残っていれば知らせる", () => {
+  const text = (files) =>
+    run(fakeGitHub(), files)
+      .steps.map((s) => s.text)
+      .join("\n");
+  const kit = Object.fromEntries(
+    [
+      "CONTRIBUTING.md",
+      ".github/ISSUE_TEMPLATE/kit-gap.yml",
+      ".github/ISSUE_TEMPLATE/kit-fix.yml",
+    ].map((f) => [f, readFileSync(f, "utf8")]),
+  );
+  assert.match(
+    text(kit),
+    /貢献の入口が残っている\(CONTRIBUTING\.md・.*kit-gap\.yml・.*kit-fix\.yml\)/,
+  );
+  // 自分の物に書き換えた CONTRIBUTING.md だけなら(キット用のテンプレートは消した後)出ない
+  assert.doesNotMatch(text({ "CONTRIBUTING.md": "# 貢献のしかた\n社内の手順" }), /貢献の入口/);
+});
