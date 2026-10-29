@@ -209,11 +209,20 @@ describe("組織ごとに、タスクが完了したメールを止める・戻�
     expect(await inbox(t.users.admin.email)).toEqual([]);
   });
 
-  it("別の組織が止めていても、こちらの組織の完了は止めていない扱いで積まれ、届く", async () => {
+  // 積むときの読みが組織で絞れていること(送って届くことは上の「戻すと届く」で見る。CI の Mailpit への送信は、
+  // このテストだけ挨拶の時間切れで落ちたので、ここでは送らない)
+  it("別の組織が止めていても、こちらの組織の完了は止めていない扱いで積まれる", async () => {
     const other = await createTenantFixture(owner.db, "mail-other-off");
     await call(app, "DELETE", "/api/organization/task-mail", {
       cookie: await login(app, other.users.admin.email),
     });
+    const t = await createTenantFixture(owner.db, "mail-this-on");
+    const event = await completeTask(t, "member");
+    expect(event.payload).toMatchObject({ mailOffAtCompletion: false });
+    // 止めた組織の完了は、止めていた扱いで積まれる(同じ読みが、組織ごとに違う値を返す)
+    const otherEvent = await completeTask(other, "member");
+    expect(otherEvent.payload).toMatchObject({ mailOffAtCompletion: true });
+  });
     const t = await createTenantFixture(owner.db, "mail-this-on");
     const event = await completeTask(t, "member");
     expect(event.payload).toMatchObject({ mailOffAtCompletion: false });
