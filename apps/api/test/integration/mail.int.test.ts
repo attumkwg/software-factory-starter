@@ -133,6 +133,37 @@ describe("タスク完了のメール", () => {
     expect(await inbox(t.users.admin.email)).toEqual([]);
   });
 
+  // 組織ごとに止める・戻す(docs/specs/0093-task-mail-switch.md)。止める・戻すの API そのものは task-mail.int.test.ts
+  it("管理者が止めた組織には送らない。止める前に積まれた出来事も送らない", async () => {
+    const t = await createTenantFixture(owner.db, "mail-off");
+    const before = await completeTask(t, "member");
+    const admin = await login(app, t.users.admin.email);
+    expect(
+      (await call(app, "DELETE", "/api/organization/task-mail", { cookie: admin })).status,
+    ).toBe(204);
+    await handler(before);
+    expect(await inbox(t.users.admin.email)).toEqual([]);
+  });
+
+  it("戻すと、その後に完了した物は前と同じように届く(止めていた間の分は届かない)", async () => {
+    const t = await createTenantFixture(owner.db, "mail-on");
+    const admin = await login(app, t.users.admin.email);
+    const member = await login(app, t.users.member.email);
+    await call(app, "DELETE", "/api/organization/task-mail", { cookie: admin });
+    const whileOff = await completeTask(t, "member");
+    await handler(whileOff);
+    expect((await call(app, "POST", "/api/organization/task-mail", { cookie: admin })).status).toBe(
+      204,
+    );
+    await call(app, "PATCH", `/api/tasks/${t.taskId}`, { cookie: member, body: { done: false } });
+    const afterOn = await completeTask(t, "member");
+    await handler(afterOn);
+    const mails = await inbox(t.users.admin.email);
+    expect(mails.map((m) => m.MessageID)).toEqual([
+      `task-completed.${afterOn.id}@app.example.test`,
+    ]);
+  });
+
   it("件名に改行を入れても、ヘッダーは増えない(ヘッダーの注入)", async () => {
     const t = await createTenantFixture(owner.db, "inject");
     const cookie = await login(app, t.users.member.email);

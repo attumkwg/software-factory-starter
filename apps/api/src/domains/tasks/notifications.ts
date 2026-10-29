@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type { TenantTx } from "../../db/client.ts";
 import type { MailMessage } from "../../mail/index.ts";
 import type { OutboxEvent, OutboxPayload } from "../../outbox/index.ts";
-import { findContact } from "../organizations/index.ts";
+import { findContact, findTaskMailEnabled } from "../organizations/index.ts";
 import { findProjectOwner } from "../projects/index.ts";
 import { tasks } from "./schema.ts";
 
@@ -26,6 +26,9 @@ export async function taskCompletedMail(
   if (!task) return { skip: "task_deleted" };
   // 送るまでの間に「未完了」に戻されたら、知らせない
   if (!task.done) return { skip: "task_reopened" };
+  // 組織の管理者が止めていたら、知らせない(docs/specs/0093-task-mail-switch.md)。
+  // 送る直前に見るので、止める前に積まれた出来事も送らない。済みにするので、戻しても後から送らない
+  if (!(await findTaskMailEnabled(tx, tenantId))) return { skip: "mail_off_by_organization" };
 
   const project = await findProjectOwner(tx, tenantId, payload.projectId);
   if (!project) return { skip: "project_deleted" };
