@@ -25,7 +25,7 @@
 
 | 何を | 決め方・やり方 |
 |---|---|
-| `v0.1.0` のタグを打つ | **リポジトリを公開する日(目安 2026-11-29)に**(@attumkwg 2026-10-29。設計書 0066 の U-3)。[CHANGELOG.md](../../CHANGELOG.md) の「未リリース」に下書きがある。切る手順は [maintenance.md](maintenance.md) の 4 |
+| `v0.1.0` のタグを打つ | **告知する日に**(@attumkwg 2026-10-29。設計書 0066 の U-3。リポジトリはもう公開なので、公開の再確認で出た物を直したら告知する、と @attumkwg が 2026-10-29 に決めた)。[CHANGELOG.md](../../CHANGELOG.md) の「未リリース」に下書きがある。切る手順は [maintenance.md](maintenance.md) の 4 |
 | リポジトリを公開にする | GitHub の Settings で持ち主が。公開の後、Security → Private vulnerability reporting が有効か確かめる(`.github/setup.yml` で有効にしている) |
 
 最終更新: 2026-10-29
