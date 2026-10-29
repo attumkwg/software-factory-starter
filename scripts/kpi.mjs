@@ -9,6 +9,7 @@
 //              期限の後の当たり外れ・判断役の当たり率・人の判定を待つ記録を出す(verdict-lib.mjs)。
 //              ループを閉じる: 記録が古い・無い指標、記録の無い rollout 以降の賭けを知らせ、合議の見込み(forecasts)と
 //              実測を比べて合議ごとの当たり率を出す。合議の星(価値・確からしさ)は表から出した値と合っているかを見る。
+//   pnpm kpi --roi [--weeks n]  資産の累計と ROI・PR の「動かす KPI」が空・合わない PR・北極星の週ごとの分母と分子(roi.mjs)。
 // 決まりは docs/guides/kpi.md・仕様 0081・0082・0083・0084(立場の地図と合議は council-lib.mjs、ループは loop-lib.mjs)。
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -35,7 +36,11 @@ import {
   unmeasuredBetNotes,
   valueStars,
 } from "./loop-lib.mjs";
+import { runRoi } from "./roi.mjs";
 import { parseVerdict, verdictProblems, verdictResult, verdictSummary } from "./verdict-lib.mjs";
+
+// pnpm kpi --roi: 資産の累計と ROI・PR の「動かす KPI」の突き合わせ・北極星の週ごとの分母と分子(gh で PR を読む。仕様 0094)
+if (process.argv.includes("--roi")) process.exit(runRoi(process.argv.slice(2)));
 
 const KPI = "docs/product/kpi.yaml";
 const COUNCILS = "docs/product/councils";
