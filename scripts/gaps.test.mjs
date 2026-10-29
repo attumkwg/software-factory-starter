@@ -49,6 +49,8 @@ const okRows = [
   "| G-80 | 🔴 製品の AI | a | b | 中 |",
   "| G-81 | 🔴 選ぶ形 | a | b | 中 |",
   "| G-116 | 🟡 記録が混ざる(束ねた: G-72) | a | b | 中 |",
+  "| G-121 | ⛔ やらない(2026-10-29 に決めた: 作る物が無い): B 社の部品 | a | b | 中 |",
+  "| G-75 | → G-121 に束ねた。🟡 やらない親の子 | a | b | 小 |",
 ];
 const okStages = [
   "| 今すぐ | G-06 の残り | 削除のコマンド | 2 |",
@@ -84,6 +86,7 @@ test("行の頭の印から状態を読む", () => {
   assert.equal(statusOf("🔧 作業中(#139)"), "作業中");
   assert.equal(statusOf("🟢 頼まれたとき"), "残り");
   assert.equal(statusOf("→ G-51 に束ねた。🟡 情シス"), "束ねた");
+  assert.equal(statusOf("⛔ やらない(2026-10-29 に決めた): 何か"), "やらない");
   assert.equal(statusOf("部品のカタログが古い"), undefined);
   assert.deepEqual(specsOf("✅ 済み(仕様 0024・0037(枠)・ADR 0035)"), ["0024", "0037"]);
 });
@@ -93,19 +96,21 @@ test("正しい一覧は問題なし・数の要約", () => {
   assert.deepEqual(result.problems, []);
   assert.equal(result.stageOf.get("G-72"), "使える前に"); // 束ねた子は親の段
   assert.equal(result.stageOf.get("G-81"), "使えた後で"); // 「〜」の間も数える
+  assert.equal(result.stageOf.get("G-121"), undefined); // やらない行とその子は段に入らない
   const summary = summarize(result);
   assert.deepEqual(summary[0], {
     name: "全部",
-    全体: 7,
+    全体: 9,
     済み: 1,
     ほぼ済み: 1,
     作業中: 1,
     残り: 4,
+    やらない: 2,
   });
   assert.deepEqual(
     summary.map((s) => [s.name, s.全体]),
     [
-      ["全部", 7],
+      ["全部", 9],
       ["今すぐ", 1],
       ["使える前に", 3],
       ["使えた後で", 2],
@@ -148,12 +153,14 @@ test("段: 抜け・無い番号・束ねた子・2つの段", () => {
     "| 今すぐ | G-72 | 束ねた子 | 7 |",
     "| 今すぐ | G-62 | 重なり | 5 |",
     "| 今すぐ | G-200 | 無い | 1 |",
+    "| 使えた後で | G-121 | やらない | x |",
   ];
   const problems = checkGaps(gapsMd(rows, stages), states).problems.join("\n");
   assert.match(problems, /G-82 は残っているのに、どの段にも入っていない/);
   assert.match(problems, /G-72 は束ねた行/);
   assert.match(problems, /G-62 が2つの段に入っている/);
   assert.match(problems, /G-200 が穴の一覧に無い/);
+  assert.match(problems, /G-121 はやらないと決めた行/);
   assert.deepEqual(checkGaps("# 空\n| G-01 | ✅ 済み | a |", states).problems, [
     "gaps.md に「🎯」の節の段の表が無い",
   ]);
@@ -174,7 +181,7 @@ test("今の数の表: 作り直しと、古さ", () => {
   assert.notEqual(currentSummary(text), block);
   const written = replaceSummary(text, block);
   assert.equal(currentSummary(written), block);
-  assert.match(block, /^\| 今の数 \| 全体 \| 済み \| ほぼ済み \| 作業中 \| 残り \|/);
+  assert.match(block, /^\| 今の数 \| 全体 \| 済み \| ほぼ済み \| 作業中 \| 残り \| やらない \|/);
   assert.equal(currentSummary("印なし"), undefined);
   assert.throws(() => replaceSummary("印なし", block));
 });
