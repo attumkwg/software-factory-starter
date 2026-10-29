@@ -1,4 +1,10 @@
-import type { FeatureFlagDefinition } from "@app/shared";
+import {
+  addDays,
+  type FeatureFlagDefinition,
+  mondayOf,
+  OPERATOR_TIME_ZONE,
+  toLocalDate,
+} from "@app/shared";
 import { and, eq, lt, sql } from "drizzle-orm";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
@@ -17,9 +23,6 @@ import { featureUsage } from "./schema.ts";
 
 /** 記録を残す日数(設計書 0012 の U-3)。過ぎた分は usage-purge が消す */
 export const USAGE_RETENTION_DAYS = 400;
-
-const DAY = 86_400_000;
-const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
 /** 組織の ID の一覧(コマンド専用の関数。ID だけを返す。移行 0012) */
 export async function allTenantIds(db: RootDb): Promise<string[]> {
@@ -121,14 +124,11 @@ export async function usageReport(
   feature: string,
   opts: ReportOpts,
 ): Promise<UsageReport & { retention: UsageRetention }> {
-  const now = opts.now ?? new Date();
-  const since = mondayOf(new Date(now.getTime() - (opts.weeks - 1) * 7 * DAY));
-  const until = isoDate(now);
+  const { since, until, cohortsFrom, lastFullWeek } = reportWindow(
+    opts.now ?? new Date(),
+    opts.weeks,
+  );
   const tenants = await readTenants(db, feature, opts, until);
-  // 保存期間の端より前に始めた組は、始めた週の記録が消えているかもしれないので数えない
-  const kept = mondayOf(new Date(now.getTime() - (USAGE_RETENTION_DAYS - 6) * DAY));
-  const cohortsFrom = since > kept ? since : kept;
-  const lastFullWeek = mondayOf(new Date(now.getTime() - 7 * DAY));
   return {
     feature,
     since,
@@ -150,10 +150,24 @@ export async function usageReport(
   };
 }
 
-/** その日の週の月曜(UTC の日付として) */
-function mondayOf(d: Date): string {
-  const day = (d.getUTCDay() + 6) % 7; // 月曜 = 0
-  return isoDate(new Date(d.getTime() - day * DAY));
+/**
+ * 数える期間(日付だけ)。「今日」は運営の時間帯で決める(記録の day は組織の時間帯の日付。仕様 0087)。
+ * UTC の日付にすると、日本の月曜 0〜9時は「先週」のままで、数え終わった週が1つずれる。
+ */
+export function reportWindow(
+  now: Date,
+  weeks: number,
+): { since: string; until: string; cohortsFrom: string; lastFullWeek: string } {
+  const today = toLocalDate(now, OPERATOR_TIME_ZONE);
+  const since = mondayOf(addDays(today, -(weeks - 1) * 7));
+  // 保存期間の端より前に始めた組は、始めた週の記録が消えているかもしれないので数えない
+  const kept = mondayOf(addDays(today, -(USAGE_RETENTION_DAYS - 6)));
+  return {
+    since,
+    until: today,
+    cohortsFrom: since > kept ? since : kept,
+    lastFullWeek: mondayOf(addDays(today, -7)),
+  };
 }
 
 /** 保存期間を過ぎた記録を数える(execute なら消す)。全部の組織(運営の組織も) */
@@ -161,10 +175,8 @@ export async function purgeUsage(
   db: RootDb,
   opts: { execute: boolean; retentionDays?: number; now?: Date },
 ): Promise<{ before: string; count: number }> {
-  const now = opts.now ?? new Date();
-  const before = isoDate(
-    new Date(now.getTime() - (opts.retentionDays ?? USAGE_RETENTION_DAYS) * DAY),
-  );
+  const today = toLocalDate(opts.now ?? new Date(), OPERATOR_TIME_ZONE);
+  const before = addDays(today, -(opts.retentionDays ?? USAGE_RETENTION_DAYS));
   let count = 0;
   for (const tenantId of await allTenantIds(db)) {
     const old = and(eq(featureUsage.tenantId, tenantId), lt(featureUsage.day, before));

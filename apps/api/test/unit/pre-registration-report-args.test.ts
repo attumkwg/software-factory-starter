@@ -19,4 +19,11 @@ describe("pre-registrations-report の期間", () => {
     });
     expect(() => parseReportArgs(["--from", "2026-10-02", "--to", "2026-10-01"])).toThrow();
   });
+
+  it("既定の始まりは、終わりの27日前(月をまたいでも日付だけで数える)", () => {
+    expect(parseReportArgs(["--to", "2026-03-01"])).toEqual({
+      from: "2026-02-02",
+      to: "2026-03-01",
+    });
+  });
 });

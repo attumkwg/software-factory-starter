@@ -7,11 +7,12 @@
 // 下書きの本文に勧告の ID があれば「精査済み(非公開)」として数える。決まりは docs/guides/vulnerabilities.md。
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { todayInTokyo } from "./checkup/phase.mjs";
 import { parseVulns, triage } from "./vulns-lib.mjs";
 
 const FILE = "docs/security/vulns.md";
 const strict = process.argv.includes("--strict");
-const today = new Date().toISOString().slice(0, 10);
+const today = todayInTokyo();
 
 /** gh api を呼び、1行に1つの JSON を配列にする。失敗したら { error } */
 const ghLines = (path, jq) => {

@@ -38,6 +38,7 @@
 - **どの時間帯で見せるか・「1日」をどこで区切るか**は、組織の時間帯 `organizations.tenants.time_zone`(IANA の名前。既定 `Asia/Tokyo`)で決める(作者 @attumkwg の選択「組織ごと」)。`/api/me` が返し、画面はその時間帯で表示する。SSR とブラウザで同じ時間帯を使うので、表示がずれない。
   - 利用者ごとに変えたくなったら、`users` に上書き用の列を足す。集計の「1日」は組織のまま。
 - 日ごとの集計は、組織の時間帯で区切る: SQL なら `(created_at AT TIME ZONE $tz)::date`、範囲で探すなら `localDayRange(date, tz)`(夏時間で23・25時間の日も正しい)。UTC で区切ると、日本の朝9時が日付の境目になる。
+- 全部の組織を足し合わせる運営のコマンドの「今日」「今週」は、運営の時間帯 `OPERATOR_TIME_ZONE`(既定は日本時間)で決め、n 日前・週の月曜は日付のまま数える(`addDays`・`mondayOf`)。UTC の日付にすると、日本の月曜の朝は「先週」のままになる(仕様 0087)。
 - DB の接続の時間帯は UTC に固定する(`TimeZone=UTC`)。`now()::date` が DB の設定で変わらないように。
 - 時間帯は `"+09:00"` や `"JST"` ではなく名前で持つ(夏時間の国でも正しく動く)。
 - Semgrep の `no-local-time` が、端末・サーバーの時間帯に頼った書き方(`getHours()`・時間帯なしの `toLocaleDateString` など)を止める。

@@ -8,6 +8,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { todayInTokyo } from "./checkup/phase.mjs";
 import {
   acceptanceOf,
   childrenOf,
@@ -26,7 +27,7 @@ const repo =
   process.env.GITHUB_REPOSITORY ??
   gh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]).trim();
 const now = new Date();
-const today = new Date(now.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+const today = todayInTokyo(now);
 
 // 受け入れの記録(親 Issue の番号 → 最後の回)
 const accepted = new Map();

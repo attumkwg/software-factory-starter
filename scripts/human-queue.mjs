@@ -9,6 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { todayInTokyo } from "./checkup/phase.mjs";
 import {
   hasAnswer,
   prQuestions,
@@ -28,7 +29,7 @@ const repo =
   process.env.GITHUB_REPOSITORY ??
   gh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]).trim();
 const now = new Date();
-const today = new Date(now.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+const today = todayInTokyo(now);
 
 const prs = api(`repos/${repo}/pulls?state=open&per_page=100`).map((p) => ({
   number: p.number,

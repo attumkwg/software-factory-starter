@@ -20,6 +20,12 @@ export const TimeZoneSchema = z.string().refine(isValidTimeZone, "時間帯の�
 
 export const DEFAULT_TIME_ZONE = "Asia/Tokyo";
 
+/**
+ * 運営の時間帯。運営のコマンド(利用の数・継続率・契約・PMF の回・事前登録)が「今日」「今週」を決めるときに使う。
+ * 組織ごとの記録の日付は組織の時間帯のまま。足し合わせる側の「今日」だけをここ1つで決める(仕様 0087)。
+ */
+export const OPERATOR_TIME_ZONE = DEFAULT_TIME_ZONE;
+
 export function isValidTimeZone(name: string): boolean {
   if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)*$/.test(name)) return false;
   try {
@@ -41,7 +47,7 @@ export function toLocalDate(instant: Date | string, timeZone: string): string {
  * 夏時間の国では、1日が23時間・25時間になる日がある(end - start が24時間とは限らない)。
  */
 export function localDayRange(date: string, timeZone: string): { start: Date; end: Date } {
-  const [y, m, d] = DateOnlySchema.parse(date).split("-").map(Number) as [number, number, number];
+  const [y, m, d] = ymd(date);
   const next = new Date(Date.UTC(y, m - 1, d + 1));
   return {
     start: zonedMidnight(y, m, d, timeZone),
@@ -49,7 +55,22 @@ export function localDayRange(date: string, timeZone: string): { start: Date; en
   };
 }
 
+/** 日付だけを n 日ずらす("2026-10-31" + 1 = "2026-11-01")。時間帯に関係しない(ある瞬間に直さない) */
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = ymd(date);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** その日付の週の月曜(日付だけ。週は月曜始まり) */
+export function mondayOf(date: string): string {
+  const [y, m, d] = ymd(date);
+  return addDays(date, -((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7));
+}
+
 // ── 中身 ──
+
+const ymd = (date: string) =>
+  DateOnlySchema.parse(date).split("-").map(Number) as [number, number, number];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
