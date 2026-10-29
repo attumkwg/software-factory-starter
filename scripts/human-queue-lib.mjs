@@ -37,9 +37,11 @@ const isQuestionRow = (cells) => {
  */
 export function prQuestions(body) {
   const lines = stripComments(String(body ?? "")).split("\n");
-  const start = lines.findIndex((l) => /^##\s*🧑‍⚖️/.test(l.trim()));
+  // 見出しは正規表現でなく文字列で見る(本文は人が書く物。Semgrep の regex_dos)
+  const heading = (l) => l.trim().startsWith("## ");
+  const start = lines.findIndex((l) => heading(l) && l.includes("🧑‍⚖️"));
   if (start < 0) return [];
-  const end = lines.findIndex((l, i) => i > start && /^##\s/.test(l.trim()));
+  const end = lines.findIndex((l, i) => i > start && heading(l));
   return lines
     .slice(start + 1, end < 0 ? undefined : end)
     .map(cellsOf)
