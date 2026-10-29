@@ -1,0 +1,40 @@
+name: キットの穴(足りない物)
+description: キット(software-factory-starter)そのものに足りない物。どの場面で止まるかと、埋まったと言える条件つきで
+labels: ["kind:feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        これは **キットそのもの** への報告です。キットから作ったプロダクトの要望は「機能」のテンプレートへ(キットから作ったリポジトリでは、このテンプレートを消す。CONTRIBUTING.md)。
+
+        🔒 **脆弱性はここに書かない**。SECURITY.md の非公開の報告で(直す前に広まると、キットを使う会社が危なくなる)。
+        先に docs/scenarios/gaps.md(穴の一覧)に同じ物が無いかを見る。あれば番号(G-NN)を書く。
+  - type: textarea
+    id: scene
+    attributes:
+      label: 困る場面
+      description: 誰が・何をしようとして・どこで止まるか
+      value: |
+        - 誰が:
+        - 何をしようとして:
+        - どこで止まるか:
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 足す物の案(あれば)
+      description: ファイル・コマンド・手順書など。案が無くてもよい
+  - type: input
+    id: version
+    attributes:
+      label: 使った版
+      description: タグ(v0.Y.Z)か、コミットの ID
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件(埋まったと言える条件)
+      value: |
+        - [ ] … のとき … できる
+    validations:
+      required: true
