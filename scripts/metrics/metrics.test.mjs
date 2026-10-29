@@ -95,9 +95,9 @@ test("PR の事実: AI はラベルで見分ける(本文の印やコミット�
     labels: ["risk:medium", "area:api"],
     commits: [AI_COMMIT],
   };
-  const notLabeled = prFacts(pr, MARKERS);
+  const notLabeled = prFacts(pr);
   assert.equal(notLabeled.ai, false);
-  const f = prFacts({ ...pr, labels: [...pr.labels, AI_LABEL] }, MARKERS);
+  const f = prFacts({ ...pr, labels: [...pr.labels, AI_LABEL] });
   assert.equal(f.ai, true);
   assert.equal(f.risk, "medium");
   assert.equal(f.questions, 1);
@@ -105,7 +105,7 @@ test("PR の事実: AI はラベルで見分ける(本文の印やコミット�
   assert.equal(f.openToMergeHours, 6);
   assert.equal(f.week, "2026-10-12");
   assert.equal(JSON.stringify(f).includes("someone"), false);
-  assert.equal(prFacts({ ...pr, author: "renovate", authorType: "Bot" }, MARKERS).bot, true);
+  assert.equal(prFacts({ ...pr, author: "renovate", authorType: "Bot" }).bot, true);
 });
 
 test("デプロイ: 成功(次に替わった物も)・失敗・終わっていない物を分ける。リードタイムはマージの後の最初の成功まで", () => {

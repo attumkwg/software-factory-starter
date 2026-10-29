@@ -67,7 +67,7 @@ const loginOf = (login, type) =>
   type === "Bot" && !isBotName(login) ? `${login}[bot]` : String(login ?? "");
 
 /**
- * PR 1件の人の時間【推定】(docs/kit/roi.md の 2 と同じ式。費用のページの prMinuteRange)。
+ * PR 1件の人の時間【推定】(docs/kit/roi.md の 2 と同じ式。費用のページと同じファイル(scripts/cost/source-people.mjs)の prMinuteRange)。
  * 名前は分を数えるのにだけ使い、持たない
  */
 function minutesOf(pr, questions, config) {
@@ -84,12 +84,13 @@ function minutesOf(pr, questions, config) {
 
 /**
  * PR 1件の事実(数えるのに要る物だけ。題名・本文・人の名前は持たない)。
- * config は docs/cost/people.yaml(loadPeopleConfig)。無人化率の分と、AI の PR の見分け(ラベルか本文の印)に使う
+ * config は docs/cost/people.yaml(loadPeopleConfig)。AI の印(ai_markers。人の手直しの見分け)と、無人化率の分に使う
  */
-export function prFacts(pr, markers, config = loadPeopleConfig("")) {
+export function prFacts(pr, config = loadPeopleConfig("")) {
+  const markers = config.ai_markers;
   const labels = pr.labels ?? [];
   const questions = questionsOf(pr.body);
-  const { ai: aiAny, ...minutes } = minutesOf(pr, questions.count, config);
+  const { ai: aiAny, reviews, ...minutes } = minutesOf(pr, questions.count, config);
   return {
     number: pr.number,
     bot: pr.authorType === "Bot" || isBotName(pr.author),
@@ -100,6 +101,7 @@ export function prFacts(pr, markers, config = loadPeopleConfig("")) {
     humanCommits: humanCommits(pr.commits ?? [], markers),
     aiAny,
     comments: pr.comments ?? 0,
+    reviews,
     minutes,
     createdAt: pr.createdAt,
     mergedAt: pr.mergedAt,
@@ -187,7 +189,8 @@ const pctOf = (minutes, byHand) =>
  * 無人化率 = 1 − 人が使った工数 ÷ 全部を人が書いたらの工数(docs/kit/roi.md の 2 と同じ式)。
  * prs は prFacts の並び(ボットの PR も入れる。分は people.yaml の決まった目安なので【推定】)。
  * 幅: 人の工数の上の端(問い1つ × 5分を足す)で低い方、下の端で高い方。分母は問いの分を足さない(roi.md と同じ)。
- * PR・問い・コメント・人の手直しの数は【実測】(手直しは式に入らない。数だけ並べる)
+ * PR・問い・コメント・レビュー・人の手直しの数は【実測】(手直しは式に入らない。数だけ並べる)。
+ * 人と AI の PR が無い週(ボットだけ・PR なし)は —(ボットの PR は分子にも分母にも 5分で入り、率を下げる側)
  */
 export function unmannedOf(prs) {
   const people = prs.filter((p) => !p.bot);
@@ -199,10 +202,14 @@ export function unmannedOf(prs) {
     prs: { ai: ai.length, human: people.length - ai.length, bot: prs.length - people.length },
     questions: sum(prs.map((p) => p.questions)),
     comments: sum(people.map((p) => p.comments)),
+    reviews: sum(prs.map((p) => p.reviews ?? 0)),
     humanCommits: sum(ai.map((p) => p.humanCommits)),
     hours: { low: round1(low / 60), high: round1(high / 60) },
     byHandHours: round1(byHand / 60),
-    pct: byHand > 0 ? { low: pctOf(high, byHand), high: pctOf(low, byHand) } : null,
+    pct:
+      people.length > 0 && byHand > 0
+        ? { low: pctOf(high, byHand), high: pctOf(low, byHand) }
+        : null,
   };
 }
 

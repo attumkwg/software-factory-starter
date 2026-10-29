@@ -7,11 +7,11 @@
 
 ## 0. 全体像
 
-`pnpm metrics` が読むマージした PR に、コメントの数とレビューを足して読み、PR ごとに人の時間の幅と「全部を人が書いたら」の分を出す(費用のページと同じ式)。週ごとに足して無人化率にし、決裁用の表の1列と、その下の内訳の表に出す。
+`pnpm metrics` が読むマージした PR に、コメントとレビュー(書き手の種類)を足して読み、PR ごとに人の時間の幅と「全部を人が書いたら」の分を出す(費用のページと同じ式)。週ごとに足して無人化率にし、決裁用の表の1列と、その下の内訳の表に出す。
 
 ## 作業の前に読んだ物(ガイド)
 
-- [../kit/roi.md](../kit/roi.md) の 2(式と、キット自身の数え: 149本・43〜68時間・78〜86%)と 4(`pnpm kpi --roi` の北極星の分母は同じ式)
+- [../kit/roi.md](../kit/roi.md) の 2(式と、キット自身の数え: 181本・47〜75時間・79〜87%)と 4(`pnpm kpi --roi` の北極星の分母は同じ式)
 - `scripts/cost/source-people.mjs` の `prMinutes`(PR 1件の人ごとの分。費用のページ)・`scripts/roi-lib.mjs` の `prFactOf`(幅の上の端 = 問い × 5分)
 - `scripts/metrics/`(週の数字。`prFacts` は名前を持たない・週は日本時間の月曜)・`scripts/checkup/phase.mjs` の `mondayOf`・`todayInTokyo`(G-122 の日付の計算)
 
@@ -24,10 +24,10 @@
 
 ## 2. データモデル
 
-- 集める PR(`collect.mjs` の `toPr`): `comments`(コメントの数。ボットのコメントは除く。roi.md の 2 の数え直しと同じ)・`reviewers`(`{ login, type }` の並び)を足した。GraphQL に `comments(first: 100) { nodes { author { __typename } } }`・`reviews(first: 50) { nodes { author { login __typename } } }`。
-- PR の事実(`prFacts`): `aiAny`・`comments`・`minutes { low, high, byHand }`(分)を足した。名前は持たない(改善用の PR の明細からは `minutes` も外す)。
+- 集める PR(`collect.mjs` の `toPr`): `comments`(人のコメントの数。ボットは `source-people.mjs` の `isBotAuthor` で除く。roi.md の 2 の数え直しと `pnpm kpi --roi` と同じ)・`reviewers`(`{ login, type }` の並び)・`overflow`(コメントかレビューが上限を超えた)を足した。GraphQL に `comments(first: 100) { pageInfo { hasNextPage } nodes { author { login __typename } } }`・`reviews(first: 50) { pageInfo { hasNextPage } nodes { author { login __typename } } }`。
+- PR の事実(`prFacts(pr, config)`。AI の印は `config.ai_markers` から取る): `aiAny`・`comments`・`reviews`(分に数えたレビューの数)・`minutes { low, high, byHand }`(分)を足した。名前は持たない(改善用の PR の明細からは `minutes` も外す)。
 - 週の行(`decision.weeks[]`): `unmanned`。合計は `decision.unmanned`(式の分 `rule` つき)。
-  - `unmanned = { prs: { ai, human, bot }, questions, comments, humanCommits, hours: { low, high }, byHandHours, pct: { low, high } | null }`
+  - `unmanned = { prs: { ai, human, bot }, questions, comments, reviews, humanCommits, hours: { low, high }, byHandHours, pct: { low, high } | null }`
 
 ## 3. API
 
@@ -45,9 +45,11 @@
 
 - PR 1件(`prMinuteRange`。分は `people.yaml` の `minutes`):
   - low: ボットの PR は `bot_pr_check`(5)。それ以外は AI の PR なら `ai_pr_check`(15)、人の PR なら `human_pr`(120)+ コメント × `comment`(3)+ 作った人以外・ボット以外のレビュー × `review`(20)
-  - high: low + 問い × `question`(書かなければ 5)
+  - high: 人の工数の上の端(= 無人化率の低い方)。low に、問い1つ × `question`(5。書かなければ 5)を足す
   - byHand: AI の PR(ボットでない)は low − 15 + 120。それ以外は low
-- 週: 無人化率の幅 = 低い方 `1 − Σhigh ÷ ΣbyHand`、高い方 `1 − Σlow ÷ ΣbyHand`(% に丸め、0〜100 で止める)。ΣbyHand が 0 なら —。分母に問いの分は足さない(roi.md と同じ)。
+- 週: 無人化率の幅 = 低い方 `1 − Σhigh ÷ ΣbyHand`、高い方 `1 − Σlow ÷ ΣbyHand`(% に丸め、0〜100 で止める)。人と AI の PR が無い週(ボットだけ・PR なし)は —。分母に問いの分は足さない(roi.md と同じ)。ボットの PR は分子にも分母にも 5分で入る(率を下げる側。表の下の注)。
+- コメントはボットを除く(判定は `isBotAuthor` の1つ)。費用のページだけは GitHub の検索のコメントの数(ボットを含む)を使う。
+- コメントかレビューが上限を超えた PR は、超えた分を数えず、`notes`(読めなかった物)に件数を出す。
 - 人の手直しは式に入れない(数だけ並べる)。
 - 合計の行は、表の週(数え終わった週)の PR だけを足す。今週の PR は入れない。
 
@@ -56,14 +58,15 @@
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
 | 決裁用の表に週ごとの「無人化率【推定】」の列が出る | 2. 週の行・`render.mjs` | `scripts/metrics/metrics.test.mjs` |
-| 内訳の表(工数【推定】・PR・問い・コメント・手直し【実測】)と N 週の合計が出る | 2.・6. 合計の行 | `scripts/metrics/unmanned.test.mjs` |
-| キット自身の数えを入れると 78〜86% になる | 6. 式 | `scripts/metrics/unmanned.test.mjs` |
+| 内訳の表(工数【推定】・PR・問い・コメント・レビュー・手直し【実測】)と N 週の合計が出る | 2.・6. 合計の行 | `scripts/metrics/unmanned.test.mjs` |
+| キット自身の数えを入れると 47〜75時間・79〜87% になる | 6. 式 | `scripts/metrics/unmanned.test.mjs` |
+| 同じ PR から `pnpm metrics` と `pnpm kpi --roi` が同じ分を出す | 1.・2. | `scripts/metrics/unmanned.test.mjs` |
 | 式の分を `people.yaml` から読み、表の下に出す | 1.・6. | `scripts/metrics/unmanned.test.mjs`・`scripts/metrics/collect.test.mjs` |
 | `pnpm kpi --roi` の分は変わらない(同じ式を使う) | 1. | `scripts/roi.test.mjs` |
 
 ## 8. 非機能
 
-- 性能: GraphQL の1頁(50件)ごとに、レビュー最大 50 件が増えるだけ。読む PR の上限(1000)は変えない。
+- 性能: GraphQL の1頁(PR 50件)ごとに、コメント最大 100件とレビュー最大 50件を足した。1頁のノードは 50 + 50 ×(ラベル 30 + コミット 100 + コメント 100 + レビュー 50)= 約14,000(GitHub の上限 500,000 の内)、1回の問い合わせの費用は約2点。読む PR の上限(1000)は変えない。上限を超えたコメント・レビューの切り捨ては黙らず、6. の注(読めなかった物)に件数を出す。
 - セキュリティ: レビューした人の名前は分を数えるのにだけ使い、事実・JSON・Markdown に残さない(テストで確かめる)。
 - 運用: `metrics.yml` は変えない(同じコマンドの出力が増えるだけ)。
 
@@ -89,7 +92,7 @@
 | API | 低優先 | アプリの API は変えない |
 | 状態遷移 | 低優先 | 状態を持たない |
 | システム間連携 | 軽く確認 | GraphQL の欄を2つ足した |
-| 業務ルール | 最重要 | roi.md の 2 と同じ式か(キット自身の数えで 78〜86% になるテスト) |
+| 業務ルール | 最重要 | roi.md の 2 と同じ式か(キット自身の数えで 79〜87% になるテスト・`pnpm kpi --roi` と同じ分が出るテスト) |
 | 要求との対応 | 機械で検証 | `pnpm design-tests` |
 | 非機能 | 軽く確認 | 名前を残さない |
 

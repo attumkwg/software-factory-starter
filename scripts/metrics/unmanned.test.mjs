@@ -4,10 +4,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { loadPeopleConfig } from "../cost/source-people.mjs";
+import { prFactOf } from "../roi-lib.mjs";
+import { toPr } from "./collect.mjs";
 import { buildReport, prFacts, unmannedOf } from "./lib.mjs";
 import { renderMarkdown } from "./render.mjs";
 
-const MARKERS = ["Generated with [Claude Code]", "Co-Authored-By: Claude"];
 const AI_COMMIT = { message: "直す\n\nCo-Authored-By: Claude Opus 5.5 <x>", parents: 1 };
 const HUMAN_COMMIT = { message: "手で直した", parents: 1, authorName: "a", authorEmail: "a@x" };
 const body = (rows) =>
@@ -30,6 +31,7 @@ const pr = (over) => ({
   humanCommits: 0,
   aiAny: true,
   comments: 0,
+  reviews: 0,
   minutes: { low: 15, high: 15, byHand: 120 },
   createdAt: "2026-10-13T00:00:00Z",
   mergedAt: "2026-10-13T02:00:00Z",
@@ -54,16 +56,17 @@ const rawPr = (number, over = {}) => ({
 });
 const questionRows = (n) =>
   Array.from({ length: n }, (_, i) => `| ${i + 1} | 事業判断 | a | b | c |`);
+const marked = (rows) => `${body(rows)}\nGenerated with [Claude Code]`;
 
 test("無人化率: PR 1件の分は people.yaml の分。AI の PR はラベルか本文の印で見分け、名前は持たない", () => {
-  const f = (over) => prFacts(rawPr(1, over), MARKERS, CONFIG);
+  const f = (over) => prFacts(rawPr(1, over), CONFIG);
   // AI の PR(印だけ・ラベルなし): 確かめる 15分 + コメント 2件 × 3分。全部を人が書いたら 120 + 6
-  const marked = f({ comments: 2 });
-  assert.equal(marked.ai, false); // 「AI が手伝った」はラベルだけ(今までどおり)
-  assert.equal(marked.aiAny, true);
-  assert.deepEqual(marked.minutes, { low: 21, high: 21, byHand: 126 });
-  // 問い2つは幅の上の端に 2 × 5分
-  assert.deepEqual(f({ body: `${body(questionRows(2))}\nGenerated with [Claude Code]` }).minutes, {
+  const byMark = f({ comments: 2 });
+  assert.equal(byMark.ai, false); // 「AI が手伝った」はラベルだけ(今までどおり)
+  assert.equal(byMark.aiAny, true);
+  assert.deepEqual(byMark.minutes, { low: 21, high: 21, byHand: 126 });
+  // 問い2つは、人の工数の上の端(= 無人化率の低い方)に 2 × 5分
+  assert.deepEqual(f({ body: marked(questionRows(2)) }).minutes, {
     low: 15,
     high: 25,
     byHand: 120,
@@ -83,44 +86,91 @@ test("無人化率: PR 1件の分は people.yaml の分。AI の PR はラベル
     ],
   });
   assert.deepEqual(reviewed.minutes, { low: 35, high: 35, byHand: 140 });
+  assert.equal(reviewed.reviews, 1);
   assert.equal(JSON.stringify(reviewed).includes("other-person"), false);
   assert.equal(JSON.stringify(reviewed).includes("owner"), false);
 });
 
-test("無人化率: キット自身の数え(roi.md の 2)と同じ数になる。149本・ボット4本・コメント99件・問い305 → 78〜86%", () => {
+test("無人化率: 同じ PR から、週の数字と pnpm kpi --roi が同じ分を出す(コメントはどちらもボットを除く)", () => {
+  // 週の数字は GraphQL の検索の形、kpi --roi は gh pr list --json の形で読む
+  const node = {
+    number: 9,
+    createdAt: "2026-10-20T00:00:00Z",
+    mergedAt: "2026-10-20T03:00:00Z",
+    body: `${marked(questionRows(2))}\n- 取り組み: 基盤\n- 作業の種類: 保守\n- 動かす KPI: なし`,
+    author: { login: "owner", __typename: "User" },
+    labels: { nodes: [] },
+    comments: {
+      pageInfo: { hasNextPage: false },
+      nodes: [
+        { author: { login: "owner", __typename: "User" } },
+        { author: { login: "github-actions", __typename: "Bot" } },
+        { author: { login: "other-person", __typename: "User" } },
+      ],
+    },
+    reviews: {
+      pageInfo: { hasNextPage: false },
+      nodes: [{ author: { login: "other-person", __typename: "User" } }],
+    },
+    commits: { nodes: [] },
+  };
+  const json = {
+    number: 9,
+    author: { login: "owner", is_bot: false },
+    labels: [],
+    body: node.body,
+    // gh の JSON では、Actions の要約は login が github-actions で [bot] も is_bot も付かない
+    comments: [
+      { author: { login: "owner" } },
+      { author: { login: "github-actions" } },
+      { author: { login: "other-person" } },
+    ],
+    reviews: [{ author: { login: "other-person" } }],
+    mergedAt: node.mergedAt,
+  };
+  const weekly = prFacts(toPr(node), CONFIG);
+  const roi = prFactOf(json, { config: CONFIG, stages: {} });
+  // 15分 + 人のコメント 2 × 3分 + ほかの人のレビュー 20分 = 41分。上の端は 問い 2 × 5分
+  assert.deepEqual(weekly.minutes, { low: 41, high: 51, byHand: 146 });
+  assert.deepEqual(roi.minutes, { low: weekly.minutes.low, high: weekly.minutes.high });
+  assert.equal(weekly.comments, 2);
+  assert.equal(toPr(node).overflow, false);
+  assert.equal(
+    toPr({ ...node, reviews: { ...node.reviews, pageInfo: { hasNextPage: true } } }).overflow,
+    true,
+  );
+});
+
+test("無人化率: キット自身の数え(roi.md の 2)と同じ数になる。181本・ボット4本・コメント24件・問い337 → 79〜87%", () => {
   const prs = [
-    ...Array.from({ length: 149 }, (_, i) =>
+    ...Array.from({ length: 181 }, (_, i) =>
       rawPr(i + 1, {
-        comments: i < 99 ? 1 : 0,
-        body:
-          i < 102
-            ? `${body(questionRows(i < 101 ? 3 : 2))}\nGenerated with [Claude Code]`
-            : "Generated with [Claude Code]",
-        commits: i === 0 ? [HUMAN_COMMIT] : [AI_COMMIT],
+        comments: i < 24 ? 1 : 0,
+        body: i < 119 ? marked(questionRows(i < 99 ? 3 : 2)) : "Generated with [Claude Code]",
+        commits: i < 2 ? [HUMAN_COMMIT] : [AI_COMMIT],
       }),
     ),
     ...Array.from({ length: 4 }, (_, i) =>
-      rawPr(200 + i, { author: "renovate", authorType: "Bot", body: "" }),
+      rawPr(300 + i, { author: "renovate", authorType: "Bot", body: "" }),
     ),
-  ].map((p) => prFacts(p, MARKERS, CONFIG));
+  ].map((p) => prFacts(p, CONFIG));
   assert.deepEqual(unmannedOf(prs), {
-    prs: { ai: 149, human: 0, bot: 4 },
-    questions: 305,
-    comments: 99,
-    humanCommits: 1,
-    hours: { low: 42.5, high: 68 }, // 2,552分・2,552 + 305 × 5 = 4,077分
-    byHandHours: 303.3, // 149 × 120 + 4 × 5 + 99 × 3 = 18,197分
-    pct: { low: 78, high: 86 },
+    prs: { ai: 181, human: 0, bot: 4 },
+    questions: 337,
+    comments: 24,
+    reviews: 0,
+    humanCommits: 2,
+    hours: { low: 46.8, high: 74.9 }, // 2,807分(roi.md の 47時間)・2,807 + 337 × 5 = 4,492分(75時間)
+    byHandHours: 363.5, // 181 × 120 + 4 × 5 + 24 × 3 = 21,812分(364時間)
+    pct: { low: 79, high: 87 },
   });
 });
 
-test("無人化率: PR の無い週は —。人の工数が全部を人が書いたらを超える幅は 0% で止める", () => {
+test("無人化率: PR の無い週・ボットの PR だけの週は —。人の工数が全部を人が書いたらを超える幅は 0% で止める", () => {
   assert.equal(unmannedOf([]).pct, null);
-  const many = prFacts(
-    rawPr(1, { body: `${body(questionRows(30))}\nGenerated with [Claude Code]` }),
-    MARKERS,
-    CONFIG,
-  );
+  const bot = prFacts(rawPr(1, { author: "renovate", authorType: "Bot", body: "" }), CONFIG);
+  assert.equal(unmannedOf([bot]).pct, null); // 0% と出さない
+  const many = prFacts(rawPr(1, { body: marked(questionRows(30)) }), CONFIG);
   assert.deepEqual(unmannedOf([many]).pct, { low: 0, high: 88 }); // 15 + 150 > 120
   const report = buildReport({
     prs: [pr({ week: "2026-10-12" }), pr({ number: 2, week: "2026-10-19" })], // 今週の物は合計に入れない
@@ -135,7 +185,9 @@ test("無人化率: PR の無い週は —。人の工数が全部を人が書�
   assert.deepEqual(report.decision.unmanned.prs, { ai: 1, human: 0, bot: 0 });
   assert.equal(report.decision.unmanned.rule.question, 5);
   const md = renderMarkdown(report);
-  assert.match(md, /\| 2026-10-05 \| — \| 0時間 \| 0時間 \| 0・0・0 \| 0・0・0 \|/);
-  assert.match(md, /\| 2026-10-12 \| 88% \| 0\.3時間 \| 2時間 \| 1・0・0 \| 0・0・0 \|/);
+  assert.match(md, /\| 2026-10-05 \| — \| 0時間 \| 0時間 \| 0・0・0 \| 0・0・0・0 \|/);
+  assert.match(md, /\| 2026-10-12 \| 88% \| 0\.3時間 \| 2時間 \| 1・0・0 \| 0・0・0・0 \|/);
   assert.match(md, /AI の PR × 15分 \+ 人の PR × 120分/);
+  assert.match(md, /人の工数の上の端\(= 無人化率の低い方\)に、問い1つ × 5分を足す/);
+  assert.match(md, /ボットの PR が多い週は無人化率が少し下がる/);
 });

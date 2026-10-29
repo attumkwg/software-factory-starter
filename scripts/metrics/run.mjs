@@ -13,7 +13,7 @@ import { makeContext } from "../checkup/context.mjs";
 import { resolveRepo } from "../checkup/gh.mjs";
 import { addDays, isDate, todayInTokyo } from "../checkup/phase.mjs";
 import { loadPeopleConfig } from "../cost/source-people.mjs";
-import { aiMarkersOf, PEOPLE_FILE } from "./ai-assisted.mjs";
+import { PEOPLE_FILE } from "./ai-assisted.mjs";
 import {
   acceptanceFiles,
   collectDeploys,
@@ -70,7 +70,7 @@ export function collectHandoff({ ctx, gh, weeks }) {
 /** GitHub とファイルから集めて、週の数字にする(gh は ghGraphql。テストでは偽物) */
 export function collectReport({ ctx, gh, files, weeksCount, environment }) {
   const weeks = fullWeeks(ctx.today, weeksCount);
-  const markers = aiMarkersOf(ctx.read(PEOPLE_FILE));
+  // AI の印(ai_markers)と分(minutes)は people.yaml から1度に読む
   const config = loadPeopleConfig(ctx.read(PEOPLE_FILE));
   // 検索の日付は UTC。日本時間の月曜 0:00 は前の日の 15:00(UTC)なので、1日前から読んで週で絞る
   const since = addDays(weeks[0], -1);
@@ -81,9 +81,13 @@ export function collectReport({ ctx, gh, files, weeksCount, environment }) {
     notes.push("リポジトリが分からない(gh repo view が通らない)。PR とデプロイは数えていない");
   else {
     const p = collectPrs(gh, ctx.repo, since, MAX_PRS);
-    if (p.ok)
-      prs = p.prs.map((pr) => prFacts(pr, markers, config)).filter((pr) => pr.week >= weeks[0]);
+    if (p.ok) prs = p.prs.map((pr) => prFacts(pr, config)).filter((pr) => pr.week >= weeks[0]);
     else notes.push(p.message);
+    const overflow = p.ok ? p.prs.filter((pr) => pr.overflow).length : 0;
+    if (overflow > 0)
+      notes.push(
+        `コメントかレビューが上限を超えた PR が ${overflow}件(無人化率の分を少なめに数えた。コメント 100件・レビュー 50件まで読む)`,
+      );
     if (p.truncated)
       notes.push(`マージした PR が ${MAX_PRS} 件を超えた(古い週の数が少ない。--weeks を減らす)`);
     const d = collectDeploys(gh, ctx.repo, environment, since);

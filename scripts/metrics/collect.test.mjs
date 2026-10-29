@@ -135,6 +135,7 @@ test("集めた結果に人の名前・本文を出さない。GitHub が読め�
   };
   const reviewed = prNode(1, {
     comments: {
+      pageInfo: { hasNextPage: true }, // 101件目からは読まない → 読めなかった物に出す
       nodes: [
         { author: { __typename: "User" } },
         { author: { __typename: "User" } },
@@ -159,6 +160,7 @@ test("集めた結果に人の名前・本文を出さない。GitHub が読め�
   assert.deepEqual(report.decision.weeks[0].unmanned.pct, { low: 72, high: 72 });
   assert.equal(text.includes("secret-person"), false);
   assert.equal(text.includes("secret-reviewer"), false);
+  assert.ok(report.notes.some((n) => n.includes("コメントかレビューが上限を超えた PR が 1件")));
   assert.equal(text.includes("全体像"), false);
 
   const broken = collectReport({

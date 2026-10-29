@@ -63,18 +63,42 @@ export function prMinutes(pr, reviews, config) {
   if (isBot(author)) add(out, "(ボットの PR の確認)", m.bot_pr_check);
   else add(out, `@${author}`, ai ? m.ai_pr_check : m.human_pr);
   if (!isBot(author)) add(out, `@${author}`, (pr.comments ?? 0) * m.comment);
-  for (const r of reviews.filter((r) => r.user?.login !== author && !isBot(r.user?.login)))
-    add(out, `@${r.user.login}`, m.review);
+  for (const r of countedReviews(author, reviews)) add(out, `@${r.user.login}`, m.review);
   return { ai, minutes: out };
 }
 
-/** 人が答えた問い1つに、別にかかったとみなす分(幅の上の端。docs/kit/roi.md の 2。people.yaml の minutes.question で変えられる) */
+/** 分に数えるレビュー(作った人自身・ボットのレビューは数えない) */
+const countedReviews = (author, reviews) =>
+  reviews.filter((r) => r.user?.login !== author && !isBot(r.user?.login));
+
+/**
+ * コメント・レビューの書き手がボットか(判定はここだけ)。GraphQL の __typename Bot・gh の JSON の is_bot・
+ * login が [bot] で終わる・Actions の要約(gh の JSON では login が github-actions で、[bot] も is_bot も付かない)
+ */
+export const isBotAuthor = (author) => {
+  const login = String(author?.login ?? "");
+  return (
+    author?.__typename === "Bot" ||
+    author?.is_bot === true ||
+    login.endsWith("[bot]") ||
+    login === "github-actions" ||
+    login === "app/github-actions"
+  );
+};
+
+/** 人のコメントの数(ボットを除く。docs/kit/roi.md の 2 の数え直しと同じ)。comments は { author } の並び */
+export const humanComments = (comments) =>
+  (comments ?? []).filter((c) => !isBotAuthor(c?.author)).length;
+
+/** 人が答えた問い1つに、別にかかったとみなす分(人の工数の上の端 = 無人化率の低い方。docs/kit/roi.md の 2。people.yaml の minutes.question) */
 export const QUESTION_MINUTES = 5;
 
 /**
  * PR 1件の人の時間の幅と、全部を人が書いたらの分(docs/kit/roi.md の 2 の式)。
- * low = prMinutes の合計・high = low + 問い × 5分・byHand = AI の PR を人が書いた(human_pr)とした分。
- * 週の数字の無人化率(pnpm metrics)と北極星の分母(pnpm kpi --roi)が同じ物を使う
+ * low = prMinutes の合計・high = 人の工数の上の端(= 無人化率の低い方)に、問い1つ × 5分を足す・
+ * byHand = AI の PR を人が書いた(human_pr)とした分・reviews = 分に数えたレビューの数。
+ * 同じ式を、週の数字の無人化率(pnpm metrics)・北極星の分母(pnpm kpi --roi)・費用のページが使う。
+ * 費用のページだけ、コメントの数にボットを含む(GitHub の検索の数しか読まないため)。ほかの2つはボットを除いた数を渡す
  */
 export function prMinuteRange(pr, reviews, questions, config) {
   const { ai, minutes } = prMinutes(pr, reviews, config);
@@ -86,6 +110,7 @@ export function prMinuteRange(pr, reviews, questions, config) {
     low,
     high: low + questions * (m.question ?? QUESTION_MINUTES),
     byHand: byAi ? low - m.ai_pr_check + m.human_pr : low,
+    reviews: countedReviews(pr.user?.login, reviews).length,
   };
 }
 

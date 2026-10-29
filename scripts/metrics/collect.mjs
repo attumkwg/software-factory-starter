@@ -3,6 +3,7 @@
 // gh(path, vars) は { ok, data } か { ok: false, message } を返す(テストでは偽物)。
 import { execFileSync } from "node:child_process";
 import { readEnv } from "../checkup/gh.mjs";
+import { humanComments } from "../cost/source-people.mjs";
 
 /** gh api graphql(読むだけ)。CHECKUP_READ_TOKEN があればそれで読む(点検と同じ) */
 export function ghGraphql(query, vars) {
@@ -37,8 +38,8 @@ const PRS = `query($q: String!, $after: String) {
       number createdAt mergedAt body
       author { login __typename }
       labels(first: 30) { nodes { name } }
-      comments(first: 100) { nodes { author { __typename } } }
-      reviews(first: 50) { nodes { author { login __typename } } }
+      comments(first: 100) { pageInfo { hasNextPage } nodes { author { login __typename } } }
+      reviews(first: 50) { pageInfo { hasNextPage } nodes { author { login __typename } } }
       commits(first: 100) { nodes { commit {
         message parents { totalCount } author { name email }
       } } }
@@ -66,7 +67,8 @@ export function collectPrs(gh, repo, since, max) {
   return { ok: true, prs: prs.slice(0, max), truncated: total > max };
 }
 
-const toPr = (n) => ({
+/** 検索の1件を、数えるのに要る形に(コメント・レビューの名前は分を数えるのにだけ使い、prFacts が捨てる) */
+export const toPr = (n) => ({
   number: n.number,
   createdAt: n.createdAt,
   mergedAt: n.mergedAt,
@@ -75,12 +77,14 @@ const toPr = (n) => ({
   authorType: n.author?.__typename ?? null,
   labels: n.labels.nodes.map((l) => l.name),
   // 無人化率の分(コメント × 3分・ほかの人のレビュー × 20分)にだけ使う。名前は prFacts が捨てる。
-  // コメントはボット(Actions の要約など)を除く(docs/kit/roi.md の 2 の数え直しと同じ)
-  comments: (n.comments?.nodes ?? []).filter((c) => c.author?.__typename !== "Bot").length,
+  // コメントはボット(Actions の要約など)を除く(pnpm kpi --roi・docs/kit/roi.md の 2 の数え直しと同じ)
+  comments: humanComments(n.comments?.nodes),
   reviewers: (n.reviews?.nodes ?? []).map((r) => ({
     login: r.author?.login ?? null,
     type: r.author?.__typename ?? null,
   })),
+  // コメント(100件)かレビュー(50件)が上限を超えた(超えた分は数えていない。少なめに出る)
+  overflow: Boolean(n.comments?.pageInfo?.hasNextPage || n.reviews?.pageInfo?.hasNextPage),
   commits: n.commits.nodes.map(({ commit: c }) => ({
     message: c.message,
     parents: c.parents.totalCount,

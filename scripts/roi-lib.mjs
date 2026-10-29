@@ -3,7 +3,7 @@
 // 【実測】PR の数・マージした週・KPI の記録 /【推定】人の時間(PR × docs/cost/people.yaml の分数)・得る物の見込み。金額は扱わない。
 import { checkPrBody, stripComments } from "./bets-lib.mjs";
 import { addDays, daysBetween, mondayOf, toDate, todayInTokyo } from "./checkup/phase.mjs";
-import { prMinuteRange } from "./cost/source-people.mjs";
+import { humanComments, prMinuteRange } from "./cost/source-people.mjs";
 import { kpiRefs } from "./kpi-lib.mjs";
 import { roiRange } from "./loop-lib.mjs";
 import { questionsOf } from "./metrics/lib.mjs";
@@ -46,7 +46,7 @@ export function prFactOf(pr, { config, stages }) {
     user: { login },
     labels: pr.labels,
     body: pr.body,
-    comments: (pr.comments ?? []).length,
+    comments: humanComments(pr.comments), // ボット(Actions の要約など)は除く。週の数字の無人化率と同じ
   };
   const reviews = (pr.reviews ?? []).map((r) => ({ user: { login: loginOf(r.author) } }));
   const range = prMinuteRange(shaped, reviews, questionsOf(pr.body).count, config);
