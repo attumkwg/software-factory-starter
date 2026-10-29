@@ -34,6 +34,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "feature_flag.enable": "機能を入れた",
   "feature_flag.disable": "機能を切った",
   "tenant.create": "組織を作った",
+  "tenant.delete": "組織を消した(解約)",
   "invitation.create": "人を招いた",
   "invitation.revoke": "招待を取り消した",
   "invitation.accept": "招待を受けて参加した",
@@ -54,14 +55,16 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "scim.user_enable": "止めた人を戻した",
   "audit.export": "監査ログを書き出した",
   "data.export": "組織のデータを書き出した",
-  "sso.update": "SSO の設定を変えた",
-  "sso.connect": "SSO(会社の IdP)をつないだ",
-  "sso.disconnect": "SSO(会社の IdP)を外した",
+  "sso.update": "SSO の必須と緊急用の管理者を変えた",
+  // 運営のコマンドが残す物は、文に「運営が」と書く(行為者の記録は今のまま)
+  "sso.connect": "運営が SSO(会社の IdP)をつないだ",
+  "sso.disconnect": "運営が SSO(会社の IdP)を外した",
   // 公開の LP の事前登録(運営の組織の監査ログにだけ出る)
   "pre_registration.purged": "期限の過ぎた事前登録を消した",
-  "pre_registration.deleted": "問い合わせで事前登録を消した",
-  "pre_registration.converted": "事前登録から組織を作った",
-  "pre_registration.found": "メールアドレスから事前登録を探した",
+  "pre_registration.deleted": "運営が問い合わせで事前登録を消した",
+  "pre_registration.converted": "事前登録を組織にした印を付けた",
+  // 見つかったときだけ残る
+  "pre_registration.found": "運営がメールアドレスから事前登録を見つけた",
   "auth.switch_in": "ほかの組織からこの組織に切り替えた",
   "auth.switch_out": "この組織からほかの組織に切り替えた",
   "demo.reset": "デモのデータを戻した",
@@ -81,6 +84,8 @@ const TARGET_LABELS: Record<string, string> = {
   domain: "ドメイン",
   member: "人",
   scim_token: "SCIM の鍵",
+  pre_registration: "事前登録",
+  file: "ファイル",
 };
 const FIELD_LABELS: Record<string, string> = {
   title: "題名",

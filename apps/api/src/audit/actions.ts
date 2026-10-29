@@ -138,6 +138,8 @@ export const MANUAL_AUDIT_ACTIONS = {
   // 運営のコマンド create-tenant が組織を作った(docs/specs/0026-tenant-provisioning.md)。
   // 作った組織と運営の組織の両方に残す。details.adminUserId に最初の管理者の ID
   tenantCreate: "tenant.create",
+  // 解約で組織を消した(src/offboarding/delete-tenant.ts)。運営の組織に残す。details.counts に表ごとの件数
+  tenantDelete: "tenant.delete",
   // 招かれた人が、ログインの前に招待を受けた(公開の API。行為者は受けてできた人)
   invitationAccept: "invitation.accept",
   // 運営のコマンド plan・create-tenant が、組織の契約のプランを変えた(docs/specs/0047-plans.md)。

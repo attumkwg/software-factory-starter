@@ -10,7 +10,7 @@ import {
 
 /**
  * API の監査ログの名前(apps/api/src/audit/actions.ts)を、ファイルの文字から拾う。
- * 画面から API のコードは import しない(別のサービス)ので読むだけ。コメントの行は飛ばし、
+ * 画面から API のコードは import しない(別のサービス)ので読むだけ。コメントの行と行の終わりのコメントは飛ばし、
  * 「"」で囲まれた中で、点を含み・空白と「/」を含まない物(project.create など)を名前とみなす。
  */
 function apiActionNames(): string[] {
@@ -21,6 +21,8 @@ function apiActionNames(): string[] {
     if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
     const parts = trimmed.split('"');
     for (let i = 1; i < parts.length; i += 2) {
+      // 「"」の外に「//」があれば、そこから後ろは行の終わりのコメント
+      if ((parts[i - 1] as string).includes("//")) break;
       const s = parts[i] as string;
       if (s.includes(".") && !s.includes(" ") && !s.includes("/")) names.add(s);
     }

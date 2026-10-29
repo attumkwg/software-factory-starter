@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { MANUAL_AUDIT_ACTIONS } from "../audit/actions.ts";
 import { recordAudit } from "../audit/record.ts";
 import type { RootDb } from "../db/client.ts";
 import { withTenant } from "../db/tenant.ts";
@@ -137,7 +138,7 @@ export async function deleteTenant(
       recordAudit(tx, {
         tenantId: opts.supportTenantId as string,
         actor: { kind: "system", id: null },
-        action: "tenant.delete",
+        action: MANUAL_AUDIT_ACTIONS.tenantDelete,
         target: { type: "organization", id: tenantId },
         outcome: "allowed",
         details: { counts: plan.counts },

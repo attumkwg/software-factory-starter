@@ -18,6 +18,14 @@
     "test:coverage": {
       "outputs": ["coverage/**"]
     },
+    "@app/web#test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/src/audit/actions.ts"],
+      "outputs": []
+    },
+    "@app/web#test:coverage": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/src/audit/actions.ts"],
+      "outputs": ["coverage/**"]
+    },
     "@app/api#test:coverage": {
       "cache": false,
       "outputs": ["coverage/**"]
