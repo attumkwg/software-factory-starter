@@ -31,7 +31,8 @@ const srcOf = (files) => ({
       .filter((f) => f.startsWith(`${dir}/`))
       .sort(),
 });
-const PR_WORKFLOW = "on: pull_request\njobs:\n  lint:\n    name: lint\n    runs-on: x\n";
+const PR_WORKFLOW =
+  "on: [pull_request, merge_group]\njobs:\n  lint:\n    name: lint\n    runs-on: x\n";
 
 test("ラベルの使われ方を拾う: フラグ・カンマ・ラベルの名前の比べ・定数", () => {
   const text = [
@@ -80,7 +81,7 @@ test("一覧に無いラベルを使っていれば落ち、使っていない�
 
 test("必須のチェックは PR で動くジョブの名前と突き合わせる(matrix を広げる)", () => {
   const wf = [
-    "on: [pull_request, push]",
+    "on: [pull_request, push, merge_group]",
     "jobs:",
     "  image:",
     `    name: イメージ(\${{ matrix.app }})`,
@@ -106,6 +107,77 @@ test("必須のチェックは PR で動くジョブの名前と突き合わせ�
   assert.deepEqual(
     r.problems.map((p) => p.match(/「(.+?)」/)[1]),
     ["夜だけ", "消えた"],
+  );
+});
+
+test("必須のチェックは、マージキューの中(merge_group)でも流れるワークフローに要る(仕様 0095)", () => {
+  const src = srcOf({
+    ".github/workflows/ci.yml": PR_WORKFLOW,
+    ".github/workflows/pr-body.yml":
+      "on:\n  pull_request:\n    types: [edited]\njobs:\n  body:\n    name: 本文\n",
+  });
+  const setup = setupWith({ ruleset: { name: "main", required_checks: ["lint", "本文"] } });
+  const r = checkAll({ setup, labels: [], src });
+  assert.equal(r.problems.length, 1);
+  assert.match(r.problems[0], /「本文」のワークフローに merge_group が無い/);
+  // キューの中で if に飛ばされるジョブ(飛ばすと成功になる)も落とす
+  const skip = srcOf({
+    ".github/workflows/ci.yml": [
+      "on: [pull_request, merge_group]",
+      "jobs:",
+      "  a:",
+      "    name: 互換",
+      "    if: github.event_name == 'pull_request'",
+      "  b:",
+      "    name: 両方",
+      "    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'",
+    ].join("\n"),
+  });
+  const both = setupWith({ ruleset: { name: "main", required_checks: ["互換", "両方"] } });
+  const problems = checkAll({ setup: both, labels: [], src: skip }).problems;
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /「互換」の if が pull_request だけ/);
+});
+
+test("マージキューの設定: 数の範囲・マージの方法・入れるなら strict は false(仕様 0095)", () => {
+  const queue = {
+    enabled: false,
+    merge_method: "SQUASH",
+    max_entries_to_build: 5,
+    max_entries_to_merge: 5,
+    min_entries_to_merge: 1,
+    min_entries_to_merge_wait_minutes: 5,
+    grouping_strategy: "ALLGREEN",
+    check_response_timeout_minutes: 60,
+  };
+  const rs = (q, over = {}) => ({
+    name: "main",
+    required_checks: ["lint"],
+    allowed_merge_methods: ["squash", "rebase"],
+    strict: true,
+    merge_queue: q,
+    ...over,
+  });
+  const v = (q, over) => validateSetup(setupWith({ ruleset: rs(q, over) }));
+  assert.deepEqual(v(queue), []);
+  // 書かなければ扱わない(画面で足した物を残す)
+  assert.deepEqual(v(undefined), []);
+  assert.match(v({ ...queue, enabled: true }).join("\n"), /strict は false/);
+  assert.deepEqual(v({ ...queue, enabled: true }, { strict: false }), []);
+  assert.match(v({ ...queue, merge_method: "MERGE" }).join("\n"), /SQUASH か REBASE/);
+  assert.match(
+    v(queue, { allowed_merge_methods: ["rebase"] }).join("\n"),
+    /allowed_merge_methods に無い/,
+  );
+  assert.match(
+    v({ ...queue, max_entries_to_build: 0 }).join("\n"),
+    /max_entries_to_build は 1〜100/,
+  );
+  assert.match(v({ ...queue, min_entries_to_merge: 6 }).join("\n"), /max_entries_to_merge 以下/);
+  assert.match(v({ ...queue, grouping_strategy: "HEADGREEN" }).join("\n"), /ALLGREEN/);
+  assert.match(
+    validateSetup(setupWith({ ai_merge: { sensors_only: "yes" } })).join("\n"),
+    /ai_merge.sensors_only は true か false/,
   );
 });
 

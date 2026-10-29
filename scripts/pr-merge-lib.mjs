@@ -81,3 +81,65 @@ export function humanOnlyReasons({ labels, files, protectedPaths }) {
     reasons.push(`危険度「高」・守りの場所を変えている(${touched.slice(0, 5).join("・")})`);
   return reasons;
 }
+
+// ── センサーだけで入れる範囲(人を呼ばない。G-135・ADR 0094)──
+// 持ち主が setup.yml の ai_merge.sensors_only を true にした所だけ。人の答えが要る理由が1つでもあれば、今までどおり返事を待つ。
+
+/** setup.yml の ai_merge.sensors_only(書いていなければ false)。依存なしで読む(行で見る) */
+export function sensorsOnlyFrom(setupYaml) {
+  const lines = String(setupYaml ?? "").split("\n");
+  const start = lines.findIndex((l) => /^ai_merge:\s*(#.*)?$/.test(l));
+  if (start < 0) return false;
+  for (const line of lines.slice(start + 1)) {
+    if (line.trim() !== "" && !/^\s/.test(line)) return false;
+    const m = line.match(/^\s+sensors_only:\s*(true|false)\b/);
+    if (m) return m[1] === "true";
+  }
+  return false;
+}
+
+/** PR の本文の「⚠️ 危険度」で「高」に印を付けたか */
+export const bodySaysHigh = (body) =>
+  String(body ?? "")
+    .split("\n")
+    .some((l) => /^\s*-\s*\[[xX]\]\s*高/.test(l));
+
+/**
+ * 人を呼ぶ理由の並び(空ならセンサーだけで入れてよい)。humanOnlyReasons に加えて、
+ * 印 needs-human・本文の問い(questionCount)・本文の危険度「高」・触った「高」の領域(touchedAreaNames)を見る
+ */
+export function sensorMergeBlockers({
+  labels,
+  files,
+  protectedPaths,
+  body,
+  questionCount,
+  touchedAreaNames,
+}) {
+  const reasons = humanOnlyReasons({ labels, files, protectedPaths });
+  if (labels.includes("needs-human")) reasons.push("印 needs-human が付いている");
+  if (questionCount > 0)
+    reasons.push(`「🧑‍⚖️ 人に判断してほしい所」に問いが ${questionCount} つある`);
+  if (bodySaysHigh(body)) reasons.push("本文の危険度が「高」");
+  if (touchedAreaNames.length > 0)
+    reasons.push(`危険度「高」の領域に触っている(${touchedAreaNames.join("・")})`);
+  return reasons;
+}
+
+/** センサーだけで入れたことを PR に残すコメントの頭 */
+export const SENSOR_MARK = "## センサーだけでマージ(人を呼ばない範囲";
+
+/** センサーだけで入れた記録。sha は確かめた版・required は緑だった必須のチェックの数 */
+export const sensorComment = ({ sha, required, queued }) =>
+  [
+    `${SENSOR_MARK}・ADR 0094)`,
+    "",
+    `- 当てた版: \`${sha.slice(0, 7)}\`(この版の必須のチェック ${required} 件が全部緑)`,
+    "- 人を呼ぶ理由が無かった: 守る場所・「高」の領域に触らない・印(needs-human・risk:high・tests:weakened)が無い・「🧑‍⚖️」の問いが無い・本文の危険度が「高」でない",
+    `- 入れ方: ${queued ? "マージキューに並べた(キューの中で必須のチェックをもう一度流す)" : "スカッシュでマージ"}`,
+    "",
+    "持ち主が .github/setup.yml の ai_merge.sensors_only を true にした所だけで動く。おかしければ revert して、どのセンサーが足りなかったかを書く。",
+  ].join("\n");
+
+/** main の規則(rules/branches/main)にマージキューがあるか */
+export const mergeQueueOn = (rules) => (rules ?? []).some((r) => r.type === "merge_queue");

@@ -37,7 +37,7 @@ pnpm setup:github --apply
 | リポジトリ | マージは Squash と Rebase だけ・自動マージを使える・マージしたらブランチを消す・「Update branch」のボタン | `.github/setup.yml` の `repository` |
 | 守りの機能 | 秘密の見つけと push の保護・非公開の脆弱性の報告(公開のときだけ)・Dependabot の通知(直す PR は Renovate) | `security` |
 | Actions | 既定は読むだけ・Actions が PR を承認できない・SHA で固定した Action だけ・外の人の PR は毎回承認・成果物とログは7日 | `actions` |
-| ルールセット | main に PR 必須・必須のチェック・最新に追いついてから・直線の履歴・消せない・強制 push できない・例外なし | `ruleset` |
+| ルールセット | main に PR 必須・必須のチェック・最新に追いついてから・直線の履歴・消せない・強制 push できない・例外なし。マージキュー(既定はオフ。組織のリポジトリで使う。[throughput.md](throughput.md)) | `ruleset`(キューは `ruleset.merge_queue`) |
 | Environments | stg・prod・claude・zap は main からだけ。prod は承認する人(既定は流した人) | `environments` |
 | 変数 `KIT_ROLE` | ひな形なら `template`、キットから作ったリポジトリなら `product`(下の「ひな形と使う側」) | 名前で決まる(`template_repository`) |
 | 秘密 | **名前だけ**確かめる。値は入れない。足りなければ「人がやること」に出る | `environments[].secrets`・`secrets` |

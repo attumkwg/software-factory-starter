@@ -76,6 +76,49 @@ function highRiskApprovalsProblems(ruleset) {
   return [];
 }
 
+/** マージキューで使ってよいマージの方法(直線の履歴なので MERGE は使わない) */
+export const QUEUE_MERGE_METHODS = { SQUASH: "squash", REBASE: "rebase" };
+const QUEUE_NUMBERS = [
+  ["max_entries_to_build", 1, 100],
+  ["max_entries_to_merge", 1, 100],
+  ["min_entries_to_merge", 1, 100],
+  ["min_entries_to_merge_wait_minutes", 0, 360],
+  ["check_response_timeout_minutes", 1, 360],
+];
+
+/** マージキュー(G-135・仕様 0095)。書かなければ扱わない(画面で足した物を残す) */
+function mergeQueueProblems(ruleset) {
+  const q = ruleset?.merge_queue;
+  if (q === undefined) return [];
+  const at = "ruleset.merge_queue";
+  const problems = [];
+  if (typeof q?.enabled !== "boolean") problems.push(`${at}.enabled は true か false`);
+  const method = QUEUE_MERGE_METHODS[q?.merge_method];
+  if (!method) problems.push(`${at}.merge_method は SQUASH か REBASE`);
+  else if (!(ruleset.allowed_merge_methods ?? []).includes(method))
+    problems.push(`${at}.merge_method(${q.merge_method})が allowed_merge_methods に無い`);
+  for (const [key, min, max] of QUEUE_NUMBERS)
+    if (!(Number.isInteger(q?.[key]) && q[key] >= min && q[key] <= max))
+      problems.push(`${at}.${key} は ${min}〜${max} の整数`);
+  if (Number.isInteger(q?.min_entries_to_merge) && q.min_entries_to_merge > q.max_entries_to_merge)
+    problems.push(`${at}.min_entries_to_merge は max_entries_to_merge 以下`);
+  if (q?.grouping_strategy !== "ALLGREEN")
+    problems.push(`${at}.grouping_strategy は ALLGREEN(まとめた全部が緑のときだけ入れる)`);
+  if (q?.enabled === true && ruleset.strict !== false)
+    problems.push(
+      `${at}.enabled が true なら ruleset.strict は false(キューが最新の main に重ねて確かめる。追いつき直しが残ると流量が上がらない)`,
+    );
+  return problems;
+}
+
+/** AI のマージで返事を待たない範囲(G-135・ADR 0094)。書かなければ false */
+function aiMergeProblems(aiMerge) {
+  if (aiMerge === undefined) return [];
+  return typeof aiMerge?.sensors_only === "boolean"
+    ? []
+    : ["ai_merge.sensors_only は true か false"];
+}
+
 /** 設定の書き方の問題 */
 export function validateSetup(setup) {
   const problems = [];
@@ -88,6 +131,8 @@ export function validateSetup(setup) {
     problems.push("ruleset.required_checks は名前の並び(1つ以上)");
   if (!setup?.ruleset?.name) problems.push("ruleset.name が無い");
   problems.push(...highRiskApprovalsProblems(setup?.ruleset));
+  problems.push(...mergeQueueProblems(setup?.ruleset));
+  problems.push(...aiMergeProblems(setup?.ai_merge));
   problems.push(...environmentProblems(setup?.environments));
   for (const s of setup?.template_schedules ?? [])
     if (!s?.file || !s?.why) problems.push("template_schedules は file と why を書く");
