@@ -348,6 +348,23 @@ routes:
     note: 必須を切る。運営の組織では切れない(409。account-security.int.test.ts)
     expect: { admin: 204, member: 403, viewer: 403, anonymous: 401 }
 
+  # 組織の「タスクが完了したメール」(docs/specs/0093-task-mail-switch.md)。組織の全員に効くので管理者だけ。
+  # パスに組織の ID を取らない(セッションの組織だけを指す)ので、他社の行は無い
+  - route: GET /api/organization/task-mail
+    permission: task_mail:manage
+    note: 送っているか(止めているか)。管理者だけ
+    expect: { admin: 200, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: POST /api/organization/task-mail
+    permission: task_mail:manage
+    note: 送るに戻す。止めていた間に完了したタスクのメールは後から送らない
+    expect: { admin: 204, member: 403, viewer: 403, anonymous: 401 }
+
+  - route: DELETE /api/organization/task-mail
+    permission: task_mail:manage
+    note: 止める。送る直前に見るので、止める前に完了してまだ送っていない物も送らない
+    expect: { admin: 204, member: 403, viewer: 403, anonymous: 401 }
+
   # ── 大きなお客さん向けの守りの段1a・1b・2(docs/specs/0056-sso-scim-ip-audit-export.md) ─────────
   # どれも管理者だけ。代理の社員(閲覧者に固定)も 403。
   # ドメインと IP の範囲と SCIM の鍵はプランの機能(sso・ip-allowlist・scim)。キットの既定のプランには入れない(設計書 0056 の U-6)ので、
