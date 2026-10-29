@@ -106,6 +106,35 @@ test("ルールセット: 扱わない規則と鍵は残し、例外は外し、
   assert.equal(countDiffs(run(gh)), 0);
 });
 
+test("マージキュー: enabled なら規則を足し、false なら外す。書かなければ画面で足した物を残す(仕様 0095)", () => {
+  const withQueue = (enabled, strict) => ({
+    ...setup,
+    ruleset: { ...setup.ruleset, strict, merge_queue: { ...setup.ruleset.merge_queue, enabled } },
+  });
+  const runWith = (gh, s) => plan({ gh, setup: s, labels, src: srcOf(), today: "2026-11-02" });
+  const gh = fakeGitHub();
+  apply(runWith(gh, setup));
+  // 入れる: キューの規則を足し、最新に追いついてから(strict)を外す
+  const on = withQueue(true, false);
+  const text = entriesOf(runWith(gh, on), "ルールセット")[0].text;
+  assert.match(text, /マージキューを足す/);
+  assert.match(text, /最新に追いついてから: true → false/);
+  apply(runWith(gh, on));
+  const queue = gh.state.rulesets[0].rules.find((r) => r.type === "merge_queue");
+  assert.equal(queue.parameters.merge_method, "SQUASH");
+  assert.equal(queue.parameters.grouping_strategy, "ALLGREEN");
+  assert.equal(queue.parameters.do_not_enforce_on_create, undefined);
+  assert.equal(countDiffs(runWith(gh, on)), 0);
+  // 書かなければ扱わない(画面で足したキューを残す)
+  const { merge_queue: _, ...noKey } = on.ruleset;
+  assert.equal(countDiffs(runWith(gh, { ...setup, ruleset: noKey })), 0);
+  // 外す
+  assert.match(
+    entriesOf(runWith(gh, withQueue(false, false)), "ルールセット")[0].text,
+    /マージキューを外す/,
+  );
+});
+
 test("Environments: main 以外の配備の決まりは外し、足りない秘密の名前は人がやることに", () => {
   const gh = fakeGitHub((s) => {
     s.environments.claude = {

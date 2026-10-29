@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { isBackgroundAiPr, judgeOpenPrs, limitOf } from "./ai-open-prs-lib.mjs";
+import { prQuestions, QUEUE_LABELS } from "../../scripts/human-queue-lib.mjs";
+import { sensorsOnlyFrom } from "../../scripts/pr-merge-lib.mjs";
+import {
+  hasQuestions,
+  isBackgroundAiPr,
+  judgeOpenPrs,
+  limitOf,
+  sensorsOnlyOf,
+  WAITING_LABELS,
+} from "./ai-open-prs-lib.mjs";
 
 const pr = (number, login, type = "User", labels = []) => ({
   number,
@@ -37,4 +47,58 @@ test("上限より少なければ動き、達したら動かない", () => {
   assert.equal(full.ok, false);
   assert.ok(full.line.includes("#1・#2・#3"));
   assert.equal(judgeOpenPrs({ prs: [], limit: 5 }).ok, true);
+});
+
+const QUESTION_BODY = [
+  "## 🧑‍⚖️ 人に判断してほしい所",
+  "",
+  "| # | 種類 | 事実 | 人が判断する問い |",
+  "|---|---|---|---|",
+  "| 1 | 事業判断 | 既定はオフ | (a) オフのまま か (b) オン か |",
+].join("\n");
+
+test("センサーだけで入れる所では、人を待つ PR(印・問い)だけを上限に数える(仕様 0095)", () => {
+  const bot = (n, labels = [], body = "") => ({ ...pr(n, "claude[bot]", "Bot", labels), body });
+  const prs = [
+    bot(1),
+    bot(2),
+    bot(3, ["risk:high"]),
+    bot(4, [], QUESTION_BODY),
+    bot(5, ["needs-human"]),
+  ];
+  // 返事を待つ所(今までどおり): 全部を数える
+  assert.equal(judgeOpenPrs({ prs, limit: 5 }).ok, false);
+  // センサーだけで入れる所: 人を待つのは 3・4・5 の3本
+  const sensors = judgeOpenPrs({ prs, limit: 5, sensorsOnly: true });
+  assert.equal(sensors.ok, true);
+  assert.ok(sensors.line.includes("3 / 5 本"), sensors.line);
+  const full = judgeOpenPrs({ prs, limit: 3, sensorsOnly: true });
+  assert.equal(full.ok, false);
+  assert.ok(full.line.includes("#3・#4・#5"), full.line);
+});
+
+test("全部の本数にも天井(センサーで回る PR も CI と費用に効く)", () => {
+  const prs = Array.from({ length: 4 }, (_, i) => ({
+    ...pr(i + 1, "claude[bot]", "Bot"),
+    body: "",
+  }));
+  const r = judgeOpenPrs({ prs, limit: 5, totalLimit: 4, sensorsOnly: true });
+  assert.equal(r.ok, false);
+  assert.ok(r.line.includes("全体の上限(4 本)"), r.line);
+  assert.equal(limitOf("", 20), 20);
+});
+
+test("見分けは、判断待ちの積み場・マージの判定と同じ(写しがずれていない)", () => {
+  assert.deepEqual(WAITING_LABELS, QUEUE_LABELS);
+  const bodies = [
+    QUESTION_BODY,
+    "## 🧑‍⚖️ 人に判断してほしい所\n\n| # | 問い |\n|---|---|\n| 1 | なし |",
+    "## 🧑‍⚖️ 人に判断してほしい所\n<!-- | 1 | 例 | 例 | 例の問い | -->\n| | | | |",
+    "## 🧑‍⚖️ 人に判断してほしい所\n\n| 1 | 問い |\n\n## 次\n| 2 | 外の表 |",
+    "本文なし",
+  ];
+  for (const b of bodies) assert.equal(hasQuestions(b), prQuestions(b).length > 0, b);
+  const setup = readFileSync(".github/setup.yml", "utf8");
+  for (const y of [setup, "ai_merge:\n  sensors_only: true\n", "x:\n  sensors_only: true\n"])
+    assert.equal(sensorsOnlyOf(y), sensorsOnlyFrom(y), y);
 });

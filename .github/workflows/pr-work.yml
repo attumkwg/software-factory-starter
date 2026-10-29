@@ -1,17 +1,21 @@
 # PR の本文の「🎯 取り組み」と「作業の種類」が埋まっているか(docs/guides/bets-and-assets.md)。
 # 本文を直したときにも流すので、CI(ci.yml)とは別にする(重い検査を本文の直しで流し直さない)。
 # 本文は env で渡して標準入力から読む(式を run に直接書くと、本文で命令を差し込まれる)。
+# マージキューの中(merge_group)では、キューの枝の名前から PR を引き、本文を API で読み直す(G-135・仕様 0095)。
 name: PR の取り組み
 
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
-  group: pr-work-${{ github.event.pull_request.number }}
+  group: pr-work-${{ github.event.pull_request.number || github.event.merge_group.head_ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,7 +32,18 @@ jobs:
           node-version-file: .node-version
       # 依存は要らない(node の標準だけ)。ボット(Renovate など)の PR で空なら「保守」とみなす
       - name: PR の本文を確かめる
+        if: github.event_name == 'pull_request'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: printf '%s' "$PR_BODY" | node scripts/bets.mjs --pr-body --author "$PR_AUTHOR"
+      - name: PR の本文を確かめる(マージキューの中。今の本文を読み直す)
+        if: github.event_name == 'merge_group'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
+        run: |
+          number="$(node .github/scripts/queue-pr.mjs)"
+          author="$(gh api "repos/$GH_REPO/pulls/$number" --jq .user.login)"
+          gh api "repos/$GH_REPO/pulls/$number" --jq '.body // ""' | node scripts/bets.mjs --pr-body --author "$author"

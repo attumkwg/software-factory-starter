@@ -2,11 +2,14 @@
 # レビューを指しているか(G-61・仕様 0061)。AI は「承認(@名前)」の形を自分で書けるので、答えは AI が書けない
 # 場所(人のアカウントの GitHub のコメント・レビュー)に置き、ファイルの側はそれを指すだけにする。
 # 確かめる中身(スクリプト)は PR の側ではなく土台のブランチ(base)の物を使う(PR の中で緩めて通すのを防ぐ)。読むだけ。
+# マージキューの中(merge_group)でも、キューの枝の名前から PR を引いて確かめ直す(G-135・仕様 0095)。
 name: 未確定事項の答え
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -14,7 +17,7 @@ permissions:
   issues: read
 
 concurrency:
-  group: decision-evidence-${{ github.event.pull_request.number }}
+  group: decision-evidence-${{ github.event.pull_request.number || github.event.merge_group.head_ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -36,9 +39,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
         run: |
           if [ ! -f scripts/decision-evidence.mjs ]; then
             echo "土台のブランチにまだ scripts/decision-evidence.mjs が無いので確かめない(このチェックを足す PR)"
             exit 0
+          fi
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER="$(node .github/scripts/queue-pr.mjs)"
+            export PR_NUMBER
           fi
           node scripts/decision-evidence.mjs

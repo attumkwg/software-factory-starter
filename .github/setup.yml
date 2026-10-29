@@ -55,7 +55,19 @@ ruleset:
   linear_history: true
   block_deletion: true
   block_force_push: true
-  strict: true # 最新の main に追いついてから(並べた PR が合わさって main を赤くするのを防ぐ)
+  strict: true # 最新の main に追いついてから(並べた PR が合わさって main を赤くするのを防ぐ)。マージキューを入れたら false(キューが最新の main に重ねて確かめる)
+  # マージキュー(G-135・仕様 0095)。使えるのは組織の公開のリポジトリと、Enterprise Cloud の組織の非公開のリポジトリ
+  # (個人のリポジトリでは使えない。docs/runbooks/move-to-org.md の 3)。enabled: true にしたら strict: false にして --apply。
+  # 必須のチェックは全部、キューの中(merge_group)でも流れる(pnpm setup:check が見る)ので、必須から外すチェックは無い
+  merge_queue:
+    enabled: false
+    merge_method: SQUASH # SQUASH・REBASE のどちらか(allowed_merge_methods と合わせる。直線の履歴なので MERGE は使えない)
+    max_entries_to_build: 5 # 同時に確かめる数(CI の同時の数と費用が増える)
+    max_entries_to_merge: 5 # 1回にまとめて入れる数の上限(キューで落ちる PR が多ければ下げる)
+    min_entries_to_merge: 1 # 1本でも待たずに入れる
+    min_entries_to_merge_wait_minutes: 5
+    grouping_strategy: ALLGREEN # まとめた全部が緑のときだけ入れる(HEADGREEN は先頭しか見ないので使わない)
+    check_response_timeout_minutes: 60 # 必須のチェックがこの分数で返らなければ、キューから外す
   # 必須のチェック(ジョブの name。GitHub Actions からの物だけ通す)。名前がジョブに無いと pnpm setup:check が落ちる
   required_checks:
     - Biome・型・単体
@@ -70,10 +82,17 @@ ruleset:
     - イメージのビルドと検査(Trivy image・web)
     - イメージのビルドと検査(Trivy image・mail)
     - ワークフローの検査(actionlint・zizmor)
-    - 取り組みと作業の種類(PR の本文) # マージキューを使うなら外す(キューの中では流れない)
-    - 危険度「高」の承認の人数 # 1人の間(high_risk_approvals: 0)は数えずに通る。マージキューを使うなら外す
-    - 未確定事項の答えの出どころ # 人の答えは人の GitHub のコメント・レビューを指す(G-61)
+    - 取り組みと作業の種類(PR の本文) # キューの中では、キューの枝の名前から PR を引いて本文を読み直す
+    - 危険度「高」の承認の人数 # 1人の間(high_risk_approvals: 0)は数えずに通る。キューの中でも数え直す
+    - 未確定事項の答えの出どころ # 人の答えは人の GitHub のコメント・レビューを指す(G-61)。キューの中でも確かめ直す
     - 見た目の比べ(VRT) # 見た目を変える PR は、基準を撮り直すまで止まる(docs/guides/vrt.md)
+
+# AI のマージ(持ち主が環境に KIT_AI_MERGE=slack を入れた所だけ。ADR 0086)で、持ち主の返事を待たずに入れる範囲(G-135・ADR 0094)。
+# sensors_only: true にすると、守る場所にも「高」の領域にも触らず、印(needs-human・risk:high・tests:weakened)も
+# 「🧑‍⚖️」の問いも無い PR は、必須のチェックが全部緑なら返事なしで入れる(pnpm pr:merge-when-green <番号> --sensors)。
+# 既定は false(全部の PR で持ち主の返事を待つ)。使う人が選ぶ。ここは危険度「高」なので、オンにする PR には持ち主の答えが要る
+ai_merge:
+  sensors_only: false
 
 # Environments(Settings → Environments)。どれも main からだけ使える(ブランチのワークフローは書き換えられるので GitHub の側で止める)
 environments:

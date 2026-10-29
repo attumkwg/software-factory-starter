@@ -58,14 +58,36 @@ const readWorkflows = (src) =>
     .filter((f) => /\.ya?ml$/.test(f))
     .map((file) => ({ file, ...readWorkflow(src.read(file)) }));
 
+const jobNames = (workflows) => new Set(workflows.flatMap((w) => w.jobs.flatMap((j) => j.names)));
+
 function checkRequired(setup, workflows) {
-  const names = new Set(
-    workflows.filter((w) => w.pullRequest).flatMap((w) => w.jobs.flatMap((j) => j.names)),
+  const names = jobNames(workflows.filter((w) => w.pullRequest));
+  // マージキューの中(merge_group)で流れない必須のチェックがあると、キューは返事を待って PR を外し続ける。
+  // キューを入れる前から見ておく(入れる日に必須を外して守りを弱めないため。仕様 0095)
+  const queuedJobs = workflows.filter((w) => w.mergeGroup).flatMap((w) => w.jobs);
+  const queued = new Set(queuedJobs.flatMap((j) => j.names));
+  // キューの中で if に飛ばされたジョブは「成功」を返すので、確かめずに入る
+  const skipped = new Set(
+    queuedJobs
+      .filter((j) => PR_ONLY_IF.test(j.if) && !/merge_group/.test(j.if))
+      .flatMap((j) => j.names),
   );
-  return setup.ruleset.required_checks
-    .filter((c) => !names.has(c))
-    .map((c) => `必須のチェック「${c}」が、PR で動くジョブの name に無い(名前を変えた・消した?)`);
+  return setup.ruleset.required_checks.flatMap((c) => {
+    if (!names.has(c))
+      return [`必須のチェック「${c}」が、PR で動くジョブの name に無い(名前を変えた・消した?)`];
+    if (!queued.has(c))
+      return [
+        `必須のチェック「${c}」のワークフローに merge_group が無い(マージキューの中で流れず、キューが止まる。docs/runbooks/move-to-org.md の 3)`,
+      ];
+    if (skipped.has(c))
+      return [
+        `必須のチェック「${c}」の if が pull_request だけ(キューの中では飛ばされて成功になり、確かめずに入る)`,
+      ];
+    return [];
+  });
 }
+
+const PR_ONLY_IF = /event_name\s*==\s*'pull_request'/;
 
 function checkEnvironments(setup, workflows, checkupEnvironments) {
   const declared = new Set((setup.environments ?? []).map((e) => e.name));
