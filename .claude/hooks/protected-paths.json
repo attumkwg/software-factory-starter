@@ -51,6 +51,8 @@
     "apps/web/playwright.vrt.config.ts",
     "scripts/test-weakening.mjs",
     "scripts/test-weakening-lib.mjs",
+    "scripts/design-tests.mjs",
+    "scripts/design-tests-lib.mjs",
     ".gitleaksignore",
     ".trivyignore.yaml",
     "renovate.json",

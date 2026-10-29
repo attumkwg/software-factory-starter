@@ -155,6 +155,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - `pnpm adr`(仕様・設計書・ADR の番号の重なり・見出しの形・範囲(`docs/kit/numbering.yaml`: キットは 0001〜4999・使う側は `checkup:adopt` が決めた始まりから)を見て、次の番号を出す。CI。先に adopt を済ませていたら一度 `--own-from 5000`。`docs/specs/0091-own-number-range.md`)
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
 - `pnpm gaps`(穴の一覧 `docs/scenarios/gaps.md` の今の数(全部と段ごと)・行の形・済みの行の仕様の状態・段の抜け・済んだ穴を「穴」と書いた文書。CI。`--write` で頭の「今の数」の表を作り直す。`docs/designs/0078-gaps-watch.md`)
+- `pnpm design-tests`(元(手元は `origin/main`・CI は PR の元)から変えた設計書の「7. 要求との対応」で、受け入れ条件の1行ずつにテストのファイル(名前に `.test.`・`.spec.`)のパスか「(手で確かめる: 理由)」があるか・設計書か指す仕様の状態が「完了」なら、そのファイルがあるか。新しい設計書・7 の節か状態を変えた物・完了にした仕様を指す物だけを見る。CI。`docs/designs/0097-design-test-paths.md`)
 - `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
 - `pnpm contrast`(色のトークンのコントラストの比。明るいテーマと暗いテーマ・WCAG 2.2 AA。案のファイルを並べて渡すと比べられる)
 - `pnpm sales:pack --out <ファイル>`(稟議の資料の束: 仕組みの事実・SLA・取り扱い・委託先を1つに。リポジトリの外に書く。デモの組織は stg でデモの前に手で戻す `demo-reset.yml`。`docs/guides/sales.md`)

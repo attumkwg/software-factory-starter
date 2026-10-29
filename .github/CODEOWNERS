@@ -66,6 +66,8 @@
 /apps/web/playwright.vrt.config.ts  @attumkwg
 /scripts/test-weakening.mjs         @attumkwg
 /scripts/test-weakening-lib.mjs     @attumkwg
+/scripts/design-tests.mjs           @attumkwg
+/scripts/design-tests-lib.mjs       @attumkwg
 /.gitleaksignore                    @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg

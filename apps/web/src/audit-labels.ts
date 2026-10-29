@@ -1,7 +1,7 @@
 import type { AuditEvent } from "@app/shared";
 
 // 監査ログの画面の文(apps/api/src/audit/actions.ts の名前 → 人が読む文)。文言は自由に変えてよい。
-// 名前を足したら、ここにも足す(無い名前はそのまま出る)。
+// 名前を足したら、ここにも足す(無い名前はそのまま出る)。足し忘れは単体テスト(audit-labels.test.ts)が落ちる。
 
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "auth.login": "ログインした",
@@ -28,10 +28,13 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "account.mfa_disable": "二段階認証を外した",
   "organization.mfa_require": "二段階認証を全員に必須にした",
   "organization.mfa_unrequire": "二段階認証の必須を切った",
+  "organization.task_mail_on": "タスクが完了したメールを送るに戻した",
+  "organization.task_mail_off": "タスクが完了したメールを止めた",
   "legal.consent": "利用規約などに同意した",
   "feature_flag.enable": "機能を入れた",
   "feature_flag.disable": "機能を切った",
   "tenant.create": "組織を作った",
+  "tenant.delete": "組織を消した(解約)",
   "invitation.create": "人を招いた",
   "invitation.revoke": "招待を取り消した",
   "invitation.accept": "招待を受けて参加した",
@@ -51,6 +54,17 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "scim.user_disable": "人を止めた",
   "scim.user_enable": "止めた人を戻した",
   "audit.export": "監査ログを書き出した",
+  "data.export": "組織のデータを書き出した",
+  "sso.update": "SSO の必須と緊急用の管理者を変えた",
+  // 運営のコマンドが残す物は、文に「運営が」と書く(行為者の記録は今のまま)
+  "sso.connect": "運営が SSO(会社の IdP)をつないだ",
+  "sso.disconnect": "運営が SSO(会社の IdP)を外した",
+  // 公開の LP の事前登録(運営の組織の監査ログにだけ出る)
+  "pre_registration.purged": "期限の過ぎた事前登録を消した",
+  "pre_registration.deleted": "運営が問い合わせで事前登録を消した",
+  "pre_registration.converted": "事前登録を組織にした印を付けた",
+  // 見つかったときだけ残る
+  "pre_registration.found": "運営がメールアドレスから事前登録を見つけた",
   "auth.switch_in": "ほかの組織からこの組織に切り替えた",
   "auth.switch_out": "この組織からほかの組織に切り替えた",
   "demo.reset": "デモのデータを戻した",
@@ -70,6 +84,8 @@ const TARGET_LABELS: Record<string, string> = {
   domain: "ドメイン",
   member: "人",
   scim_token: "SCIM の鍵",
+  pre_registration: "事前登録",
+  file: "ファイル",
 };
 const FIELD_LABELS: Record<string, string> = {
   title: "題名",
