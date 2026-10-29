@@ -63,11 +63,11 @@
 
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
-| `/review-pr` が人格ごとに別の AI を呼ぶ | 0・スキルの 1.5 | `.claude/skills/review-pr/SKILL.md`・`.claude/agents/reviewer.md`(手順。読んで確かめた) |
+| `/review-pr` が人格ごとに別の AI を呼ぶ | 0・スキルの 1.5(`.claude/skills/review-pr/SKILL.md`・`.claude/agents/reviewer.md`) | (手で確かめる: AI の手順なのでテストにできない。#189・#190・#191 の3本で、人格ごとに別の AI を呼んで記録を残した) |
 | 台帳に人格の表・観点が必ずどれかの人格に入る | 台帳の「👥 レビューの人格」 | `scripts/review-viewpoints.test.mjs`(観点の名前が全部どれかの人格にあるか・人格5人の形) |
 | ❌・⚠️ は AI がおすすめどおり直し、❓ だけを人がまとめて決める | スキルの 7・3 の `decisionsProblem` | `scripts/pr-merge.test.mjs`(❌ を直さずに残す・決めた人の印が無い・❓ を AI が決める、で止める)・`.claude/skills/review-pr/SKILL.md`(手順) |
 | 記録が残り、無ければ AI のマージが止まる | 3・5 | `scripts/pr-merge.test.mjs`(`reviewState` の関数だけ: 書き手・回せなかった・版の形・未・直したこと・レビュー後の版。止める所 `scripts/pr-merge-when-green.mjs` の `reviewed()` の2か所は、読んで確かめた。もとからこのスクリプトには組み立てのテストが無い) |
-| 2026-10-29 の抜け2つがどの人格で気づけたか | 台帳の人格の表の下 | `docs/review-viewpoints.md`(文書) |
+| 2026-10-29 の抜け2つがどの人格で気づけたか | 台帳の人格の表の下(`docs/review-viewpoints.md`) | (手で確かめる: 文書の記述。読んで確かめた) |
 
 ## 8. 非機能
 
