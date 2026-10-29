@@ -223,10 +223,4 @@ describe("組織ごとに、タスクが完了したメールを止める・戻�
     const otherEvent = await completeTask(other, "member");
     expect(otherEvent.payload).toMatchObject({ mailOffAtCompletion: true });
   });
-    const t = await createTenantFixture(owner.db, "mail-this-on");
-    const event = await completeTask(t, "member");
-    expect(event.payload).toMatchObject({ mailOffAtCompletion: false });
-    await handler(event);
-    expect(await inbox(t.users.admin.email)).toHaveLength(1);
-  });
 });
