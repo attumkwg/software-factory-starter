@@ -38,6 +38,10 @@
 | 試作 | プロトタイプ(clickable prototype) | 押せる画面だけ・偽のデータ・捨てる前提 | `prototypes/`・`/prototype` |
 | 約束 | ポジショニング・バリュープロポジション | 誰の何を、どう変えるか。売り文句・LP の元 | `docs/product/positioning.md` |
 | 取り組み・作業の種類 | 作業の分類(work classification。資産計上の判定の材料) | PR ごとに「どの賭けか・探索/作り込み/保守/撤去」を書く | PR の本文・[guides/bets-and-assets.md](../guides/bets-and-assets.md) |
+| 意義の判断役 | 投資判断の門番(go / no-go gate)・プロダクトの審査役 | 「意義があるから、やる / やらない / 条件つき」を言い切る AI。数で言えなければやらない・ROI の根拠・当たり外れを人が判定、の3つの歯止めつき。呼ぶのはアイデア・分解の前・受け入れの3つだけ | `.claude/agents/purpose-judge.md`・`docs/product/verdicts/` |
+| 北極星 | ノーススター指標(north star metric) | いちばんの物差し。工場(キット自身)は「意義があると判断した物が、使う人に届いて使われた数 ÷ 人の工数」 | `docs/product/kpi.yaml`・[roadmap.md](roadmap.md) の 4 |
+| 無人化率(有人化率) | 自動化率・人の介在率の裏返し(automation rate) | 1 − 人が使った工数の割合。毎週いちばん目に見る入力の数で、北極星ではない(作る側の効率の数) | [roi.md](roi.md)・`pnpm metrics` |
+| センサー | 自動の検査・テスト(automated checks / fitness functions) | コードが正しいかを確かめる物(テスト・型・検査・E2E・計測)。人が判定するのは、センサーそのものが正しいか | [../concepts/risk-areas.md](../concepts/risk-areas.md)・[../concepts/human-decisions.md](../concepts/human-decisions.md) |
 | 会計区分 | 資産計上か費用か(capitalization) | 賭けの段階と作業の種類から出す案。決めるのは専門家 | `/ledger` |
 
 ## 回す(運用・守り)
