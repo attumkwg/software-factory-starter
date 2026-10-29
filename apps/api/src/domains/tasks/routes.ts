@@ -21,6 +21,7 @@ import {
 } from "../../http/common.ts";
 import { enqueue } from "../../outbox/index.ts";
 // ほかの領域(projects)は index.ts の関数だけを使う。表を直接読まない
+import { findTaskMailEnabled } from "../organizations/index.ts";
 import { projectExists } from "../projects/index.ts";
 import { createTask, deleteTask, listTasks, updateTask } from "./repository.ts";
 
@@ -102,6 +103,8 @@ export const taskRoutes = createRouter()
           taskId: result.task.id,
           projectId: result.task.projectId,
           completedBy: scope.userId,
+          // 完了した時点で止めていたかを一緒に積む(送る前に戻されても、止めていた間の分は送らない)
+          mailOffAtCompletion: !(await findTaskMailEnabled(scope.tx, scope.tenantId)),
         });
       }
       return c.json(result.task, 200);

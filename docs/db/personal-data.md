@@ -300,6 +300,7 @@
 | `payload` の `taskId` | internal | 完了したタスク |
 | `payload` の `projectId` | internal | そのプロジェクト |
 | `payload` の `completedBy` | internal | 完了にした人の ID |
+| `payload` の `mailOffAtCompletion` | internal | 完了にした時点で組織がメールを止めていたか |
 | `payload` の `fileId` | internal | 上げ終えた・消したファイルの ID(名前・キー・URL は入れない) |
 | `payload` の `userId` | internal | お知らせを送る相手の ID(宛先は送る直前に DB から読む) |
 | `payload` の `emailChangeId` | internal | メールアドレスの変更の ID(古いアドレスは表から読む) |

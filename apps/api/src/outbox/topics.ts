@@ -10,6 +10,9 @@ export const OUTBOX_TOPICS = {
     projectId: IdSchema,
     // 完了にした人(自分で完了にしたものは自分に知らせない)。足す前に積まれた出来事には無い
     completedBy: IdSchema.optional(),
+    // 完了にした時点で、組織が「タスクが完了したメール」を止めていたか(docs/designs/0089-task-mail-switch.md の 13)。
+    // 止めていた間に完了した分は、送る前に戻しても送らない。足す前に積まれた出来事には無い(= 止めていなかった扱い)
+    mailOffAtCompletion: z.boolean().optional(),
   }),
   // 本人へのお知らせ(docs/specs/0006-account-security.md)。宛先は送る直前に DB から読む
   "organizations.password_changed": z.object({ userId: IdSchema }),

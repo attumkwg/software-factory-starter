@@ -56,21 +56,21 @@ flowchart LR
 
 ## 5. システム間連携
 
-- アウトボックスの出来事 `tasks.task_completed` は今のまま積む。受け手(`taskCompletedMail`)が送る直前に `findTaskMailEnabled(tx, tenantId)` を読み、false なら `{ skip: "mail_off_by_organization" }`(済みにして再送しない)
+- アウトボックスの出来事 `tasks.task_completed` に、完了した時点で止めていたか(`mailOffAtCompletion`。積むときに `findTaskMailEnabled` を読む)を足して積む。受け手(`taskCompletedMail`)は、それが true か、送る直前に `findTaskMailEnabled(tx, tenantId)` が false なら `{ skip: "mail_off_by_organization" }`(済みにして再送しない)。足す前に積まれた出来事には項目が無い(= 止めていなかった扱い)
 - 止めている組織の数: 運営は DB の集計で数える(`select count(*) from organizations.tenants where task_completed_mail = false`)。組織の名前は出さない。画面や API は作らない(仕様の受け入れ「数えられる」は集計で満たす)
 
 ## 6. 業務ルール
 
 - 止める・戻すのは管理者だけ(`task_mail:manage` = admin)
 - 既定は送る(列の既定値 true)
-- 止めたかは送る直前に見る(出来事を積むときではない)
+- 止めたかは、完了した時点(出来事を積むとき)と送る直前の両方で見る。どちらかで止めていれば送らない
 
 ## 7. 要求との対応
 
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
 | 管理者が止めると、完了してもメールが届かない | 3. API・5. 連携 | 子1 `test/integration/task-mail.int.test.ts`(止める・戻す)/ 子2 `test/integration/mail.int.test.ts`(止めた組織には送らない) |
-| 管理者が戻すと、その後のメールは届く | 3. API・5. 連携 | 子2 `apps/api/test/integration/mail.int.test.ts`(戻した後は送る) |
+| 管理者が戻すと、その後のメールは届く | 3. API・5. 連携 | 子2 `apps/api/test/integration/mail.int.test.ts`(戻した後は送る・止めている間に完了した分は、送る前に戻しても送らない) |
 | 管理者でない人には操作が出ない | 3. API(403)・画面(受け皿と 403。#186) | `apps/api/test/integration/authz-matrix.int.test.ts`(3行)・`apps/web/e2e/audit.spec.ts`(member・viewer が設定を開くと 403 と受け皿。子3 は画面のテストを足していなかったので、#186 の直しで足した) |
 | 止めた・戻したが監査ログに残る | 3. API | `apps/api/test/unit/audit-coverage.test.ts`・`apps/api/test/integration/task-mail.int.test.ts` |
 | 止めている組織の数を数えられる | 5. 連携(集計) | `apps/api/test/integration/task-mail.int.test.ts`(列を読む) |
@@ -114,6 +114,7 @@ flowchart LR
 - 列は `organizations.tenants` に置く — 組織ごとの設定で、二段階認証の必須と同じ。新しい表を作ると解約・RLS・分類が増える
 - API を POST / DELETE に分ける — 監査ログの details に値を入れない決まりのまま、名前で向きが分かる(二段階認証の必須と同じ)
 - 送る直前に見る — 仕様 0002 の「送るまでの間に変わったら送らない」と同じ考え。止めた後に届く物を作らない
+- 完了した時点も見る(作り直し 2026-10-29)— 送る直前だけだと、止めている間に完了して送り出し(1秒ごと)が動く前に戻すと届く。アウトボックスはアプリから積むだけ(印を付けるのは DB の関数)なので、戻すときに未送信の分を済みにする道は取らず、出来事に1項目足した。完了と止めるが同時に起きたとき(別のトランザクション)は、完了の側が止める前の値を読みうる(送る直前に止めていれば送らないので、届くのは「止めて、1秒以内に戻した」ときだけ。割り切り)
 - 戻しても、止めていた間の出来事は送らない — 受け手が済みにするので、作りとしてそうなる。古い知らせをまとめて届けない
 - 数えるのは DB の集計 — 運営の画面を作るほどの数ではない。名前は出さない(ID と集計まで)
 - 子を3本に割る — 1つの Issue で触るのは1つの領域(`apps/api/src/domains/*/CLAUDE.md`)
@@ -130,4 +131,4 @@ flowchart LR
 
 | 日付 | きっかけ | 入った工程 | 直した物 | 作り直した下流 |
 |---|---|---|---|---|
-| 2026-10-29 | 受け入れの第1回の6([../acceptance/0093-task-mail-switch.md](../acceptance/0093-task-mail-switch.md)) | 設計 | 止めたかを送る直前にだけ見るので、止めている間に完了して、送り出しが動く前(1秒以内)に戻すと、その1通が届く。業務ルール「戻しても止めていた間の分は送らない」を守るには、完了した時点の状態も見る(出来事に止めていたかを積む・止めたときに未送信の分を済みにする など)。直すのは `/rework` | まだ(`/rework` の後に下流を足す) |
+| 2026-10-29 | 受け入れの第1回の6([../acceptance/0093-task-mail-switch.md](../acceptance/0093-task-mail-switch.md)) | 設計 | 止めたかを送る直前にだけ見るので、止めている間に完了して、送り出しが動く前(1秒以内)に戻すと、その1通が届く。業務ルール「戻しても止めていた間の分は送らない」を守るには、完了した時点の状態も見る → 出来事に `mailOffAtCompletion` を積み、送る直前にも見る(5・6・11) | 仕様 0093 の第2部(状態 × 操作・境界値)・`src/outbox/topics.ts`・`src/domains/tasks/routes.ts`・`notifications.ts`・`src/db/classification.ts`・`docs/db/personal-data.md`・`test/integration/mail.int.test.ts`(止めている間に完了し、送る前に戻しても送らない) |

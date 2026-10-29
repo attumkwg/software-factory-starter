@@ -164,6 +164,19 @@ describe("タスク完了のメール", () => {
     ]);
   });
 
+  it("止めている間に完了し、送り出しが動く前に戻しても、その分は送らない(設計書 0089 の 13)", async () => {
+    const t = await createTenantFixture(owner.db, "mail-race");
+    const admin = await login(app, t.users.admin.email);
+    await call(app, "DELETE", "/api/organization/task-mail", { cookie: admin });
+    const whileOff = await completeTask(t, "member");
+    // 送り出しが動く前に戻す(前は、送る直前に今の設定だけを見ていたので届いていた)
+    expect((await call(app, "POST", "/api/organization/task-mail", { cookie: admin })).status).toBe(
+      204,
+    );
+    await handler(whileOff);
+    expect(await inbox(t.users.admin.email)).toEqual([]);
+  });
+
   it("件名に改行を入れても、ヘッダーは増えない(ヘッダーの注入)", async () => {
     const t = await createTenantFixture(owner.db, "inject");
     const cookie = await login(app, t.users.member.email);

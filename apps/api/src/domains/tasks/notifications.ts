@@ -27,8 +27,10 @@ export async function taskCompletedMail(
   // 送るまでの間に「未完了」に戻されたら、知らせない
   if (!task.done) return { skip: "task_reopened" };
   // 組織の管理者が止めていたら、知らせない(docs/specs/0093-task-mail-switch.md)。
-  // 送る直前に見るので、止める前に積まれた出来事も送らない。済みにするので、戻しても後から送らない
-  if (!(await findTaskMailEnabled(tx, tenantId))) return { skip: "mail_off_by_organization" };
+  // 送る直前に見るので、止める前に積まれた出来事も送らない。完了した時点で止めていた分は、
+  // 送り出しが動く前に戻されても送らない(戻しても止めていた間の分は届けない。設計書 0089 の 13)
+  if (payload.mailOffAtCompletion || !(await findTaskMailEnabled(tx, tenantId)))
+    return { skip: "mail_off_by_organization" };
 
   const project = await findProjectOwner(tx, tenantId, payload.projectId);
   if (!project) return { skip: "project_deleted" };

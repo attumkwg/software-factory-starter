@@ -275,6 +275,7 @@ export const COLUMN_CLASSIFICATION: Record<string, ColumnClass> = {
       taskId: internal("完了したタスク"),
       projectId: internal("そのプロジェクト"),
       completedBy: internal("完了にした人の ID"),
+      mailOffAtCompletion: internal("完了にした時点で組織がメールを止めていたか"),
       fileId: internal("上げ終えた・消したファイルの ID(名前・キー・URL は入れない)"),
       userId: internal("お知らせを送る相手の ID(宛先は送る直前に DB から読む)"),
       emailChangeId: internal("メールアドレスの変更の ID(古いアドレスは表から読む)"),
