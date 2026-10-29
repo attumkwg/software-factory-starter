@@ -118,9 +118,9 @@ items:
     review_by: 2027-04-20
 
   - id: w-protection
-    title: ブランチ保護と Environments が外れていないか
-    why: 検査を通らない変更や、main 以外からの本番への配備を止める設定が、今も効いているかを見る
-    if_ignored: 赤い CI のまま入る・試しのブランチから本番に出せる
+    title: ブランチ保護と Environments が外れていないか・setup.yml とずれていないか
+    why: 検査を通らない変更や、main 以外からの本番への配備を止める設定が、今も効いているか、.github/setup.yml(正)と同じかを見る
+    if_ignored: 赤い CI のまま入る・試しのブランチから本番に出せる・取り込んだ必須のチェックが必須にならないまま
     who: system
     phase: setup
     every: weekly
