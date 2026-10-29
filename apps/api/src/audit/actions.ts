@@ -163,6 +163,9 @@ export const MANUAL_AUDIT_ACTIONS = {
   scimUserEnable: "scim.user_enable",
   // 運営のコマンド demo-reset が、デモ用の組織のデータを戻した(docs/specs/0053-sales-kit.md。stg だけ)
   demoReset: "demo.reset",
+  // 運営のコマンド person-data --execute が、本人の求めで1人分を消した・匿名化した(docs/specs/0089-person-erase.md)。
+  // 対象はその人(member)。details に件数だけ(anonymize・delete)
+  personErase: "person.erase",
 } as const;
 
 /**

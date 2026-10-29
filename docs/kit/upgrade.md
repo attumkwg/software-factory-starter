@@ -17,6 +17,8 @@
 git remote add kit https://github.com/attumkwg/software-factory-starter
 ```
 
+🔢 **番号の範囲**: キットの仕様・設計書・ADR は 0001〜4999 だけを使い、自分の記録は別の範囲(既定は 5000 から)で振る([docs/kit/numbering.yaml](numbering.yaml)・[仕様 0091](../specs/0091-own-number-range.md))。範囲が重ならないので、キットの新しい版を取り込んでも同じ番号はできない。始まりは使い始めるときの `pnpm checkup:adopt` が決める(`--numbers-from 6000` で変える)。先に adopt を済ませていて、`pnpm adr` が「キットの範囲 〜4999」と出すなら、取り込む前に一度だけ `pnpm adr --own-from 5000` を流して PR にする。範囲を決める前に自分で振った番号(キットの範囲の中)は、キットの次の版と重なりうるので、そのとき `pnpm adr` の「次の番号」に振り直す(docs・コードのコメント・カタログの参照も直す)。範囲が重なる設定・キットの範囲と自分の範囲の間の番号は、`pnpm adr` が CI で落とす。
+
 ## 2. 何が変わったかを読む
 
 ```bash
