@@ -99,7 +99,7 @@ labels:
     who: 自動(Issue のテンプレート「不具合」)・AI(/report-bug)
     when: 不具合の Issue を作ったとき
     action: 再現の手順と危険度を見て、直すなら /rework か /new-feature で PR に
-    used_by: .github/ISSUE_TEMPLATE/bug.yml・/report-bug
+    used_by: .github/ISSUE_TEMPLATE/bug.yml・kit-fix.yml・/report-bug
   - name: kind:feature
     color: a2eeef
     description: 機能の要望(Issue のテンプレートと /new-feature が付ける)
@@ -108,7 +108,7 @@ labels:
     who: 自動(Issue のテンプレート「機能」)・AI(/new-feature)
     when: 機能の Issue を作ったとき
     action: 賭け(/bet)が無ければ先に開く。仕様と子 Issue は /new-feature
-    used_by: .github/ISSUE_TEMPLATE/feature.yml・/new-feature
+    used_by: .github/ISSUE_TEMPLATE/feature.yml・kit-gap.yml・/new-feature
   - name: needs-triage
     color: ededed
     description: まだ仕分けていない Issue(テンプレートが付ける。仕分けたら外す)
