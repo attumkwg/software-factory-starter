@@ -18,10 +18,3 @@ ignoredBuiltDependencies:
 minimumReleaseAgeExclude:
   # Renovate security update: nodemailer@10.1.4
   - nodemailer@10.1.4
-
-# 直接は使っていない依存の、脆弱性が直った版に上げる(Dependabot の警告。2026-10-29)。
-# seroval は SSR の受け渡し(TanStack の下)、undici はテストのコンテナ(testcontainers の下)。親が上げたら消す。
-overrides:
-  seroval: ~1.6.11
-  seroval-plugins: ~1.6.11
-  undici: ^8.12.3

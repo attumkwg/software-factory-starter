@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  seroval: ~1.6.11
-  seroval-plugins: ~1.6.11
-  undici: ^8.12.3
-
 importers:
 
   .:
@@ -2803,15 +2798,15 @@ packages:
     engines: {node: '>=20.0'}
     hasBin: true
 
-  seroval-plugins@1.6.12:
-    resolution: {integrity: sha512-+reiwp/lYxiyctSrdvX7OQ1YLrcbWYgBiZrhSFL+V43b0/DGRLNVSDyZINbQe+tWplPOI2fw2dPrdv6hcc09kQ==}
-    engines: {node: '>=10'}
+  seroval-plugins@1.7.2:
+    resolution: {integrity: sha512-ud8kMCGLHmGkW9YtVDluJtqTukSx/4YBqtmPAvAz/HxbIwhwMeZU52imxeyZ1zoAXtqBDiaLwSasbnK9DptrDg==}
+    engines: {node: '>=20'}
     peerDependencies:
-      seroval: ~1.6.11
+      seroval: ^1.0
 
-  seroval@1.6.12:
-    resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
-    engines: {node: '>=10'}
+  seroval@1.7.2:
+    resolution: {integrity: sha512-NPOYrDVbvtuTo5m9InqKE7O6wBASON46OabjyqLUGPvoXNDYp0pReuFYkqOQwGsoj1OpZVj6mIdnRRgt5O1/gQ==}
+    engines: {node: '>=20'}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -4256,8 +4251,8 @@ snapshots:
     dependencies:
       '@tanstack/history': 1.162.5
       cookie-es: 3.1.1
-      seroval: 1.6.12
-      seroval-plugins: 1.6.12(seroval@1.6.12)
+      seroval: 1.7.2
+      seroval-plugins: 1.7.2(seroval@1.7.2)
 
   '@tanstack/router-generator@1.167.44':
     dependencies:
@@ -4314,7 +4309,7 @@ snapshots:
       '@tanstack/router-core': 1.171.37
       '@tanstack/start-fn-stubs': 1.162.0
       '@tanstack/start-storage-context': 1.167.39
-      seroval: 1.6.12
+      seroval: 1.7.2
 
   '@tanstack/start-fn-stubs@1.162.0': {}
 
@@ -4333,7 +4328,7 @@ snapshots:
       lightningcss: 1.33.0
       pathe: 2.0.3
       picomatch: 4.0.7
-      seroval: 1.6.12
+      seroval: 1.7.2
       source-map: 0.7.6
       srvx: 1.0.5
       tinyglobby: 0.2.17
@@ -4364,7 +4359,7 @@ snapshots:
       '@tanstack/start-storage-context': 1.167.39
       cookie-es: 3.1.1
       fetchdts: 0.2.0
-      seroval: 1.6.12
+      seroval: 1.7.2
 
   '@tanstack/start-storage-context@1.167.39':
     dependencies:
@@ -5429,11 +5424,11 @@ snapshots:
 
   sentry@0.45.0: {}
 
-  seroval-plugins@1.6.12(seroval@1.6.12):
+  seroval-plugins@1.7.2(seroval@1.7.2):
     dependencies:
-      seroval: 1.6.12
+      seroval: 1.7.2
 
-  seroval@1.6.12: {}
+  seroval@1.7.2: {}
 
   shebang-command@2.0.0:
     dependencies:
