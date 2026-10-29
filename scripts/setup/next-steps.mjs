@@ -17,8 +17,13 @@ import { todo } from "./entries.mjs";
 
 const day = (iso) => String(iso ?? "").slice(0, 10);
 
-// キットから来た SECURITY.md の目印(キットの窓口のまま、を見分ける)
+// キットから来た SECURITY.md・CONTRIBUTING.md の目印(キットの窓口のまま、を見分ける)
 const KIT_SECURITY_MARK = "キット(software-factory-starter)そのもの";
+// キットそのものへの Issue のテンプレート(使う側では要らない)
+const KIT_ISSUE_TEMPLATES = [
+  ".github/ISSUE_TEMPLATE/kit-gap.yml",
+  ".github/ISSUE_TEMPLATE/kit-fix.yml",
+];
 
 /** キットの新しい版(版があれば版と CHANGELOG で、まだ無ければ日付で。設計書 0067) */
 function kitUpdates({ setup, src, kit }) {
@@ -101,6 +106,16 @@ export function nextSteps({ setup, role, src, me, kit, today = todayInTokyo() })
     steps.push(
       todo(
         "SECURITY.md がキットの窓口のまま。自分のプロダクトの穴の連絡先に書き換える(docs/getting-started.md の ②)",
+      ),
+    );
+  const kitEntrances = [
+    ...(src.read("CONTRIBUTING.md")?.includes(KIT_SECURITY_MARK) ? ["CONTRIBUTING.md"] : []),
+    ...KIT_ISSUE_TEMPLATES.filter((f) => src.read(f) !== undefined),
+  ];
+  if (kitEntrances.length > 0)
+    steps.push(
+      todo(
+        `キットへの貢献の入口が残っている(${kitEntrances.join("・")})。消すか、自分のリポジトリの物に書き換える(docs/getting-started.md の ②)`,
       ),
     );
   steps.push(...kitFreshness({ setup, src, ledger, kit, today }));

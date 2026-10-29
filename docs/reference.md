@@ -54,7 +54,7 @@
 ├─ .github/
 │  ├─ workflows/                ci・terraform・preview・cleanup-previews・deploy・claude・labeler
 │  ├─ pull_request_template.md  仕様・危険度・テスト結果・プレビュー・スクショ・判断してほしい所
-│  ├─ ISSUE_TEMPLATE/           受け入れ条件つきの Issue
+│  ├─ ISSUE_TEMPLATE/           受け入れ条件つきの Issue(機能・不具合。kit-*.yml はキットそのものへの穴と直しの提案)
 │  ├─ CODEOWNERS / labeler.yml  危険度「高」のパス
 │  └─ scripts/run-migration.sh  ECS の1回きりのタスクで移行
 ├─ .claude/                     ハーネス(フック・スキル)。settings.json は下の注意を参照
@@ -62,6 +62,7 @@
 ├─ .devcontainer/               人も AI も同じ開発環境(外への通信は許可リストのプロキシだけ。egress/。docs/guides/unattended-ai.md)
 ├─ CLAUDE.md                    どこを触っても守るルール(場所ごとのルールは apps/api・apps/web・packages・infra・.github・docs の CLAUDE.md)
 ├─ CHANGELOG.md / SECURITY.md   キットの版ごとの変更 / 穴の知らせ方(キットから作ったら自分の物に。docs/kit/maintenance.md)
+├─ CONTRIBUTING.md              キットへの直しの出し方(外の PR の扱い・文書だけの PR の軽い道。キットから作ったら消すか自分の物に)
 ├─ docker-compose.yml           手元で丸ごと動かす(docker/alb.Caddyfile が ALB の代わり)
 └─ renovate.json                依存の更新(危険度のラベルつき)
 ```
