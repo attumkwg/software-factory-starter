@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { decide, hookOutput, relativePath } from "./guard-edit.mjs";
+import { decide, hookOutput, relativePath, writtenText } from "./guard-edit.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { paths } = JSON.parse(readFileSync(join(here, "protected-paths.json"), "utf8"));
@@ -59,6 +59,39 @@ test("pr 以外の値は既定のまま聞く", () => {
   }
 });
 
+test("持ち主のスイッチを設定のファイルに書くのは、いつでも止める(KIT_EDIT_GUARD=pr でも。ADR 0086)", () => {
+  const on = '{ "env": { "KIT_AI_MERGE": "slack" } }';
+  for (const env of [{}, optedOut]) {
+    assert.equal(decide(`${root}/.claude/settings.local.json`, root, env, on)?.decision, "deny");
+    // 自分の設定(~/.claude/settings.json)も。Windows の道でも
+    assert.equal(decide("/home/me/.claude/settings.json", root, env, on)?.decision, "deny");
+    assert.equal(decide("C:\\Users\\me\\.claude\\settings.json", root, env, on)?.decision, "deny");
+    assert.equal(
+      decide(".claude/settings.json", root, env, '"KIT_EDIT_GUARD": "pr"')?.decision,
+      "deny",
+    );
+    assert.equal(
+      decide(`${root}/.claude/worktrees/feat-x/.claude/settings.local.json`, root, env, on)
+        ?.decision,
+      "deny",
+    );
+  }
+  // スイッチの無い中身はふだんどおり(settings.local.json は守る場所でない・settings.json は聞く)
+  assert.equal(decide(`${root}/.claude/settings.local.json`, root, {}, '{ "env": {} }'), null);
+  assert.equal(decide(`${root}/.claude/settings.json`, root, {}, "{}")?.decision, "ask");
+  // 文書でスイッチの名前を書くのは止めない
+  assert.equal(decide(`${root}/docs/guides/local-guards.md`, root, {}, on), null);
+  // 名前の一部が同じだけの物は止めない
+  assert.equal(decide(`${root}/.claude/settings.local.json`, root, {}, "MY_KIT_AI_MERGED"), null);
+});
+
+test("書こうとしている中身は Edit・Write・MultiEdit のどれからも読む", () => {
+  assert.equal(writtenText({ new_string: "a" }), "a");
+  assert.equal(writtenText({ content: "b" }), "b");
+  assert.equal(writtenText({ edits: [{ new_string: "c" }, { new_string: "d" }] }), "c\nd");
+  assert.equal(writtenText(undefined), "");
+});
+
 // フックとして呼んだとき(標準入力に Claude Code の JSON)
 const runHook = (input, env) =>
   spawnSync(process.execPath, [join(here, "guard-edit.mjs")], {
@@ -85,4 +118,20 @@ test("フックとして: KIT_EDIT_GUARD=pr なら確認を返さない", () => 
   );
   assert.equal(out.hookSpecificOutput.permissionDecision, undefined);
   assert.ok(out.systemMessage);
+});
+
+test("フックとして: 設定のファイルにスイッチを書く MultiEdit は deny を返す", () => {
+  const out = JSON.parse(
+    runHook(
+      {
+        tool_name: "MultiEdit",
+        tool_input: {
+          file_path: `${root}/.claude/settings.local.json`,
+          edits: [{ old_string: "{}", new_string: '{ "env": { "KIT_AI_MERGE": "slack" } }' }],
+        },
+      },
+      optedOut,
+    ),
+  );
+  assert.equal(out.hookSpecificOutput.permissionDecision, "deny");
 });

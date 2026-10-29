@@ -42,6 +42,22 @@ worktree を使う(並べたセッション)なら `~/.claude/settings.json` の
 - 戻すときは、その1行を消す。
 - **② が無い(非公開+Free)ときは外さない**。PR の段に CODEOWNERS とブランチ保護が無いので、最後の確認が無くなる。
 
+## AI のマージを選ぶ(`KIT_AI_MERGE=slack`)
+
+1人の間、持ち主が会話で「マージして」と返した PR を、必須のチェックが全部緑になってから AI にマージさせるかは、**使う人が選ぶ**(ADR 0086)。**既定はオフ**(変数なし = 人がマージする)。まだ怖いと感じるなら入れない。守りを作ってきて任せたいなら入れる。
+
+オンにするときは、持ち主が自分で手元の設定の `env` に1行書く(クラウドなら claude.ai/code の環境の変数。[slack.md](slack.md)):
+
+```json
+{ "env": { "KIT_AI_MERGE": "slack" } }
+```
+
+- 書く所は `KIT_EDIT_GUARD` と同じ(`~/.claude/settings.json` か `.claude/settings.local.json`。上の表)。書いた後に開いたセッションから効く。
+- **AI はこの行を書けない**: 編集のフックが、設定のファイルに `KIT_AI_MERGE`・`KIT_EDIT_GUARD` を書く Edit・Write を止める(`KIT_EDIT_GUARD=pr` でも)。Bash のフックは、`KIT_AI_MERGE` を含むコマンドを止める。
+- オンでも、マージの道は `pnpm pr:merge-when-green` だけ(`gh pr merge` は止まる)。持ち主の答えの言葉と日時を PR に残し、必須のチェックが全部緑・待つ間に push が無いときだけマージする。
+- 人が増えて承認の数を 1 以上にしたら、オンでも AI はマージしない。
+- やめるときは、その行を消すだけ。
+
 ## ⚠️ ② は GitHub のプランで変わる
 
 | リポジトリ | ブランチ保護・ルールセット | Environments(main だけ・秘密) | Environments の承認者 | push 保護 | Actions の分数 |
