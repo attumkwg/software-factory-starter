@@ -348,7 +348,7 @@ items:
       text: GitHub と AWS の管理者を、2人目の人に任せられますか
       options:
         - { label: 2人目を決めた, means: 2人目を管理者にする手順を出します }
-        - { label: 今は1人しかいない, means: 1人で回す間の備え(引き継ぎの置き場)を手順書に残します }
+        - { label: 今は1人しかいない, means: 1人で回す間の備え(引き継ぎの置き場)を docs/runbooks/emergency-access.md の型で作ります。半年ごとに emergency-access が見直しを聞きます }
       recommended: 2人目を決めた
       irreversible: false
     severity: normal
@@ -356,8 +356,30 @@ items:
     evidence: [ github-collaborators ]
     status: open
     history: []
-    source: 2026-10-20 の点検
+    source: 2026-10-20 の点検 / docs/runbooks/emergency-access.md(2026-10-29 に、無かった手順書を作って選択肢から結んだ。G-67 で足した)
     review_by: 2027-04-20
+
+  - id: emergency-access
+    title: 引き継ぎの置き場(どこに何のアカウントがあり、誰が持ち、どう取り戻すか)を見直す
+    why: 持ち主が倒れたり辞めたりしても、AWS の root・ドメイン・GitHub の組織・請求に入り直せるようにする(docs/runbooks/emergency-access.md)
+    if_ignored: パスワードが分かっていても、二段階認証の機器や更新の通知が辞めた人の手元にあって入れない
+    who: human
+    phase: setup
+    every: half-year
+    verify: ask
+    question:
+      text: docs/runbooks/emergency-access.md の型の一覧(公開しない保管庫に置いた物)は、今のアカウント・請求・二段階認証の機器・緊急のときに開ける人と合っていますか
+      options:
+        - { label: 合っている, means: 半年後にもう一度聞きます }
+        - { label: まだ作っていない・古い, means: 手順書の 2〜4 で一覧を作り直す手順を出します。来週また聞きます, after: open }
+      recommended: 合っている
+      irreversible: false
+    severity: normal
+    controls: [ A.5.30, A.8.2 ]
+    status: open
+    history: []
+    source: docs/scenarios/11-people-leave.md の 11-5(G-67 で足した。2026-10-29)
+    review_by: 2027-10-29
 
   - id: notify-route
     title: 知らせの先と、障害のときの連絡先を決める
