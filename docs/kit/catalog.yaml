@@ -1373,7 +1373,7 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)。いまは、どの表に何件あるかと消すときの扱いを数える運営のコマンド(試し)と手順書まで。消すのは手順書で手作業
+    what: 利用者1人の「自分のデータを見せて・消して」に答える(組織の丸ごとの削除とは別)。運営のコマンドが、どの表に何件あるかと消すときの扱いを数え(試し)、同じ一覧で消す・匿名化する(--execute --confirm-rows。監査ログに件数)。手順書つき
     needed_by: 個人向け・個人情報を扱うすべて
     not_needed_by: なし
     if_removed: 求めのたびに、どの表にその人のデータがあるかを SQL で探すことになる(表を足したときの見落としに気づけない)
@@ -1384,11 +1384,15 @@ parts:
       delete:
         - apps/api/src/person-data
         - apps/api/test/integration/person-data.int.test.ts
+        - apps/api/test/integration/person-erase.int.test.ts
+        - apps/web/e2e/person-erase.ts
         - docs/runbooks/person-data.md
       edit:
         - { path: apps/api/src/cli.ts, what: person-data のコマンドを外す(中身は apps/api/src/tenant-commands.ts の personDataCommand) }
         - { path: docs/legal/data-processing.md, what: 5-2 の手順書への道しるべを外す(分担の既定は残す) }
-      docs: [docs/specs/0048-person-data.md, docs/adr/0059-person-data-dry-run-first.md]
+        - { path: apps/api/src/audit/actions.ts, what: MANUAL_AUDIT_ACTIONS の personErase を外す(画面の文 apps/web/src/audit-labels.ts の person.erase は古い記録のために残す) }
+        - { path: apps/web/e2e/journey.spec.ts, what: 9 の段(erasePerson)を外す }
+      docs: [docs/specs/0048-person-data.md, docs/adr/0059-person-data-dry-run-first.md, docs/specs/0089-person-erase.md, docs/designs/0085-person-erase.md, docs/adr/0088-person-erase-same-list-as-dry-run.md]
 
   # ── 決まりごと ─────────────────────────────────────────────────────────
   - id: terms-consent
@@ -2219,19 +2223,20 @@ parts:
     status: あり
     removable: true
     default: 残す
-    what: プロダクトのペルソナ(P-n)と KPI の木(北極星1・入力 1〜2・守り 1〜2)を書き、賭けは psf から「どのペルソナのどの KPI を動かすか」を指す。pnpm kpi が最新の値と線を並べ、形の誤りと金額をリポジトリに書いたのを落とす。資産か費用かの案に KPI の結果を根拠として並べる
+    what: プロダクトのペルソナ(P-n)と KPI の木(北極星1・入力 1〜2・守り 1〜2)を書き、賭けは psf から「どのペルソナのどの KPI を動かすか」を指す。pnpm kpi が最新の値と線を並べ、形の誤りと金額をリポジトリに書いたのを落とす。資産か費用かの案に KPI の結果を根拠として並べる。pnpm kpi --roi が賭けをまたいだ原価の累計と ROI の幅・北極星の分母と分子を毎週出す
     needed_by: 機能を作る理由を数で言いたい・KPI の達成を見て資産価値を高めたい(既存のリポジトリにも、この2ファイルだけ先に入れられる)
     not_needed_by: 確かめずに作るだけの試作
     if_removed: 賭けの線はあるが、プロダクト全体のどの数を動かしたかが残らない。資産の根拠が合格の線だけになる
     depends_on: []
     law: []
-    where: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/loop-lib.mjs, docs/guides/kpi.md]
+    where: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/loop-lib.mjs, scripts/roi.mjs, scripts/roi-lib.mjs, docs/guides/kpi.md]
     remove:
-      delete: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/kpi.test.mjs, scripts/loop-lib.mjs, scripts/loop.test.mjs, docs/guides/kpi.md]
+      delete: [docs/product/_template-personas.md, docs/product/_template-kpi.yaml, docs/product/personas.md, docs/product/kpi.yaml, scripts/kpi.mjs, scripts/kpi-lib.mjs, scripts/kpi.test.mjs, scripts/loop-lib.mjs, scripts/loop.test.mjs, scripts/roi.mjs, scripts/roi-lib.mjs, scripts/roi.test.mjs, docs/guides/kpi.md]
       edit:
-        - { path: package.json, what: kpi と、test:scripts の scripts/kpi.test.mjs・scripts/loop.test.mjs を外す }
+        - { path: package.json, what: kpi と、test:scripts の scripts/kpi.test.mjs・scripts/roi.test.mjs・scripts/loop.test.mjs を外す }
         - { path: docs/playbook.md, what: 毎週の KPI と合議の行を外す }
         - { path: .github/workflows/ci.yml, what: pnpm kpi を外す }
+        - { path: .github/workflows/metrics.yml, what: 「北極星と ROI」の段(pnpm kpi --roi)を外す }
         - { path: scripts/bets.mjs, what: readLinks と betLinkProblems を外す(bets-lib.mjs の persona・kpi の読み取りも) }
         - { path: docs/product/bets/_template.md, what: ペルソナと動かす KPI の行を外す(見本の B-0001・B-0002 も) }
         - { path: docs/specs/_template.md, what: なぜ作るかのペルソナと動かす KPI を外す }
@@ -2240,7 +2245,7 @@ parts:
         - { path: .claude/skills/bet/SKILL.md, what: A の 3.5 を外す }
         - { path: docs/guides/bets-and-assets.md, what: 資産の根拠の KPI の行を外す }
         - { path: docs/README.md, what: personas と kpi の行を外す }
-      docs: [docs/specs/0081-persona-kpi.md, docs/designs/0081-persona-kpi.md]
+      docs: [docs/specs/0081-persona-kpi.md, docs/designs/0081-persona-kpi.md, docs/specs/0094-roi-total-and-north-star.md]
 
   - id: persona-council
     name: 業界ごとのペルソナと合議(/persona・/council)

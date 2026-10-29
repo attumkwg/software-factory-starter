@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -11,6 +11,7 @@ import { DOMAIN_DEPENDENCIES } from "../../src/domains/dependencies.ts";
 //      例外: schema.ts どうし(外部キーのため)と、src/db の schema.ts・seed.ts(全部の表を集める所)
 //   3. 向きに輪(A → B → A)が無い
 //   4. 領域のフォルダ名 = Postgres のスキーマ名
+//   5. どの領域にも CLAUDE.md(領域ごとの1枚)がある
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "../../src");
 const DOMAINS_DIR = join(SRC, "domains");
@@ -102,6 +103,12 @@ describe("領域の境界(ADR 0004)", () => {
       expect(statSync(join(DOMAINS_DIR, d, "index.ts")).isFile()).toBe(true);
       expect(readFileSync(join(DOMAINS_DIR, d, "schema.ts"), "utf8")).toContain(`pgSchema("${d}")`);
     }
+  });
+
+  // AI に「この領域だけ」の文脈を渡す1枚(設計書 0050)。型は docs/domain/_template-CLAUDE.md
+  it("どの領域にも CLAUDE.md がある", () => {
+    const missing = domains.filter((d) => !existsSync(join(DOMAINS_DIR, d, "CLAUDE.md")));
+    expect(missing, "docs/domain/_template-CLAUDE.md を写して作ってください").toEqual([]);
   });
 
   // 見張りそのものが効いていること(ルールが緩むと、上のテストが黙って通ってしまう)

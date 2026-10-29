@@ -32,7 +32,7 @@ Claude Code に:
 
 > 「`.claude/skills/add-domain` で領域 `sites` を足して。次に `reports`(`sites` に頼る)」
 
-- 領域ごとに: `src/domains/<領域>/{schema,repository,routes,index}.ts`・スキーマと RLS の移行・`dependencies.ts` の向き・列の分類(`classification.ts`)・解約で消す一覧(`TENANT_TABLES`)・領域の資料と `CLAUDE.md`(型から)が1つの PR でそろう。
+- 領域ごとに: `src/domains/<領域>/{schema,repository,routes,index}.ts`・全部の表を集める所(`src/db/schema.ts`)とルートの登録(`app.ts`)・スキーマと RLS の移行・`dependencies.ts` の向き・列の分類(`classification.ts`)・解約で消す一覧(`TENANT_TABLES`)・領域の資料と `CLAUDE.md`(型から)が1つの PR でそろう。
 - API は `.claude/skills/add-api-endpoint` で1本ずつ(権限の表に1行・2社のテスト)。書き込みの API は監査ログの名前(`audit/actions.ts`)に1行。
 - ✅ ここで `pnpm test:all` が緑。**古い TODO はまだ残っている**(2つの題材が並ぶ)。
 

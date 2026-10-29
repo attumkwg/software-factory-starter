@@ -64,7 +64,7 @@ pnpm setup:github --apply
 1. Renovate の GitHub App を入れる([manual-setup.md](manual-setup.md) の 1 の 4)
 2. `/kickoff`(何を作るか)→ `/tailor`(部品を選ぶ・`pnpm decisions --adopt`)
 3. `.github/CODEOWNERS` のキットの持ち主を、自分かチームにする
-4. 点検の台帳を自分の物にする: `pnpm checkup:adopt --by @自分`(使い始めた日を今日に・担当者を自分に・全部の項目を「まだ」に。キットの持ち主の記録は消さず、`adopted` の1行を足す)
+4. 点検の台帳を自分の物にする: `pnpm checkup:adopt --by @自分`(使い始めた日を今日に・担当者を自分に・全部の項目を「まだ」に。キットの持ち主の記録は消さず、`adopted` の1行を足す)。自分の仕様・設計書・ADR の番号の始まりもここで決まる(既定 5000。キットは 0001〜4999 なので、取り込んでも重ならない。`--numbers-from` で変える。[仕様 0091](../specs/0091-own-number-range.md))
 5. 最初の `/checkup-refresh`
 6. 使うなら秘密の値(Environment `claude` の `ANTHROPIC_API_KEY`・`zap` の2つ・リポジトリの `CHECKUP_TOKEN`・`SLACK_WEBHOOK_URL`)を GitHub の画面で
 7. 直したファイル(3〜5)を1つの PR に
