@@ -47,7 +47,7 @@
 │  ├─ legal/                    お客さんに出す取り決めの型(申込書・SLA・個人データの取り扱い。文面は書かず、既定・根拠・使う人が決めること)
 │  ├─ adr/                      設計判断のテンプレートと例(共有の表+RLS・デザインシステム・SSR・領域・お金と時刻・アウトボックス・Cognito のログイン・メール・自前のログイン画面)
 │  ├─ runbooks/                 手順書の例(他社のデータが見えたかもしれない・Cognito でのログイン)
-│  └─ kit/                      キットの持ち物(部品のカタログ catalog.yaml・保守の方針 maintenance.md・取り込んだ版 upstream.yaml・取り込みの手引き upgrade.md・最初の1週間 first-week.md・用語集 glossary.md・経営者と情シス向けの1枚 one-pager.md)
+│  └─ kit/                      キットの持ち物(部品のカタログ catalog.yaml・保守の方針 maintenance.md・取り込んだ版 upstream.yaml・取り込みの手引き upgrade.md・番号の範囲 numbering.yaml・最初の1週間 first-week.md・用語集 glossary.md・経営者と情シス向けの1枚 one-pager.md)
 ├─ infra/terraform/
 │  ├─ modules/                  network・ecs-service(API+共有 ALB・blue/green)・web-service(画面の SSR)・mail-relay(Postfix+EFS)・ses-domain・aurora・backup(消せない保管庫)・alerts(SNS → Slack・費用の警報)・monitoring(アラーム)・uptime(外形監視)・preview-env・github-oidc
 │  └─ envs/                     stg・prod・preview/base(共有の土台)・preview/pr(PR ごと)
@@ -151,6 +151,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - `pnpm setup:github`(GitHub の設定を `.github/setup.yml`・`.github/labels.yml` にそろえる。既定は試しで差分だけ・`--apply` で反映。**人が打つ**(AI は試しまで))/ `pnpm setup:check`(使うラベル・必須のチェック・Environment・定期の見分け・ラベルの手引きが設定ファイルとずれていないか。CI)/ `pnpm setup:labels`(ラベルの手引き `docs/guides/labels.md` を作り直す)。`docs/guides/github-setup.md`
 - `pnpm vendors`(委託先の台帳 `docs/compliance/vendors.yaml` とコードの照らし合わせ。CI)/ `pnpm vendors --write`(人が読む一覧 `vendors.md` を作り直す)
 - `pnpm vulns`(Dependabot の開いている通知のうち精査していない物・見直す日が来た記録。`gh` を使う)
+- `pnpm adr`(仕様・設計書・ADR の番号の重なり・見出しの形・範囲(`docs/kit/numbering.yaml`: キットは 0001〜4999・使う側は `checkup:adopt` が決めた始まりから)を見て、次の番号を出す。CI。先に adopt を済ませていたら一度 `--own-from 5000`。`docs/specs/0091-own-number-range.md`)
 - `pnpm self-contained`(キットの外の資料を指していないか。根拠は `docs/concepts/` と `docs/security.md` の番号つきの決まりを指す)
 - `pnpm gaps`(穴の一覧 `docs/scenarios/gaps.md` の今の数(全部と段ごと)・行の形・済みの行の仕様の状態・段の抜け・済んだ穴を「穴」と書いた文書。CI。`--write` で頭の「今の数」の表を作り直す。`docs/designs/0078-gaps-watch.md`)
 - `pnpm checkup`(点検の台帳 `docs/checkup/todo.yaml` から、いまの段階に当たる項目を出し、自動で確かめられる物を確かめる。`gh` を使う。台帳を直したら `--write-readme`。答えは `/checkup` が `pnpm checkup:answer` で書く。キットから作ったら一度 `pnpm checkup:adopt --by @自分`。`--issue`・`--urgent` は知らせ(`checkup.yml` が毎週・毎日流す。手元では打たない))
