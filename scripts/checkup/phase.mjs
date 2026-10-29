@@ -43,6 +43,9 @@ export const daysBetween = (a, b) => Math.round((ms(b) - ms(a)) / DAY);
 /** date に n 日足した日 */
 export const addDays = (date, n) => new Date(ms(date) + n * DAY).toISOString().slice(0, 10);
 
+/** その日付の週の月曜(日付だけ。週は月曜始まり。packages/shared の time.ts の mondayOf と同じ数え方) */
+export const mondayOf = (date) => addDays(date, -((new Date(ms(date)).getUTCDay() + 6) % 7));
+
 /** 日本時間の今日(毎週の知らせは日本時間の朝に流れるので、UTC の日付だと前の日になる) */
 export const todayInTokyo = (now = new Date()) =>
   new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(now);
