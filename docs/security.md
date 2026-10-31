@@ -16,7 +16,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 |---|---|---|
 | AI-1 | **AI は本番に入れない**。本番の鍵・本番の DB・本番に届く MCP を AI の環境に置かない。読み取りも dev・stg まで | `CLAUDE.md` の「してはいけない」・OIDC の役割(下の「GitHub Actions から AWS へ」)・`docs/runbooks/` のコマンドは人に渡す |
 | AI-2 | **AI の環境から外に出られる先を絞る**(パッケージの取得先・GitHub・モデルの API だけ) | | あり([guides/unattended-ai.md](guides/unattended-ai.md)・[設計書 0057](designs/0057-ai-egress.md)・ADR [0068](adr/0068-ai-egress-by-where-it-runs.md)・[0069](adr/0069-background-ai-runs-integration-tests.md))。人が見ていない作業は ① 許可リストのプロキシと firewall で絞った devcontainer(`.devcontainer/egress/`。中の Docker で結合テスト・E2E が回る)か ② Web を読む道具と GitHub 以外の MCP を持たない背景の AI(`claude.yml`)でだけ回す。CI と背景の AI の結合テスト・E2E のコンテナは外へ出られない(`.github/scripts/block-container-egress.sh`)。外へ向けた操作は記録し(`.claude/hooks/record-outbound.mjs`)、PR の「🚪 外へ出した物」に並べる。手元のそのままの環境(devcontainer の外)は OS では絞らない |
-| AI-3 | **Issue の文章は「データ」**。外の人が書いた Issue をそのまま AI に渡すと、中の指示に従ってしまう(プロンプトインジェクション)。**AI を起動できるのは組織のメンバーだけ**。**AI に読ませる Issue・PR の書き手も、書き込める人だけ**。AI が外へ書く文章(コメント・PR の本文)に秘密を出さない | `.github/workflows/claude.yml`(起動できるのはリポジトリの持ち主 OWNER だけ・前の段 `authors` が頼まれた Issue・PR の本文・コメント・レビューの書き手を確かめる `.github/scripts/ai-input-authors.mjs`・Bash などから API キーを消す `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`・後ろの段 `output-secrets` が書かれた文章を gitleaks で見る)・外へ書く文章の秘密の形を止めるフック `.claude/hooks/guard-secrets-out.mjs`([設計書 0060](designs/0060-background-ai-inputs.md)) |
+| AI-3 | **Issue の文章は「データ」**。外の人が書いた Issue をそのまま AI に渡すと、中の指示に従ってしまう(プロンプトインジェクション)。**AI を起動できるのは組織のメンバーだけ**。**AI に読ませる Issue・PR の書き手も、書き込める人だけ**(あわせて、読ませる文に個人情報の形があれば動かさない)。AI が外へ書く文章(コメント・PR の本文)に秘密を出さない | `.github/workflows/claude.yml`(起動できるのはリポジトリの持ち主 OWNER だけ・前の段 `authors` が頼まれた Issue・PR の本文・コメント・レビューの書き手を確かめる `.github/scripts/ai-input-authors.mjs`・Bash などから API キーを消す `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`・後ろの段 `output-secrets` が書かれた文章を gitleaks で見る)・外へ書く文章の秘密の形を止めるフック `.claude/hooks/guard-secrets-out.mjs`([設計書 0060](designs/0060-background-ai-inputs.md)) |
 | AI-4 | **自分で頼んだ AI の PR を、自分で承認できない**ようにする(PR は頼んだ人の名前で作る)。**設計書の未確定事項の「承認」も、人が GitHub に書いた答えを指す**(AI は人の答えを書けない。1人の間(`required_approvals: 0`)は、持ち主が会話で返した答えを工場が PR に記録した物も答えにする。仕様 0080・0085) | フック(`docs/guides/local-guards.md`)・GitHub のルールセット・必須のチェック「未確定事項の答えの出どころ」(`scripts/decision-evidence.mjs`・[設計書 0061](designs/0061-decision-evidence.md))。1人の間は自分の承認も可にしている([guides/manual-setup.md](guides/manual-setup.md) の 1) |
 | AI-5 | **AI に CI の設定・CODEOWNERS・ブランチ保護・検査の除外・検査の設定(カバレッジの下限・lint・squawk・E2E)を変えさせない**(変えるなら危険度「高」で人が見る)。**テストか検査を弱めた変更は印を付けて人の目に出す** | `.claude/hooks/protected-paths.json`・編集と Bash のフック(`guard-edit.mjs`・`guard-bash.mjs`。手元で外したら PR の `risk:high` と CODEOWNERS)・`pnpm guards`・ラベル `tests:weakened`(`.github/workflows/test-weakening.yml`。付いた PR は危険度「高」とみなす。[設計書 0062](designs/0062-test-weakening.md)) |
 | AI-6 | **本番の個人データを AI に渡さない**。渡すのは ID と集計まで(区分の internal・public)。**要配慮(sensitive)は一切渡さない**。本番から出すのは人で、貼る前に人が見る | [compliance/ai-data.md](compliance/ai-data.md)(出どころごとの表)・委託先の台帳で AI の会社に personal・sensitive を書くと落ちる(`pnpm vendors`)・`CLAUDE.md` の「してはいけない」 |
@@ -129,9 +129,10 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 | 列の分類 | DB の全部の列(drizzle と本物の DB)に区分と目的があるか・要配慮(`sensitive`)がスキーマ `sensitive` の外に無いか・監査ログと出来事の中身に個人情報のキーが無いか(`apps/api/src/db/classification.ts`。ADR 0018) | 区分そのものの誤り(人が見る) | `ci.yml` 単体・結合 |
 | ログの個人情報 | 全部の API を目印つきの値(名前・電話・病名に見立てた文・メール)で叩き、ログの全行に目印が無いか。送信待ちの失敗の文も(`personal-data-logs.int.test.ts`。ADR 0019) | 目印の形に無い個人情報・テストで通らない道すじ | `ci.yml` 結合 |
 | 返事の個人情報 | 権限の表の全行を全ロールで叩き、2xx の本文に本人以外の名前・メールが無いか。出してよい組み合わせ(管理者が組織の人の一覧を見る など)はテストの中の表で理由つきで許す。他社と未ログインには、その会社の目印が1つも出ない(`personal-data-responses.int.test.ts`) | 2xx 以外の本文・表の行で通らない道すじ(一覧の2ページ目・機能フラグの先) | `ci.yml` 結合 |
+| PR の文の個人情報 | PR の題名・本文・コミットの文に、許すドメイン以外のメールアドレス・電話番号・マイナンバー・〒つきの郵便番号の形が無いか(許す一覧つき。ボットの PR は本文を見ない) | 形の決まっていない個人情報・PR のコメント | `pr-work.yml` |
 | RLS と2社 | 全テーブルの RLS・接続ユーザーが持ち主でないか・2社が混ざらないか | RLS の外(キャッシュ・ファイル・ログ) | `ci.yml` 結合 |
 | Semgrep | 公開のルール+自社ルール(テナントの文脈・生の SQL・ログ・本文の検証・画面の色) | ルールに書いていない形の穴 | `ci.yml` |
-| gitleaks | 全履歴から秘密の値らしいもの | 形の決まっていない秘密・暗号化された秘密 | `ci.yml` |
+| gitleaks | 全履歴から秘密の値らしいものと、個人情報の形(許すドメイン以外のメールアドレス・日本の電話番号・「マイナンバー」の後ろの12桁。`.gitleaks.toml`) | 形の決まっていない秘密・暗号化された秘密・名前や住所 | `ci.yml` |
 | Trivy | 依存とイメージの既知の脆弱性(HIGH 以上)・Dockerfile と Terraform の設定 | まだ知られていない脆弱性・自分のコードの穴・中以下・「うちに届くか」(→ 下の `/cve`) | `ci.yml`・`terraform.yml`・`vuln-scan.yml`(毎週月曜に最新の DB で。zizmor のオンライン版も。落ちたら Issue) |
 | squawk | 移行の、本番を止める書き方 | 移行の中身の正しさ(データが合っているか) | `ci.yml` |
 | axe | 画面のアクセシビリティ(色・ラベル・名前・押す所の大きさ。WCAG 2.2 AA まで)と、スマホの幅(320px)で横にはみ出さないか | キーボードだけで最後まで使えるか・iPhone(WebKit)での見え方 | `ci.yml` E2E |
@@ -144,7 +145,7 @@ AI エージェントが PR を出す前提なので、従来の守りに加え�
 |---|---|---|---|
 | Schemathesis | OpenAPI から全 API に変な入力を作って、ロールごとに叩く。500・書いていない答え・形の違う応答を見つける | 意味の上の穴(他社が見える等) | `pnpm security:fuzz`(手元)・`security-fuzz.yml` |
 | ZAP ベースライン | プレビューの画面を外から受け身で見る(ヘッダー・Cookie の設定など) | ログインの後ろ・API の中身 | `preview.yml` |
-| ZAP API スキャン | stg にログインして、OpenAPI の全 API に攻撃の型を送る | 複数の手順をまたぐ攻撃・業務の穴 | `zap-api-scan.yml` |
+| ZAP API スキャン | stg にログインして、OpenAPI の全 API に攻撃の型を送る(公開のリポジトリではレポートが誰でも落とせるので、注意が出る) | 複数の手順をまたぐ攻撃・業務の穴 | `zap-api-scan.yml` |
 | `/security-review` | Claude Code がブランチの変更を読み、認可漏れ・注入などを探す | 仕様に依存する業務の穴は苦手 | 下の「危険度『高』の PR で」 |
 | `/cve`・`pnpm vulns` | Dependabot の通知・Trivy・OSV・基盤と主な依存の発表を集め、関係あるかを6段で精査し、期限つきの直し方を決める。記録と通知の突き合わせ | まだ発表されていない脆弱性・自分のコードの穴 | [guides/vulnerabilities.md](guides/vulnerabilities.md)(記録は [security/vulns.md](security/vulns.md)) |
 

@@ -186,7 +186,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 | 「高」は2人 | `.github/CODEOWNERS`(認証・認可・権限の表・移行・infra・.github・ハーネス)+ブランチ保護(下) |
 | PR で自己申告 | `pull_request_template.md`(食い違ったら高い方) |
 | 依存の更新 | `renovate.json`(開発用の小さい更新は low、major・CI・インフラは high) |
-| AI に外へ秘密を書かせない | フック `.claude/hooks/guard-secrets-out.mjs`(外へ書く文章の鍵の形を止める)・背景の AI の前の段(読ませる Issue・PR の書き手)と後ろの段(書いた文章の gitleaks)。[設計書 0060](designs/0060-background-ai-inputs.md) |
+| AI に外へ秘密を書かせない | フック `.claude/hooks/guard-secrets-out.mjs`(外へ書く文章の鍵の形を止める)・背景の AI の前の段(読ませる Issue・PR の書き手と、個人情報の形)と後ろの段(書いた文章の gitleaks。既定のルール = 鍵の形だけ)。PR の題名・本文・コミットの文の個人情報の形は `pr-work.yml`。[設計書 0060](designs/0060-background-ai-inputs.md) |
 | AI に変えさせない所 | 編集と Bash のフック `.claude/hooks/guard-edit.mjs`・`guard-bash.mjs`(CI・権限・移行・infra を編集するときは人の確認。手元だけで外せる。[docs/guides/local-guards.md](guides/local-guards.md)) |
 
 ### ハーネス3層
@@ -195,7 +195,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 |---|---|
 | ① 手元の Claude Code | `CLAUDE.md`(全体・api・web)・`.claude/settings.json` のフック(書いたら Biome・終わる前に型と影響範囲のテスト。2回落ちたら人へ)・`.claude/skills/`(API を足す / DB の移行 / 設計 / 作り直し / リリースノート / 脆弱性の精査 `/cve` / セキュリティの質問票の下書き `/security-questionnaire`)・`.devcontainer/` |
 | ② 背景エージェント | `.github/workflows/claude.yml`(Issue / PR の `@claude`。起動できるのはリポジトリの持ち主 OWNER だけ。[docs/security.md の AI-3](security.md)) |
-| ③ 自前のファクトリー | まだ作らない(PR が週に数十件を超えてから) |
+| ③ 自前のファクトリー | キット自身は、この雛形の中に工場を持つ(いちばん多い週で97本)。使う側が別の土台を自前で作るのは、PR が週に数十件を超えてから |
 
 ### テナント分離(共有の表+RLS)
 
@@ -236,7 +236,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 |---|---|---|
 | 自分のコード | Semgrep CE(公開のルール+自社ルール) | `ci.yml` の semgrep |
 | 依存 | Trivy fs・Renovate・Dependabot alerts・精査と対応方針(`/cve`) | `ci.yml` の trivy-fs・`vuln-scan.yml`(定期)・`renovate.json`・`pnpm vulns`([docs/guides/vulnerabilities.md](guides/vulnerabilities.md)) |
-| 秘密情報 | gitleaks(全履歴) | `ci.yml` の gitleaks |
+| 秘密情報と個人情報の形 | gitleaks(全履歴・`.gitleaks.toml`) | `ci.yml` の gitleaks |
 | イメージ | Trivy image | `ci.yml` の image |
 | インフラ定義 | Trivy config・tflint | `ci.yml`・`terraform.yml` |
 | 移行 | squawk | `ci.yml` の migrations |
@@ -292,7 +292,7 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 - **サーバー側のセッション保存**: 作らない(ADR 0017)。署名つき Cookie で、無操作1時間・ログインから最長12時間で切れる。管理者による強制ログアウトは、保存なしで入れた(`sessions_valid_after`。ADR 0067・部品 `member-sign-out`)。端末を選んで切るのは、要るようになったら DB か Valkey に。
 - **1つの画面で組織をまたいで見る**: 1人は複数の組織に所属できる(ADR 0066)が、セッションは1組織分だけ。横断の一覧や検索は作らない。
 - **監査ログの「読んだ」記録・消せない S3 への写し・OpenTelemetry のトレース・本物のブラウザでの外形監視(Synthetics)**: ログには traceId を入れてあるので、トレースは後から足せる(当番の決まりは G-08 で足した。[docs/guides/on-call.md](guides/on-call.md))。
-- **AI レビュー**(CodeRabbit / Claude の Code Review)と、危険度「低」の自動マージ: 見逃しを数えてから。
+- **外の AI レビューの道具**(CodeRabbit など): 入れていない。キットの中に、書いた人と別の AI のレビュー(`/review-pr`。部品 `review-by-other-ai`)がある。センサーだけで入れるマージは既定でオフ([guides/throughput.md](guides/throughput.md))。
 - **WAF を「止める」にすること**: stg・prod の CloudFront の前に WAF はある(`infra/terraform/modules/waf`。CloudFront を置かない形では ALB の前)が、入れたばかりは「数えるだけ(count)」。誤検知が無いのを確かめてから `mode = "block"` に([docs/security.md](security.md))。
 - **CSP の違反の知らせを集めること**(`report-to`): 画面の CSP はある([設計書 0045](designs/0045-web-csp.md))が、違反を受け取る口は無い。止めた物は E2E の `csp.spec.ts` で見つける。本番で起きた違反を数えたくなったら、受け口を API に足す。
 

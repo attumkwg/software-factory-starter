@@ -212,7 +212,7 @@ parts:
     what: 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る(既定の秘密のルールに、メールアドレス・電話番号・マイナンバーの形を足す。`.gitleaks.toml`)。漏れたときの手順書
     needed_by: すべて
     not_needed_by: なし
-    if_removed: 鍵がコードやログに混ざっても気づけない
+    if_removed: 鍵と、本物の個人情報の形(メールアドレス・電話番号・マイナンバー)がリポジトリに入っても気づけない
     depends_on: []
     law:
       - ISMS 5.17(認証情報)・8.24(暗号の利用)
@@ -1884,7 +1884,7 @@ parts:
     what: 機能ごとに「何を賭けて・何が分かったら続けるか」を先に書き、小さく確かめながら進める。PR の本文に取り組みと作業の種類を書く
     needed_by: PMF の前後で、作る物の当たり外れが大きい
     not_needed_by: 作る物が決まっている受託
-    if_removed: 作った機能が効いたかを振り返れない。資産と費用を分ける元(PR の取り組み)が無くなる
+    if_removed: 作った機能が効いたかを振り返れない。資産と費用を分ける元(PR の取り組み)が無くなる。pr-work.yml ごと消えるので、PR の題名・本文・コミットの文の個人情報の検査も無くなる(G-161)
     depends_on: [kickoff]
     law: []
     remove:
