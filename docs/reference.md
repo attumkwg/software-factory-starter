@@ -252,6 +252,8 @@ cp apps/api/.env.example apps/api/.env && pnpm db:migrate && pnpm db:seed && pnp
 
 ## ✅ CI で回るもの
 
+**何を守っているか・落ちたらどうするか・1人の間に要るか**は、全部のワークフローと必須のチェック16個を1枚にした [docs/guides/ci-map.md](guides/ci-map.md)。下の表は、いつ動くかと AWS が無いときの早見。
+
 お金がかかりうるもの(AWS・Claude の API)は、**いまは手動だけ**にしてあります。有効にする手順と費用は [docs/guides/automation.md](guides/automation.md)。
 
 | ワークフロー | いつ | AWS / キーが無いとき |
