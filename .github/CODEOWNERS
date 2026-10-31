@@ -69,6 +69,7 @@
 /scripts/design-tests.mjs           @attumkwg
 /scripts/design-tests-lib.mjs       @attumkwg
 /.gitleaksignore                    @attumkwg
+/.gitleaks.toml                     @attumkwg
 /.trivyignore.yaml                  @attumkwg
 /renovate.json                      @attumkwg
 /pnpm-workspace.yaml                @attumkwg

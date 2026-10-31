@@ -259,8 +259,9 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      # 既定の秘密のルール+個人情報の形(.gitleaks.toml)。--config を明示して、設定が消えたら黙って既定に戻らず落ちるようにする
       - name: 全履歴を検査
-        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --verbose
+        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --config /repo/.gitleaks.toml --redact --no-banner --verbose
 
   semgrep:
     name: コードの検査(Semgrep CE+自社ルール)

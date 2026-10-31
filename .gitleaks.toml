@@ -1,0 +1,79 @@
+# gitleaks の設定(CI の「秘密情報(gitleaks)」が全履歴に当てる。ci.yml で --config を明示)。
+# 既定の秘密のルール(鍵・トークン)はそのまま引き継ぎ、本物の個人情報の形を足す。
+# 種データ・テストのデータ・文書のメールは、予約のドメイン(.test・example.com など)だけを使う。
+# 許す物(allowlists)は、ルールごとに理由つきで書く。足す・広げるのは人が PR で確かめる(危険度「高」)。
+# 1か所だけの誤検知は、ここを広げずに .gitleaksignore に指紋で足す。
+
+title = "software-factory-starter"
+# 確かめた版(ci.yml の GITLEAKS_IMAGE)。これより古い版はルールごとの allowlists を読めない
+minVersion = "v8.30.0"
+
+[extend]
+useDefault = true
+
+# ── メールアドレス ─────────────────────────────────────────────
+[[rules]]
+id = "pii-email"
+description = "メールアドレス(予約のドメインと公開の決まった宛先の外)"
+# 前の1文字が英数字・記号・「/」なら当てない。「/」は URL の userinfo(Sentry の DSN の https://<key>@o1.ingest.sentry.io など)で、人の宛先ではない。
+regex = '''(?:^|[^A-Za-z0-9._%+/\-])([A-Za-z0-9][A-Za-z0-9._%+\-]*@(?:[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24})'''
+secretGroup = 1
+keywords = ["@"]
+tags = ["pii", "email"]
+
+[[rules.allowlists]]
+description = "予約のドメイン(RFC 2606・6761: .test・.example・.invalid・.localhost と example.com/net/org。JPRS の例示用の example.jp・example.co.jp など)。届かないので本物の人の宛先にならない"
+regexes = [
+  '''(?i)@(?:[a-z0-9\-]+\.)*(?:test|example|invalid|localhost)$''',
+  '''(?i)@(?:[a-z0-9\-]+\.)*example\.(?:com|net|org)$''',
+  '''(?i)@(?:[a-z0-9\-]+\.)*example\.(?:(?:co|ne|or|ac|go|ad|ed|gr|lg)\.)?jp$''',
+]
+
+[[rules.allowlists]]
+description = "人ではない決まった宛先: GitHub の非公開用のアドレス(コミットの作者)・Anthropic の Co-Authored-By・Cognito の既定の送り元(no-reply@verificationemail.com)・SES の試しの宛先(simulator.amazonses.com。届かない)"
+regexes = [
+  '''(?i)@users\.noreply\.github\.com$''',
+  '''(?i)^noreply@anthropic\.com$''',
+  '''(?i)^no-reply@verificationemail\.com$''',
+  '''(?i)@simulator\.amazonses\.com$''',
+]
+
+[[rules.allowlists]]
+description = "伏せ字のテストの偽の値(packages/error-reporting/src/scrub.test.ts。JSON のエラー文に混ざったメールを伏せるか確かめる。x.co は実在するが、abc という宛先は作り物)"
+regexes = ['''^abc@x\.co$''']
+
+# ── 電話番号(日本) ─────────────────────────────────────────────
+[[rules]]
+id = "pii-phone-jp"
+description = "日本の電話番号(携帯・IP 電話の 0[5789]0、区切りつきの固定電話の10桁、+81)"
+# 前後が英数字・「-」なら当てない(UUID の 0000-7000-8000 や、長い数字の一部を拾わない)。
+# 前後の1文字を当たりに含めるので、1文字だけで並んだ番号(「03-…、06-…」)は前の物だけが出る(そのコミットは落ちるので、守りとしては足りる)。
+# 固定電話は区切り(- ・空白・括弧)が要る形だけ(区切りの無い10桁は ID や数と見分けられない)。携帯は 0[5789]0 で始まる11桁なので区切りなしも当てる。
+regex = '''(?:^|[^0-9A-Za-z_\-])((?:\+81[\- ]?\(?0?\)?(?:[5789]0[\- ]?\d{4}[\- ]?\d{4}|[1-9]\d{0,3}[\- ]\d{1,4}[\- ]\d{4})|[(（]?0[5789]0(?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[()（）] ?)?\d{4}(?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[)）])?\d{4}|[(（]?(?:0[1-9](?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[()（）] ?)\d{4}|0[1-9]\d(?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[()（）] ?)\d{3}|0[1-9]\d{2}(?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[()（）] ?)\d{2}|0[1-9]\d{3}(?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[()（）] ?)\d)(?:[\-\x{2010}\x{2212}\x{FF0D}\x{30FC} ]|[)）])\d{4}))(?:[^0-9A-Za-z_\-]|$)'''
+secretGroup = 1
+tags = ["pii", "phone"]
+
+[[rules.allowlists]]
+description = "例示の番号: 下8桁が 0000-0000(090-0000-0000 など、0 で埋めた物)と、連番の 1234-5678(03 1234 5678 など)。ログの伏せ字のテストが使う。本物の番号として配られない形"
+regexes = [
+  '''0000\D?0000$''',
+  '''1234\D?5678$''',
+]
+
+# ── マイナンバー(個人番号) ─────────────────────────────────────
+[[rules]]
+id = "pii-my-number"
+description = "マイナンバー(12桁)。近くに「マイナンバー」「個人番号」「my number」とあるときだけ"
+# gitleaks は検査用の数字(最後の1桁)を確かめられないので、12桁の数だけでは当てない(AWS のアカウント ID の例 123456789012 などと見分けられない)。
+# 言葉の後ろ20文字以内に12桁(4桁ずつの区切りも)があるときだけ当てる。
+regex = '''(?i)(?:マイナンバー|個人番号|my ?number)[^0-9\n]{0,20}(\d{4}[\- ]?\d{4}[\- ]?\d{4})(?:[^0-9]|$)'''
+secretGroup = 1
+keywords = ["マイナンバー", "個人番号", "my number", "mynumber"]
+tags = ["pii", "my-number"]
+
+[[rules.allowlists]]
+description = "例示の番号: 0 だけの物と、連番の 1234-5678-9012。本物の番号として配られない形"
+regexes = [
+  '''^[0\- ]+$''',
+  '''^1234\D?5678\D?9012$''',
+]
