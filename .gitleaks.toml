@@ -42,6 +42,14 @@ regexes = [
 description = "伏せ字のテストの偽の値(packages/error-reporting/src/scrub.test.ts。JSON のエラー文に混ざったメールを伏せるか確かめる。x.co は実在するが、abc という宛先は作り物)"
 regexes = ['''^abc@x\.co$''']
 
+[[rules.allowlists]]
+description = "個人情報の形の検査そのもの(.github/scripts/text-pii-lib.mjs。PR の文と AI に読ませる文を見る)と、そのテスト。当たるべき値をわざと書くので外す。外すのは個人情報のルールだけで、秘密のルールは今までどおり当たる"
+paths = [
+  '''^\.github/scripts/text-pii-lib\.mjs$''',
+  '''^\.github/scripts/text-pii\.test\.mjs$''',
+  '''^\.github/scripts/ai-input-authors\.test\.mjs$''',
+]
+
 # ── 電話番号(日本) ─────────────────────────────────────────────
 [[rules]]
 id = "pii-phone-jp"
@@ -60,6 +68,14 @@ regexes = [
   '''1234\D?5678$''',
 ]
 
+[[rules.allowlists]]
+description = "個人情報の形の検査そのもの(.github/scripts/text-pii-lib.mjs。PR の文と AI に読ませる文を見る)と、そのテスト。当たるべき値をわざと書くので外す。外すのは個人情報のルールだけで、秘密のルールは今までどおり当たる"
+paths = [
+  '''^\.github/scripts/text-pii-lib\.mjs$''',
+  '''^\.github/scripts/text-pii\.test\.mjs$''',
+  '''^\.github/scripts/ai-input-authors\.test\.mjs$''',
+]
+
 # ── マイナンバー(個人番号) ─────────────────────────────────────
 [[rules]]
 id = "pii-my-number"
@@ -76,4 +92,12 @@ description = "例示の番号: 0 だけの物と、連番の 1234-5678-9012。�
 regexes = [
   '''^[0\- ]+$''',
   '''^1234\D?5678\D?9012$''',
+]
+
+[[rules.allowlists]]
+description = "個人情報の形の検査そのもの(.github/scripts/text-pii-lib.mjs。PR の文と AI に読ませる文を見る)と、そのテスト。当たるべき値をわざと書くので外す。外すのは個人情報のルールだけで、秘密のルールは今までどおり当たる"
+paths = [
+  '''^\.github/scripts/text-pii-lib\.mjs$''',
+  '''^\.github/scripts/text-pii\.test\.mjs$''',
+  '''^\.github/scripts/ai-input-authors\.test\.mjs$''',
 ]
