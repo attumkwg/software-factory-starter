@@ -1896,6 +1896,7 @@ parts:
         - scripts/bets.mjs
         - scripts/bets.test.mjs
         - .github/workflows/pr-work.yml
+        - .github/scripts/pr-text-pii.mjs
       edit:
         - { path: package.json, what: bets を外す・test:scripts から bets.test.mjs を外す }
         - { path: .github/pull_request_template.md, what: 「🎯 取り組み」の欄を外す }
