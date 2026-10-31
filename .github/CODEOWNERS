@@ -25,6 +25,7 @@
 /packages/logging/                  @attumkwg
 /apps/web/server/logger.ts          @attumkwg
 /apps/api/test/integration/personal-data-logs.int.test.ts @attumkwg
+/apps/api/test/integration/personal-data-responses.int.test.ts @attumkwg
 /docs/compliance/vendors.yaml       @attumkwg
 /docs/compliance/licenses.yaml      @attumkwg
 
