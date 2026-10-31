@@ -21,6 +21,7 @@
 | [kit/catalog.yaml](kit/catalog.yaml) | キットの部品のカタログ(何をするか・要る/要らないプロダクト・消すと困ること・つながり・法令や認証・消し方)。README の「使い始めたらやること」はここから作る | 部品を足す・消す・ファイルを動かしたとき(`pnpm kit:catalog` が落ちて気づく)。README は `pnpm kit:readme` | 低 |
 | [kit/one-pager.md](kit/one-pager.md) | 経営者・情シス向けの1枚(流れの図・人と AI の分担・費用・効果の見込みを【実測】と【仮定】に分けて・審査で聞かれること) | 費用の数字・人が止まる所・効果の実測が変わったとき | 低 |
 | [kit/first-week.md](kit/first-week.md)・[kit/glossary.md](kit/glossary.md) | 引き継ぐ人が最初の1週間で読む9つと、キット独自の言葉 ↔ 標準の言葉の対応(プロダクトの言葉は `domain/glossary.md`) | 入口の文書を足す・動かしたとき・新しい言葉を作ったとき | 低 |
+| [kit/roadmap.md](kit/roadmap.md)・[kit/roi.md](kit/roi.md)・[kit/release-check.md](kit/release-check.md) | 公開までの道のり(2026-10-31 に公開)・キット自身の ROI と数の出どころ・公開や版を切る前の点検 | 公開・版を切るとき・数を言うとき | 低 |
 | [kit/limits.md](kit/limits.md) | できないこと・1人の間の回し方・確かめていないこと(本物の AWS の上で確かめる物の表)を1か所に。各行に代わりにどうするか・穴の番号 | 穴が済んだ・本物の AWS で確かめた・できないことが増えた・減ったとき | 中 |
 | [kit/maintenance.md](kit/maintenance.md)・[kit/upgrade.md](kit/upgrade.md) | キットの保守の方針(誰が・どこまで・いつまで・版の付け方)と、キットから作ったリポジトリへの新しい版の取り込み方(取り込んだ版は `kit/upstream.yaml`)。変更の記録はルートの `CHANGELOG.md`、穴の知らせ方は `SECURITY.md` | 約束の日数・版の付け方を変えたとき・版を切るとき(`CHANGELOG.md`) | 低 |
 | [product/tailoring.md](product/) | 部品の残す・消すの記録(答え・部品ごとの決定と理由)。足すだけ | `/tailor` が書く | 低 |
