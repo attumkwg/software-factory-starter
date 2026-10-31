@@ -3,11 +3,14 @@ import { test } from "node:test";
 import {
   isTrusted,
   judge,
+  judgePii,
   MAX_TARGETS,
   numbersInPrompt,
   targetsOf,
+  textsToRead,
   untrustedIn,
 } from "./ai-input-authors-lib.mjs";
+import { hitLines, scanTexts } from "./text-pii-lib.mjs";
 
 const by = (login, association, kind = "コメント", extra = {}) => ({
   kind,
@@ -81,4 +84,38 @@ test("判定: 番号なしは通す・全部信じられれば通す・1つで�
   assert.ok(bad.lines.at(-1).includes("自分の言葉で新しい Issue"));
   const many = Array.from({ length: MAX_TARGETS + 1 }, (_, i) => i + 1);
   assert.equal(judge({ targets: many, found: [] }).ok, false);
+});
+
+test("AI に読ませる文: 頼む文・題名・本文・コメント。当たれば AI を動かさない", () => {
+  const texts = textsToRead({
+    prompt: "#3 を直して",
+    issues: [
+      {
+        number: 3,
+        title: "題名",
+        items: [
+          { kind: "本文", body: "本文" },
+          { kind: "コメント", body: "1つ目" },
+          { kind: "コメント", body: "連絡は taro@gmail.com" },
+          { kind: "レビュー", body: null },
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(
+    texts.map((t) => t.where),
+    [
+      "頼む文",
+      "#3 の題名",
+      "#3 の本文",
+      "#3 のコメント(1件目)",
+      "#3 のコメント(2件目)",
+      "#3 のレビュー(1件目)",
+    ],
+  );
+  const bad = judgePii(hitLines(scanTexts(texts)));
+  assert.equal(bad.ok, false);
+  assert.ok(bad.lines.some((l) => l.startsWith("#3 のコメント(2件目) の 1行目")));
+  assert.ok(bad.lines.every((l) => !l.includes("taro@gmail.com")));
+  assert.equal(judgePii([]).ok, true);
 });

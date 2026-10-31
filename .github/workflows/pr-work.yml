@@ -2,6 +2,7 @@
 # 本文を直したときにも流すので、CI(ci.yml)とは別にする(重い検査を本文の直しで流し直さない)。
 # 本文は env で渡して標準入力から読む(式を run に直接書くと、本文で命令を差し込まれる)。
 # マージキューの中(merge_group)では、キューの枝の名前から PR を引き、本文を API で読み直す(G-135・仕様 0095)。
+# 同じジョブで、PR の題名・本文・コミットの文に個人情報の形が無いかも見る(必須のチェックの数は増やさない。Issue #205)。
 name: PR の取り組み
 
 on:
@@ -47,3 +48,15 @@ jobs:
           number="$(node .github/scripts/queue-pr.mjs)"
           author="$(gh api "repos/$GH_REPO/pulls/$number" --jq .user.login)"
           gh api "repos/$GH_REPO/pulls/$number" --jq '.body // ""' | node scripts/bets.mjs --pr-body --author "$author"
+      # 題名・本文・コミットの文は書いた瞬間に公開され、取り消せない。個人情報の形があれば落とす(Issue #205)。
+      # PR でもマージキューの中でも、今の PR を API で読み直す(コミットの文はイベントに無い)。上の段が落ちても流す
+      - name: PR の題名・本文・コミットの文に個人情報の形が無いか
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
+        run: |
+          number="$(node .github/scripts/queue-pr.mjs)"
+          PR_NUMBER="$number" node .github/scripts/pr-text-pii.mjs
