@@ -15,6 +15,7 @@
           - packages/logging/**
           - apps/web/server/logger.ts
           - apps/api/test/integration/personal-data-logs.int.test.ts
+          - apps/api/test/integration/personal-data-responses.int.test.ts
           - apps/api/test/integration/rls.int.test.ts
           - apps/api/test/integration/tenant-isolation.int.test.ts
           - apps/api/test/integration/authz-matrix.int.test.ts
