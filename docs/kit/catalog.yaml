@@ -209,7 +209,7 @@ parts:
     status: あり
     removable: false
     default: 残す
-    what: 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る。漏れたときの手順書
+    what: 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る(既定の秘密のルールに、メールアドレス・電話番号・マイナンバーの形を足す。`.gitleaks.toml`)。漏れたときの手順書
     needed_by: すべて
     not_needed_by: なし
     if_removed: 鍵がコードやログに混ざっても気づけない
@@ -217,7 +217,7 @@ parts:
     law:
       - ISMS 5.17(認証情報)・8.24(暗号の利用)
       - SOC 2 CC6.1
-    where: [.gitleaksignore, docs/runbooks/secret-leak.md]
+    where: [.gitleaks.toml, .gitleaksignore, docs/runbooks/secret-leak.md]
 
   - id: backup
     name: バックアップと戻す訓練

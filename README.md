@@ -249,7 +249,7 @@ Claude Code でこのフォルダを開き、`/kickoff` と打つ。1問ずつ�
 | 土台(消さない) | 🔒 組織と利用者・ロール `organizations` | 組織(テナント)と利用者、admin / member / viewer のロール | 残す | あり |
 | 土台(消さない) | 🔒 認可の関所と権限の表 `authz` | 全部の API が1か所の関所を通り、表(matrix.yaml)に無い API は既定で拒否する。表の全行をテストで叩く | 残す | あり |
 | 土台(消さない) | 🔒 自前のログイン画面と Cognito `login` | 自前の画面 → API → Cognito でログイン・登録・パスワードの再設定。トークンはサーバーの中だけ。手元とテストは偽物の Cognito | 残す | あり |
-| 土台(消さない) | 🔒 秘密の扱い `secrets` | 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る。漏れたときの手順書 | 残す | あり |
+| 土台(消さない) | 🔒 秘密の扱い `secrets` | 秘密は Secrets Manager と GitHub の Environment にだけ置く。gitleaks で全履歴を見る(既定の秘密のルールに、メールアドレス・電話番号・マイナンバーの形を足す。`.gitleaks.toml`)。漏れたときの手順書 | 残す | あり |
 | 土台(消さない) | 🔒 バックアップと戻す訓練 `backup` | 消せない保管庫に毎日と毎月。毎月 stg で戻す訓練 | 残す | あり |
 | 土台(消さない) | 🔒 CI の検査 `ci-checks` | 型・lint・単体・結合(2社)・E2E・API の互換・移行(squawk)・Semgrep・Trivy・gitleaks・ワークフローの検査・未確定事項の仮決め(decisions --strict)と人の答えの出どころ(decision-evidence)・ADR の番号の重なり・穴の一覧と文書の古さ(gaps) | 残す | あり |
 | 土台(消さない) | 🔒 ログの決まり `logging` | 構造化ログ・request ID・必要な項目だけを残す(オブジェクトを丸ごと渡さない) | 残す | あり |
