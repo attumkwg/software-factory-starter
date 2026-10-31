@@ -38,24 +38,24 @@ jobs:
       contents: read
     env:
       HAS_SECRET: ${{ secrets.ZAP_SCAN_USERNAME != '' && secrets.ZAP_SCAN_PASSWORD != '' }}
-      # 公開のリポジトリでは流さない。レポート(zap-api-report)に stg への要求と返事が入り、GitHub にログインした誰でも落とせる。
-      # ZAP の Action には成果物を上げない設定が無いので、流すのは非公開のリポジトリだけにする
-      RUN_SCAN: ${{ secrets.ZAP_SCAN_USERNAME != '' && secrets.ZAP_SCAN_PASSWORD != '' && github.event.repository.private }}
+      # レポート(zap-api-report)には stg への要求と返事が入りうる。公開のリポジトリでは GitHub にログインした誰でも落とせる
+      # (ZAP の Action には成果物を上げない設定が無い)。流しはするが、公開のときは注意を出す
+      IS_PUBLIC: ${{ !github.event.repository.private }}
       TARGET: ${{ vars.STG_URL }}
     steps:
       - name: 秘密が無ければ飛ばす
         if: env.HAS_SECRET != 'true'
         run: echo "::notice::ZAP_SCAN_USERNAME / ZAP_SCAN_PASSWORD が無いので飛ばしました(docs/security.md)"
-      - name: 公開のリポジトリなら飛ばす
-        if: env.HAS_SECRET == 'true' && env.RUN_SCAN != 'true'
-        run: echo "::notice::公開のリポジトリでは流しません(レポートに stg への要求と返事が入り、誰でも落とせるため)。非公開のリポジトリで流してください"
+      - name: 公開のリポジトリなら注意を出す
+        if: env.HAS_SECRET == 'true' && env.IS_PUBLIC == 'true'
+        run: echo "::warning::公開のリポジトリなので、ZAP のレポート(zap-api-report)は GitHub にログインした誰でも7日間落とせます。stg への要求と返事が入りえます。見つかった穴は直すまで外から読めるので、気になるなら非公開のリポジトリで流してください"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: env.RUN_SCAN == 'true'
+        if: env.HAS_SECRET == 'true'
         with:
           persist-credentials: false
       - name: スキャン用の利用者でログインして Cookie をもらう
         id: login
-        if: env.RUN_SCAN == 'true'
+        if: env.HAS_SECRET == 'true'
         env:
           USERNAME: ${{ secrets.ZAP_SCAN_USERNAME }}
           PASSWORD: ${{ secrets.ZAP_SCAN_PASSWORD }}
@@ -69,7 +69,7 @@ jobs:
           echo "::add-mask::$cookie"
           echo "cookie=$cookie" >> "$GITHUB_OUTPUT"
       - name: ZAP の API スキャン
-        if: env.RUN_SCAN == 'true'
+        if: env.HAS_SECRET == 'true'
         uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
         with:
           target: ${{ env.TARGET }}/api/openapi.json

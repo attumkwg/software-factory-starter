@@ -38,7 +38,7 @@ actions:
   can_approve_pull_request_reviews: false # AI や Actions が自分の PR を承認できない
   sha_pinning_required: true # SHA で固定した Action だけ
   fork_pr_approval: all_external_contributors # 外の人の PR の実行は毎回人が見てから
-  retention_days: 7 # 成果物とログ(ZAP のレポートにはリクエストの中身が入りうるので、ZAP は非公開のリポジトリでだけ流す)
+  retention_days: 7 # 成果物とログ(ZAP のレポートにはリクエストの中身が入りうる。公開のリポジトリで ZAP を流すと注意が出る)
 
 # main のルールセット(Settings → Rules → Rulesets)。例外(Bypass list)は置かない
 ruleset:
