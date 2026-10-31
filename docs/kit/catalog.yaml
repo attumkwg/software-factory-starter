@@ -558,6 +558,7 @@ parts:
         - { path: apps/api/src/audit/actions.ts, what: 3つの API を外す(画面の文 file.* は古い記録を読むため残す) }
         - { path: apps/api/test/integration/authz-matrix.int.test.ts, what: "{fileId} の置き換えを外す" }
         - { path: apps/api/test/integration/personal-data-logs.int.test.ts, what: 置き場とファイルの目印を外す }
+        - { path: apps/api/test/integration/personal-data-responses.int.test.ts, what: "{fileId} の置き換えとファイルの目印を外す" }
         - { path: apps/api/test/helpers/fixtures.ts, what: createFileFixture と既定の置き場を外す }
         - { path: docs/authz/matrix.yaml, what: ファイルの5行を外す }
         - { path: .semgrep/rules.yml, what: file-storage-only-in-module を外す(rules.ts の見本も) }
