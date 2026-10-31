@@ -82,3 +82,39 @@ export function judge({ targets, found }) {
     ],
   };
 }
+
+/**
+ * AI に読ませる文(個人情報の形を見る。Issue #205)。頼む文と、各 Issue・PR の題名・本文・コメント・レビュー。
+ * issues: [{ number, title, items }](items は untrustedIn と同じ形)
+ */
+export function textsToRead({ prompt, issues }) {
+  return [
+    { where: "頼む文", text: prompt },
+    ...issues.flatMap(({ number, title, items }) => {
+      // 種類ごとに何件目か(本文は1つなので数えない)
+      const count = new Map();
+      return [
+        { where: `#${number} の題名`, text: title },
+        ...items.map((i) => {
+          count.set(i.kind, (count.get(i.kind) ?? 0) + 1);
+          const nth = i.kind === "本文" ? "" : `(${count.get(i.kind)}件目)`;
+          return { where: `#${number} の${i.kind}${nth}`, text: i.body };
+        }),
+      ];
+    }),
+  ];
+}
+
+/** 個人情報の形があれば動かさない。lines: ログに出す行(当たりは伏せた形だけ。text-pii-lib の hitLines) */
+export function judgePii(lines) {
+  if (lines.length === 0)
+    return { ok: true, lines: ["読ませる文に、個人情報の形(メールアドレス・電話番号など)は無い"] };
+  return {
+    ok: false,
+    lines: [
+      "読ませる文に個人情報の形があるので、AI を動かしません(AI が写して PR・コメントに書くと公開され、取り消せない。値はログに出さない)",
+      ...lines,
+      "直し方: その文から値を消すか、値を書かずに新しい Issue に書き直してから、その番号で頼む。テストの値なら予約のドメイン(example.com・○○.test)を使う",
+    ],
+  };
+}
