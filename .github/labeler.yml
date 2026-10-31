@@ -59,6 +59,7 @@
           - scripts/design-tests.mjs
           - scripts/design-tests-lib.mjs
           - .gitleaksignore
+          - .gitleaks.toml
           - .trivyignore.yaml
           - renovate.json
           - pnpm-workspace.yaml
