@@ -7,6 +7,8 @@
 # - 起動した人だけでなく、AI に読ませる Issue・PR(頼む文の番号・@claude の付いた番号)の本文・コメント・レビューの
 #   書き手も、全員が書き込める人(OWNER・MEMBER・COLLABORATOR)か決めたボットのときだけ動かす(前の段の authors。
 #   秘密を持たないジョブ。G-58・docs/specs/0060-background-ai-inputs.md)。
+#   同じ段で、読ませる文(頼む文・題名・本文・コメント・レビュー)に個人情報の形があれば動かさない
+#   (AI が写して外へ書くと公開され、取り消せない。.github/scripts/text-pii-lib.mjs。Issue #205)。
 # - Bash・フック・MCP のサブプロセスからは Claude の API キーなどの秘密を消す(CLAUDE_CODE_SUBPROCESS_ENV_SCRUB。
 #   bubblewrap で Claude の本体の環境も /proc から読めなくする)。GitHub のトークンは gh とブランチへの送り出しに要るので
 #   残る(ジョブの間だけ使え、権限は下の permissions まで)。外へ書く文章に秘密の形があればフック(guard-secrets-out.mjs)が
@@ -85,7 +87,8 @@ jobs:
         with:
           node-version-file: .node-version
       # 依存は要らない(node の標準と gh だけ)。頼む文と番号は式で run に書かず env で渡す
-      - name: 頼まれた Issue・PR の書き手を確かめる
+      # 個人情報の形も同じスクリプトが見る(見つけた値は伏せた形だけをログに出す)
+      - name: 頼まれた Issue・PR の書き手と、個人情報の形を確かめる
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
