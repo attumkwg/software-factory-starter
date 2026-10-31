@@ -38,11 +38,17 @@ jobs:
       contents: read
     env:
       HAS_SECRET: ${{ secrets.ZAP_SCAN_USERNAME != '' && secrets.ZAP_SCAN_PASSWORD != '' }}
+      # レポート(zap-api-report)には stg への要求と返事が入りうる。公開のリポジトリでは GitHub にログインした誰でも落とせる
+      # (ZAP の Action には成果物を上げない設定が無い)。流しはするが、公開のときは注意を出す
+      IS_PUBLIC: ${{ !github.event.repository.private }}
       TARGET: ${{ vars.STG_URL }}
     steps:
       - name: 秘密が無ければ飛ばす
         if: env.HAS_SECRET != 'true'
         run: echo "::notice::ZAP_SCAN_USERNAME / ZAP_SCAN_PASSWORD が無いので飛ばしました(docs/security.md)"
+      - name: 公開のリポジトリなら注意を出す
+        if: env.HAS_SECRET == 'true' && env.IS_PUBLIC == 'true'
+        run: echo "::warning::公開のリポジトリなので、ZAP のレポート(zap-api-report)は GitHub にログインした誰でも7日間落とせます。stg への要求と返事が入りえます。見つかった穴は直すまで外から読めるので、気になるなら非公開のリポジトリで流してください"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.HAS_SECRET == 'true'
         with:
