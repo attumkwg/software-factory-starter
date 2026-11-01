@@ -22,7 +22,7 @@ declare module "vitest" {
 // 結合テストの Postgres。docker-compose.yml の db と同じ版・同じダイジェスト(Renovate が一緒に上げる。renovate.json の
 // customManagers)。ダイジェストで1行に収まらないので「=」の後で改行する(Biome の整形と、Renovate の読み取りの両方に合う形)
 const POSTGRES_IMAGE =
-  "postgres:17-alpine@sha256:eee6c6e1b0894fa4fe0075eb054af9fd1cf39a35321c2d4110626cfe506411fb";
+  "postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b";
 
 // 本番と同じ形: superuser で接続ユーザーを作る → 持ち主で移行 → アプリは持ち主ではないユーザーでつなぐ
 export default async function setup(project: TestProject) {
