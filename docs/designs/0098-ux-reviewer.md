@@ -60,7 +60,7 @@
 | 台帳に UX の6つと 🎨 があり、呼ぶのは画面を変える PR | 0・台帳 | `scripts/review-viewpoints.test.mjs` |
 | 手引きに見方が揃っている | `docs/guides/ux-review.md` | (手で確かめる: 文書の中身。読んで確かめた) |
 | `/review-pr` が 🎨 を呼び、前と後の画像を渡す | 3・スキルの 1.5 | `scripts/ux-screens.test.mjs`(画像の選び方・呼ぶ道が台帳と同じ) |
-| 🎨 のレビュー役が画像を見てから所見を出す | `.claude/agents/reviewer.md` の「🎨 のとき」 | (手で確かめる: AI の手順なのでテストにできない。今の画面で 🎨 を1回回した) |
+| 🎨 のレビュー役が画像を見てから所見を出す | `.claude/agents/reviewer.md` の「🎨 のとき」 | (手で確かめる: AI の手順なのでテストにできない。今の画面全部で 🎨 を1回回した → `docs/ux/2026-11-14-all-screens.md`) |
 | 観点が全部どれかの人格に入り、人格が6人 | 台帳の人格の表 | `scripts/review-viewpoints.test.mjs` |
 
 ## 8. 非機能
