@@ -57,7 +57,7 @@
 | 受け入れ条件(仕様) | 設計のどこ | テスト |
 |---|---|---|
 | 消すは「…」の奥で、確認が出る | `TasksPage.tsx`・`ProjectsPage.tsx`・`ActionMenu` | `apps/web/src/ux-rules.test.ts`(戻せない操作を直に呼ぶ所が0) |
-| 完了にすると知らせと元に戻す | `TasksPage.tsx` の `setDone`・`Toast` | (手で確かめる: 初見の利用者テストの2回目で U-1 を回した) |
+| 完了にすると知らせと元に戻す | `TasksPage.tsx` の `setDone`・`Toast` | (手で確かめる: 初見の利用者テストの2回目で U-1 を回した → `docs/ux/usability/2026-11-14-2.md`) |
 | メールの止めるは確認 | `TaskMailCard.tsx` | `apps/web/src/ux-rules.test.ts` |
 | 空のとき何をすれば増えるか | `EmptyState`・`Table` の `emptyState` | `apps/web/src/ux-rules.test.ts`(空の文の無い表が0) |
 | いまここと戻る道 | `AppHeader.tsx` の `sectionOf`・各画面 | (手で確かめる: VRT の基準の画像で見た) |
