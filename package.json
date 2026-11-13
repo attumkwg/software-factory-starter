@@ -36,6 +36,7 @@
     "adr": "node scripts/adr.mjs",
     "contrast": "node scripts/contrast.mjs",
     "ux:screens": "node scripts/ux-screens.mjs",
+    "ux:browse": "pnpm --filter @app/web --silent ux:browse",
     "bets": "node scripts/bets.mjs",
     "kpi": "node scripts/kpi.mjs",
     "vulns": "node scripts/vulns.mjs",

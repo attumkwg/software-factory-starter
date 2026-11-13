@@ -13,8 +13,13 @@ export default defineConfig(({ command }) => ({
   // 本番の SSR は依存も全部まとめる(イメージに node_modules を入れない。scripts/build-server.mjs)
   ssr: command === "build" ? { noExternal: true } : {},
   test: {
-    // e2e/vrt の単体テスト(コメントの本文・版のそろい)も。Playwright の VRT は *.spec.ts だけを流す
-    include: ["src/**/*.test.ts", "server/**/*.test.ts", "e2e/vrt/*.test.ts"],
+    // e2e/vrt の単体テスト(コメントの本文・版のそろい)と e2e/usability(初見の利用者テストの道具)も。Playwright の VRT は *.spec.ts だけを流す
+    include: [
+      "src/**/*.test.ts",
+      "server/**/*.test.ts",
+      "e2e/vrt/*.test.ts",
+      "e2e/usability/*.test.ts",
+    ],
     // `pnpm test:coverage`(CI)でだけ測る。画面(.tsx)は E2E で確かめるので、単体の値は低い。
     // 下限は 2026-10-20 の値(行 25.7%・分岐 25.4%)の少し下。下回ったら CI が落ちる。docs/guides/ci-limits.md
     coverage: {
