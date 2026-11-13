@@ -71,7 +71,7 @@ export function ScimTokensCard({ state, timeZone }: { state: ScimTokenList; time
         </Muted>
         <div>
           <Button
-            variant="primary"
+            variant="secondary"
             isDisabled={creating.pending || state.tokens.length >= SCIM_TOKENS_MAX}
             onPress={async () => {
               await creating.run(

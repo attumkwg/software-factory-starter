@@ -7,7 +7,7 @@ import { expectAccessible, loginAs } from "./helpers.ts";
 test("お客さんが許可した間だけ、社員が見るだけで入れて、記録が残る", async ({ browser }) => {
   const customer = await (await browser.newContext()).newPage();
   await loginAs(customer, "admin@acme.test");
-  await customer.getByRole("link", { name: "設定" }).click();
+  await customer.getByRole("link", { name: "設定", exact: true }).click();
   await customer.getByRole("link", { name: "サポートへの許可を開く" }).click();
   await expect(customer.getByRole("heading", { name: "サポートへの許可" })).toBeVisible();
   await customer.getByRole("button", { name: "許可する", exact: true }).click();
@@ -39,5 +39,5 @@ test("お客さんが許可した間だけ、社員が見るだけで入れて�
 test("運営でない人には「サポート」の入口が出ない", async ({ page }) => {
   await loginAs(page, "member@acme.test");
   await expect(page.getByRole("link", { name: "サポート", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "設定" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "設定", exact: true })).toHaveCount(0);
 });

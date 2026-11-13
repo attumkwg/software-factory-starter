@@ -86,7 +86,7 @@ export function IpAllowlistCard({ state }: { state: IpAllowlist }) {
               errorMessage={adding.errorMessage}
             />
             <div>
-              <Button type="submit" variant="primary" isDisabled={adding.pending}>
+              <Button type="submit" variant="secondary" isDisabled={adding.pending}>
                 足す
               </Button>
             </div>

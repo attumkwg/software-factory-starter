@@ -21,7 +21,9 @@ export type TableProps<T extends { id: string }> = {
   label: string;
   columns: TableColumn<T>[];
   rows: T[];
+  /** 空のときの文(短い1行)。何をすれば増えるかも出すなら emptyState に EmptyState を渡す */
   emptyMessage?: string;
+  emptyState?: ReactNode;
 };
 
 /**
@@ -33,6 +35,7 @@ export function Table<T extends { id: string }>({
   columns,
   rows,
   emptyMessage = "まだありません",
+  emptyState,
 }: TableProps<T>) {
   return (
     <div className="ui-table-scroll">
@@ -46,7 +49,7 @@ export function Table<T extends { id: string }>({
         </AriaTableHeader>
         <AriaTableBody
           items={rows}
-          renderEmptyState={() => <p className="ui-text-muted">{emptyMessage}</p>}
+          renderEmptyState={() => emptyState ?? <p className="ui-text-muted">{emptyMessage}</p>}
         >
           {(row) => (
             <AriaRow id={row.id} columns={columns} className="ui-table__row">

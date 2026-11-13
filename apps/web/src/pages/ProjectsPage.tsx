@@ -1,7 +1,9 @@
 import type { Me, Project } from "@app/shared";
 import {
+  ActionMenu,
   Button,
   ConfirmDialog,
+  EmptyState,
   Heading,
   Inline,
   Link,
@@ -32,6 +34,8 @@ export function ProjectsPage({
   const [name, setName] = useState("");
   const creating = useAction();
   const deleting = useAction();
+  // 「…」から「消す」を選んだプロジェクト(確かめるダイアログを開いている間だけ)
+  const [toDelete, setToDelete] = useState<Project | null>(null);
 
   async function create(e: FormEvent) {
     e.preventDefault();
@@ -61,23 +65,11 @@ export function ProjectsPage({
       id: "actions",
       header: "操作",
       cell: (p) => (
-        <ConfirmDialog
-          trigger={
-            <Button size="sm" variant="secondary" aria-label={`${p.name} を消す`}>
-              消す
-            </Button>
-          }
-          title="プロジェクトを消しますか?"
-          confirmLabel="消す"
-          isDestructive
-          onConfirm={async () => {
-            await deleting.run(() => api.deleteProject(p.id), {
-              success: "プロジェクトを消しました",
-            });
-          }}
-        >
-          「{p.name}」と、中のタスクをすべて消します。元に戻せません。
-        </ConfirmDialog>
+        <ActionMenu
+          label={`${p.name} の操作`}
+          items={[{ id: "delete", label: "消す", isDestructive: true }]}
+          onAction={() => setToDelete(p)}
+        />
       ),
     });
   }
@@ -103,7 +95,39 @@ export function ProjectsPage({
           </Inline>
         </form>
       )}
-      <Table label="プロジェクト一覧" columns={columns} rows={projects} />
+      <Table
+        label="プロジェクト一覧"
+        columns={columns}
+        rows={projects}
+        emptyState={
+          <EmptyState
+            title="まだプロジェクトはありません"
+            description={
+              canWrite(me.role)
+                ? "上の欄に名前を入れて作ると、その中にタスクを足せます。"
+                : "プロジェクトを作れるのは、メンバー以上の人です。"
+            }
+          />
+        }
+      />
+      <ConfirmDialog
+        isOpen={toDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setToDelete(null);
+        }}
+        title="プロジェクトを消しますか?"
+        confirmLabel="消す"
+        isDestructive
+        onConfirm={async () => {
+          const p = toDelete;
+          if (!p) return;
+          await deleting.run(() => api.deleteProject(p.id), {
+            success: "プロジェクトを消しました",
+          });
+        }}
+      >
+        「{toDelete?.name}」と、中のタスクをすべて消します。元に戻せません。
+      </ConfirmDialog>
     </Stack>
   );
 }

@@ -37,6 +37,8 @@ body {
   font: inherit;
   font-weight: var(--font-weight-bold);
   cursor: pointer;
+  /* 狭い列(スマホの表)でも「消/す」のように1文字ずつ折り返さない(🎨 の棚卸しの所見 5) */
+  white-space: nowrap;
 }
 .ui-button[data-disabled] {
   opacity: 0.5;
@@ -90,6 +92,13 @@ body {
 }
 .ui-link--back {
   font-size: var(--font-size-sm);
+}
+/* いまのページ(ナビ)。色を増やさず、下線で示す(🎨 の棚卸しの所見 6) */
+.ui-link[aria-current="page"] {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.35em;
 }
 
 /* ── 入力 ── */
@@ -163,6 +172,69 @@ body {
   font-weight: var(--font-weight-bold);
 }
 
+/* ── 行の操作のメニュー(…) ── */
+.ui-action-menu__trigger {
+  /* 手袋・親指でも押せる大きさ(WCAG の 24px より大きく、44px 角) */
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+.ui-action-menu__trigger[data-hovered],
+.ui-action-menu__trigger[data-pressed] {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.ui-action-menu__trigger[data-focus-visible] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.ui-action-menu__trigger[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ui-menu {
+  padding: var(--space-1);
+  outline: none;
+  min-width: 10rem;
+}
+.ui-menu__item {
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+}
+.ui-menu__item[data-focused] {
+  background: var(--color-surface);
+}
+.ui-menu__item--danger {
+  color: var(--color-danger);
+}
+
+/* ── 空のとき ── */
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+.ui-empty__title {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+}
+.ui-empty__description {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
 /* ── チェック ── */
 .ui-checkbox {
   display: inline-flex;
@@ -195,7 +267,11 @@ body {
   text-decoration: line-through;
 }
 .ui-checkbox[data-disabled] {
-  cursor: default;
+  cursor: not-allowed;
+}
+/* 押せないことが見て分かるように(ボタンと同じ薄さ。🎨 の棚卸しの所見 4) */
+.ui-checkbox[data-disabled] .ui-checkbox__box {
+  opacity: 0.5;
 }
 
 /* ── 表 ── */
@@ -265,6 +341,9 @@ body {
   gap: var(--space-2);
 }
 .ui-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-text);

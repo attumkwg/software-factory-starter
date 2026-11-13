@@ -5,6 +5,7 @@ import {
   ConfirmDialog,
   Heading,
   Inline,
+  Link,
   Muted,
   Select,
   Stack,
@@ -120,6 +121,11 @@ export function MembersPage({ me, members }: { me: Me; members: OrganizationMemb
 
   return (
     <Stack gap={4}>
+      <div>
+        <Link href="/settings" variant="back">
+          ← 設定
+        </Link>
+      </div>
       <Heading level={1}>組織の人</Heading>
       <Muted>
         辞めた人は「止める」と、ログインできなくなり、契約の人数からも外れます(作った物と記録は残り、戻せます)。

@@ -1,7 +1,10 @@
 import type { Me, Project, Task } from "@app/shared";
 import {
+  ActionMenu,
   Button,
   Checkbox,
+  ConfirmDialog,
+  EmptyState,
   Heading,
   Inline,
   Link,
@@ -48,6 +51,19 @@ export function TasksPage({
   const adding = useAction();
   // 完了の切り替えと削除。1つずつ送る(実行中は押せない)
   const changing = useAction();
+  // 「…」から「消す」を選んだタスク(確かめるダイアログを開いている間だけ)
+  const [deleting, setDeleting] = useState<Task | null>(null);
+
+  // 完了は戻せるので、確かめずに「元に戻す」を付ける。消すは戻せないので確かめる(手引き docs/guides/ux-review.md の 7)
+  function setDone(t: Task, done: boolean) {
+    return changing.run(() => api.updateTask(t.id, { done }), {
+      success: done ? `「${t.title}」を完了にしました` : `「${t.title}」を未完了に戻しました`,
+      undo: {
+        label: "元に戻す",
+        onPress: () => void changing.run(() => api.updateTask(t.id, { done: !done })),
+      },
+    });
+  }
 
   async function add(e: FormEvent) {
     e.preventDefault();
@@ -60,6 +76,7 @@ export function TasksPage({
   }
 
   const shown = tasks.filter((t) => filter === "all" || (filter === "done" ? t.done : !t.done));
+  const doneCount = tasks.filter((t) => t.done).length;
 
   return (
     <Stack gap={4}>
@@ -68,7 +85,14 @@ export function TasksPage({
           ← プロジェクト一覧
         </Link>
       </div>
-      <Heading level={1}>{project.name}</Heading>
+      <Stack gap={1}>
+        <Heading level={1}>{project.name}</Heading>
+        {tasks.length > 0 && (
+          <Muted>
+            タスク {tasks.length}件のうち {doneCount}件 完了
+          </Muted>
+        )}
+      </Stack>
       <Inline gap={4}>
         {writable && (
           <form onSubmit={add}>
@@ -95,7 +119,7 @@ export function TasksPage({
         />
       </Inline>
       {shown.length === 0 ? (
-        <Muted>タスクはありません</Muted>
+        <TasksEmpty filter={filter} writable={writable} />
       ) : (
         <List label="タスク一覧">
           {shown.map((t) => (
@@ -104,27 +128,64 @@ export function TasksPage({
                 <Checkbox
                   isSelected={t.done}
                   isDisabled={!writable || changing.pending}
-                  onChange={(done) => changing.run(() => api.updateTask(t.id, { done }))}
+                  onChange={(done) => setDone(t, done)}
                 >
                   {t.title}
                 </Checkbox>
                 {writable && (
-                  <Button
-                    size="sm"
-                    aria-label={`${t.title} を消す`}
+                  <ActionMenu
+                    label={`${t.title} の操作`}
                     isDisabled={changing.pending}
-                    onPress={() =>
-                      changing.run(() => api.deleteTask(t.id), { success: "タスクを消しました" })
-                    }
-                  >
-                    消す
-                  </Button>
+                    items={[{ id: "delete", label: "消す", isDestructive: true }]}
+                    onAction={() => setDeleting(t)}
+                  />
                 )}
               </Inline>
             </li>
           ))}
         </List>
       )}
+      <ConfirmDialog
+        isOpen={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="タスクを消しますか?"
+        confirmLabel="消す"
+        isDestructive
+        onConfirm={async () => {
+          const t = deleting;
+          if (!t) return;
+          await changing.run(() => api.deleteTask(t.id), {
+            success: `「${t.title}」を消しました`,
+          });
+        }}
+      >
+        「{deleting?.title}
+        」を消します。元に戻せません。終わったときは、消さずに完了にしてください。
+      </ConfirmDialog>
     </Stack>
+  );
+}
+
+/** タスクが無いとき。絞り込みに合わせた文と、何をすれば増えるか(🎨 の棚卸しの所見 8) */
+function TasksEmpty({ filter, writable }: { filter: TaskFilter; writable: boolean }) {
+  return (
+    <EmptyState
+      title={
+        filter === "done"
+          ? "完了したタスクはまだありません"
+          : filter === "open"
+            ? "未完了のタスクはありません"
+            : "まだタスクはありません"
+      }
+      description={
+        filter !== "all"
+          ? "「表示」を「すべて」にすると、ほかのタスクも見られます。"
+          : writable
+            ? "上の「新しいタスク」に、やることを入れて足せます。"
+            : "タスクを足せるのは、メンバー以上の人です。"
+      }
+    />
   );
 }

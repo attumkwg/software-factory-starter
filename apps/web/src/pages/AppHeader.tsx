@@ -1,6 +1,6 @@
 import type { AuthOptions, Me } from "@app/shared";
 import { Alert, Badge, Button, Inline, Link, Page, Stack } from "@app/ui";
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { api } from "../api.ts";
 import { formatDateTime } from "../format.ts";
@@ -18,6 +18,10 @@ import { LegalLinks, LegalNotices } from "./LegalNotices.tsx";
 export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
   const router = useRouter();
   const loggingOut = useAction();
+  // いまのページをナビに示す(🎨 の棚卸しの所見 6)。設定から開く画面(組織の人・招待・監査ログ・サポートへの許可)は「設定」に
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const section = sectionOf(pathname);
+  const current = (href: string) => (section === href ? ("page" as const) : undefined);
   const ending = useAction();
   return (
     <Page>
@@ -58,19 +62,39 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
               </Badge>
               <nav aria-label="メニュー">
                 <Inline gap={3}>
-                  <Link href="/">プロジェクト</Link>
+                  <Link href="/" aria-current={current("/")}>
+                    プロジェクト
+                  </Link>
                   {/* 管理者の画面(監査ログ・サポートへの許可・データの書き出し)は「設定」にまとめる */}
-                  {canOpenSettings(me) && <Link href="/settings">設定</Link>}
-                  {canStartSupport(me) && <Link href="/support">サポート</Link>}
+                  {canOpenSettings(me) && (
+                    <Link href="/settings" aria-current={current("/settings")}>
+                      設定
+                    </Link>
+                  )}
+                  {canStartSupport(me) && (
+                    <Link href="/support" aria-current={current("/support")}>
+                      サポート
+                    </Link>
+                  )}
                   {/* 自分のアカウント(二段階認証・メール・パスワード) */}
-                  {canManageAccount(me) && <Link href="/account">アカウント</Link>}
+                  {canManageAccount(me) && (
+                    <Link href="/account" aria-current={current("/account")}>
+                      アカウント
+                    </Link>
+                  )}
                   {/* 2つ以上の組織に所属している人だけ(docs/specs/0055-multi-org-membership.md) */}
-                  {canSwitchOrganization(me) && <Link href="/organizations">組織を切り替える</Link>}
+                  {canSwitchOrganization(me) && (
+                    <Link href="/organizations" aria-current={current("/organizations")}>
+                      組織を切り替える
+                    </Link>
+                  )}
                 </Inline>
               </nav>
             </Inline>
+            {/* ナビのリンクと形を分ける(リンクに見えて押してしまわない。🎨 の棚卸しの所見 6) */}
             <Button
-              variant="ghost"
+              variant="secondary"
+              size="sm"
               isDisabled={loggingOut.pending}
               onPress={async () => {
                 let options: AuthOptions | undefined;
@@ -100,4 +124,17 @@ export function AppHeader({ me, children }: { me: Me; children: ReactNode }) {
       </Stack>
     </Page>
   );
+}
+
+/** 道から、ナビのどの項目の中にいるか */
+export function sectionOf(pathname: string): string {
+  if (pathname === "/" || pathname.startsWith("/projects")) return "/";
+  if (
+    ["/settings", "/members", "/invitations", "/audit", "/support-access"].some((p) =>
+      pathname.startsWith(p),
+    )
+  )
+    return "/settings";
+  for (const p of ["/support", "/account", "/organizations"]) if (pathname.startsWith(p)) return p;
+  return "";
 }
