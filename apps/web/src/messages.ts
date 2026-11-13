@@ -42,9 +42,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   mfa_required_for_support: "この組織に入るには、先にあなたの二段階認証を設定してください",
   terms_acceptance_required: "続けるには、利用規約などへの同意が必要です",
   already_member: "このメールアドレスの人は、もうこの組織にいます",
-  already_invited: "このメールアドレスには、まだ受けていない招待があります",
-  too_many_invitations:
-    "受けていない招待が多すぎます。受けてもらうか、取り消してから招いてください",
+  already_invited: "このメールアドレスには、返事待ちの招待があります",
+  too_many_invitations: "返事待ちの招待が多すぎます。受けてもらうか、取り消してから招いてください",
   invitation_not_pending: "この招待は、もう受けたか取り消してあります",
   invalid_invitation:
     "招待のリンクが正しくないか、期限が切れているか、もう使われています。招いた人に送り直してもらってください",

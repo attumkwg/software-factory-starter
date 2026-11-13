@@ -32,6 +32,11 @@ export function AuditPage({ me, page }: { me: Me; page: AuditEventPage }) {
 
   return (
     <Stack gap={4}>
+      <div>
+        <Link href="/settings" variant="back">
+          ← 設定
+        </Link>
+      </div>
       <Heading level={1}>監査ログ</Heading>
       <Muted>
         この組織で、誰が・いつ・何をしたかの記録です(新しい順)。記録は直したり消したりできません。

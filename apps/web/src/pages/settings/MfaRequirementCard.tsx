@@ -35,7 +35,7 @@ export function MfaRequirementCard({ me, state }: { me: Me; state: MfaRequiremen
         ) : selfReady ? (
           <div>
             <ConfirmDialog
-              trigger={<Button variant="primary">全員に必須にする</Button>}
+              trigger={<Button variant="secondary">全員に必須にする</Button>}
               title="二段階認証を全員に必須にしますか"
               confirmLabel="必須にする"
               onConfirm={async () => {

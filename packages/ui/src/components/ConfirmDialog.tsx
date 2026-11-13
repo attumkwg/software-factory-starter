@@ -3,8 +3,13 @@ import { Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-
 import { Button } from "./Button.tsx";
 
 export type ConfirmDialogProps = {
-  /** ダイアログを開くボタン(Button を1つ) */
-  trigger: ReactNode;
+  /**
+   * ダイアログを開くボタン(Button を1つ)。
+   * 無いときは、開く・閉じるを呼ぶ側が持つ(isOpen・onOpenChange)。行の操作のメニュー(ActionMenu)から開くとき
+   */
+  trigger?: ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
   title: string;
   children: ReactNode;
   confirmLabel: string;
@@ -17,6 +22,8 @@ export type ConfirmDialogProps = {
 /** 確かめてから実行するダイアログ。開いている間は外に触れず、Esc で閉じる。実行中は二度押せない。 */
 export function ConfirmDialog({
   trigger,
+  isOpen,
+  onOpenChange,
   title,
   children,
   confirmLabel,
@@ -24,41 +31,49 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState(false);
+  const overlay = (
+    <ModalOverlay
+      className="ui-overlay"
+      isDismissable
+      {...(trigger ? {} : { isOpen, onOpenChange })}
+    >
+      <Modal className="ui-modal">
+        <Dialog className="ui-dialog" role={isDestructive ? "alertdialog" : "dialog"}>
+          {({ close }) => (
+            <>
+              <Heading slot="title" className="ui-dialog__title">
+                {title}
+              </Heading>
+              <div>{children}</div>
+              <div className="ui-dialog__actions">
+                <Button onPress={close}>やめる</Button>
+                <Button
+                  variant={isDestructive ? "danger" : "primary"}
+                  isDisabled={pending}
+                  onPress={async () => {
+                    setPending(true);
+                    try {
+                      await onConfirm();
+                    } finally {
+                      setPending(false);
+                      close();
+                    }
+                  }}
+                >
+                  {confirmLabel}
+                </Button>
+              </div>
+            </>
+          )}
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  );
+  if (!trigger) return overlay;
   return (
     <DialogTrigger>
       {trigger}
-      <ModalOverlay className="ui-overlay" isDismissable>
-        <Modal className="ui-modal">
-          <Dialog className="ui-dialog" role={isDestructive ? "alertdialog" : "dialog"}>
-            {({ close }) => (
-              <>
-                <Heading slot="title" className="ui-dialog__title">
-                  {title}
-                </Heading>
-                <div>{children}</div>
-                <div className="ui-dialog__actions">
-                  <Button onPress={close}>やめる</Button>
-                  <Button
-                    variant={isDestructive ? "danger" : "primary"}
-                    isDisabled={pending}
-                    onPress={async () => {
-                      setPending(true);
-                      try {
-                        await onConfirm();
-                      } finally {
-                        setPending(false);
-                        close();
-                      }
-                    }}
-                  >
-                    {confirmLabel}
-                  </Button>
-                </div>
-              </>
-            )}
-          </Dialog>
-        </Modal>
-      </ModalOverlay>
+      {overlay}
     </DialogTrigger>
   );
 }

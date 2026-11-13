@@ -1,5 +1,5 @@
 import type { TaskMail } from "@app/shared";
-import { Badge, Button, Card, Heading, Inline, Muted, Stack } from "@app/ui";
+import { Badge, Button, Card, ConfirmDialog, Heading, Inline, Muted, Stack } from "@app/ui";
 import { api } from "../../api.ts";
 import { useAction } from "../../use-action.ts";
 
@@ -14,7 +14,7 @@ export function TaskMailCard({ state }: { state: TaskMail }) {
         <Inline gap={2} align="center">
           <Heading level={2}>タスクが完了したメール</Heading>
           <Badge tone={state.enabled ? "success" : "neutral"}>
-            {state.enabled ? "送る" : "止めている"}
+            {state.enabled ? "送っている" : "止めている"}
           </Badge>
         </Inline>
         <Muted>
@@ -22,16 +22,24 @@ export function TaskMailCard({ state }: { state: TaskMail }) {
         </Muted>
         <div>
           {state.enabled ? (
-            <Button
-              variant="secondary"
-              isDisabled={action.pending}
-              onPress={() => action.run(() => api.disableTaskMail(), { success: "止めました" })}
+            <ConfirmDialog
+              trigger={
+                <Button variant="secondary" isDisabled={action.pending}>
+                  止める
+                </Button>
+              }
+              title="完了のメールを止めますか?"
+              confirmLabel="止める"
+              isDestructive
+              onConfirm={async () => {
+                await action.run(() => api.disableTaskMail(), { success: "止めました" });
+              }}
             >
-              止める
-            </Button>
+              この組織の全員に、タスクが完了したメールが届かなくなります。止めている間に完了した分は、戻しても届きません。
+            </ConfirmDialog>
           ) : (
             <Button
-              variant="primary"
+              variant="secondary"
               isDisabled={action.pending}
               onPress={() =>
                 action.run(() => api.enableTaskMail(), { success: "送るに戻しました" })

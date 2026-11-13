@@ -6,6 +6,7 @@ import {
   ConfirmDialog,
   Heading,
   Inline,
+  Link,
   Muted,
   Select,
   Stack,
@@ -79,6 +80,11 @@ export function SupportGrantsPage({ me, grants }: { me: Me; grants: SupportGrant
 
   return (
     <Stack gap={4}>
+      <div>
+        <Link href="/settings" variant="back">
+          ← 設定
+        </Link>
+      </div>
       <Heading level={1}>サポートへの許可</Heading>
       <Muted>
         問い合わせのときに、サポートの社員がこの組織の画面を「見るだけ」で確かめられるようにします。

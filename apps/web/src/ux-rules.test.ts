@@ -59,11 +59,8 @@ function tablesWithoutEmpty(file: string, text: string): string[] {
 }
 
 describe("戻せない操作は、確認のダイアログか「元に戻す」を通る(手引きの 7)", () => {
-  // 直すのは G-164(部品の段)。直したら、ここから消す
-  const KNOWN = [
-    "pages/TasksPage.tsx deleteTask", // タスクの「消す」(棚卸しの所見 1。元に戻すつきのトーストで直す)
-    "pages/settings/TaskMailCard.tsx disableTaskMail", // メールを「止める」(所見 9。確認で直す)
-  ];
+  // 外れの一覧(理由と穴の番号つき)。G-164 で全部直して空になった。足すなら理由を書く
+  const KNOWN: string[] = [];
 
   it("押した瞬間に消える・止まる操作を、KNOWN 以外に足さない", () => {
     const found = files.flatMap(({ file, text }) => directIrreversible(file, text)).sort();
@@ -81,11 +78,8 @@ describe("戻せない操作は、確認のダイアログか「元に戻す」�
 });
 
 describe("一覧の表は、空のときの文を決める(手引きの 3)", () => {
-  // 直すのは G-164(空の状態の部品)。直したら、ここから消す
-  const KNOWN = [
-    "pages/OrganizationsPage.tsx", // 所属している組織(0件は起きにくいが、文は決める)
-    "pages/ProjectsPage.tsx", // プロジェクト一覧(棚卸しの所見 8)
-  ];
+  // 外れの一覧(理由と穴の番号つき)。G-164 で全部直して空になった。足すなら理由を書く
+  const KNOWN: string[] = [];
 
   it("空の文の無い表を、KNOWN 以外に足さない(部品の一覧の見本は除く)", () => {
     const found = files
@@ -107,15 +101,8 @@ describe("一覧の表は、空のときの文を決める(手引きの 3)", () 
 
 describe("設定のカードは主ボタンを持たない(1つの画面に並ぶので、手引きの 4)", () => {
   // 設定の画面はカードを縦に並べる。カードごとに primary を持つと、組織の状態しだいで主ボタンが3〜6個になる
-  // (棚卸しの所見 2。種データでは出ないので E2E の数えでは拾えない)。直すのは G-164
-  const KNOWN = [
-    "pages/settings/DomainsCard.tsx",
-    "pages/settings/IpAllowlistCard.tsx",
-    "pages/settings/MfaRequirementCard.tsx",
-    "pages/settings/ScimTokensCard.tsx",
-    "pages/settings/SsoCard.tsx",
-    "pages/settings/TaskMailCard.tsx",
-  ];
+  // (棚卸しの所見 2。種データでは出ないので E2E の数えでは拾えない)。G-164 で全部 secondary にした
+  const KNOWN: string[] = [];
 
   it('variant="primary" を使う設定のカードを、KNOWN 以外に足さない', () => {
     const found = files

@@ -76,7 +76,7 @@ export function SsoCard({ state, admins }: Props) {
               ) : (
                 <ConfirmDialog
                   trigger={
-                    <Button variant="primary" isDisabled={exempt.length === 0}>
+                    <Button variant="secondary" isDisabled={exempt.length === 0}>
                       必須にする
                     </Button>
                   }

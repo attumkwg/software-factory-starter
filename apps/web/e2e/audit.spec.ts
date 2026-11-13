@@ -16,7 +16,7 @@ test("管理者は監査ログで、自分が作ったプロジェクトの記�
   }, name);
   expect(status).toBe(201);
 
-  await page.getByRole("link", { name: "設定" }).click();
+  await page.getByRole("link", { name: "設定", exact: true }).click();
   await page.getByRole("link", { name: "監査ログを見る" }).click();
   await expect(page.getByRole("heading", { name: "監査ログ" })).toBeVisible();
   const table = page.getByRole("grid", { name: "監査ログ" });
@@ -30,7 +30,7 @@ test("管理者は監査ログで、自分が作ったプロジェクトの記�
 
 test("メンバーには設定(監査ログ)のリンクが出ず、開いても見られない", async ({ page }) => {
   await loginAs(page, "member@acme.test");
-  await expect(page.getByRole("link", { name: "設定" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "設定", exact: true })).toHaveCount(0);
   // 直接開くと受け皿が出て、応答は 403(サーバーの失敗の 500 にしない。#186)。行き止まりにしない
   for (const path of ["/audit", "/settings"]) {
     const res = await page.goto(path);

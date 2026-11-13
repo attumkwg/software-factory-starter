@@ -12,6 +12,7 @@ import {
   ConfirmDialog,
   Heading,
   Inline,
+  Link,
   Muted,
   Select,
   Stack,
@@ -31,7 +32,7 @@ const STATUS: Record<
   Invitation["status"],
   { label: string; tone: "success" | "info" | "neutral" }
 > = {
-  pending: { label: "受けていない", tone: "info" },
+  pending: { label: "返事待ち", tone: "info" },
   accepted: { label: "参加した", tone: "success" },
   expired: { label: "期限切れ", tone: "neutral" },
   revoked: { label: "取り消し済み", tone: "neutral" },
@@ -97,6 +98,11 @@ export function InvitationsPage({
 
   return (
     <Stack gap={4}>
+      <div>
+        <Link href="/settings" variant="back">
+          ← 設定
+        </Link>
+      </div>
       <Heading level={1}>招待</Heading>
       <Muted>
         メールアドレスとロールを選んで招くと、招待のメールが届きます。リンクは{INVITATION_DAYS}
@@ -142,11 +148,11 @@ export function InvitationsPage({
 /** プランと人数(docs/specs/0047-plans.md)。人数は「いる人+受けていない招待」で数える。超えても招ける(運営から連絡する) */
 function SeatLine({ plan }: { plan: OrganizationPlan }) {
   const used = plan.members + plan.pendingInvitations;
-  if (!plan.plan) return <Muted>いまの人数: {used} 人(受けていない招待を含む)</Muted>;
+  if (!plan.plan) return <Muted>いまの人数: {used} 人(返事待ちの招待を含む)</Muted>;
   const limit = plan.plan.seats === null ? "人数の上限なし" : `契約の人数 ${plan.plan.seats} 人`;
   return (
     <Muted>
-      プラン「{plan.plan.label}」: {limit}・いまの人数 {used} 人(受けていない招待を含む)
+      プラン「{plan.plan.label}」: {limit}・いまの人数 {used} 人(返事待ちの招待を含む)
     </Muted>
   );
 }

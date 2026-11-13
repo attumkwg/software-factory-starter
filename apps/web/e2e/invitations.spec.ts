@@ -23,7 +23,7 @@ async function invitationLink(address: string): Promise<string | null> {
 async function invite(page: Page, email: string) {
   await page.getByLabel("招く人のメールアドレス").fill(email);
   await page.getByRole("button", { name: "招く" }).click();
-  await expect(page.getByRole("row", { name: new RegExp(email) })).toContainText("受けていない");
+  await expect(page.getByRole("row", { name: new RegExp(email) })).toContainText("返事待ち");
 }
 
 /** リンクを、ログインしていない別のブラウザで開いて受ける */
@@ -49,7 +49,7 @@ test("管理者が招き、招かれた人がリンクから参加して、そ�
 }) => {
   const email = `invited-${Date.now()}@example.test`;
   await loginAs(page, "admin@acme.test");
-  await page.getByRole("link", { name: "設定" }).click();
+  await page.getByRole("link", { name: "設定", exact: true }).click();
   await page.getByRole("link", { name: "招待を開く" }).click();
   await expect(page.getByRole("heading", { name: "招待", level: 1 })).toBeVisible();
   await invite(page, email);

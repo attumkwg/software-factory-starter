@@ -1,4 +1,5 @@
 import {
+  ActionMenu,
   Alert,
   Badge,
   type BadgeTone,
@@ -6,6 +7,7 @@ import {
   Card,
   Checkbox,
   ConfirmDialog,
+  EmptyState,
   Heading,
   Inline,
   Link,
@@ -149,7 +151,12 @@ function Tables() {
         label="見本の空の表"
         columns={SAMPLE_COLUMNS}
         rows={[]}
-        emptyMessage="まだ何もありません"
+        emptyState={
+          <EmptyState
+            title="まだ何もありません"
+            description="何をすれば増えるかを書きます(例: 上の欄から足せます)。"
+          />
+        }
       />
       <List label="見本の一覧">
         <li>1つ目の項目</li>
@@ -181,7 +188,7 @@ function Notices() {
 function Feedback() {
   const toast = useToast();
   return (
-    <Section title="確認のダイアログ(ConfirmDialog)とトースト(useToast)">
+    <Section title="確認のダイアログ(ConfirmDialog)・トースト(useToast)・行の操作のメニュー(ActionMenu)">
       <Inline gap={2} align="center">
         <ConfirmDialog
           trigger={<Button variant="danger">消す</Button>}
@@ -193,6 +200,23 @@ function Feedback() {
           <Text>戻せない操作の前に出す確認(見本なので、押しても何も消えません)。</Text>
         </ConfirmDialog>
         <Button onPress={() => toast.show("トーストの見本です")}>トーストを出す</Button>
+        <Button
+          onPress={() =>
+            toast.show("見本を完了にしました", {
+              action: { label: "元に戻す", onPress: () => toast.show("元に戻しました") },
+            })
+          }
+        >
+          元に戻すつきのトースト
+        </Button>
+        <ActionMenu
+          label="見本の行の操作"
+          items={[
+            { id: "rename", label: "名前を変える" },
+            { id: "delete", label: "消す", isDestructive: true },
+          ]}
+          onAction={(id) => toast.show(`見本なので「${id}」は何もしません`)}
+        />
       </Inline>
     </Section>
   );

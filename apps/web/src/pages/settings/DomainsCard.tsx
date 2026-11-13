@@ -110,7 +110,7 @@ export function DomainsCard({ domains }: { domains: OrganizationDomain[] }) {
               errorMessage={adding.errorMessage}
             />
             <div>
-              <Button type="submit" variant="primary" isDisabled={adding.pending}>
+              <Button type="submit" variant="secondary" isDisabled={adding.pending}>
                 登録する
               </Button>
             </div>

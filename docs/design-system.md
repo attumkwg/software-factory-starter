@@ -8,15 +8,17 @@
 
 | 部品 | 使う所 | 気をつけること |
 |---|---|---|
-| `Button` | 押す操作 | `variant`: primary(1画面に1つ)/ secondary / danger(戻せない)/ ghost(文字だけ)。`size="sm"` は高さ約 32px(押す所の下限 24px は満たす。これより小さくしない) |
-| `Link` | ページの移動 | 本物の `<a href>`(新しいタブで開ける・SSR でも辿れる)。保存や削除には使わず `Button` |
+| `Button` | 押す操作 | `variant`: primary(**1画面に1つ**。`ux-rules.spec.ts` が主な画面で数える。設定のようにカードが並ぶ画面のカードの中では使わない)/ secondary / danger(戻せない)/ ghost(文字だけ)。`size="sm"` は高さ約 32px(押す所の下限 24px は満たす。これより小さくしない)。文字は折り返さない |
+| `Link` | ページの移動 | 本物の `<a href>`(新しいタブで開ける・SSR でも辿れる)。保存や削除には使わず `Button`。ナビでは今のページに `aria-current="page"`(下線で示す)。設定から開く画面・アプリの外の画面の上には `variant="back"` の戻る道 |
 | `TextField` | 1行の入力 | 幅は 16rem まで、狭い画面では親の幅まで縮む(`min(16rem, 100%)`)。`label` は必ず付ける(見えて、読み上げにも使う)。エラーは `errorMessage`。パスワードは `type="password"` と `autoComplete`(`current-password` / `new-password`)、コードは `inputMode="numeric"` と `autoComplete="one-time-code"` |
 | `Select` | 選択肢から1つ | 選択肢は `{ id, label }` の配列 |
-| `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク)。同意のチェックのように線が要らなければ `strikeWhenSelected={false}` |
-| `Table` | 一覧(列がある) | `label` で表の名前。行の名前にする列に `isRowHeader`。列が入りきらないとき(スマホ)は、表の枠(`.ui-table-scroll`)の中で横に動く。画面全体は横にはみ出さない |
+| `Checkbox` | オン・オフ | 選ぶと文字に線(完了のタスク)。同意のチェックのように線が要らなければ `strikeWhenSelected={false}`。押せないときは四角が薄くなる(押せない理由は近くの文で) |
+| `Table` | 一覧(列がある) | `label` で表の名前。行の名前にする列に `isRowHeader`。列が入りきらないとき(スマホ)は、表の枠(`.ui-table-scroll`)の中で横に動く。画面全体は横にはみ出さない。**空のときの文を必ず決める**(`emptyMessage` か、何をすれば増えるかまで出す `emptyState`。`ux-rules.test.ts` が見る) |
 | `List` | 一覧(列が無い) | `label` で一覧の名前 |
-| `ConfirmDialog` | 消すなどの前の確認 | 戻せない操作は `isDestructive`(赤いボタン)。Esc で閉じる。実行中は二度押せない(失敗は呼ぶ側の `useAction` で) |
-| `ToastProvider` / `useToast` | 操作の結果を短く知らせる | 読み上げにも届く。大事なエラーはトーストにせず画面に残す |
+| `ConfirmDialog` | 消すなどの前の確認 | 戻せない操作は `isDestructive`(赤いボタン)。Esc で閉じる。実行中は二度押せない(失敗は呼ぶ側の `useAction` で)。文は **何が・どこまで・戻せるか**。`trigger` の代わりに `isOpen`・`onOpenChange` で開け閉めもできる(`ActionMenu` から開くとき)。**戻せない操作の API は、押した瞬間に呼ばず、ここか「元に戻す」を通す**(`ux-rules.test.ts` が見る) |
+| `ActionMenu` | 行の操作(「…」) | 消す・止めるなど、主な操作の隣に並べると押し間違える物を奥にしまう。`label` は「<名前> の操作」。押す所は 44px 角(手袋・親指)。戻せない項目は `isDestructive`(赤い文字)で、選んだ後に `ConfirmDialog` |
+| `EmptyState` | 空のとき | 何が無いか(`title`)+何をすれば増えるか(`description`)+その場の操作(`action`)。見るだけの人には、誰ならできるかを書く。絞り込みで空なら、絞り込みを外せばよいと書く |
+| `ToastProvider` / `useToast` | 操作の結果を短く知らせる | 読み上げにも届く。大事なエラーはトーストにせず画面に残す。**戻せる操作(完了にするなど)は、確認より「元に戻す」**(`show(文, { action })`。`useAction` の `undo`)。操作つきは 8秒出す |
 | `Alert` | 画面に残すお知らせ(ログインの失敗など) | トーストと違って消えない。`danger` は出たときに読み上げる。色だけでなく文で伝える |
 | `Badge` | ロール・状態の札 | 色だけで意味を伝えない(必ず文字) |
 | `QrCode` | 二段階認証の設定(認証アプリに読ませる) | ブラウザの中で描く(外のサービスに値を送らない)。読めない人のため、同じ値を文字でも出す。暗いテーマでも黒地にしない(`--color-qr-*`) |

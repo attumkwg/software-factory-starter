@@ -68,7 +68,7 @@ test("ログインの後: 画面を移り、操作しても違反が無い", asy
   await loginAs(page, "admin@acme.test");
   await expectNoViolations(page, consoleErrors, "ログインの後");
   // ページを読み直さない移動(ブラウザの中で描く)
-  await page.getByRole("link", { name: "設定" }).click();
+  await page.getByRole("link", { name: "設定", exact: true }).click();
   await expect(page.getByRole("heading", { name: "設定", level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "プロジェクト" }).first().click();
   await expect(page.getByRole("heading", { name: "プロジェクト", level: 1 })).toBeVisible();

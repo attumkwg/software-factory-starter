@@ -61,7 +61,7 @@ test("二段階認証を画面で設定すると、次のログインでコー�
   await logInWithCode(page, GLOBEX_ADMIN, adminSecret);
   await expect(page.getByRole("heading", { name: "プロジェクト" })).toBeVisible();
 
-  await page.getByRole("link", { name: "設定" }).click();
+  await page.getByRole("link", { name: "設定", exact: true }).click();
   await page.getByRole("button", { name: "全員に必須にする" }).click();
   await expect(page.getByRole("dialog")).toContainText("次の操作から二段階認証の設定の画面へ");
   await page.getByRole("dialog").getByRole("button", { name: "必須にする" }).click();

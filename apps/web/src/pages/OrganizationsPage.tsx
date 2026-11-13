@@ -46,7 +46,12 @@ export function OrganizationsPage({ organizations }: { organizations: Organizati
       <Muted>
         所属している組織です。切り替えると、その組織の画面になります(見えるのは、いまの組織のデータだけです)。
       </Muted>
-      <Table label="所属している組織" columns={columns} rows={rows} />
+      <Table
+        label="所属している組織"
+        columns={columns}
+        rows={rows}
+        emptyMessage="所属している組織はありません"
+      />
     </Stack>
   );
 }

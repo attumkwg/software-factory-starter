@@ -31,6 +31,12 @@ export function LegalDocumentPage({ view }: { view: LegalDocumentView }) {
     <Page>
       <main>
         <Stack gap={6}>
+          {/* アプリの外の画面(ヘッダーが無い)なので、戻る道を置く(🎨 の棚卸しの所見 7) */}
+          <div>
+            <Link href="/" variant="back">
+              ← アプリへ戻る
+            </Link>
+          </div>
           <Stack gap={2}>
             <Heading level={1}>{title}</Heading>
             <Muted>

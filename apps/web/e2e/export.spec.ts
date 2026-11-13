@@ -8,7 +8,7 @@ test("管理者は設定から自社のデータを JSON で書き出せる(他�
   page,
 }, testInfo) => {
   await loginAs(page, "admin@acme.test");
-  await page.getByRole("link", { name: "設定" }).click();
+  await page.getByRole("link", { name: "設定", exact: true }).click();
   await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
   await expectAccessible(page);
   const [download] = await Promise.all([

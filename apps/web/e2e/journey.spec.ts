@@ -162,7 +162,7 @@ async function openTenant(dir: string, c: Company, preRegistrationId: string): P
 
 // ── 4. 招待(管理者が画面から招く → メールのリンク → 参加 → ログイン)──
 async function inviteMember(admin: Page, browser: Browser, c: Company): Promise<Page> {
-  await admin.getByRole("link", { name: "設定" }).click();
+  await admin.getByRole("link", { name: "設定", exact: true }).click();
   await admin.getByRole("link", { name: "招待を開く" }).click();
   await admin.getByLabel("招く人のメールアドレス").fill(c.memberEmail);
   await admin.getByRole("button", { name: "招く" }).click();
@@ -235,7 +235,7 @@ async function useWithPhoto(member: Page, c: Company): Promise<string> {
 
 // ── 7. 書き出し(管理者が設定から JSON を受け取る)──
 async function exportData(admin: Page, saveAs: (name: string) => string, c: Company) {
-  await admin.getByRole("link", { name: "設定" }).click();
+  await admin.getByRole("link", { name: "設定", exact: true }).click();
   const [file] = await Promise.all([
     admin.waitForEvent("download"),
     admin.getByRole("button", { name: "書き出す" }).click(),
@@ -252,7 +252,7 @@ async function exportData(admin: Page, saveAs: (name: string) => string, c: Comp
 
 // ── 8. 人を外す(管理者が「組織の人」で止める。行と作った物は残り、人数から外れる)──
 async function removeMember(admin: Page, member: Page) {
-  await admin.getByRole("link", { name: "設定" }).click();
+  await admin.getByRole("link", { name: "設定", exact: true }).click();
   await admin.getByRole("link", { name: "組織の人を開く" }).click();
   const row = admin.getByRole("row", { name: /一周 花子/ });
   await row.getByRole("button", { name: "止める" }).click();
