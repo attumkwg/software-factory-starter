@@ -2320,6 +2320,29 @@ parts:
         - { path: CLAUDE.md, what: 必ず守るの「AI が出した PR は、マージに回す前に /review-pr」の1文を外す }
       docs: [docs/specs/0096-review-by-other-ai.md, docs/designs/0092-review-by-other-ai.md, docs/specs/0099-ux-reviewer.md, docs/designs/0098-ux-reviewer.md]
 
+  - id: usability-test
+    name: 使いやすさを確かめるテスト(初見の利用者テストと、機械で見る決まり)
+    group: process
+    status: あり
+    removable: true
+    default: 残す
+    what: ペルソナになりきった AI に、画面の知識を持たせずに業務の言葉で仕事を頼み、手元の画面を役割と名前だけで触らせて、終えられたか・手数・迷った所を記録する(/usability-test・pnpm ux:browse)。あわせて、戻せない操作を押した瞬間に実行する所・空の文の無い表・主ボタンが2つ以上の画面を CI が止める(今の外れは理由つきで並べる)
+    needed_by: 人を集めたユーザーテストを回せない間に、画面だけで仕事を終えられるかを何度でも測りたい
+    not_needed_by: 本物の利用者に毎週ユーザーテストを頼める・画面の無いプロダクト
+    if_removed: 初めての人のつまずき(どこに置けばいいか分からない・押しても何も起きない)が、受け入れか本番まで見つからない。押した瞬間に消える「消す」が増えても止まらない
+    depends_on: [review-by-other-ai]
+    law: []
+    where: [.claude/agents/first-time-user.md, .claude/skills/usability-test/SKILL.md, docs/ux/usability-tasks.yaml, docs/ux/usability, apps/web/e2e/usability/browse.ts, apps/web/e2e/usability/server.ts, apps/web/e2e/usability/browse-lib.ts, apps/web/e2e/usability/browse-lib.test.ts, apps/web/src/ux-rules.test.ts, apps/web/e2e/ux-rules.spec.ts]
+    remove:
+      delete: [.claude/agents/first-time-user.md, .claude/skills/usability-test/SKILL.md, docs/ux/usability-tasks.yaml, docs/ux/usability, apps/web/e2e/usability, apps/web/src/ux-rules.test.ts, apps/web/e2e/ux-rules.spec.ts]
+      edit:
+        - { path: package.json, what: ux:browse を外す }
+        - { path: apps/web/package.json, what: ux:browse を外す }
+        - { path: apps/web/vite.config.ts, what: test.include の e2e/usability を外す }
+        - { path: docs/review-viewpoints.md, what: 「画面の使いやすさ(UX)」の機械で確かめている所から ux-rules と初見の利用者テストを外す }
+        - { path: docs/guides/ux-review.md, what: 10 の今の機械の検査と 11 を外す }
+      docs: [docs/specs/0100-usability-test.md, docs/designs/0099-usability-test.md]
+
   - id: purpose-judge
     name: 意義の判断役と歯止めの3つ(やる / やらない / 条件つき)
     group: process

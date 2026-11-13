@@ -1,0 +1,41 @@
+# 初見の利用者テストで頼む仕事(仕様 0100・/usability-test)。
+# 頼むことは「業務の言葉」で書く(画面の言葉・ボタンの名前を書かない。書くと、迷うかどうかが測れない)。
+# 合格は、呼ぶ側(/usability-test を回す AI)が、利用者役とは別に、画面か API で確かめる。
+# ペルソナは docs/product/personas.md。ログインは種データ(apps/api/src/db/seed.ts)の利用者だけ。
+# 仕事を足すとき: 仕様の「業務の要求」1つ = 仕事1つ。いちばん使う人(ペルソナ)で、いちばん使う幅(現場ならスマホ)。
+
+- id: U-1
+  persona: P-2 タスクを片づける人
+  login: member@acme.test
+  device: mobile
+  ask: 今日『足場の点検』という作業をやることになった。この現場(Acme の立ち上げ)の作業として残しておき、終わったら、終わったことを伝えたい(作業は終わったものとして、最後まで進める)
+  pass: 「Acme の立ち上げ」に「足場の点検」があり、完了になっている
+  limit: 15
+  allowed: []
+
+- id: U-2
+  persona: P-3 入ったばかりの人
+  login: newcomer@acme.test
+  device: mobile
+  ask: 自分が今日やることを知りたい。それと、困ったときに誰に聞けばいいかを知りたい
+  pass: 未完了のタスクの一覧を見た。組織の管理者の名前か、聞く先にたどり着いた(たどり着けなければ、その事実が答え)
+  limit: 20
+  allowed: [最初の利用規約などへの同意]
+
+- id: U-3
+  persona: P-1 進み具合を見て、催促する人
+  login: admin@acme.test
+  device: desktop
+  ask: 「Acme の立ち上げ」で、まだ終わっていない作業がいくつあるかを知りたい
+  pass: 未完了の数を言えた(画面の数と合う)
+  limit: 10
+  allowed: []
+
+- id: U-4
+  persona: P-5 導入を進める事務の長
+  login: admin@acme.test
+  device: desktop
+  ask: 新しく入る人(new-hire@acme.test)を、この組織に呼びたい。メンバーとして
+  pass: new-hire@acme.test への招待が、メンバーのロールで出ている
+  limit: 15
+  allowed: [招待を送る]
