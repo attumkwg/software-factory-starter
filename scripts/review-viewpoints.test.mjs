@@ -9,15 +9,17 @@ const text = readFileSync("docs/review-viewpoints.md", "utf8");
 /** 「(」より前だけ(「非機能(運用・性能)」→「非機能」) */
 const nameOf = (cell) => cell.split("(")[0].trim();
 
-/** 見出しの行が head で始まる表の、列 col のセルを全部 */
+/** 見出しの行が head で始まる表(同じ見出しの表が複数あれば全部)の、列 col のセルを全部 */
 function column(head, col) {
   const lines = text.split("\n");
-  const start = lines.findIndex((l) => l.startsWith(head));
-  assert.ok(start >= 0, `表が無い: ${head}`);
+  const starts = lines.flatMap((l, i) => (l.startsWith(head) ? [i] : []));
+  assert.ok(starts.length > 0, `表が無い: ${head}`);
   const cells = [];
-  for (const line of lines.slice(start + 2)) {
-    if (!line.startsWith("|")) break;
-    cells.push(line.split("|")[col + 1].trim());
+  for (const start of starts) {
+    for (const line of lines.slice(start + 2)) {
+      if (!line.startsWith("|")) break;
+      cells.push(line.split("|")[col + 1].trim());
+    }
   }
   return cells;
 }
@@ -54,9 +56,25 @@ test("観点の台帳の観点は、全部どれかの人格が持つ", () => {
   );
 });
 
-test("人格は5人で、どの人格にも気持ちの1行と呼ぶ PR がある", () => {
+test("画面の使いやすさ(UX)の観点が台帳にあり、🎨 が持つ(仕様 0099)", () => {
+  for (const v of [
+    "迷わなさ",
+    "画面の状態",
+    "見た目の強弱",
+    "文言",
+    "危ない操作と戻し方",
+    "スマホでの操作",
+  ])
+    assert.ok(viewpoints.includes(v), `UX の観点が無い: ${v}`);
   const people = column("| 人格 |", 0);
-  assert.equal(people.length, 5);
+  const i = people.findIndex((p) => p.startsWith("🎨"));
+  assert.ok(i >= 0, "🎨 使いやすさを見る人が無い");
+  assert.match(column("| 人格 |", 3)[i], /画面を変える/, "🎨 を呼ぶ PR は「画面を変える PR」");
+});
+
+test("人格は6人で、どの人格にも気持ちの1行と呼ぶ PR がある", () => {
+  const people = column("| 人格 |", 0);
+  assert.equal(people.length, 6);
   for (const [i, feeling] of column("| 人格 |", 1).entries())
     assert.ok(feeling.length > 10, `${people[i]} の気持ちが空`);
   for (const [i, when] of column("| 人格 |", 3).entries())
