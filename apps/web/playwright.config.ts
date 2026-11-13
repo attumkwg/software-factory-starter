@@ -59,7 +59,7 @@ export default defineConfig({
           {
             name: "chromium",
             use: { ...devices["Desktop Chrome"] },
-            testIgnore: ["cognito-*.spec.ts", "vrt/**", "verify/**", ...WAITING_SPECS],
+            testIgnore: ["cognito-*.spec.ts", "vrt/**", "verify/**", "usability/**", ...WAITING_SPECS],
           },
           {
             name: "mobile",
