@@ -1,4 +1,8 @@
-import { currentPreRegistrationConsent, PRE_REGISTRATION_RETENTION_DAYS } from "@app/shared";
+import {
+  currentPreRegistrationConsent,
+  PRE_REGISTRATION_RETENTION_DAYS,
+  toLocalDate,
+} from "@app/shared";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { lpDailyCounts, outbox, preRegistrations } from "../../src/db/schema.ts";
@@ -107,7 +111,8 @@ describe("確認と取り消し", () => {
     const oneYear = new Date(
       (row?.createdAt.getTime() ?? 0) + PRE_REGISTRATION_RETENTION_DAYS.confirmed * 86_400_000,
     );
-    expect(after?.deleteAfter).toBe(oneYear.toISOString().slice(0, 10));
+    // 消す日は日本の日付で決める(UTC の日付で比べると、日本の 0〜9時に1日ずれて落ちる)
+    expect(after?.deleteAfter).toBe(toLocalDate(oneYear, "Asia/Tokyo"));
     expect((await h.countsOf("koumuten-kai"))?.confirmations).toBe(before + 1);
 
     expect((await confirm(token)).status).toBe(204);
