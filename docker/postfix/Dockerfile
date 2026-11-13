@@ -7,9 +7,12 @@
 #   /run/postfix       … 起動のたびに作る設定(SES のパスワードを含むので、ディスクに残さない)
 # Postfix の master は root で起動する作り(25番を開き、送り待ちの持ち主を整え、各処理は postfix のユーザーに下がる)。
 # root のままなのは master だけ。受け取り・配送の処理は postfix のユーザーで動く(Trivy の除外は .trivyignore.yaml)
-FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
+# 土台の debian:trixie-slim は、Debian のセキュリティ更新より遅れて作り直される(ダイジェストを上げても穴が残ることがある)。
+# 作るたびに入っているパッケージも上げて、直った版を取り込む(CI の Trivy image は直った版のある HIGH 以上で落とす)
 RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     postfix libsasl2-modules ca-certificates \
   && rm -rf /var/lib/apt/lists/* \
