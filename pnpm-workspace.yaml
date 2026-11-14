@@ -18,3 +18,5 @@ ignoredBuiltDependencies:
 minimumReleaseAgeExclude:
   # Renovate security update: nodemailer@10.1.4
   - nodemailer@10.1.4
+  # Renovate security update: hono@4.13.16
+  - hono@4.13.16
