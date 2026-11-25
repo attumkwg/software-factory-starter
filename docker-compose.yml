@@ -20,7 +20,7 @@ x-fast-start: &fast-start
 
 services:
   db:
-    image: postgres:17-alpine@sha256:eee6c6e1b0894fa4fe0075eb054af9fd1cf39a35321c2d4110626cfe506411fb
+    image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: postgres
